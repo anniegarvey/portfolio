@@ -1,0 +1,66 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# testing
+/coverage
+*.lcov
+
+# next.js
+/.next/
+/out/
+.next
+out
+.swc
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# debug
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# pnpm
+.pnpm-store
+.pnpm-debug.log
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IDE - Cursor
+.cursor/
+
+# Biome
+.biome/
+
+# React Compiler
+.react-compiler/
+
+# Turbo
+.turbo
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+.cache/
