@@ -1,10 +1,14 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true,
-    "defaultBranch": "main"
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedAttributes": "on",
+        "useSortedKeys": "on",
+        "useSortedProperties": "on"
+      }
+    }
   },
   "files": {
     "ignoreUnknown": true,
@@ -25,21 +29,28 @@
     "indentWidth": 2
   },
   "linter": {
+    "domains": {
+      "next": "all",
+      "project": "all",
+      "react": "all"
+    },
     "enabled": true,
     "rules": {
+      "a11y": {
+        "noNoninteractiveElementInteractions": "error"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "error",
+        "noExcessiveLinesPerFunction": "error",
+        "useSimplifiedLogicExpression": "error"
+      },
       "recommended": true
-    },
-    "domains": {
-      "next": "recommended",
-      "react": "recommended"
     }
   },
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "on",
-        "useSortedProperties": "on"
-      }
-    }
+  "vcs": {
+    "clientKind": "git",
+    "defaultBranch": "main",
+    "enabled": true,
+    "useIgnoreFile": true
   }
 }
