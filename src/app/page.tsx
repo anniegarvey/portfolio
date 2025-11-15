@@ -53,6 +53,7 @@ const Title = styled.h1`
 
 const ColourSection = styled.section`
   padding-block: 32px;
+  text-transform: capitalize;
 `;
 
 const SwatchWrapper = styled.div`
@@ -75,11 +76,11 @@ const Alert = styled.div`
   background-color: var(--color-secondary-100);
   border: 1px solid var(--color-secondary-500);
   color: var(--color-secondary-900);
-  margin: 32px;
   width: fit-content;
   border-radius: 8px;
   display: flex;
   align-items: center;
+  margin-block: 32px;
 `;
 
 const AlertButton = styled.button`

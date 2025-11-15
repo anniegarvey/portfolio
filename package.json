@@ -7,20 +7,22 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "prepare": "husky"
   },
   "dependencies": {
+    "next": "16.0.1",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "next": "16.0.1"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
-    "babel-plugin-react-compiler": "1.0.0",
-    "typescript": "5.9.3",
+    "@biomejs/biome": "2.2.0",
     "@types/node": "24.10.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
-    "@biomejs/biome": "2.2.0",
-    "next-yak": "8.0.1"
+    "babel-plugin-react-compiler": "1.0.0",
+    "husky": "^9.1.7",
+    "next-yak": "8.0.1",
+    "typescript": "5.9.3"
   }
 }
