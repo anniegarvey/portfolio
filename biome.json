@@ -43,6 +43,9 @@
         "noExcessiveLinesPerFunction": "error",
         "useSimplifiedLogicExpression": "error"
       },
+      "correctness": {
+        "useImportExtensions": "off"
+      },
       "recommended": true
     }
   },
