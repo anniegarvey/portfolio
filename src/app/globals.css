@@ -26,13 +26,6 @@
   --color-grey-50: hsl(60 100% 99.8%);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 html,
 body {
   max-width: 100vw;
@@ -61,5 +54,29 @@ a {
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
+  }
+}
+
+@keyframes fadeFromOpaque {
+  from {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeToOpaque {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeFromTransparent {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeToTransparent {
+  to {
+    opacity: 0;
   }
 }

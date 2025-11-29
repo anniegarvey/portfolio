@@ -48,6 +48,7 @@ const Nav = styled.nav`
 
 const LogoLink = styled(Link)`
   transition: opacity 600ms ease;
+  animation: fadeFromTransparent 600ms ease;
 
   &:hover {
     opacity: 0.8;
@@ -65,8 +66,7 @@ const NavList = styled.ul`
   display: flex;
   gap: 1rem;
   list-style: none;
-  margin-inline: auto;
-  padding: 0;
+  padding-left: 1rem;
 `;
 
 const NavItem = styled.li`
