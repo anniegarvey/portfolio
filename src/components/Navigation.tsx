@@ -33,7 +33,7 @@ export default function Navigation() {
 const Header = styled.header`
   display: flex;
   padding: 1rem;
-  background-color: var(--color-grey-800);
+  background-color: var(--color-grey-900);
   border-bottom: 1px solid var(--color-grey-700);
 `;
 

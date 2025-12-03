@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { styled } from "next-yak";
@@ -20,6 +20,10 @@ export const metadata: Metadata = {
     "Principal software engineer specializing in front-end development.",
 };
 
+export const viewport: Viewport = {
+  colorScheme: "dark light",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,7 +40,7 @@ export default function RootLayout({
 }
 
 const Main = styled.main`
-  max-width: calc(75ch + 2*32px);
+  max-width: calc(85ch + 2*32px);
   padding: 32px;
   margin-inline: auto;
 `;

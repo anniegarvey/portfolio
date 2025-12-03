@@ -2,7 +2,7 @@ import { styled } from "next-yak";
 import type React from "react";
 
 const COLOUR_SHADES = {
-  primary: [100, 300, 500, 700, 900],
+  primary: [100, 200, 300, 400, 500, 600, 700, 800, 900],
   secondary: [100, 300, 500, 700, 900],
   grey: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
 };
@@ -10,12 +10,14 @@ const COLOUR_SHADES = {
 export default function ColourPalettePage() {
   return (
     <>
-      <Title>Colour Palette</Title>
+      <h1>Colour Palette</h1>
 
       {Object.entries(COLOUR_SHADES).map(([colour, shades]) => (
         <ColourSection
           key={colour}
-          style={{ color: `var(--color-${colour}-100)` }}
+          style={{
+            color: `light-dark(var(--color-${colour}-700), var(--color-${colour}-100))`,
+          }}
         >
           <h2>{colour}</h2>
           <SwatchWrapper>
@@ -25,6 +27,10 @@ export default function ColourPalettePage() {
                 style={
                   {
                     "--background-color": `var(--color-${colour}-${shade})`,
+                    color:
+                      shade > 300
+                        ? "var(--color-grey-100)"
+                        : "var(--color-grey-900)",
                   } as React.CSSProperties
                 }
               >
@@ -64,11 +70,6 @@ const Alert: React.FC<{ colour?: string; children: React.ReactNode }> = ({
   </BaseAlert>
 );
 
-const Title = styled.h1`
-  color: var(--color-primary-300);
-  font-size: 2.5rem;
-`;
-
 const ColourSection = styled.section`
   padding-block: 32px;
   text-transform: capitalize;
@@ -81,12 +82,12 @@ const SwatchWrapper = styled.div`
 `;
 
 const Swatch = styled.div`
-  width: 100px;
-  height: 100px;
+  width: 4.5rem;
+  aspect-ratio: 1;
   background-color: var(--background-color);
   display: grid;
   place-items: center;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+  font-weight: bold;
 `;
 
 const BaseAlert = styled.div`

@@ -1,9 +1,13 @@
 :root {
   --primary-hue: 264;
   --color-primary-100: hsl(var(--primary-hue), 73.60%, 91.20%);
+  --color-primary-200: hsl(var(--primary-hue), 73.60%, 81.20%);
   --color-primary-300: hsl(var(--primary-hue), 60%, 61.20%);
+  --color-primary-400: hsl(var(--primary-hue), 73.60%, 41.20%);
   --color-primary-500: hsl(var(--primary-hue), 73.60%, 31.20%);
+  --color-primary-600: hsl(var(--primary-hue), 73.60%, 26.20%);
   --color-primary-700: hsl(var(--primary-hue), 73.60%, 21.20%);
+  --color-primary-800: hsl(var(--primary-hue), 73.60%, 16.20%);
   --color-primary-900: hsl(var(--primary-hue), 73.60%, 11.20%);
 
   --secondary-hue: 130;
@@ -14,7 +18,7 @@
   --color-secondary-900: hsl(var(--secondary-hue) 96.9% 9.9%);
 
   --color-grey-1000: hsl(0 0% 0.4%);
-  --color-grey-900: hsl(234 8.3% 9.4%);
+  --color-grey-900: hsl(227 6.3% 9.4%);
   --color-grey-800: hsl(230 7.1% 16.1%);
   --color-grey-700: hsl(227 6.3% 23.6%);
   --color-grey-600: hsl(223 5.7% 31.8%);
@@ -24,6 +28,16 @@
   --color-grey-200: hsl(210 18% 80%);
   --color-grey-100: hsl(206 25% 90%);
   --color-grey-50: hsl(60 100% 99.8%);
+
+  /* Souped up easing functions */
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in: cubic-bezier(0.75, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease: cubic-bezier(0.44, 0.21, 0, 1);
+
+  /* This is already defined in the metadata,
+  but LightningCSS requires it to be defined here too for light-dark to work properly */
+  color-scheme: dark light;
 }
 
 html,
@@ -37,7 +51,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--foreground);
-  background: var(--color-grey-900);
+  background: light-dark(var(--color-grey-100), var(--color-grey-800));
 }
 
 * {
@@ -51,10 +65,9 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+h1 {
+  font-size: 2.5rem;
+  color: light-dark(var(--color-primary-500), var(--color-primary-200));
 }
 
 @keyframes fadeFromOpaque {
@@ -78,5 +91,11 @@ a {
 @keyframes fadeToTransparent {
   to {
     opacity: 0;
+  }
+}
+
+@keyframes disperse {
+  to {
+    transform: translate(var(--x), var(--y));
   }
 }
