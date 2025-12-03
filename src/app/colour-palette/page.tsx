@@ -1,36 +1,44 @@
 import { styled } from "next-yak";
 import type React from "react";
 
-const COLOUR_SHADES = {
-  primary: [100, 200, 300, 400, 500, 600, 700, 800, 900],
-  secondary: [100, 300, 500, 700, 900],
-  grey: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
-};
+const SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+
+const COLOUR_CONTRAST_SWITCH_POINTS = {
+  primary: 500,
+  secondary: 500,
+  teal: 600,
+  orange: 600,
+  rose: 500,
+  grey: 500,
+} as const;
 
 export default function ColourPalettePage() {
   return (
     <>
       <h1>Colour Palette</h1>
 
-      {Object.entries(COLOUR_SHADES).map(([colour, shades]) => (
+      {Object.keys(COLOUR_CONTRAST_SWITCH_POINTS).map((colour) => (
         <ColourSection
           key={colour}
           style={{
-            color: `light-dark(var(--color-${colour}-700), var(--color-${colour}-100))`,
+            color: `light-dark(var(--color-${colour}-700), var(--color-${colour}-300))`,
           }}
         >
           <h2>{colour}</h2>
           <SwatchWrapper>
-            {shades.map((shade) => (
+            {SHADES.map((shade) => (
               <Swatch
                 key={shade}
                 style={
                   {
                     "--background-color": `var(--color-${colour}-${shade})`,
                     color:
-                      shade > 300
-                        ? "var(--color-grey-100)"
-                        : "var(--color-grey-900)",
+                      shade >
+                      COLOUR_CONTRAST_SWITCH_POINTS[
+                        colour as keyof typeof COLOUR_CONTRAST_SWITCH_POINTS
+                      ]
+                        ? "white"
+                        : "black",
                   } as React.CSSProperties
                 }
               >
@@ -40,12 +48,28 @@ export default function ColourPalettePage() {
           </SwatchWrapper>
         </ColourSection>
       ))}
-      <Alert colour="secondary">
-        <b>Testing</b> 1 ... 2 ... <em>3</em> ...
-        <AlertButton>Click me</AlertButton>
-      </Alert>
       <Alert>
         <b>Primary Testing</b> 1 ... 2 ... <em>3</em> ...
+        <AlertButton>Click me</AlertButton>
+      </Alert>
+      <Alert colour="secondary">
+        <b>Secondary Testing</b> 1 ... 2 ... <em>3</em> ...
+        <AlertButton>Click me</AlertButton>
+      </Alert>
+      <Alert colour="teal">
+        <b>Teal Testing</b> 1 ... 2 ... <em>3</em> ...
+        <AlertButton>Click me</AlertButton>
+      </Alert>
+      <Alert colour="orange">
+        <b>Orange Testing</b> 1 ... 2 ... <em>3</em> ...
+        <AlertButton>Click me</AlertButton>
+      </Alert>
+      <Alert colour="rose">
+        <b>Rose Testing</b> 1 ... 2 ... <em>3</em> ...
+        <AlertButton>Click me</AlertButton>
+      </Alert>
+      <Alert colour="grey">
+        <b>Grey Testing</b> 1 ... 2 ... <em>3</em> ...
         <AlertButton>Click me</AlertButton>
       </Alert>
     </>
@@ -61,7 +85,7 @@ const Alert: React.FC<{ colour?: string; children: React.ReactNode }> = ({
       {
         "--background-colour": `var(--color-${colour ?? "primary"}-100)`,
         "--text-colour": `var(--color-${colour ?? "primary"}-900)`,
-        "--button-colour": `var(--color-${colour ?? "primary"}-500)`,
+        "--button-colour": `var(--color-${colour ?? "primary"}-600)`,
         "--button-hover-colour": `var(--color-${colour ?? "primary"}-700)`,
       } as React.CSSProperties
     }
@@ -71,8 +95,10 @@ const Alert: React.FC<{ colour?: string; children: React.ReactNode }> = ({
 );
 
 const ColourSection = styled.section`
-  padding-block: 32px;
+  padding: 32px;
+  margin-inline: -32px;
   text-transform: capitalize;
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-600));
 `;
 
 const SwatchWrapper = styled.div`
@@ -82,12 +108,13 @@ const SwatchWrapper = styled.div`
 `;
 
 const Swatch = styled.div`
-  width: 4.5rem;
+  width: 4rem;
   aspect-ratio: 1;
   background-color: var(--background-color);
   display: grid;
   place-items: center;
   font-weight: bold;
+  font-size: 1.25rem;
 `;
 
 const BaseAlert = styled.div`
