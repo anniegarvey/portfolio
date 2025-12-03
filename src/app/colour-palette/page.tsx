@@ -85,8 +85,8 @@ const Alert: React.FC<{ colour?: string; children: React.ReactNode }> = ({
       {
         "--background-colour": `var(--color-${colour ?? "primary"}-100)`,
         "--text-colour": `var(--color-${colour ?? "primary"}-900)`,
-        "--button-colour": `var(--color-${colour ?? "primary"}-600)`,
-        "--button-hover-colour": `var(--color-${colour ?? "primary"}-700)`,
+        "--button-colour": `var(--color-${colour ?? "primary"}-700)`,
+        "--button-hover-colour": `var(--color-${colour ?? "primary"}-800)`,
       } as React.CSSProperties
     }
   >
@@ -120,6 +120,8 @@ const Swatch = styled.div`
 const BaseAlert = styled.div`
   padding: 16px;
   background-color: var(--background-colour);
+  /* slightly reducing opacity helps reduce brightness in dark mode without entire restyle, retaining enough contrast */
+  opacity: 0.9;
   border: 1px solid var(--button-colour);
   color: var(--text-colour);
   width: fit-content;
@@ -141,6 +143,7 @@ const AlertButton = styled.button`
   margin-left: 16px;
   cursor: pointer;
   border-radius: 4px;
+  font-weight: bold;
 
   &:hover {
     background-color: var(--button-hover-colour);
