@@ -33,14 +33,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <Navigation />
-        <Main>{children}</Main>
+        {children}
       </body>
     </html>
   );
 }
-
-const Main = styled.main`
-  max-width: calc(85ch + 2*32px);
-  padding: 32px;
-  margin-inline: auto;
-`;

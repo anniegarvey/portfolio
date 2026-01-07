@@ -92,6 +92,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
   color: var(--foreground);
   background: light-dark(var(--color-grey-100), var(--color-grey-800));
 }
