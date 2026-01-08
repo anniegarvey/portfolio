@@ -47,7 +47,8 @@ const Hero = styled.section`
 `;
 
 const HeroTitle = styled.h1`
-  font-family: cursive;
+  font-family: var(--font-tangerine), cursive;
+  font-size: 4rem;
 `;
 
 const HeroImage = styled(Image)`

@@ -1,51 +1,41 @@
 "use client";
 
+import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { keyframes, styled } from "next-yak";
-import { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
   title?: string;
 }
 
 export function Modal({ isOpen, onClose, children, title }: ModalProps) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  return createPortal(
-    <Overlay onClick={onClose} ref={overlayRef}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <Header>
-          <Title>{title}</Title>
-          <CloseButton aria-label="Close modal" onClick={onClose}>
-            <X size={20} />
-          </CloseButton>
-        </Header>
-        <Body>{children}</Body>
-      </ModalContent>
-    </Overlay>,
-    document.body,
+  return (
+    <Dialog.Root onOpenChange={(open) => !open && onClose()} open={isOpen}>
+      <Dialog.Portal>
+        <Overlay />
+        <Content
+          aria-describedby={undefined}
+          onInteractOutside={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <Header>
+            <Dialog.Title asChild>
+              <Title>{title}</Title>
+            </Dialog.Title>
+            <Dialog.Close asChild>
+              <CloseButton aria-label="Close modal">
+                <X size={20} />
+              </CloseButton>
+            </Dialog.Close>
+          </Header>
+          <Body>{children}</Body>
+        </Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -55,11 +45,11 @@ const fadeIn = keyframes`
 `;
 
 const slideIn = keyframes`
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { transform: translate(-50%, -48%) scale(0.96); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 `;
 
-const Overlay = styled.div`
+const Overlay = styled(Dialog.Overlay)`
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
@@ -72,10 +62,10 @@ const Overlay = styled.div`
   backdrop-filter: blur(2px);
 `;
 
-const ModalContent = styled.div`
+const Content = styled(Dialog.Content)`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-900));
   border-radius: 0.5rem;
-  width: 100%;
+  width: 90vw; /* Changed from 100% to 90vw for better mobile default, max-width still applies */
   max-width: 500px;
   max-height: 90vh;
   display: flex;
@@ -83,6 +73,18 @@ const ModalContent = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
   animation: ${slideIn} 0.3s ease-out;
   border: 1px solid var(--color-grey-200);
+
+  /* Fixed positioning to center on screen */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 51; /* Higher than Overlay's 50 */
+  
+  /* Ensure it doesn't overflow if centered with flexbox on Overlay */
+  &:focus {
+    outline: none;
+  }
 `;
 
 const Header = styled.div`
@@ -107,6 +109,9 @@ const CloseButton = styled.button`
   padding: 0.25rem;
   border-radius: 0.25rem;
   margin-right: -0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: var(--color-grey-200);

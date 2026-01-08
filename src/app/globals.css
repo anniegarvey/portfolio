@@ -93,7 +93,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
-  color: var(--foreground);
+  color: light-dark(var(--color-grey-900), var(--color-grey-50));
   background: light-dark(var(--color-grey-100), var(--color-grey-800));
 }
 
