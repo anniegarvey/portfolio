@@ -8,8 +8,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
 );
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Tests often exceed this limit
-describe("EnergyPlannerContext", () => {
+describe("EnergyPlannerContext - Task Management", () => {
   // Helper to clear storage before each test (simple approach for now, assuming jdom storage mock works)
   beforeEach(() => {
     localStorage.clear();
@@ -33,6 +32,12 @@ describe("EnergyPlannerContext", () => {
 
     expect(result.current.tasks).toHaveLength(1);
     expect(result.current.tasks[0].title).toBe("Test Task");
+  });
+});
+
+describe("EnergyPlannerContext - Day Planning (Add)", () => {
+  beforeEach(() => {
+    localStorage.clear();
   });
 
   it("adds task to day plan and calculates usage", () => {
@@ -61,6 +66,12 @@ describe("EnergyPlannerContext", () => {
 
     expect(result.current.dayPlan.selectedTaskIds).toContain(task.id);
     expect(result.current.calculateEnergyUsage().physical).toBe(50);
+  });
+});
+
+describe("EnergyPlannerContext - Day Planning (Capacity)", () => {
+  beforeEach(() => {
+    localStorage.clear();
   });
 
   it("warns when capacity exceeded", () => {
@@ -97,6 +108,12 @@ describe("EnergyPlannerContext", () => {
     const check = result.current.checkExceedsCapacity();
     expect(check.exceeded).toBe(true);
     expect(check.message).toContain("Physical");
+  });
+});
+
+describe("EnergyPlannerContext - Day Planning Completion", () => {
+  beforeEach(() => {
+    localStorage.clear();
   });
 
   it("toggles task completion", () => {

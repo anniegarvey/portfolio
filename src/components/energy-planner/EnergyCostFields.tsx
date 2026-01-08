@@ -1,6 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
+import { useId } from "react";
 import type { EnergyCost } from "../../lib/energy-planner/schema";
 import { EnergyTypeEnum } from "../../lib/energy-planner/schema";
 
@@ -13,14 +14,16 @@ export function EnergyCostFields({
   energyCost,
   onChange,
 }: EnergyCostFieldsProps) {
+  const idPrefix = useId();
   return (
     <>
       <SectionTitle>Energy Cost (0-100)</SectionTitle>
       <Grid>
         {Object.keys(EnergyTypeEnum.enum).map((type) => (
           <Field key={type}>
-            <Label>{type}</Label>
+            <Label htmlFor={`${idPrefix}-${type}`}>{type}</Label>
             <NumberInput
+              id={`${idPrefix}-${type}`}
               max="100"
               min="0"
               onChange={(e) =>

@@ -1,6 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
+import { useId } from "react";
 import type { TaskFactor } from "../../lib/energy-planner/schema";
 
 interface TaskFactorFieldsProps {
@@ -9,13 +10,15 @@ interface TaskFactorFieldsProps {
 }
 
 export function TaskFactorFields({ factors, onChange }: TaskFactorFieldsProps) {
+  const idPrefix = useId();
   return (
     <>
       <SectionTitle>Task Factors</SectionTitle>
       <Grid>
         <Field>
-          <Label>Start Difficulty (1-10)</Label>
+          <Label htmlFor={`${idPrefix}-start`}>Start Difficulty (1-10)</Label>
           <NumberInput
+            id={`${idPrefix}-start`}
             max="10"
             min="1"
             onChange={(e) =>
@@ -29,8 +32,9 @@ export function TaskFactorFields({ factors, onChange }: TaskFactorFieldsProps) {
           />
         </Field>
         <Field>
-          <Label>Stop Difficulty (1-10)</Label>
+          <Label htmlFor={`${idPrefix}-stop`}>Stop Difficulty (1-10)</Label>
           <NumberInput
+            id={`${idPrefix}-stop`}
             max="10"
             min="1"
             onChange={(e) =>
@@ -44,9 +48,10 @@ export function TaskFactorFields({ factors, onChange }: TaskFactorFieldsProps) {
           />
         </Field>
         <Field>
-          <Label>Restorative?</Label>
+          <Label htmlFor={`${idPrefix}-restorative`}>Restorative?</Label>
           <CheckboxInput
             checked={factors.isRestorative}
+            id={`${idPrefix}-restorative`}
             onChange={(e) =>
               onChange({ ...factors, isRestorative: e.target.checked })
             }

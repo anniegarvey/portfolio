@@ -1,11 +1,10 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useState } from "react";
-import { useEnergyPlanner } from "../../lib/energy-planner/context";
-import type { EnergyCost, Task } from "../../lib/energy-planner/schema";
+import type { Task } from "../../lib/energy-planner/schema";
 import { EnergyCostFields } from "./EnergyCostFields";
 import { TaskFactorFields } from "./TaskFactorFields";
+import { useTaskForm } from "./useTaskForm";
 
 interface TaskFormProps {
   initialData?: Task;
@@ -13,63 +12,24 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ initialData, onClose }: TaskFormProps) {
-  const { addTask, updateTask } = useEnergyPlanner();
-  const [title, setTitle] = useState(initialData?.title || "");
-  const [energyCost, setEnergyCost] = useState<EnergyCost>(
-    initialData?.energyCost || {
-      physical: 10,
-      social: 10,
-      executive: 10,
-    },
-  );
-  const [factors, setFactors] = useState(
-    initialData?.factors || {
-      initiationDifficulty: 5,
-      terminationDifficulty: 5,
-      isRestorative: false,
-    },
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title) return;
-
-    if (initialData) {
-      updateTask({
-        ...initialData,
-        title,
-        energyCost,
-        factors,
-      });
-    } else {
-      addTask({
-        title,
-        description: "",
-        energyCost,
-        factors,
-      });
-    }
-
-    if (onClose) {
-      onClose();
-    } else {
-      // Reset form if just adding
-      setTitle("");
-      setEnergyCost({ physical: 10, social: 10, executive: 10 });
-      setFactors({
-        initiationDifficulty: 5,
-        terminationDifficulty: 5,
-        isRestorative: false,
-      });
-    }
-  };
+  const {
+    title,
+    setTitle,
+    energyCost,
+    setEnergyCost,
+    factors,
+    setFactors,
+    handleSubmit,
+    formId,
+  } = useTaskForm({ initialData, onClose });
 
   return (
     <Container>
       <Form onSubmit={handleSubmit}>
         <Field>
-          <Label>Task Name</Label>
+          <Label htmlFor={`${formId}-title`}>Task Name</Label>
           <TextInput
+            id={`${formId}-title`}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Do Laundry"
             required

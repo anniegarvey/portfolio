@@ -76,7 +76,7 @@ const Label = styled.label`
 const Value = styled.span`
   font-size: 0.875rem;
   text-align: right;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
 `;
 
 const Input = styled.input<{ $energyType: string }>`

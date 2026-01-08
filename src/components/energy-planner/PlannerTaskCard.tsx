@@ -39,6 +39,7 @@ export function PlannerTaskCard({
         {selected && onToggleCompletion && (
           <ActionButton
             $completed={completed}
+            aria-label={completed ? "Mark as not done" : "Mark as done"}
             onClick={() => onToggleCompletion(task.id)}
             title={completed ? "Mark as not done" : "Mark as done"}
           >
@@ -46,13 +47,18 @@ export function PlannerTaskCard({
           </ActionButton>
         )}
 
-        <ActionButton onClick={() => onEdit(task)} title="Edit task">
+        <ActionButton
+          aria-label="Edit task"
+          onClick={() => onEdit(task)}
+          title="Edit task"
+        >
           <Pencil size={18} />
         </ActionButton>
 
         {selected && onRemove && (
           <ActionButton
             $remove
+            aria-label="Remove from day"
             onClick={() => onRemove(task.id)}
             title="Remove from day"
           >
@@ -61,7 +67,11 @@ export function PlannerTaskCard({
         )}
 
         {!selected && onAdd && (
-          <ActionButton onClick={() => onAdd(task.id)} title="Add to day">
+          <ActionButton
+            aria-label="Add to day"
+            onClick={() => onAdd(task.id)}
+            title="Add to day"
+          >
             <CopyPlus size={18} />
           </ActionButton>
         )}
