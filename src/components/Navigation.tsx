@@ -23,6 +23,9 @@ export default function Navigation() {
           <NavItem>
             <NavLink href="/colour-palette">Colour Palette</NavLink>
           </NavItem>
+          <NavItem>
+            <NavLink href="/energy-planner">Energy Planner</NavLink>
+          </NavItem>
         </NavList>
       </Nav>
       <Side />
