@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { EnergyCostSchema, TaskFactorSchema } from "./schema";
+import {
+  DayPlanSchema,
+  EnergyCostSchema,
+  TaskFactorSchema,
+  TaskSchema,
+} from "./schema";
 
 describe("EnergyCostSchema", () => {
   it("validates correct energy levels", () => {
@@ -40,6 +45,18 @@ describe("TaskFactorSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("defaults isRestorative to false", () => {
+    const result = TaskFactorSchema.safeParse({
+      initiationDifficulty: 5,
+      terminationDifficulty: 5,
+      // isRestorative omitted
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.isRestorative).toBe(false);
+    }
+  });
+
   it("rejects difficulty < 1 or > 10", () => {
     const result = TaskFactorSchema.safeParse({
       initiationDifficulty: 0,
@@ -47,5 +64,70 @@ describe("TaskFactorSchema", () => {
       isRestorative: false,
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("TaskSchema", () => {
+  it("requires title", () => {
+    const result = TaskSchema.safeParse({
+      id: "00000000-0000-0000-0000-000000000000",
+      createdAt: new Date(),
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 5,
+        isRestorative: false,
+      },
+      // Missing title
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("requires non-empty title", () => {
+    const result = TaskSchema.safeParse({
+      id: "00000000-0000-0000-0000-000000000000",
+      title: "",
+      createdAt: new Date(),
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 5,
+        isRestorative: false,
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Title is required");
+    }
+  });
+
+  it("accepts valid task with long title", () => {
+    const result = TaskSchema.safeParse({
+      id: "00000000-0000-0000-0000-000000000000",
+      title:
+        "A very long task title that is definitely longer than 1 character",
+      createdAt: new Date(),
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 5,
+        isRestorative: false,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("DayPlanSchema", () => {
+  it("defaults completedTaskIds to empty array", () => {
+    const result = DayPlanSchema.safeParse({
+      date: "2023-01-01",
+      selectedTaskIds: [],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.completedTaskIds).toEqual([]);
+    }
   });
 });

@@ -27,7 +27,7 @@ export function useTaskForm({ initialData, onClose }: UseTaskFormProps) {
     if (!title) return;
 
     const taskData = { title, energyCost, factors };
-    
+
     if (initialData) {
       updateTask({ ...initialData, ...taskData });
     } else {

@@ -66,24 +66,7 @@ export function useDayPlan() {
   });
 
   useEffect(() => {
-    const storedPlan = localStorage.getItem("energy_planner_day_plan");
-    const storedCapacity = localStorage.getItem("energy_planner_capacity");
-    
-    if (storedPlan) {
-      const parsedPlan = JSON.parse(storedPlan);
-      if (parsedPlan.date === new Date().toISOString().split("T")[0]) {
-        setDayPlan(parsedPlan);
-      } else {
-        setDayPlan({
-          date: new Date().toISOString().split("T")[0],
-          selectedTaskIds: [],
-          completedTaskIds: [],
-          dailyCapacity: storedCapacity
-            ? JSON.parse(storedCapacity)
-            : defaultCapacity,
-        });
-      }
-    }
+    loadInitialDayPlan(setDayPlan);
   }, []);
 
   useEffect(() => {
@@ -91,12 +74,11 @@ export function useDayPlan() {
   }, [dayPlan]);
 
   const addToPlan = (taskId: string) => {
-    if (!dayPlan.selectedTaskIds.includes(taskId)) {
-      setDayPlan((prev) => ({
-        ...prev,
-        selectedTaskIds: [...prev.selectedTaskIds, taskId],
-      }));
-    }
+    setDayPlan((p) =>
+      p.selectedTaskIds.includes(taskId)
+        ? p
+        : { ...p, selectedTaskIds: [...p.selectedTaskIds, taskId] },
+    );
   };
 
   const removeFromPlan = (taskId: string) => {
@@ -123,4 +105,25 @@ export function useDayPlan() {
   };
 
   return { dayPlan, addToPlan, removeFromPlan, toggleTaskCompletion };
+}
+
+function loadInitialDayPlan(setDayPlan: (plan: DayPlan) => void) {
+  const today = new Date().toISOString().split("T")[0];
+  const stored = localStorage.getItem("energy_planner_day_plan");
+
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    if (parsed.date === today) {
+      setDayPlan(parsed);
+      return;
+    }
+  }
+
+  const cap = localStorage.getItem("energy_planner_capacity");
+  setDayPlan({
+    date: today,
+    selectedTaskIds: [],
+    completedTaskIds: [],
+    dailyCapacity: cap ? JSON.parse(cap) : defaultCapacity,
+  });
 }

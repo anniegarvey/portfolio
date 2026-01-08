@@ -111,6 +111,63 @@ describe("EnergyPlannerContext - Day Planning (Capacity)", () => {
   });
 });
 
+describe("EnergyPlannerContext - Day Planning (Edge Cases)", () => {
+  // ... setup ...
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("does not warn when usage equals capacity", () => {
+    const { result } = renderHook(() => useEnergyPlanner(), { wrapper });
+
+    act(() => {
+      result.current.setDailyCapacity({
+        physical: 10,
+        social: 10,
+        executive: 10,
+      });
+      result.current.addTask({
+        title: "Exact Task",
+        energyCost: { physical: 10, social: 10, executive: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+    });
+
+    const task = result.current.tasks[0];
+    act(() => {
+      result.current.addToPlan(task.id);
+    });
+
+    const check = result.current.checkExceedsCapacity();
+    expect(check.exceeded).toBe(false);
+  });
+
+  it("prevents duplicate task addition to plan", () => {
+    const { result } = renderHook(() => useEnergyPlanner(), { wrapper });
+    act(() => {
+      result.current.addTask({
+        title: "Task",
+        energyCost: { physical: 10, social: 10, executive: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+    });
+    const task = result.current.tasks[0];
+    act(() => {
+      result.current.addToPlan(task.id);
+      result.current.addToPlan(task.id); // Add twice
+    });
+    expect(result.current.dayPlan.selectedTaskIds).toHaveLength(1);
+  });
+});
+
 describe("EnergyPlannerContext - Day Planning Completion", () => {
   beforeEach(() => {
     localStorage.clear();

@@ -19,7 +19,8 @@
       "!build",
       "!types/routes.d.ts",
       "!types/validator.ts",
-      "!next-env.d.ts"
+      "!next-env.d.ts",
+      "!.stryker-tmp"
     ]
   },
   "formatter": {
