@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DayPlan, Task } from "./schema";
-import { calculateEnergyUsage } from "./utils";
+import {
+  calculateEnergyUsage,
+  exportEnergyPlannerData,
+  importEnergyPlannerData,
+} from "./utils";
 
 const mockTasks: Task[] = [
   {
@@ -90,5 +94,243 @@ describe("calculateEnergyUsage", () => {
       social: 0,
       executive: 0,
     });
+  });
+});
+
+describe("exportEnergyPlannerData", () => {
+  let createElementSpy: ReturnType<typeof vi.spyOn>;
+  let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
+  let revokeObjectURLSpy: ReturnType<typeof vi.spyOn>;
+
+  function setupExportMocks() {
+    const mockLocalStorage = {
+      getItem: vi.fn((key: string) => {
+        if (key === "energy_planner_tasks") return '{"tasks": "data"}';
+        if (key === "energy_planner_capacity") return '{"capacity": "data"}';
+        if (key === "energy_planner_day_plan") return '{"dayPlan": "data"}';
+        return null;
+      }),
+    };
+    vi.stubGlobal("localStorage", mockLocalStorage);
+
+    const mockLink = { href: "", download: "", click: vi.fn() };
+    createElementSpy = vi
+      .spyOn(document, "createElement")
+      .mockReturnValue(mockLink as unknown as HTMLElement);
+    vi.spyOn(document.body, "appendChild").mockReturnValue(
+      mockLink as unknown as Node,
+    );
+    vi.spyOn(document.body, "removeChild").mockReturnValue(
+      mockLink as unknown as Node,
+    );
+
+    createObjectURLSpy = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:mock-url");
+    revokeObjectURLSpy = vi
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => {});
+  }
+
+  beforeEach(() => {
+    setupExportMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("exports all localStorage data to a JSON file", () => {
+    exportEnergyPlannerData();
+
+    expect(createElementSpy).toHaveBeenCalledWith("a");
+    expect(createObjectURLSpy).toHaveBeenCalled();
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock-url");
+  });
+
+  it("creates a properly formatted export file", () => {
+    exportEnergyPlannerData();
+
+    const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
+    expect(blobCall.type).toBe("application/json");
+  });
+});
+
+describe("importEnergyPlannerData", () => {
+  let setItemSpy: ReturnType<typeof vi.fn>;
+  let reloadSpy: ReturnType<typeof vi.fn>;
+
+  function setupImportMocks() {
+    const mockLocalStorage = { setItem: vi.fn() };
+    setItemSpy = mockLocalStorage.setItem;
+    vi.stubGlobal("localStorage", mockLocalStorage);
+
+    reloadSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { reload: reloadSpy },
+      writable: true,
+    });
+  }
+
+  beforeEach(() => {
+    setupImportMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("imports valid JSON data and updates localStorage", async () => {
+    const validData = {
+      version: "1.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        tasks: '{"tasks": "data"}',
+        capacity: '{"capacity": "data"}',
+        dayPlan: '{"dayPlan": "data"}',
+      },
+    };
+
+    const fileContent = JSON.stringify(validData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    // Mock the text() method for vitest
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+
+    expect(setItemSpy).toHaveBeenCalledWith(
+      "energy_planner_tasks",
+      '{"tasks": "data"}',
+    );
+    expect(setItemSpy).toHaveBeenCalledWith(
+      "energy_planner_capacity",
+      '{"capacity": "data"}',
+    );
+    expect(setItemSpy).toHaveBeenCalledWith(
+      "energy_planner_day_plan",
+      '{"dayPlan": "data"}',
+    );
+    expect(reloadSpy).toHaveBeenCalled();
+  });
+});
+
+describe("importEnergyPlannerData - validation errors", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", { setItem: vi.fn() });
+    const reloadSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { reload: reloadSpy },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("throws error for non-JSON files", async () => {
+    const file = new File(["test"], "backup.txt", { type: "text/plain" });
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid file type. Please select a JSON file.",
+    );
+  });
+
+  it("throws error for invalid JSON structure", async () => {
+    const invalidData = { someField: "value" };
+    const fileContent = JSON.stringify(invalidData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid file format. Missing required fields.",
+    );
+  });
+
+  it("throws error for malformed JSON", async () => {
+    const fileContent = "not valid json";
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow();
+  });
+});
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test setup requires multiple test cases
+describe("importEnergyPlannerData - data handling", () => {
+  let setItemSpy: ReturnType<typeof vi.fn>;
+  let reloadSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    const mockLocalStorage = { setItem: vi.fn() };
+    setItemSpy = mockLocalStorage.setItem;
+    vi.stubGlobal("localStorage", mockLocalStorage);
+    reloadSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { reload: reloadSpy },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("handles null values in all data fields", async () => {
+    const validData = {
+      version: "1.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        tasks: null,
+        capacity: null,
+        dayPlan: null,
+      },
+    };
+
+    const fileContent = JSON.stringify(validData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+    expect(reloadSpy).toHaveBeenCalled();
+  });
+
+  it("imports partial data when some fields are null", async () => {
+    const validData = {
+      version: "1.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        tasks: '{"tasks": "data"}',
+        capacity: null,
+        dayPlan: '{"dayPlan": "data"}',
+      },
+    };
+
+    const fileContent = JSON.stringify(validData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+
+    expect(setItemSpy).toHaveBeenCalledWith(
+      "energy_planner_tasks",
+      '{"tasks": "data"}',
+    );
+    expect(setItemSpy).toHaveBeenCalledWith(
+      "energy_planner_day_plan",
+      '{"dayPlan": "data"}',
+    );
+    expect(setItemSpy).toHaveBeenCalledTimes(2);
+    expect(reloadSpy).toHaveBeenCalled();
   });
 });
