@@ -7,11 +7,17 @@
     "!src/**/*.test.ts",
     "!src/**/*.test.tsx"
   ],
-  "plugins": ["@stryker-mutator/vitest-runner"],
+  "plugins": [
+    "@stryker-mutator/vitest-runner",
+    "@stryker-mutator/typescript-checker"
+  ],
   "testRunner": "vitest",
   "reporters": ["progress", "clear-text", "html"],
   "coverageAnalysis": "perTest",
+  "checkers": ["typescript"],
+  "tsconfigFile": "tsconfig.json",
   "vitest": {
     "configFile": "vitest.config.ts"
-  }
+  },
+  "ignoreStatic": true
 }
