@@ -9,7 +9,8 @@
     "lint": "biome check",
     "format": "biome format --write",
     "test": "vitest",
-    "prepare": "husky"
+    "prepare": "husky",
+    "ngrok": "ngrok http 3000"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -39,6 +40,7 @@
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "next-yak": "8.0.1",
+    "ngrok": "5.0.0-beta.2",
     "typescript": "5.9.3",
     "vitest": "^4.0.16"
   }
