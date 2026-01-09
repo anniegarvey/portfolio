@@ -8,17 +8,7 @@ export default function Home() {
       <Hero>
         <div>
           <HeroTitle>Hi, I'm Annie Garvey!</HeroTitle>
-          <p>
-            I'm a neurospicy AuDHD girl who loves to code. I'm passionate about
-            accessibility and making a great user experience for everyone,
-            building neurodiversity knowledge and awareness, and protecting the
-            environment. I also love music, singing, dancing, kayaking, baking,
-            and pretty much any kind of crafting I've tried! I enjoy reading or
-            watching sci-fi (particularly post-apocalyptic or space operas) and
-            fantasy (especially if there are dragons or faeries involved!). I am
-            proud of my Irish heritage. Currently enjoying learning whimsical
-            CSS animations.
-          </p>
+          <p>I'm a neurospicy AuDHD woman who loves to code.</p>
         </div>
         <HeroImage
           alt="Independent Curious Professional"
@@ -27,9 +17,24 @@ export default function Home() {
           width={550}
         />
       </Hero>
-      <MaxWidthWrapper>
-        <p>some more page content here...</p>
-      </MaxWidthWrapper>
+      <Wrapper>
+        <p>
+          I'm passionate about accessibility and making a great user experience
+          for everyone, building neurodiversity knowledge and awareness, and
+          protecting the environment.
+        </p>
+        <p>
+          I also love music, singing, dancing, kayaking, baking, and pretty much
+          any kind of crafting I've tried! I enjoy reading or watching sci-fi
+          (particularly post-apocalyptic or space operas) and fantasy
+          (especially if there are dragons or faeries involved!). I am proud of
+          my Irish heritage. Currently enjoying learning{" "}
+          <a href="https://www.joshwcomeau.com/blog/whimsical-animations/">
+            Whimsical Animations by Josh Comeau
+          </a>
+          .
+        </p>
+      </Wrapper>
     </main>
   );
 }
@@ -49,6 +54,9 @@ const Hero = styled.section`
 const HeroTitle = styled.h1`
   font-family: var(--font-tangerine), cursive;
   font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 32px;;
+  line-height: 1;
 `;
 
 const HeroImage = styled(Image)`
@@ -56,4 +64,14 @@ const HeroImage = styled(Image)`
   max-height: clamp(100px, 50vw, 66vh);
   filter: drop-shadow(2px 4px 32px rgba(0, 0, 0, 0.8));
   margin-right: -64px;
+`;
+
+const Wrapper = styled(MaxWidthWrapper)`
+  margin-block: 32px;
+  p {
+    margin-block: 16px;
+  }
+  a {
+    color: var(--color-primary-400);
+  }
 `;

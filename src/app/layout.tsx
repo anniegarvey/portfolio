@@ -1,23 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Tangerine } from "next/font/google";
+import { Lexend, Tangerine } from "next/font/google";
 import "./globals.css";
 
 import Navigation from "../components/Navigation";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const lexend = Lexend({
+  variable: "--font-lexend",
   subsets: ["latin"],
 });
 
 const tangerine = Tangerine({
   variable: "--font-tangerine",
   subsets: ["latin"],
-  weight: "400",
+  weight: "700",
 });
 
 export const metadata: Metadata = {
@@ -37,9 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${tangerine.variable}`}
-      >
+      <body className={`${lexend.variable} ${tangerine.variable}`}>
         <Navigation />
         {children}
       </body>
