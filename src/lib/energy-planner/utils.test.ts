@@ -97,10 +97,16 @@ describe("calculateEnergyUsage", () => {
   });
 });
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("exportEnergyPlannerData", () => {
   let createElementSpy: ReturnType<typeof vi.spyOn>;
   let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
   let revokeObjectURLSpy: ReturnType<typeof vi.spyOn>;
+  let mockLink: {
+    href: string;
+    download: string;
+    click: ReturnType<typeof vi.fn>;
+  };
 
   function setupExportMocks() {
     const mockLocalStorage = {
@@ -113,7 +119,7 @@ describe("exportEnergyPlannerData", () => {
     };
     vi.stubGlobal("localStorage", mockLocalStorage);
 
-    const mockLink = { href: "", download: "", click: vi.fn() };
+    mockLink = { href: "", download: "", click: vi.fn() };
     createElementSpy = vi
       .spyOn(document, "createElement")
       .mockReturnValue(mockLink as unknown as HTMLElement);
@@ -153,6 +159,62 @@ describe("exportEnergyPlannerData", () => {
 
     const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
     expect(blobCall.type).toBe("application/json");
+  });
+
+  it("sets the correct download filename with date", () => {
+    vi.useFakeTimers();
+    const date = new Date("2023-01-15T12:00:00.000Z");
+    vi.setSystemTime(date);
+
+    exportEnergyPlannerData();
+
+    expect(mockLink.download).toBe("energy-planner-backup-2023-01-15.json");
+
+    vi.useRealTimers();
+  });
+
+  it("sets the correct href for the download link", () => {
+    exportEnergyPlannerData();
+
+    expect(mockLink.href).toBe("blob:mock-url");
+  });
+
+  it("triggers a click on the download link", () => {
+    exportEnergyPlannerData();
+
+    expect(mockLink.click).toHaveBeenCalledTimes(1);
+  });
+
+  it("appends and removes the link element from the document body", () => {
+    const appendChildSpy = vi.spyOn(document.body, "appendChild");
+    const removeChildSpy = vi.spyOn(document.body, "removeChild");
+
+    exportEnergyPlannerData();
+
+    expect(appendChildSpy).toHaveBeenCalledWith(mockLink);
+    expect(removeChildSpy).toHaveBeenCalledWith(mockLink);
+  });
+
+  it("exports the correct JSON content with version and data", () => {
+    exportEnergyPlannerData();
+
+    const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
+    const reader = new FileReader();
+    reader.readAsText(blobCall);
+
+    return new Promise<void>((resolve) => {
+      reader.onload = () => {
+        const exportedData = JSON.parse(reader.result as string);
+        expect(exportedData).toHaveProperty("version", "1.0.0");
+        expect(exportedData).toHaveProperty("exportDate");
+        expect(exportedData.data).toEqual({
+          tasks: '{"tasks": "data"}',
+          capacity: '{"capacity": "data"}',
+          dayPlan: '{"dayPlan": "data"}',
+        });
+        resolve();
+      };
+    });
   });
 });
 
@@ -216,6 +278,7 @@ describe("importEnergyPlannerData", () => {
   });
 });
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("importEnergyPlannerData - validation errors", () => {
   beforeEach(() => {
     vi.stubGlobal("localStorage", { setItem: vi.fn() });
@@ -259,6 +322,38 @@ describe("importEnergyPlannerData - validation errors", () => {
     file.text = vi.fn().mockResolvedValue(fileContent);
 
     await expect(importEnergyPlannerData(file)).rejects.toThrow();
+  });
+
+  it("throws error when version is missing", async () => {
+    const invalidData = {
+      exportDate: new Date().toISOString(),
+      data: { tasks: null, capacity: null, dayPlan: null },
+    };
+    const fileContent = JSON.stringify(invalidData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid file format. Missing required fields.",
+    );
+  });
+
+  it("throws error when data field is missing", async () => {
+    const invalidData = {
+      version: "1.0.0",
+      exportDate: new Date().toISOString(),
+    };
+    const fileContent = JSON.stringify(invalidData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid file format. Missing required fields.",
+    );
   });
 });
 

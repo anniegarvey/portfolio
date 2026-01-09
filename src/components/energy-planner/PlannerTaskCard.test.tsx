@@ -1,0 +1,213 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import type { Task } from "../../lib/energy-planner/schema";
+import { PlannerTaskCard } from "./PlannerTaskCard";
+
+const mockTask: Task = {
+  id: "task-1",
+  title: "Test Task",
+  createdAt: new Date(),
+  energyCost: { physical: 10, social: 20, executive: 5 },
+  factors: {
+    initiationDifficulty: 1,
+    terminationDifficulty: 1,
+    isRestorative: false,
+  },
+};
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
+describe("PlannerTaskCard", () => {
+  it("renders task title and energy costs", () => {
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+
+    expect(screen.getByText("Test Task")).toBeInTheDocument();
+    expect(screen.getByText("10 P")).toBeInTheDocument();
+    expect(screen.getByText("20 S")).toBeInTheDocument();
+    expect(screen.getByText("5 E")).toBeInTheDocument();
+  });
+
+  it("calls onEdit when title is clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+
+    await user.click(screen.getByText("Test Task"));
+    expect(mockOnEdit).toHaveBeenCalledWith(mockTask);
+  });
+
+  it("calls onEdit when edit button is clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+
+    await user.click(screen.getByLabelText("Edit task"));
+    expect(mockOnEdit).toHaveBeenCalledWith(mockTask);
+  });
+
+  it("shows add button when not selected", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    const mockOnAdd = vi.fn();
+    render(
+      <PlannerTaskCard onAdd={mockOnAdd} onEdit={mockOnEdit} task={mockTask} />,
+    );
+
+    const addButton = screen.getByLabelText("Add to day");
+    expect(addButton).toBeInTheDocument();
+
+    await user.click(addButton);
+    expect(mockOnAdd).toHaveBeenCalledWith("task-1");
+  });
+
+  it("shows remove button when selected", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    const mockOnRemove = vi.fn();
+    render(
+      <PlannerTaskCard
+        onEdit={mockOnEdit}
+        onRemove={mockOnRemove}
+        selected
+        task={mockTask}
+      />,
+    );
+
+    const removeButton = screen.getByLabelText("Remove from day");
+    expect(removeButton).toBeInTheDocument();
+
+    await user.click(removeButton);
+    expect(mockOnRemove).toHaveBeenCalledWith("task-1");
+  });
+
+  it("shows completion toggle when selected", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    const mockOnToggleCompletion = vi.fn();
+    render(
+      <PlannerTaskCard
+        onEdit={mockOnEdit}
+        onToggleCompletion={mockOnToggleCompletion}
+        selected
+        task={mockTask}
+      />,
+    );
+
+    const toggleButton = screen.getByLabelText("Mark as done");
+    expect(toggleButton).toBeInTheDocument();
+
+    await user.click(toggleButton);
+    expect(mockOnToggleCompletion).toHaveBeenCalledWith("task-1");
+  });
+
+  it("shows 'Mark as not done' when task is completed", () => {
+    const mockOnEdit = vi.fn();
+    const mockOnToggleCompletion = vi.fn();
+    render(
+      <PlannerTaskCard
+        completed
+        onEdit={mockOnEdit}
+        onToggleCompletion={mockOnToggleCompletion}
+        selected
+        task={mockTask}
+      />,
+    );
+
+    expect(screen.getByLabelText("Mark as not done")).toBeInTheDocument();
+  });
+
+  it("does not show add button when selected", () => {
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} selected task={mockTask} />);
+
+    expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
+  });
+
+  it("does not show remove button when not selected", () => {
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+
+    expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
+  });
+
+  it("does not show completion toggle when not selected", () => {
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+
+    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
+  });
+
+  it("displays correct energy badge labels with P, S, E suffixes", () => {
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+
+    // Verify the exact text including the suffix
+    expect(screen.getByText(/10 P/)).toBeInTheDocument();
+    expect(screen.getByText(/20 S/)).toBeInTheDocument();
+    expect(screen.getByText(/5 E/)).toBeInTheDocument();
+  });
+
+  it("displays correct button titles for accessibility", () => {
+    const mockOnEdit = vi.fn();
+    const mockOnAdd = vi.fn();
+    render(
+      <PlannerTaskCard onAdd={mockOnAdd} onEdit={mockOnEdit} task={mockTask} />,
+    );
+
+    expect(screen.getByTitle("Edit Task")).toBeInTheDocument();
+    expect(screen.getByTitle("Add to day")).toBeInTheDocument();
+  });
+
+  it("displays correct button titles when selected", () => {
+    const mockOnEdit = vi.fn();
+    const mockOnRemove = vi.fn();
+    const mockOnToggleCompletion = vi.fn();
+    render(
+      <PlannerTaskCard
+        onEdit={mockOnEdit}
+        onRemove={mockOnRemove}
+        onToggleCompletion={mockOnToggleCompletion}
+        selected
+        task={mockTask}
+      />,
+    );
+
+    expect(screen.getByTitle("Mark as done")).toBeInTheDocument();
+    expect(screen.getByTitle("Remove from day")).toBeInTheDocument();
+  });
+
+  it("toggles completion button when clicked on completed task", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    const mockOnToggleCompletion = vi.fn();
+    render(
+      <PlannerTaskCard
+        completed
+        onEdit={mockOnEdit}
+        onToggleCompletion={mockOnToggleCompletion}
+        selected
+        task={mockTask}
+      />,
+    );
+
+    const toggleButton = screen.getByLabelText("Mark as not done");
+    await user.click(toggleButton);
+    expect(mockOnToggleCompletion).toHaveBeenCalledWith("task-1");
+  });
+
+  it("renders all three energy types with correct values", () => {
+    const mockOnEdit = vi.fn();
+    const taskWithDifferentEnergy: Task = {
+      ...mockTask,
+      energyCost: { physical: 25, social: 50, executive: 75 },
+    };
+    render(
+      <PlannerTaskCard onEdit={mockOnEdit} task={taskWithDifferentEnergy} />,
+    );
+
+    expect(screen.getByText("25 P")).toBeInTheDocument();
+    expect(screen.getByText("50 S")).toBeInTheDocument();
+    expect(screen.getByText("75 E")).toBeInTheDocument();
+  });
+});
