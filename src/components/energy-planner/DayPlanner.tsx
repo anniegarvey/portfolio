@@ -122,12 +122,8 @@ const Warning = styled.div`
 
 const Columns = styled.div`
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(200ox, 1fr));
     gap: 2rem;
-
-    @media (min-width: 768px) {
-        grid-template-columns: 1fr 1fr;
-    }
 `;
 
 const Column = styled.div`
