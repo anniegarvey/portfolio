@@ -17,3 +17,7 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+Use https://github.com/dbalabka/chrome-wsl to fix Antigravity browser debugging connection
+
+Possible hosting options: https://supabase.com/pricing, https://render.com/pricing or https://railway.com/pricing
