@@ -89,11 +89,8 @@ describe("calculateEnergyUsage", () => {
 
     const usage = calculateEnergyUsage(mockTasks, dayPlan);
 
-    expect(usage).toEqual({
-      physical: 0,
-      social: 0,
-      executive: 0,
-    });
+    // With dynamic energy types, empty selection returns empty object
+    expect(usage).toEqual({});
   });
 });
 

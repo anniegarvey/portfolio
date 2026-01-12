@@ -7,14 +7,13 @@ export const calculateEnergyUsage = (
   const selectedTasks = tasks.filter((t) =>
     dayPlan.selectedTaskIds.includes(t.id),
   );
-  return selectedTasks.reduce(
-    (acc, task) => ({
-      physical: acc.physical + task.energyCost.physical,
-      social: acc.social + task.energyCost.social,
-      executive: acc.executive + task.energyCost.executive,
-    }),
-    { physical: 0, social: 0, executive: 0 },
-  );
+  return selectedTasks.reduce((acc, task) => {
+    // Dynamically sum all energy type properties
+    for (const key in task.energyCost) {
+      acc[key] = (acc[key] || 0) + task.energyCost[key];
+    }
+    return acc;
+  }, {} as EnergyCost);
 };
 
 /**

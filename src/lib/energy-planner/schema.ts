@@ -1,15 +1,33 @@
 import { z } from "zod";
 
-export const EnergyTypeEnum = z.enum(["physical", "social", "executive"]);
-export type EnergyType = z.infer<typeof EnergyTypeEnum>;
+// Energy Type Configuration
+export const EnergyTypeConfigSchema = z.object({
+  id: z.string().min(1, "ID is required"),
+  label: z.string().min(1, "Label is required"),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  isPreset: z.boolean().default(false),
+});
+
+export type EnergyTypeConfig = z.infer<typeof EnergyTypeConfigSchema>;
+
+// Default energy types for backward compatibility
+export const DEFAULT_ENERGY_TYPES: EnergyTypeConfig[] = [
+  { id: "physical", label: "Physical", color: "#14b8a6", isPreset: true },
+  { id: "social", label: "Social", color: "#f43f5e", isPreset: true },
+  { id: "executive", label: "Executive", color: "#f97316", isPreset: true },
+];
+
+// Preset suggestions for users
+export const PRESET_ENERGY_TYPES = [
+  { label: "Executive Functioning", color: "#f97316" },
+  { label: "Social", color: "#f43f5e" },
+  { label: "Physical", color: "#14b8a6" },
+];
 
 export const EnergyLevelSchema = z.number().min(0).max(100);
 
-export const EnergyCostSchema = z.object({
-  physical: EnergyLevelSchema.default(0),
-  social: EnergyLevelSchema.default(0),
-  executive: EnergyLevelSchema.default(0),
-});
+// EnergyCost is now a dynamic record based on configured energy types
+export const EnergyCostSchema = z.record(z.string(), EnergyLevelSchema);
 
 export type EnergyCost = z.infer<typeof EnergyCostSchema>;
 

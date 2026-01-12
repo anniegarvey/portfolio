@@ -2,20 +2,18 @@
 
 import { styled } from "next-yak";
 import { useEnergyPlanner } from "../../lib/energy-planner/context";
-import type { EnergyCost } from "../../lib/energy-planner/schema";
-import { EnergyTypeEnum } from "../../lib/energy-planner/schema";
 
 export function EnergyInput() {
-  const { dailyCapacity, setDailyCapacity } = useEnergyPlanner();
+  const { dailyCapacity, setDailyCapacity, energyTypes } = useEnergyPlanner();
 
-  const handleChange = (type: keyof EnergyCost, value: string) => {
+  const handleChange = (typeId: string, value: string) => {
     const numValue = Math.min(
       100,
       Math.max(0, Number.parseInt(value, 10) || 0),
     );
     setDailyCapacity({
       ...dailyCapacity,
-      [type]: numValue,
+      [typeId]: numValue,
     });
   };
 
@@ -24,21 +22,19 @@ export function EnergyInput() {
       <h3>Daily Energy Capacity</h3>
       <p>How much energy do you have today?</p>
       <Grid>
-        {Object.keys(EnergyTypeEnum.enum).map((type) => (
-          <InputGroup key={type}>
-            <Label htmlFor={`capacity-${type}`}>{type}</Label>
+        {energyTypes.map((type) => (
+          <InputGroup key={type.id}>
+            <Label htmlFor={`capacity-${type.id}`}>{type.label}</Label>
             <Input
-              $energyType={type}
-              id={`capacity-${type}`}
+              $energyColor={type.color}
+              id={`capacity-${type.id}`}
               max="100"
               min="0"
-              onChange={(e) =>
-                handleChange(type as keyof EnergyCost, e.target.value)
-              }
+              onChange={(e) => handleChange(type.id, e.target.value)}
               type="range"
-              value={dailyCapacity[type as keyof EnergyCost]}
+              value={dailyCapacity[type.id] || 0}
             />
-            <Value>{dailyCapacity[type as keyof EnergyCost]}%</Value>
+            <Value>{dailyCapacity[type.id] || 0}%</Value>
           </InputGroup>
         ))}
       </Grid>
@@ -79,11 +75,7 @@ const Value = styled.span`
   color: light-dark(var(--color-grey-700), var(--color-grey-300));
 `;
 
-const Input = styled.input<{ $energyType: string }>`
+const Input = styled.input<{ $energyColor: string }>`
   width: 100%;
-  accent-color: ${({ $energyType }) => {
-    if ($energyType === "physical") return "var(--color-teal-500)";
-    if ($energyType === "social") return "var(--color-rose-500)";
-    return "var(--color-orange-500)";
-  }};
+  accent-color: ${({ $energyColor }) => $energyColor};
 `;

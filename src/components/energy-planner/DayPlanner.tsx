@@ -18,6 +18,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
     toggleTaskCompletion,
     checkExceedsCapacity,
     calculateEnergyUsage,
+    energyTypes,
   } = useEnergyPlanner();
 
   const usage = calculateEnergyUsage();
@@ -62,7 +63,12 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
           <ColumnHeader>
             <div>Selected Tasks ({selectedTasks.length})</div>
             <UsageSummary>
-              Usage: P:{usage.physical} S:{usage.social} E:{usage.executive}
+              Usage:{" "}
+              {energyTypes.map((type) => (
+                <span key={type.id}>
+                  {type.label.charAt(0)}:{usage[type.id] || 0}{" "}
+                </span>
+              ))}
             </UsageSummary>
           </ColumnHeader>
           <TaskList>

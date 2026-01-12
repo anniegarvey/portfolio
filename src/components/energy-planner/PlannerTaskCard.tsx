@@ -2,6 +2,7 @@
 
 import { Check, CopyPlus, Pencil, X } from "lucide-react";
 import { css, styled } from "next-yak";
+import { useEnergyPlanner } from "../../lib/energy-planner/context";
 import type { Task } from "../../lib/energy-planner/schema";
 
 interface PlannerTaskCardProps {
@@ -23,6 +24,8 @@ export function PlannerTaskCard({
   onRemove,
   onAdd,
 }: PlannerTaskCardProps) {
+  const { energyTypes } = useEnergyPlanner();
+
   return (
     <Card $completed={completed} $selected={selected}>
       <TaskContent $completed={completed}>
@@ -30,9 +33,15 @@ export function PlannerTaskCard({
           {task.title}
         </TaskTitle>
         <EnergyBadges>
-          <Badge $type="physical">{task.energyCost.physical} P</Badge>
-          <Badge $type="social">{task.energyCost.social} S</Badge>
-          <Badge $type="executive">{task.energyCost.executive} E</Badge>
+          {energyTypes.map((type) => {
+            const value = task.energyCost[type.id] || 0;
+            if (value === 0) return null;
+            return (
+              <Badge $color={type.color} key={type.id}>
+                {value} {type.label.charAt(0).toUpperCase()}
+              </Badge>
+            );
+          })}
         </EnergyBadges>
       </TaskContent>
       <Actions>
@@ -136,20 +145,13 @@ const EnergyBadges = styled.div`
     gap: 0.5rem;
 `;
 
-const Badge = styled.span<{ $type: "physical" | "social" | "executive" }>`
+const Badge = styled.span<{ $color: string }>`
     font-size: 0.7rem;
     padding: 0.1rem 0.3rem;
     border-radius: 999px;
-    background-color: ${({ $type }) => {
-      if ($type === "physical") return "var(--color-teal-100)";
-      if ($type === "social") return "var(--color-rose-100)";
-      return "var(--color-orange-100)";
-    }};
-    color: ${({ $type }) => {
-      if ($type === "physical") return "var(--color-teal-900)";
-      if ($type === "social") return "var(--color-rose-900)";
-      return "var(--color-orange-900)";
-    }};
+    background-color: ${({ $color }) => `${$color}20`};
+    color: ${({ $color }) => $color};
+    border: 1px solid ${({ $color }) => `${$color}40`};
 `;
 
 const Actions = styled.div`

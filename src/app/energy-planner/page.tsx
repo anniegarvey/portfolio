@@ -5,6 +5,7 @@ import { styled } from "next-yak";
 import { useRef, useState } from "react";
 import { DayPlanner } from "../../components/energy-planner/DayPlanner";
 import { EnergyInput } from "../../components/energy-planner/EnergyInput";
+import { EnergyTypeManager } from "../../components/energy-planner/EnergyTypeManager";
 import { TaskForm } from "../../components/energy-planner/TaskForm";
 import MaxWidthWrapper from "../../components/MaxWidthWrapper";
 import { Modal } from "../../components/Modal";
@@ -16,22 +17,22 @@ import {
 } from "../../lib/energy-planner/utils";
 
 function PlannerContent() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenCreate = () => {
     setEditingTask(undefined);
-    setIsModalOpen(true);
+    setIsTaskModalOpen(true);
   };
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
-    setIsModalOpen(true);
+    setIsTaskModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseTaskModal = () => {
+    setIsTaskModalOpen(false);
     setEditingTask(undefined);
   };
 
@@ -93,6 +94,7 @@ function PlannerContent() {
         </HeaderSection>
 
         <EnergyInput />
+        <EnergyTypeManager />
 
         <HeaderActions>
           <h3>Your Task Bank</h3>
@@ -105,11 +107,11 @@ function PlannerContent() {
         <DayPlanner onEditTask={handleEditTask} />
 
         <Modal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
+          isOpen={isTaskModalOpen}
+          onClose={handleCloseTaskModal}
           title={editingTask ? "Edit Task" : "Create New Task"}
         >
-          <TaskForm initialData={editingTask} onClose={handleCloseModal} />
+          <TaskForm initialData={editingTask} onClose={handleCloseTaskModal} />
         </Modal>
       </PageLayout>
     </MaxWidthWrapper>

@@ -48,7 +48,8 @@ describe("DayPlanner", () => {
       </EnergyPlannerProvider>,
     );
 
-    expect(screen.getByText(/Usage: P:0 S:0 E:0/)).toBeInTheDocument();
+    const summary = screen.getByText(/Usage:/);
+    expect(summary.textContent).toMatch(/P:0\s*S:0\s*E:0/);
   });
 
   it("shows empty state message when no tasks available", () => {

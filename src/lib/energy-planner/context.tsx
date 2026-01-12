@@ -2,7 +2,7 @@
 
 import { createContext, type ReactNode, useContext } from "react";
 import { useEnergyPlannerState } from "./hooks";
-import type { DayPlan, EnergyCost, Task } from "./schema";
+import type { DayPlan, EnergyCost, EnergyTypeConfig, Task } from "./schema";
 
 interface EnergyPlannerContextType {
   tasks: Task[];
@@ -17,6 +17,10 @@ interface EnergyPlannerContextType {
   toggleTaskCompletion: (taskId: string) => void;
   calculateEnergyUsage: () => EnergyCost;
   checkExceedsCapacity: () => { exceeded: boolean; message?: string };
+  energyTypes: EnergyTypeConfig[];
+  addEnergyType: (typeData: Omit<EnergyTypeConfig, "id" | "isPreset">) => void;
+  updateEnergyType: (updatedType: EnergyTypeConfig) => void;
+  removeEnergyType: (typeId: string) => void;
 }
 
 const EnergyPlannerContext = createContext<

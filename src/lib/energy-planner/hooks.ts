@@ -1,6 +1,11 @@
 "use client";
 
-import { useDailyCapacity, useDayPlan, useTasks } from "./hooks-slices";
+import {
+  useDailyCapacity,
+  useDayPlan,
+  useEnergyTypes,
+  useTasks,
+} from "./hooks-slices";
 import type { EnergyCost } from "./schema";
 import { calculateEnergyUsage as calcUsage } from "./utils";
 
@@ -9,6 +14,8 @@ export function useEnergyPlannerState() {
   const { dailyCapacity, setDailyCapacity } = useDailyCapacity();
   const { dayPlan, addToPlan, removeFromPlan, toggleTaskCompletion } =
     useDayPlan();
+  const { energyTypes, addEnergyType, updateEnergyType, removeEnergyType } =
+    useEnergyTypes();
 
   const removeTask = (taskId: string) => {
     removeTaskState(taskId);
@@ -23,10 +30,13 @@ export function useEnergyPlannerState() {
     const usage = calculateEnergyUsage();
     const exceededTypes: string[] = [];
 
-    if (usage.physical > dailyCapacity.physical) exceededTypes.push("Physical");
-    if (usage.social > dailyCapacity.social) exceededTypes.push("Social");
-    if (usage.executive > dailyCapacity.executive)
-      exceededTypes.push("Executive");
+    energyTypes.forEach((type) => {
+      const usageValue = usage[type.id] || 0;
+      const capacityValue = dailyCapacity[type.id] || 0;
+      if (usageValue > capacityValue) {
+        exceededTypes.push(type.label);
+      }
+    });
 
     if (exceededTypes.length > 0) {
       return {
@@ -50,5 +60,9 @@ export function useEnergyPlannerState() {
     toggleTaskCompletion,
     calculateEnergyUsage,
     checkExceedsCapacity,
+    energyTypes,
+    addEnergyType,
+    updateEnergyType,
+    removeEnergyType,
   };
 }

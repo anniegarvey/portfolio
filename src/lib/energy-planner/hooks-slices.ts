@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import type { DayPlan, EnergyCost, Task } from "./schema";
+import type { DayPlan, EnergyCost, EnergyTypeConfig, Task } from "./schema";
+import { DEFAULT_ENERGY_TYPES } from "./schema";
 
-const defaultCapacity: EnergyCost = { physical: 50, social: 50, executive: 50 };
+function getDefaultCapacity(energyTypes: EnergyTypeConfig[]): EnergyCost {
+  return energyTypes.reduce((acc, type) => {
+    acc[type.id] = 50;
+    return acc;
+  }, {} as EnergyCost);
+}
+
+const defaultCapacity: EnergyCost = getDefaultCapacity(DEFAULT_ENERGY_TYPES);
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -126,4 +134,43 @@ function loadInitialDayPlan(setDayPlan: (plan: DayPlan) => void) {
     completedTaskIds: [],
     dailyCapacity: cap ? JSON.parse(cap) : defaultCapacity,
   });
+}
+
+export function useEnergyTypes() {
+  const [energyTypes, setEnergyTypes] =
+    useState<EnergyTypeConfig[]>(DEFAULT_ENERGY_TYPES);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("energy_planner_types");
+    if (stored) {
+      setEnergyTypes(JSON.parse(stored));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("energy_planner_types", JSON.stringify(energyTypes));
+  }, [energyTypes]);
+
+  const addEnergyType = (
+    typeData: Omit<EnergyTypeConfig, "id" | "isPreset">,
+  ) => {
+    const newType: EnergyTypeConfig = {
+      ...typeData,
+      id: uuidv4(),
+      isPreset: false,
+    };
+    setEnergyTypes((prev) => [...prev, newType]);
+  };
+
+  const updateEnergyType = (updatedType: EnergyTypeConfig) => {
+    setEnergyTypes((prev) =>
+      prev.map((t) => (t.id === updatedType.id ? updatedType : t)),
+    );
+  };
+
+  const removeEnergyType = (typeId: string) => {
+    setEnergyTypes((prev) => prev.filter((t) => t.id !== typeId));
+  };
+
+  return { energyTypes, addEnergyType, updateEnergyType, removeEnergyType };
 }

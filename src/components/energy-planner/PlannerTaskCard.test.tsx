@@ -1,8 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
 import type { Task } from "../../lib/energy-planner/schema";
 import { PlannerTaskCard } from "./PlannerTaskCard";
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+);
 
 const mockTask: Task = {
   id: "task-1",
@@ -20,7 +25,9 @@ const mockTask: Task = {
 describe("PlannerTaskCard", () => {
   it("renders task title and energy costs", () => {
     const mockOnEdit = vi.fn();
-    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />, {
+      wrapper,
+    });
 
     expect(screen.getByText("Test Task")).toBeInTheDocument();
     expect(screen.getByText("10 P")).toBeInTheDocument();
@@ -31,7 +38,9 @@ describe("PlannerTaskCard", () => {
   it("calls onEdit when title is clicked", async () => {
     const user = userEvent.setup();
     const mockOnEdit = vi.fn();
-    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />, {
+      wrapper,
+    });
 
     await user.click(screen.getByText("Test Task"));
     expect(mockOnEdit).toHaveBeenCalledWith(mockTask);
@@ -40,7 +49,9 @@ describe("PlannerTaskCard", () => {
   it("calls onEdit when edit button is clicked", async () => {
     const user = userEvent.setup();
     const mockOnEdit = vi.fn();
-    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />, {
+      wrapper,
+    });
 
     await user.click(screen.getByLabelText("Edit task"));
     expect(mockOnEdit).toHaveBeenCalledWith(mockTask);
@@ -52,6 +63,7 @@ describe("PlannerTaskCard", () => {
     const mockOnAdd = vi.fn();
     render(
       <PlannerTaskCard onAdd={mockOnAdd} onEdit={mockOnEdit} task={mockTask} />,
+      { wrapper },
     );
 
     const addButton = screen.getByLabelText("Add to day");
@@ -72,6 +84,7 @@ describe("PlannerTaskCard", () => {
         selected
         task={mockTask}
       />,
+      { wrapper },
     );
 
     const removeButton = screen.getByLabelText("Remove from day");
@@ -92,6 +105,7 @@ describe("PlannerTaskCard", () => {
         selected
         task={mockTask}
       />,
+      { wrapper },
     );
 
     const toggleButton = screen.getByLabelText("Mark as done");
@@ -112,6 +126,7 @@ describe("PlannerTaskCard", () => {
         selected
         task={mockTask}
       />,
+      { wrapper },
     );
 
     expect(screen.getByLabelText("Mark as not done")).toBeInTheDocument();
@@ -119,28 +134,36 @@ describe("PlannerTaskCard", () => {
 
   it("does not show add button when selected", () => {
     const mockOnEdit = vi.fn();
-    render(<PlannerTaskCard onEdit={mockOnEdit} selected task={mockTask} />);
+    render(<PlannerTaskCard onEdit={mockOnEdit} selected task={mockTask} />, {
+      wrapper,
+    });
 
     expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
   });
 
   it("does not show remove button when not selected", () => {
     const mockOnEdit = vi.fn();
-    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />, {
+      wrapper,
+    });
 
     expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
   });
 
   it("does not show completion toggle when not selected", () => {
     const mockOnEdit = vi.fn();
-    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />, {
+      wrapper,
+    });
 
     expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
   });
 
   it("displays correct energy badge labels with P, S, E suffixes", () => {
     const mockOnEdit = vi.fn();
-    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />);
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />, {
+      wrapper,
+    });
 
     // Verify the exact text including the suffix
     expect(screen.getByText(/10 P/)).toBeInTheDocument();
@@ -153,6 +176,7 @@ describe("PlannerTaskCard", () => {
     const mockOnAdd = vi.fn();
     render(
       <PlannerTaskCard onAdd={mockOnAdd} onEdit={mockOnEdit} task={mockTask} />,
+      { wrapper },
     );
 
     expect(screen.getByTitle("Edit Task")).toBeInTheDocument();
@@ -171,6 +195,7 @@ describe("PlannerTaskCard", () => {
         selected
         task={mockTask}
       />,
+      { wrapper },
     );
 
     expect(screen.getByTitle("Mark as done")).toBeInTheDocument();
@@ -189,6 +214,7 @@ describe("PlannerTaskCard", () => {
         selected
         task={mockTask}
       />,
+      { wrapper },
     );
 
     const toggleButton = screen.getByLabelText("Mark as not done");
@@ -204,6 +230,7 @@ describe("PlannerTaskCard", () => {
     };
     render(
       <PlannerTaskCard onEdit={mockOnEdit} task={taskWithDifferentEnergy} />,
+      { wrapper },
     );
 
     expect(screen.getByText("25 P")).toBeInTheDocument();

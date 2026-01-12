@@ -1,6 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
 import { EnergyCostFields } from "./EnergyCostFields";
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+);
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("EnergyCostFields", () => {
@@ -10,11 +15,12 @@ describe("EnergyCostFields", () => {
 
     render(
       <EnergyCostFields energyCost={energyCost} onChange={mockOnChange} />,
+      { wrapper },
     );
 
-    expect(screen.getByLabelText("physical")).toBeInTheDocument();
-    expect(screen.getByLabelText("social")).toBeInTheDocument();
-    expect(screen.getByLabelText("executive")).toBeInTheDocument();
+    expect(screen.getByLabelText("Physical")).toBeInTheDocument();
+    expect(screen.getByLabelText("Social")).toBeInTheDocument();
+    expect(screen.getByLabelText("Executive")).toBeInTheDocument();
   });
 
   it("displays current energy cost values", () => {
@@ -23,11 +29,12 @@ describe("EnergyCostFields", () => {
 
     render(
       <EnergyCostFields energyCost={energyCost} onChange={mockOnChange} />,
+      { wrapper },
     );
 
-    expect(screen.getByLabelText("physical")).toHaveValue(15);
-    expect(screen.getByLabelText("social")).toHaveValue(25);
-    expect(screen.getByLabelText("executive")).toHaveValue(35);
+    expect(screen.getByLabelText("Physical")).toHaveValue(15);
+    expect(screen.getByLabelText("Social")).toHaveValue(25);
+    expect(screen.getByLabelText("Executive")).toHaveValue(35);
   });
 
   it("calls onChange when physical energy is updated", () => {
@@ -36,9 +43,10 @@ describe("EnergyCostFields", () => {
 
     render(
       <EnergyCostFields energyCost={energyCost} onChange={mockOnChange} />,
+      { wrapper },
     );
 
-    const physicalInput = screen.getByLabelText("physical");
+    const physicalInput = screen.getByLabelText("Physical");
     fireEvent.change(physicalInput, { target: { value: "50" } });
 
     expect(mockOnChange).toHaveBeenCalledWith({
@@ -54,9 +62,10 @@ describe("EnergyCostFields", () => {
 
     render(
       <EnergyCostFields energyCost={energyCost} onChange={mockOnChange} />,
+      { wrapper },
     );
 
-    const socialInput = screen.getByLabelText("social");
+    const socialInput = screen.getByLabelText("Social");
     fireEvent.change(socialInput, { target: { value: "60" } });
 
     expect(mockOnChange).toHaveBeenCalledWith({
@@ -72,9 +81,10 @@ describe("EnergyCostFields", () => {
 
     render(
       <EnergyCostFields energyCost={energyCost} onChange={mockOnChange} />,
+      { wrapper },
     );
 
-    const executiveInput = screen.getByLabelText("executive");
+    const executiveInput = screen.getByLabelText("Executive");
     fireEvent.change(executiveInput, { target: { value: "70" } });
 
     expect(mockOnChange).toHaveBeenCalledWith({
@@ -90,6 +100,7 @@ describe("EnergyCostFields", () => {
 
     render(
       <EnergyCostFields energyCost={energyCost} onChange={mockOnChange} />,
+      { wrapper },
     );
 
     expect(screen.getByText("Energy Cost (0-100)")).toBeInTheDocument();

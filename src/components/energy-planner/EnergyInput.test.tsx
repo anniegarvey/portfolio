@@ -78,9 +78,9 @@ describe("EnergyInput", () => {
   it("renders labels for each energy type", () => {
     render(<EnergyInput />, { wrapper });
 
-    expect(screen.getByLabelText("physical")).toBeInTheDocument();
-    expect(screen.getByLabelText("social")).toBeInTheDocument();
-    expect(screen.getByLabelText("executive")).toBeInTheDocument();
+    expect(screen.getByLabelText("Physical")).toBeInTheDocument();
+    expect(screen.getByLabelText("Social")).toBeInTheDocument();
+    expect(screen.getByLabelText("Executive")).toBeInTheDocument();
   });
 
   it("slider has correct min and max values", () => {

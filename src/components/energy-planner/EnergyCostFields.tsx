@@ -2,8 +2,8 @@
 
 import { styled } from "next-yak";
 import { useId } from "react";
+import { useEnergyPlanner } from "../../lib/energy-planner/context";
 import type { EnergyCost } from "../../lib/energy-planner/schema";
-import { EnergyTypeEnum } from "../../lib/energy-planner/schema";
 
 interface EnergyCostFieldsProps {
   energyCost: EnergyCost;
@@ -15,25 +15,27 @@ export function EnergyCostFields({
   onChange,
 }: EnergyCostFieldsProps) {
   const idPrefix = useId();
+  const { energyTypes } = useEnergyPlanner();
+
   return (
     <>
       <SectionTitle>Energy Cost (0-100)</SectionTitle>
       <Grid>
-        {Object.keys(EnergyTypeEnum.enum).map((type) => (
-          <Field key={type}>
-            <Label htmlFor={`${idPrefix}-${type}`}>{type}</Label>
+        {energyTypes.map((type) => (
+          <Field key={type.id}>
+            <Label htmlFor={`${idPrefix}-${type.id}`}>{type.label}</Label>
             <NumberInput
-              id={`${idPrefix}-${type}`}
+              id={`${idPrefix}-${type.id}`}
               max="100"
               min="0"
               onChange={(e) =>
                 onChange({
                   ...energyCost,
-                  [type]: Number(e.target.value),
+                  [type.id]: Number(e.target.value),
                 })
               }
               type="number"
-              value={energyCost[type as keyof EnergyCost]}
+              value={energyCost[type.id] || 0}
             />
           </Field>
         ))}
@@ -44,7 +46,7 @@ export function EnergyCostFields({
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 1rem;
 `;
 
