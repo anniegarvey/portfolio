@@ -19,5 +19,6 @@
   "vitest": {
     "configFile": "vitest.config.ts"
   },
-  "ignoreStatic": true
+  "ignoreStatic": true,
+  "incremental": true
 }
