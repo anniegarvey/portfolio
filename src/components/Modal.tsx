@@ -56,7 +56,6 @@ const Overlay = styled(Dialog.Overlay)`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
   padding: 1rem;
   animation: ${fadeIn} 0.2s ease-out;
   backdrop-filter: blur(2px);
@@ -79,7 +78,6 @@ const Content = styled(Dialog.Content)`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 51; /* Higher than Overlay's 50 */
   
   /* Ensure it doesn't overflow if centered with flexbox on Overlay */
   &:focus {

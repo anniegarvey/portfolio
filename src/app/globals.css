@@ -144,3 +144,12 @@ h1 {
     transform: translate(var(--x), var(--y));
   }
 }
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
