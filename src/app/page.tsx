@@ -72,6 +72,6 @@ const Wrapper = styled(MaxWidthWrapper)`
     margin-block: 16px;
   }
   a {
-    color: var(--color-primary-400);
+    color: light-dark(var(--color-primary-800), var(--color-primary-400));
   }
 `;
