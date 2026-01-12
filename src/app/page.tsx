@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { styled } from "next-yak";
+import { QUERIES } from "@/lib/constants";
 import MaxWidthWrapper from "../components/MaxWidthWrapper";
 
 export default function Home() {
@@ -41,7 +42,7 @@ export default function Home() {
 
 const Hero = styled.section`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding-inline: 64px;
@@ -49,13 +50,18 @@ const Hero = styled.section`
   font-size: 1.3rem;
   color: var(--color-primary-100);
   overflow: clip;
+
+  @media (${QUERIES.TABLET_UP}) {
+    flex-direction: row;
+  }
 `;
 
 const HeroTitle = styled.h1`
   font-family: var(--font-tangerine), cursive;
   font-size: 4rem;
   font-weight: 700;
-  margin-bottom: 32px;;
+  margin-bottom: 32px;
+  padding-top: 32px;
   line-height: 1;
 `;
 
@@ -63,7 +69,11 @@ const HeroImage = styled(Image)`
   display: block;
   max-height: clamp(100px, 50vw, 66vh);
   filter: drop-shadow(2px 4px 32px rgba(0, 0, 0, 0.8));
-  margin-right: -64px;
+  object-fit: contain;
+
+  @media (${QUERIES.TABLET_UP}) {
+    margin-right: -64px;
+  }
 `;
 
 const Wrapper = styled(MaxWidthWrapper)`
