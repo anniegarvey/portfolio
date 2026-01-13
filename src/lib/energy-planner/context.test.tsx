@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider, useEnergyPlanner } from "./context";
 
 // Wrapper for the provider
@@ -8,10 +8,22 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
 );
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite needs structure
 describe("EnergyPlannerContext - Task Management", () => {
   // Helper to clear storage before each test (simple approach for now, assuming jdom storage mock works)
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it("throws error when used outside provider", () => {
+    // Suppress console.error for this test as React logs the error
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(() => renderHook(() => useEnergyPlanner())).toThrow(
+      "useEnergyPlanner must be used within an EnergyPlannerProvider",
+    );
+
+    consoleSpy.mockRestore();
   });
 
   it("adds a task", () => {
@@ -32,6 +44,38 @@ describe("EnergyPlannerContext - Task Management", () => {
 
     expect(result.current.tasks).toHaveLength(1);
     expect(result.current.tasks[0].title).toBe("Test Task");
+  });
+
+  it("removes a task and cleans up day plan", () => {
+    const { result } = renderHook(() => useEnergyPlanner(), { wrapper });
+
+    act(() => {
+      result.current.addTask({
+        title: "Task to Remove",
+        energyCost: { physical: 10, social: 10, executive: 10 },
+        factors: {
+          initiationDifficulty: 5,
+          terminationDifficulty: 5,
+          isRestorative: false,
+        },
+      });
+    });
+
+    const task = result.current.tasks[0];
+
+    // Add to plan first
+    act(() => {
+      result.current.addToPlan(task.id);
+    });
+    expect(result.current.dayPlan.selectedTaskIds).toContain(task.id);
+
+    // Remove task
+    act(() => {
+      result.current.removeTask(task.id);
+    });
+
+    expect(result.current.tasks).toHaveLength(0);
+    expect(result.current.dayPlan.selectedTaskIds).not.toContain(task.id);
   });
 });
 

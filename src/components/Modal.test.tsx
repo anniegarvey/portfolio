@@ -6,7 +6,7 @@ const setupModal = (isOpen = true) => {
   const onClose = vi.fn();
   render(
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div>Modal Content</div>
+      <div>Child Content</div>
     </Modal>,
   );
   return { onClose };
@@ -15,12 +15,12 @@ const setupModal = (isOpen = true) => {
 describe("Modal", () => {
   it("renders children when open", () => {
     setupModal(true);
-    expect(screen.getByText("Modal Content")).toBeInTheDocument();
+    expect(screen.getByText("Child Content")).toBeInTheDocument();
   });
 
-  it("does not render when closed", () => {
+  it("does not render children when closed", () => {
     setupModal(false);
-    expect(screen.queryByText("Modal Content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Child Content")).not.toBeInTheDocument();
   });
 
   it("calls onClose when close button is clicked", () => {
@@ -30,13 +30,13 @@ describe("Modal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("does not call onClose when overlay is clicked (Refactored behavior)", () => {
+  it("does not call onClose when overlay is clicked", () => {
     const { onClose } = setupModal(true);
 
-    const content = screen.getByText("Modal Content");
-    const modalContent = content.parentElement; // Body
-    const modalWrapper = modalContent?.parentElement; // ModalContent
-    const overlay = modalWrapper?.parentElement; // Overlay
+    const content = screen.getByText("Child Content");
+    const modalContent = content.parentElement;
+    const modalWrapper = modalContent?.parentElement;
+    const overlay = modalWrapper?.parentElement;
 
     if (overlay) {
       fireEvent.click(overlay);

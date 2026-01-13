@@ -198,3 +198,61 @@ describe("DayPlanner", () => {
     expect(headerParent?.querySelector('[class*="Warning"]')).toBeNull();
   });
 });
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite
+describe("DayPlanner with populated data", () => {
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test case
+  it("renders tasks and warning when capacity exceeded", () => {
+    const mockOnEditTask = vi.fn();
+
+    const task1 = {
+      id: "t1",
+      title: "Available Task",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {},
+      createdAt: new Date().toISOString(),
+    };
+    const task2 = {
+      id: "t2",
+      title: "Selected Task",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {},
+      createdAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(
+      "energy_planner_tasks",
+      JSON.stringify([task1, task2]),
+    );
+
+    // Seed DayPlan to have t2 selected
+    const dayPlan = {
+      date: new Date().toISOString().split("T")[0],
+      selectedTaskIds: ["t2"],
+      completedTaskIds: ["t2"],
+      dailyCapacity: { physical: 5, social: 5, executive: 5 }, // Low capacity to trigger warning
+    };
+    localStorage.setItem("energy_planner_day_plan", JSON.stringify(dayPlan));
+
+    // Capacity for warning
+    localStorage.setItem(
+      "energy_planner_capacity",
+      JSON.stringify({ physical: 5, social: 5, executive: 5 }),
+    );
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    // Verify Warning
+    // The warning logic depends on `checkExceedsCapacity` which relies on `calculateEnergyUsage`.
+    // Task 2 is selected. Cost: 10, 10, 10. Capacity: 5, 5, 5. Should exceed.
+    expect(screen.getByText(/Warning:/)).toBeInTheDocument();
+
+    // Verify Tasks Lists
+    expect(screen.getByText("Available Task")).toBeInTheDocument();
+    expect(screen.getByText("Selected Task")).toBeInTheDocument();
+  });
+});

@@ -610,4 +610,111 @@ describe("useEnergyPlannerState", () => {
 
     expect(warning.message).toContain(", "); // Verify comma separator is used
   });
+
+  it("checkExceedsCapacity handles missing energy types in capacity", () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    act(() => {
+      // Add a task with all types
+      result.current.addTask({
+        title: "Test Task",
+        energyCost: { physical: 10, social: 10, executive: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+      // Malformed capacity (missing keys)
+      // biome-ignore lint/suspicious/noExplicitAny: Intentional for testing malformed data
+      result.current.setDailyCapacity({} as any);
+    });
+
+    const task = result.current.tasks[0];
+    act(() => {
+      result.current.addToPlan(task.id);
+    });
+
+    // Should default capacity to 0 and warn
+    const check = result.current.checkExceedsCapacity();
+    expect(check.exceeded).toBe(true);
+  });
+
+  it("removeFromPlan handles missing completedTaskIds safely", () => {
+    localStorage.setItem(
+      "energy_planner_day_plan",
+      JSON.stringify({
+        date: new Date().toISOString().split("T")[0],
+        selectedTaskIds: ["t1"],
+        dailyCapacity: { physical: 100, social: 100, executive: 100 },
+        // completedTaskIds missing
+      }),
+    );
+
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    // Verify init state
+    expect(result.current.dayPlan.completedTaskIds).toBeUndefined();
+
+    act(() => {
+      result.current.removeFromPlan("t1");
+    });
+
+    // Should not crash
+    expect(result.current.dayPlan.selectedTaskIds).not.toContain("t1");
+  });
+
+  it("loadInitialDayPlan resets plan if date is old", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    localStorage.setItem(
+      "energy_planner_day_plan",
+      JSON.stringify({
+        date: yesterday.toISOString().split("T")[0],
+        selectedTaskIds: ["old_task"],
+        completedTaskIds: ["old_task"],
+        dailyCapacity: { physical: 100, social: 100, executive: 100 },
+      }),
+    );
+
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    // Should have reset
+    const today = new Date().toISOString().split("T")[0];
+    expect(result.current.dayPlan.date).toBe(today);
+    expect(result.current.dayPlan.selectedTaskIds).toEqual([]);
+  });
+
+  it("loadInitialDayPlan loads capacity from storage if day plan is missing", () => {
+    // Clear day plan, set capacity
+    localStorage.removeItem("energy_planner_day_plan");
+    localStorage.setItem(
+      "energy_planner_capacity",
+      JSON.stringify({
+        physical: 77,
+        social: 88,
+        executive: 99,
+      }),
+    );
+
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    expect(result.current.dailyCapacity).toEqual({
+      physical: 77,
+      social: 88,
+      executive: 99,
+    });
+  });
+  it("loadInitialDayPlan uses default capacity if storage empty", () => {
+    localStorage.clear();
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    // Should match defaultCapacity constant (50/50/50)
+    expect(result.current.dailyCapacity).toEqual({
+      physical: 50,
+      social: 50,
+      executive: 50,
+    });
+  });
 });

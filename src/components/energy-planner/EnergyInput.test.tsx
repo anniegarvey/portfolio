@@ -111,4 +111,18 @@ describe("EnergyInput", () => {
       screen.getByText("How much energy do you have today?"),
     ).toBeInTheDocument();
   });
+
+  it("slider clamps values between 0 and 100", () => {
+    render(<EnergyInput />, { wrapper });
+
+    const slider = screen.getByLabelText(/physical/i) as HTMLInputElement;
+
+    // Test > 100
+    fireEvent.change(slider, { target: { value: "150" } });
+    expect(slider.value).toBe("100");
+
+    // Test < 0
+    fireEvent.change(slider, { target: { value: "-50" } });
+    expect(slider.value).toBe("0");
+  });
 });

@@ -12,5 +12,16 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "./src"),
     },
+    coverage: {
+      enabled: true,
+      thresholds: {
+        lines: 100,
+        statements: 100,
+        branches: 85.71,
+        functions: 100,
+        perFile: true,
+        autoUpdate: true,
+      },
+    },
   },
 });

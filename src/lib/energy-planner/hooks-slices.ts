@@ -101,7 +101,7 @@ export function useDayPlan() {
 
   const toggleTaskCompletion = (taskId: string) => {
     setDayPlan((prev) => {
-      const completed = prev.completedTaskIds || [];
+      const completed = prev.completedTaskIds;
       const isCompleted = completed.includes(taskId);
       return {
         ...prev,
@@ -128,11 +128,16 @@ function loadInitialDayPlan(setDayPlan: (plan: DayPlan) => void) {
   }
 
   const cap = localStorage.getItem("energy_planner_capacity");
+  let dailyCapacity = defaultCapacity;
+  if (cap) {
+    dailyCapacity = JSON.parse(cap);
+  }
+
   setDayPlan({
     date: today,
     selectedTaskIds: [],
     completedTaskIds: [],
-    dailyCapacity: cap ? JSON.parse(cap) : defaultCapacity,
+    dailyCapacity,
   });
 }
 

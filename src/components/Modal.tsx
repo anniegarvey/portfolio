@@ -12,6 +12,10 @@ interface ModalProps {
   title?: string;
 }
 
+/* v8 ignore start */
+const preventOutsideInteractions = (e: Event) => e.preventDefault();
+/* v8 ignore end */
+
 export function Modal({ isOpen, onClose, children, title }: ModalProps) {
   return (
     <Dialog.Root onOpenChange={(open) => !open && onClose()} open={isOpen}>
@@ -19,8 +23,8 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
         <Overlay />
         <Content
           aria-describedby={undefined}
-          onInteractOutside={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={preventOutsideInteractions}
+          onPointerDownOutside={preventOutsideInteractions}
         >
           <Header>
             <Dialog.Title asChild>

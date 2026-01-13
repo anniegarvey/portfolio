@@ -237,4 +237,38 @@ describe("PlannerTaskCard", () => {
     expect(screen.getByText("50 S")).toBeInTheDocument();
     expect(screen.getByText("75 E")).toBeInTheDocument();
   });
+
+  it("does not render energy badge if cost is 0", () => {
+    const mockOnEdit = vi.fn();
+    const taskWithZeroCost: Task = {
+      ...mockTask,
+      energyCost: { physical: 0, social: 10, executive: 0 },
+    };
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={taskWithZeroCost} />, {
+      wrapper,
+    });
+
+    expect(screen.queryByText(/0 P/)).not.toBeInTheDocument();
+    expect(screen.getByText(/10 S/)).toBeInTheDocument();
+    expect(screen.queryByText(/0 E/)).not.toBeInTheDocument();
+  });
+
+  it("does not render actions if optional callbacks are not provided", () => {
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} selected task={mockTask} />, {
+      wrapper,
+    });
+
+    expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
+  });
+
+  it("does not show add button when not selected but onAdd is missing", () => {
+    const mockOnEdit = vi.fn();
+    render(<PlannerTaskCard onEdit={mockOnEdit} task={mockTask} />, {
+      wrapper,
+    });
+
+    expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
+  });
 });

@@ -138,4 +138,38 @@ describe("EnergyTypeManager", () => {
     expect(screen.getByLabelText("Label")).toHaveValue("Executive Functioning");
     // Color value check might be tricky depending on browser format (hex vs rgb), skipping strict color check
   });
+
+  it("updates color when changed manually", () => {
+    render(<EnergyTypeManager />, { wrapper });
+
+    // Open dialog
+    fireEvent.click(screen.getByText("+ Add Energy Type"));
+
+    // Find color input
+    // It has type="color", usually label is "Color"
+    const colorInput = screen.getByLabelText("Color");
+
+    fireEvent.change(colorInput, { target: { value: "#123456" } });
+
+    expect(colorInput).toHaveValue("#123456");
+    expect(screen.getByText("#123456")).toBeInTheDocument(); // The hex code is displayed next to it
+    expect(colorInput).toHaveValue("#123456");
+    expect(screen.getByText("#123456")).toBeInTheDocument(); // The hex code is displayed next to it
+  });
+
+  it("does not save when label is empty", () => {
+    render(<EnergyTypeManager />, { wrapper });
+
+    // Open add dialog
+    fireEvent.click(screen.getByText("+ Add Energy Type"));
+
+    // Click save without entering label
+    const saveButton = screen.getByText("Add", { selector: "button" });
+    fireEvent.click(saveButton);
+
+    // Dialog should remain open
+    expect(
+      screen.getByText("Add Energy Type", { selector: "h2" }),
+    ).toBeInTheDocument();
+  });
 });

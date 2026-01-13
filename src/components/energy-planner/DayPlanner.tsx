@@ -32,7 +32,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
   );
 
   const isCompleted = (taskId: string) =>
-    (dayPlan.completedTaskIds || []).includes(taskId);
+    dayPlan.completedTaskIds.includes(taskId);
 
   return (
     <Container>

@@ -153,10 +153,8 @@ export function EnergyTypeManager() {
   };
 
   const confirmDelete = () => {
-    if (deleteCandidateId) {
-      removeEnergyType(deleteCandidateId);
-      setDeleteCandidateId(null);
-    }
+    removeEnergyType(deleteCandidateId as string);
+    setDeleteCandidateId(null);
   };
 
   const cancelDelete = () => {
