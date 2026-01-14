@@ -1,13 +1,11 @@
 "use client";
 
-import {
-  useDailyCapacity,
-  useDayPlan,
-  useEnergyTypes,
-  useTasks,
-} from "./hooks-slices";
-import type { EnergyCost } from "./schema";
-import { calculateEnergyUsage as calcUsage } from "./utils";
+import type { EnergyCost } from "@/lib/energy-planner/schema";
+import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
+import { useDailyCapacity } from "./useDailyCapacity";
+import { useDayPlan } from "./useDayPlan";
+import { useEnergyTypes } from "./useEnergyTypes";
+import { useTasks } from "./useTasks";
 
 export function useEnergyPlannerState() {
   const { tasks, addTask, updateTask, removeTaskState } = useTasks();

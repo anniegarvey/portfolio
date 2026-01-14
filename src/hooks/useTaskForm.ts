@@ -1,6 +1,8 @@
+"use client";
+
 import { useId, useState } from "react";
-import { useEnergyPlanner } from "../../lib/energy-planner/context";
-import type { EnergyCost, Task } from "../../lib/energy-planner/schema";
+import { useEnergyPlanner } from "@/lib/energy-planner/context";
+import type { EnergyCost, Task } from "@/lib/energy-planner/schema";
 
 interface UseTaskFormProps {
   initialData?: Task;

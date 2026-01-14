@@ -54,12 +54,6 @@ export default function Navigation() {
           <Dialog.Portal>
             <StyledOverlay />
             <StyledContent>
-              <Dialog.Title style={{ display: "none" }}>
-                Navigation Menu
-              </Dialog.Title>
-              <Dialog.Description style={{ display: "none" }}>
-                Main navigation links for mobile devices.
-              </Dialog.Description>
               <CloseButton aria-label="Close navigation menu">
                 <X size={32} />
               </CloseButton>

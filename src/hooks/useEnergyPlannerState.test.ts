@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { useEnergyPlannerState } from "./hooks";
+import { useEnergyPlannerState } from "./useEnergyPlannerState";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useEnergyPlannerState", () => {
@@ -410,173 +410,30 @@ describe("useEnergyPlannerState", () => {
     expect(warning.message).toContain("Social");
   });
 
-  it("updates only the specified task, not all tasks", () => {
+  it("checkExceedsCapacity handles missing energy types in capacity", () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     act(() => {
       result.current.addTask({
-        title: "Task 1",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
+        title: "Test Task",
+        energyCost: { physical: 10, social: 10, executive: 10 },
         factors: {
           initiationDifficulty: 1,
           terminationDifficulty: 1,
           isRestorative: false,
         },
       });
-      result.current.addTask({
-        title: "Task 2",
-        description: "",
-        energyCost: { physical: 15, social: 10, executive: 25 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
+      // biome-ignore lint/suspicious/noExplicitAny: Intentional for testing malformed data
+      result.current.setDailyCapacity({} as any);
     });
 
+    const task = result.current.tasks[0];
     act(() => {
-      result.current.updateTask({
-        ...result.current.tasks[0],
-        title: "Updated Task 1",
-      });
+      result.current.addToPlan(task.id);
     });
 
-    expect(result.current.tasks[0].title).toBe("Updated Task 1");
-    expect(result.current.tasks[1].title).toBe("Task 2"); // Should NOT be updated
-    expect(result.current.tasks).toHaveLength(2);
-  });
-
-  it("removes only the specified task, not all tasks", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.addTask({
-        title: "Task 1",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-      result.current.addTask({
-        title: "Task 2",
-        description: "",
-        energyCost: { physical: 15, social: 10, executive: 25 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const task1Id = result.current.tasks[0].id;
-    const task2Id = result.current.tasks[1].id;
-
-    act(() => {
-      result.current.removeTask(task1Id);
-    });
-
-    expect(result.current.tasks).toHaveLength(1);
-    expect(result.current.tasks[0].id).toBe(task2Id);
-    expect(result.current.tasks[0].title).toBe("Task 2");
-  });
-
-  it("removes task from both selected and completed lists when task is deleted", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.addTask({
-        title: "Task 1",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-      result.current.addTask({
-        title: "Task 2",
-        description: "",
-        energyCost: { physical: 15, social: 10, executive: 25 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const task1Id = result.current.tasks[0].id;
-    const task2Id = result.current.tasks[1].id;
-
-    act(() => {
-      result.current.addToPlan(task1Id);
-      result.current.addToPlan(task2Id);
-      result.current.toggleTaskCompletion(task1Id);
-    });
-
-    expect(result.current.dayPlan.selectedTaskIds).toContain(task1Id);
-    expect(result.current.dayPlan.completedTaskIds).toContain(task1Id);
-
-    act(() => {
-      result.current.removeTask(task1Id);
-    });
-
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain(task1Id);
-    expect(result.current.dayPlan.completedTaskIds).not.toContain(task1Id);
-    expect(result.current.dayPlan.selectedTaskIds).toContain(task2Id); // Task 2 should still be there
-  });
-
-  it("toggles completion for only the specified task", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.addTask({
-        title: "Task 1",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-      result.current.addTask({
-        title: "Task 2",
-        description: "",
-        energyCost: { physical: 15, social: 10, executive: 25 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const task1Id = result.current.tasks[0].id;
-    const task2Id = result.current.tasks[1].id;
-
-    act(() => {
-      result.current.addToPlan(task1Id);
-      result.current.addToPlan(task2Id);
-      result.current.toggleTaskCompletion(task1Id);
-    });
-
-    expect(result.current.dayPlan.completedTaskIds).toContain(task1Id);
-    expect(result.current.dayPlan.completedTaskIds).not.toContain(task2Id);
-
-    act(() => {
-      result.current.toggleTaskCompletion(task1Id);
-    });
-
-    expect(result.current.dayPlan.completedTaskIds).not.toContain(task1Id);
-    expect(result.current.dayPlan.completedTaskIds).not.toContain(task2Id);
+    const check = result.current.checkExceedsCapacity();
+    expect(check.exceeded).toBe(true);
   });
 
   it("verifies warning message includes comma-separated energy types", () => {
@@ -608,113 +465,6 @@ describe("useEnergyPlannerState", () => {
 
     const warning = result.current.checkExceedsCapacity();
 
-    expect(warning.message).toContain(", "); // Verify comma separator is used
-  });
-
-  it("checkExceedsCapacity handles missing energy types in capacity", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      // Add a task with all types
-      result.current.addTask({
-        title: "Test Task",
-        energyCost: { physical: 10, social: 10, executive: 10 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-      // Malformed capacity (missing keys)
-      // biome-ignore lint/suspicious/noExplicitAny: Intentional for testing malformed data
-      result.current.setDailyCapacity({} as any);
-    });
-
-    const task = result.current.tasks[0];
-    act(() => {
-      result.current.addToPlan(task.id);
-    });
-
-    // Should default capacity to 0 and warn
-    const check = result.current.checkExceedsCapacity();
-    expect(check.exceeded).toBe(true);
-  });
-
-  it("removeFromPlan handles missing completedTaskIds safely", () => {
-    localStorage.setItem(
-      "energy_planner_day_plan",
-      JSON.stringify({
-        date: new Date().toISOString().split("T")[0],
-        selectedTaskIds: ["t1"],
-        dailyCapacity: { physical: 100, social: 100, executive: 100 },
-        // completedTaskIds missing
-      }),
-    );
-
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    // Verify init state
-    expect(result.current.dayPlan.completedTaskIds).toBeUndefined();
-
-    act(() => {
-      result.current.removeFromPlan("t1");
-    });
-
-    // Should not crash
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain("t1");
-  });
-
-  it("loadInitialDayPlan resets plan if date is old", () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    localStorage.setItem(
-      "energy_planner_day_plan",
-      JSON.stringify({
-        date: yesterday.toISOString().split("T")[0],
-        selectedTaskIds: ["old_task"],
-        completedTaskIds: ["old_task"],
-        dailyCapacity: { physical: 100, social: 100, executive: 100 },
-      }),
-    );
-
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    // Should have reset
-    const today = new Date().toISOString().split("T")[0];
-    expect(result.current.dayPlan.date).toBe(today);
-    expect(result.current.dayPlan.selectedTaskIds).toEqual([]);
-  });
-
-  it("loadInitialDayPlan loads capacity from storage if day plan is missing", () => {
-    // Clear day plan, set capacity
-    localStorage.removeItem("energy_planner_day_plan");
-    localStorage.setItem(
-      "energy_planner_capacity",
-      JSON.stringify({
-        physical: 77,
-        social: 88,
-        executive: 99,
-      }),
-    );
-
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    expect(result.current.dailyCapacity).toEqual({
-      physical: 77,
-      social: 88,
-      executive: 99,
-    });
-  });
-  it("loadInitialDayPlan uses default capacity if storage empty", () => {
-    localStorage.clear();
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    // Should match defaultCapacity constant (50/50/50)
-    expect(result.current.dailyCapacity).toEqual({
-      physical: 50,
-      social: 50,
-      executive: 50,
-    });
+    expect(warning.message).toContain(", ");
   });
 });

@@ -1,10 +1,10 @@
 "use client";
 
 import { styled } from "next-yak";
-import type { Task } from "../../lib/energy-planner/schema";
+import { useTaskForm } from "@/hooks/useTaskForm";
+import type { Task } from "@/lib/energy-planner/schema";
 import { EnergyCostFields } from "./EnergyCostFields";
 import { TaskFactorFields } from "./TaskFactorFields";
-import { useTaskForm } from "./useTaskForm";
 
 interface TaskFormProps {
   initialData?: Task;

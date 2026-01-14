@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
-import type { Task } from "../../lib/energy-planner/schema";
+import { EnergyPlannerProvider } from "@/lib/energy-planner/context";
+import type { Task } from "@/lib/energy-planner/schema";
 import { useTaskForm } from "./useTaskForm";
 
 const mockTask: Task = {

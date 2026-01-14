@@ -1,9 +1,8 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "mutate": [
-    "src/lib/energy-planner/**/*.ts",
-    "src/lib/energy-planner/**/*.tsx",
-    "src/components/energy-planner/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     "!src/**/*.test.ts",
     "!src/**/*.test.tsx"
   ],

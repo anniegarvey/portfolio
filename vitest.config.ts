@@ -23,5 +23,6 @@ export default defineConfig({
         autoUpdate: true,
       },
     },
+    testTimeout: 500,
   },
 });
