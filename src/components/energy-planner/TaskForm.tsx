@@ -24,34 +24,26 @@ export function TaskForm({ initialData, onClose }: TaskFormProps) {
   } = useTaskForm({ initialData, onClose });
 
   return (
-    <Container>
-      <Form onSubmit={handleSubmit}>
-        <Field>
-          <Label htmlFor={`${formId}-title`}>Task Name</Label>
-          <TextInput
-            id={`${formId}-title`}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Do Laundry"
-            required
-            value={title}
-          />
-        </Field>
+    <Form onSubmit={handleSubmit}>
+      <Field>
+        <Label htmlFor={`${formId}-title`}>Task Name</Label>
+        <TextInput
+          id={`${formId}-title`}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g., Do Laundry"
+          required
+          value={title}
+        />
+      </Field>
 
-        <EnergyCostFields energyCost={energyCost} onChange={setEnergyCost} />
+      <EnergyCostFields energyCost={energyCost} onChange={setEnergyCost} />
 
-        <TaskFactorFields factors={factors} onChange={setFactors} />
+      <TaskFactorFields factors={factors} onChange={setFactors} />
 
-        <Button type="submit">
-          {initialData ? "Update Task" : "Add Task"}
-        </Button>
-      </Form>
-    </Container>
+      <Button type="submit">{initialData ? "Update Task" : "Add Task"}</Button>
+    </Form>
   );
 }
-
-const Container = styled.div`
-  /* Removed container styles as this will be in a modal */
-`;
 
 const Form = styled.form`
     display: flex;

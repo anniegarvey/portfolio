@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
 import { DayPlanner } from "./DayPlanner";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("DayPlanner", () => {
-  it("renders the day planner with empty state", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("renders the day planner with header", () => {
     const mockOnEditTask = vi.fn();
     render(
       <EnergyPlannerProvider>
@@ -14,19 +19,7 @@ describe("DayPlanner", () => {
     );
 
     expect(screen.getByText("Your Day Plan")).toBeInTheDocument();
-    expect(screen.getByText(/Available Tasks/)).toBeInTheDocument();
     expect(screen.getByText(/Selected Tasks/)).toBeInTheDocument();
-  });
-
-  it("displays available tasks count with zero", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    expect(screen.getByText(/Available Tasks \(0\)/)).toBeInTheDocument();
   });
 
   it("displays selected tasks count with zero", () => {
@@ -52,19 +45,6 @@ describe("DayPlanner", () => {
     expect(summary.textContent).toMatch(/P:0\s*S:0\s*E:0/);
   });
 
-  it("shows empty state message when no tasks available", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    expect(
-      screen.getByText("No tasks available. Create some above!"),
-    ).toBeInTheDocument();
-  });
-
   it("shows empty state message when no tasks selected", () => {
     const mockOnEditTask = vi.fn();
     render(
@@ -74,11 +54,11 @@ describe("DayPlanner", () => {
     );
 
     expect(
-      screen.getByText("No tasks selected for today."),
+      screen.getByText("No tasks selected for this day."),
     ).toBeInTheDocument();
   });
 
-  it("displays header text correctly", () => {
+  it("shows 'Plan an available task' button", () => {
     const mockOnEditTask = vi.fn();
     render(
       <EnergyPlannerProvider>
@@ -86,11 +66,11 @@ describe("DayPlanner", () => {
       </EnergyPlannerProvider>,
     );
 
-    const header = screen.getByText("Your Day Plan");
-    expect(header.tagName).toBe("H3");
+    expect(screen.getByText("Plan an available task")).toBeInTheDocument();
   });
 
-  it("renders both column headers", () => {
+  it("opens modal when 'Plan an available task' button is clicked", async () => {
+    const user = userEvent.setup();
     const mockOnEditTask = vi.fn();
     render(
       <EnergyPlannerProvider>
@@ -98,89 +78,34 @@ describe("DayPlanner", () => {
       </EnergyPlannerProvider>,
     );
 
-    expect(screen.getByText(/Available Tasks/)).toBeInTheDocument();
-    expect(screen.getByText(/Selected Tasks/)).toBeInTheDocument();
-  });
+    await user.click(screen.getByText("Plan an available task"));
 
-  it("displays usage summary in selected tasks column", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    const usageSummary = screen.getByText(/Usage:/);
-    expect(usageSummary).toBeInTheDocument();
-    expect(usageSummary.textContent).toContain("P:");
-    expect(usageSummary.textContent).toContain("S:");
-    expect(usageSummary.textContent).toContain("E:");
-  });
-
-  it("does not show warning when capacity is not exceeded", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    expect(screen.queryByText(/Warning:/)).not.toBeInTheDocument();
-  });
-
-  it("verifies available tasks count displays correctly", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    const availableHeader = screen.getByText(/Available Tasks/);
-    expect(availableHeader.textContent).toMatch(/\(0\)/);
-  });
-
-  it("verifies selected tasks count displays correctly", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    const selectedHeader = screen.getByText(/Selected Tasks/);
-    expect(selectedHeader.textContent).toMatch(/\(0\)/);
-  });
-
-  it("verifies usage values are displayed with correct format", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    const usageText = screen.getByText(/Usage:/);
-    expect(usageText.textContent).toContain("P:0");
-    expect(usageText.textContent).toContain("S:0");
-    expect(usageText.textContent).toContain("E:0");
-  });
-
-  it("renders empty task lists correctly", () => {
-    const mockOnEditTask = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner onEditTask={mockOnEditTask} />
-      </EnergyPlannerProvider>,
-    );
-
-    // Both empty state messages should be present
     expect(
-      screen.getByText("No tasks available. Create some above!"),
+      screen.getByRole("heading", { name: "Available Tasks" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("No tasks selected for today."),
-    ).toBeInTheDocument();
+  });
+
+  it("shows date navigation buttons", () => {
+    const mockOnEditTask = vi.fn();
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    expect(screen.getByLabelText("Previous day")).toBeInTheDocument();
+    expect(screen.getByLabelText("Next day")).toBeInTheDocument();
+  });
+
+  it("shows 'Today' indicator when viewing today", () => {
+    const mockOnEditTask = vi.fn();
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    expect(screen.getByText("Today")).toBeInTheDocument();
   });
 
   it("verifies header structure is correct", () => {
@@ -199,10 +124,13 @@ describe("DayPlanner", () => {
   });
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test with extensive localStorage seeding
 describe("DayPlanner with populated data", () => {
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test case
-  it("renders tasks and warning when capacity exceeded", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("renders selected tasks and warning when capacity exceeded", () => {
     const mockOnEditTask = vi.fn();
 
     const task1 = {
@@ -226,13 +154,17 @@ describe("DayPlanner with populated data", () => {
     );
 
     // Seed DayPlan to have t2 selected
+    const today = new Date().toISOString().split("T")[0];
     const dayPlan = {
-      date: new Date().toISOString().split("T")[0],
+      date: today,
       selectedTaskIds: ["t2"],
       completedTaskIds: ["t2"],
       dailyCapacity: { physical: 5, social: 5, executive: 5 }, // Low capacity to trigger warning
     };
-    localStorage.setItem("energy_planner_day_plan", JSON.stringify(dayPlan));
+    localStorage.setItem(
+      `energy_planner_day_plan_${today}`,
+      JSON.stringify(dayPlan),
+    );
 
     // Capacity for warning
     localStorage.setItem(
@@ -251,8 +183,110 @@ describe("DayPlanner with populated data", () => {
     // Task 2 is selected. Cost: 10, 10, 10. Capacity: 5, 5, 5. Should exceed.
     expect(screen.getByText(/Warning:/)).toBeInTheDocument();
 
-    // Verify Tasks Lists
-    expect(screen.getByText("Available Task")).toBeInTheDocument();
+    // Verify Selected Task is visible (Available Task is now in modal, not visible by default)
     expect(screen.getByText("Selected Task")).toBeInTheDocument();
+  });
+
+  it("adds task from modal and closes modal", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+
+    const task1 = {
+      id: "t1",
+      title: "Available Task",
+      energyCost: { physical: 5, social: 5, executive: 5 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem("energy_planner_tasks", JSON.stringify([task1]));
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    // Open modal
+    await user.click(screen.getByText("Plan an available task"));
+    expect(
+      screen.getByRole("heading", { name: "Available Tasks" }),
+    ).toBeInTheDocument();
+
+    // Click Add to day button
+    await user.click(screen.getByLabelText("Add to day"));
+
+    // Modal should close - Available Tasks title should be gone
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("displays uncompleted tasks from previous days", () => {
+    const mockOnEditTask = vi.fn();
+
+    const task1 = {
+      id: "t1",
+      title: "Uncompleted From Yesterday",
+      energyCost: { physical: 5, social: 5, executive: 5 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem("energy_planner_tasks", JSON.stringify([task1]));
+
+    // Set up yesterday's plan with uncompleted task
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    localStorage.setItem(
+      `energy_planner_day_plan_${yesterdayStr}`,
+      JSON.stringify({
+        date: yesterdayStr,
+        selectedTaskIds: ["t1"],
+        completedTaskIds: [],
+        dailyCapacity: { physical: 50, social: 50, executive: 50 },
+      }),
+    );
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    // Should show uncompleted tasks section
+    expect(screen.getByText(/Uncompleted Tasks/)).toBeInTheDocument();
+    expect(screen.getByText("Uncompleted From Yesterday")).toBeInTheDocument();
+  });
+
+  it("closes modal when close button is clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    // Open modal
+    await user.click(screen.getByText("Plan an available task"));
+    expect(
+      screen.getByRole("heading", { name: "Available Tasks" }),
+    ).toBeInTheDocument();
+
+    // Close via close button
+    await user.click(screen.getByLabelText("Close modal"));
+
+    // Modal should be closed
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

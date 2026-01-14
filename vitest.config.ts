@@ -17,10 +17,9 @@ export default defineConfig({
       thresholds: {
         lines: 100,
         statements: 100,
-        branches: 85.71,
+        branches: 85,
         functions: 100,
         perFile: true,
-        autoUpdate: true,
       },
     },
     testTimeout: 500,

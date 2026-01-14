@@ -1,4 +1,4 @@
-export default function MaxWidthWrapper({
+export function MaxWidthWrapper({
   as = "div",
   padding = "32px",
   children,

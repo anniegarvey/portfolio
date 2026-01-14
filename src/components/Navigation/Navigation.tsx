@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
 import { useState } from "react";
-import { QUERIES } from "../lib/constants";
+import { QUERIES } from "@/lib/constants";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { href: "/energy-planner", label: "Energy Planner" },
 ] as const;
 
-export default function Navigation() {
+export function Navigation() {
   const [open, setOpen] = useState(false);
 
   const handleLinkClick = () => setOpen(false);

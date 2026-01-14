@@ -35,8 +35,10 @@ function EnergyTypeDialog({
 
   return (
     <Modal
+      description="Manage what energy types matter most to you."
       isOpen={isOpen}
       onClose={onClose}
+      showDescription
       title={editingType ? "Edit Energy Type" : "Add Energy Type"}
     >
       <FormField>
@@ -202,11 +204,12 @@ export function EnergyTypeManager() {
       />
 
       <Modal
+        description="Are you sure you want to delete this energy type?"
         isOpen={!!deleteCandidateId}
         onClose={cancelDelete}
+        showDescription
         title="Delete Energy Type"
       >
-        <p>Are you sure you want to delete this energy type?</p>
         <DialogActions>
           <CancelButton onClick={cancelDelete} type="button">
             Cancel

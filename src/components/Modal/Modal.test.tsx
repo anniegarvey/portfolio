@@ -5,7 +5,11 @@ import { Modal } from "./Modal";
 const setupModal = (isOpen = true) => {
   const onClose = vi.fn();
   render(
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal
+      description="Test Modal Description"
+      isOpen={isOpen}
+      onClose={onClose}
+    >
       <div>Child Content</div>
     </Modal>,
   );

@@ -6,12 +6,26 @@ import { useDailyCapacity } from "./useDailyCapacity";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useTasks } from "./useTasks";
+import { getAllPlannedTaskIds, getUncompletedTasks } from "./utils";
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Hook aggregating multiple state management hooks
 export function useEnergyPlannerState() {
   const { tasks, addTask, updateTask, removeTaskState } = useTasks();
   const { dailyCapacity, setDailyCapacity } = useDailyCapacity();
-  const { dayPlan, addToPlan, removeFromPlan, toggleTaskCompletion } =
-    useDayPlan();
+  const {
+    currentDate,
+    dayPlan,
+    navigateToDate,
+    goToPreviousDay,
+    goToNextDay,
+    goToToday,
+    addToPlan,
+    removeFromPlan,
+    toggleTaskCompletion,
+    markTaskCompleteOnDate,
+    moveTaskToToday,
+    moveTaskToUnplanned,
+  } = useDayPlan();
   const { energyTypes, addEnergyType, updateEnergyType, removeEnergyType } =
     useEnergyTypes();
 
@@ -45,6 +59,15 @@ export function useEnergyPlannerState() {
     return { exceeded: false };
   };
 
+  const getUncompleted = () => {
+    return getUncompletedTasks(tasks, currentDate);
+  };
+
+  const getAvailableTasks = () => {
+    const plannedIds = getAllPlannedTaskIds();
+    return tasks.filter((t) => !plannedIds.has(t.id));
+  };
+
   return {
     tasks,
     addTask,
@@ -52,12 +75,22 @@ export function useEnergyPlannerState() {
     removeTask,
     dailyCapacity,
     setDailyCapacity,
+    currentDate,
     dayPlan,
+    navigateToDate,
+    goToPreviousDay,
+    goToNextDay,
+    goToToday,
     addToPlan,
     removeFromPlan,
     toggleTaskCompletion,
+    markTaskCompleteOnDate,
+    moveTaskToToday,
+    moveTaskToUnplanned,
     calculateEnergyUsage,
     checkExceedsCapacity,
+    getUncompleted,
+    getAvailableTasks,
     energyTypes,
     addEnergyType,
     updateEnergyType,

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import Navigation from "./Navigation";
+import { Navigation } from "./Navigation";
 
 // Mock Next.js components
 vi.mock("next/image", () => ({

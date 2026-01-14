@@ -3,19 +3,26 @@
 import { Download, Plus, Upload } from "lucide-react";
 import { styled } from "next-yak";
 import { useRef, useState } from "react";
-import { DayPlanner } from "../../components/energy-planner/DayPlanner";
-import { EnergyInput } from "../../components/energy-planner/EnergyInput";
-import { EnergyTypeManager } from "../../components/energy-planner/EnergyTypeManager";
-import { TaskForm } from "../../components/energy-planner/TaskForm";
-import MaxWidthWrapper from "../../components/MaxWidthWrapper";
-import { Modal } from "../../components/Modal";
-import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
-import type { Task } from "../../lib/energy-planner/schema";
+import { DayPlanner } from "@/components/energy-planner/DayPlanner";
+import { EnergyInput } from "@/components/energy-planner/EnergyInput";
+import { EnergyTypeManager } from "@/components/energy-planner/EnergyTypeManager";
+import { TaskForm } from "@/components/energy-planner/TaskForm";
+import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
+import { Modal } from "@/components/Modal";
+import { EnergyPlannerProvider } from "@/lib/energy-planner/context";
+import type { Task } from "@/lib/energy-planner/schema";
 import {
   exportEnergyPlannerData,
   importEnergyPlannerData,
-} from "../../lib/energy-planner/utils";
+} from "@/lib/energy-planner/utils";
 
+const handleFileImportError = (error: Error | unknown) => {
+  alert(
+    error instanceof Error
+      ? error.message
+      : "Failed to import data. Please check the file format.",
+  );
+};
 function PlannerContent() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
@@ -53,11 +60,7 @@ function PlannerContent() {
     try {
       await importEnergyPlannerData(file);
     } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Failed to import data. Please check the file format.",
-      );
+      handleFileImportError(error);
     }
   };
 
@@ -107,8 +110,10 @@ function PlannerContent() {
         <DayPlanner onEditTask={handleEditTask} />
 
         <Modal
+          description="Record how completing this task may affect your energy levels."
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
+          showDescription={false}
           title={editingTask ? "Edit Task" : "Create New Task"}
         >
           <TaskForm initialData={editingTask} onClose={handleCloseTaskModal} />

@@ -9,6 +9,7 @@ interface PlannerTaskCardProps {
   task: Task;
   selected?: boolean;
   completed?: boolean;
+  isPastDay?: boolean;
   onEdit: (task: Task) => void;
   onToggleCompletion?: (taskId: string) => void;
   onRemove?: (taskId: string) => void;
@@ -19,6 +20,7 @@ export function PlannerTaskCard({
   task,
   selected,
   completed,
+  isPastDay,
   onEdit,
   onToggleCompletion,
   onRemove,
@@ -45,7 +47,7 @@ export function PlannerTaskCard({
         </EnergyBadges>
       </TaskContent>
       <Actions>
-        {selected && onToggleCompletion && (
+        {selected && onToggleCompletion && !isPastDay && (
           <ActionButton
             $completed={completed}
             aria-label={completed ? "Mark as not done" : "Mark as done"}
@@ -64,7 +66,7 @@ export function PlannerTaskCard({
           <Pencil size={18} />
         </ActionButton>
 
-        {selected && onRemove && (
+        {selected && onRemove && !isPastDay && (
           <ActionButton
             $remove
             aria-label="Remove from day"
@@ -75,7 +77,7 @@ export function PlannerTaskCard({
           </ActionButton>
         )}
 
-        {!selected && onAdd && (
+        {!selected && onAdd && !isPastDay && (
           <ActionButton
             aria-label="Add to day"
             onClick={() => onAdd(task.id)}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { X } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import type { ReactNode } from "react";
@@ -10,19 +11,35 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   title?: string;
+  description: string;
+  showDescription?: boolean;
 }
 
 /* v8 ignore start */
 const preventOutsideInteractions = (e: Event) => e.preventDefault();
 /* v8 ignore end */
 
-export function Modal({ isOpen, onClose, children, title }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  children,
+  title,
+  description,
+  showDescription,
+}: ModalProps) {
+  const DescriptionWrapper = showDescription
+    ? Description
+    : ({ children }: { children: ReactNode }) => (
+        <VisuallyHidden>
+          <Dialog.DialogDescription>{children}</Dialog.DialogDescription>
+        </VisuallyHidden>
+      );
+
   return (
     <Dialog.Root onOpenChange={(open) => !open && onClose()} open={isOpen}>
       <Dialog.Portal>
         <Overlay />
         <Content
-          aria-describedby={undefined}
           onInteractOutside={preventOutsideInteractions}
           onPointerDownOutside={preventOutsideInteractions}
         >
@@ -36,7 +53,10 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
               </CloseButton>
             </Dialog.Close>
           </Header>
-          <Body>{children}</Body>
+          <Body>
+            <DescriptionWrapper>{description}</DescriptionWrapper>
+            {children}
+          </Body>
         </Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -53,6 +73,10 @@ const slideIn = keyframes`
   to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 `;
 
+const Description = styled(Dialog.DialogDescription)`
+  margin-bottom: 16px;
+`;
+
 const Overlay = styled(Dialog.Overlay)`
   position: fixed;
   inset: 0;
@@ -60,7 +84,7 @@ const Overlay = styled(Dialog.Overlay)`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 16px;
   animation: ${fadeIn} 0.2s ease-out;
   backdrop-filter: blur(2px);
 `;
