@@ -10,7 +10,8 @@ import { getAllPlannedTaskIds, getUncompletedTasks } from "./utils";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Hook aggregating multiple state management hooks
 export function useEnergyPlannerState() {
-  const { tasks, addTask, updateTask, removeTaskState } = useTasks();
+  const { tasks, addTask, updateTask, removeTaskState, reorderTasks } =
+    useTasks();
   const { dailyCapacity, setDailyCapacity } = useDailyCapacity();
   const {
     currentDate,
@@ -25,6 +26,7 @@ export function useEnergyPlannerState() {
     markTaskCompleteOnDate,
     moveTaskToToday,
     moveTaskToUnplanned,
+    reorderPlannedTasks,
   } = useDayPlan();
   const { energyTypes, addEnergyType, updateEnergyType, removeEnergyType } =
     useEnergyTypes();
@@ -95,5 +97,7 @@ export function useEnergyPlannerState() {
     addEnergyType,
     updateEnergyType,
     removeEnergyType,
+    reorderPlannedTasks: reorderPlannedTasks,
+    reorderTasks: reorderTasks,
   };
 }

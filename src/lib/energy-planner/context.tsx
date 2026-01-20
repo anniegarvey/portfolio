@@ -31,6 +31,8 @@ interface EnergyPlannerContextType {
   addEnergyType: (typeData: Omit<EnergyTypeConfig, "id" | "isPreset">) => void;
   updateEnergyType: (updatedType: EnergyTypeConfig) => void;
   removeEnergyType: (typeId: string) => void;
+  reorderPlannedTasks: (itemIds: string[]) => void;
+  reorderTasks: (newTasks: Task[]) => void;
 }
 
 const EnergyPlannerContext = createContext<

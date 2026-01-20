@@ -209,4 +209,40 @@ describe("useTasks", () => {
       expect(parsed[0].title).toBe("Persisted Task");
     }
   });
+  it("reorders tasks", () => {
+    const { result } = renderHook(() => useTasks());
+
+    act(() => {
+      result.current.addTask({
+        title: "Task 1",
+        description: "",
+        energyCost: { physical: 10, social: 20, executive: 5 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+      result.current.addTask({
+        title: "Task 2",
+        description: "",
+        energyCost: { physical: 15, social: 10, executive: 25 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+    });
+
+    const task1 = result.current.tasks[0];
+    const task2 = result.current.tasks[1];
+
+    act(() => {
+      result.current.reorderTasks([task2, task1]);
+    });
+
+    expect(result.current.tasks[0].id).toBe(task2.id);
+    expect(result.current.tasks[1].id).toBe(task1.id);
+  });
 });

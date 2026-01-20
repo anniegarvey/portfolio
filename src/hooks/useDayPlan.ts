@@ -173,6 +173,13 @@ export function useDayPlan() {
     [currentDate, removeFromPlan],
   );
 
+  const reorderPlannedTasks = useCallback((itemIds: string[]) => {
+    setDayPlan((prev) => ({
+      ...prev,
+      selectedTaskIds: itemIds,
+    }));
+  }, []);
+
   return {
     currentDate,
     dayPlan,
@@ -186,5 +193,6 @@ export function useDayPlan() {
     markTaskCompleteOnDate,
     moveTaskToToday,
     moveTaskToUnplanned,
+    reorderPlannedTasks,
   };
 }

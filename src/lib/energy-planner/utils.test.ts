@@ -3,6 +3,7 @@ import type { DayPlan, Task } from "./schema";
 import {
   calculateEnergyUsage,
   exportEnergyPlannerData,
+  getReorderedItems,
   importEnergyPlannerData,
 } from "./utils";
 
@@ -424,5 +425,59 @@ describe("importEnergyPlannerData - data handling", () => {
     );
     expect(setItemSpy).toHaveBeenCalledTimes(2);
     expect(reloadSpy).toHaveBeenCalled();
+  });
+});
+
+describe("getReorderedItems", () => {
+  it("returns null if overId is null", () => {
+    const items = ["a", "b", "c"];
+    const result = getReorderedItems(
+      items,
+      { active: { id: "a" }, over: null },
+      (id) => id,
+    );
+    expect(result).toBeNull();
+  });
+
+  it("returns null if activeId equals overId", () => {
+    const items = ["a", "b", "c"];
+    const result = getReorderedItems(
+      items,
+      { active: { id: "a" }, over: { id: "a" } },
+      (id) => id,
+    );
+    expect(result).toBeNull();
+  });
+
+  it("returns reordered string array", () => {
+    const items = ["a", "b", "c"];
+    // Move 'a' to 'c' (index 0 to 2) -> b, c, a
+    const result = getReorderedItems(
+      items,
+      { active: { id: "a" }, over: { id: "c" } },
+      (id) => id,
+    );
+    expect(result).toEqual(["b", "c", "a"]);
+  });
+
+  it("returns reordered object array", () => {
+    const items = [{ id: "1" }, { id: "2" }, { id: "3" }];
+    // Move '3' to '2' (index 2 to 1) -> 1, 3, 2
+    const result = getReorderedItems(
+      items,
+      { active: { id: "3" }, over: { id: "2" } },
+      (item) => item.id,
+    );
+    expect(result).toEqual([{ id: "1" }, { id: "3" }, { id: "2" }]);
+  });
+
+  it("returns null if item not found", () => {
+    const items = ["a", "b"];
+    const result = getReorderedItems(
+      items,
+      { active: { id: "z" }, over: { id: "b" } },
+      (id) => id,
+    );
+    expect(result).toBeNull();
   });
 });

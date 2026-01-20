@@ -1,13 +1,30 @@
 "use client";
 
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
 import { formatDateForDisplay, isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Task } from "@/lib/energy-planner/schema";
+import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { Modal } from "../Modal";
 import { PlannerTaskCard } from "./PlannerTaskCard";
+import { SortableItem } from "./SortableItem";
 import { UncompletedTaskCard } from "./UncompletedTaskCard";
 
 interface DayPlannerProps {
@@ -30,9 +47,22 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
     energyTypes,
     getUncompleted,
     getAvailableTasks,
+    reorderPlannedTasks,
+    reorderTasks,
   } = useEnergyPlanner();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const usage = calculateEnergyUsage();
   const warning = checkExceedsCapacity();
@@ -41,11 +71,11 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
 
   const availableTasks = getAvailableTasks();
 
-  // Get selected tasks from ALL tasks (including ones planned for this day)
   const { tasks } = useEnergyPlanner();
-  const selectedTasksFromAll = tasks.filter((t) =>
-    dayPlan.selectedTaskIds.includes(t.id),
-  );
+
+  const selectedTasksFromAll = dayPlan.selectedTaskIds
+    .map((id) => tasks.find((t) => t.id === id))
+    .filter((t): t is Task => !!t);
 
   const isCompleted = (taskId: string) =>
     dayPlan.completedTaskIds.includes(taskId);
@@ -53,6 +83,26 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
   const handleAddToPlan = (taskId: string) => {
     addToPlan(taskId);
     setIsModalOpen(false);
+  };
+
+  const handleDragEndSelected = (event: DragEndEvent) => {
+    const newItems = getReorderedItems(
+      dayPlan.selectedTaskIds,
+      event,
+      (id) => id,
+    );
+
+    if (newItems) {
+      reorderPlannedTasks(newItems);
+    }
+  };
+
+  const handleDragEndAvailable = (event: DragEndEvent) => {
+    const newItems = getReorderedItems(tasks, event, (t) => t.id);
+
+    if (newItems) {
+      reorderTasks(newItems);
+    }
   };
 
   return (
@@ -114,23 +164,37 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
             ))}
           </UsageSummary>
         </ColumnHeader>
-        <TaskList>
-          {selectedTasksFromAll.length === 0 && (
-            <EmptyState>No tasks selected for this day.</EmptyState>
-          )}
-          {selectedTasksFromAll.map((task) => (
-            <PlannerTaskCard
-              completed={isCompleted(task.id)}
-              isPastDay={!viewingToday}
-              key={task.id}
-              onEdit={onEditTask}
-              onRemove={removeFromPlan}
-              onToggleCompletion={toggleTaskCompletion}
-              selected
-              task={task}
-            />
-          ))}
-        </TaskList>
+
+        <DndContext
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
+          onDragEnd={handleDragEndSelected}
+          sensors={sensors}
+        >
+          <SortableContext
+            items={selectedTasksFromAll.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <TaskList>
+              {selectedTasksFromAll.length === 0 && (
+                <EmptyState>No tasks selected for this day.</EmptyState>
+              )}
+              {selectedTasksFromAll.map((task) => (
+                <SortableItem id={task.id} key={task.id}>
+                  <PlannerTaskCard
+                    completed={isCompleted(task.id)}
+                    isPastDay={!viewingToday}
+                    onEdit={onEditTask}
+                    onRemove={removeFromPlan}
+                    onToggleCompletion={toggleTaskCompletion}
+                    selected
+                    task={task}
+                  />
+                </SortableItem>
+              ))}
+            </TaskList>
+          </SortableContext>
+        </DndContext>
 
         <AddTaskButton onClick={() => setIsModalOpen(true)} type="button">
           <Plus size={18} />
@@ -145,22 +209,35 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
         title="Available Tasks"
       >
         <ModalContent>
-          {availableTasks.length === 0 ? (
-            <ModalEmptyState>
-              No tasks available. Create some tasks above!
-            </ModalEmptyState>
-          ) : (
-            <ModalTaskList>
-              {availableTasks.map((task) => (
-                <PlannerTaskCard
-                  key={task.id}
-                  onAdd={handleAddToPlan}
-                  onEdit={onEditTask}
-                  task={task}
-                />
-              ))}
-            </ModalTaskList>
-          )}
+          <DndContext
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEndAvailable}
+            sensors={sensors}
+          >
+            <SortableContext
+              items={availableTasks.map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {availableTasks.length === 0 ? (
+                <ModalEmptyState>
+                  No tasks available. Create some tasks above!
+                </ModalEmptyState>
+              ) : (
+                <ModalTaskList>
+                  {availableTasks.map((task) => (
+                    <SortableItem id={task.id} key={task.id}>
+                      <PlannerTaskCard
+                        onAdd={handleAddToPlan}
+                        onEdit={onEditTask}
+                        task={task}
+                      />
+                    </SortableItem>
+                  ))}
+                </ModalTaskList>
+              )}
+            </SortableContext>
+          </DndContext>
         </ModalContent>
       </Modal>
     </Container>

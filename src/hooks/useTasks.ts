@@ -35,5 +35,9 @@ export function useTasks() {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
   };
 
-  return { tasks, addTask, updateTask, removeTaskState };
+  const reorderTasks = (newTasks: Task[]) => {
+    setTasks(newTasks);
+  };
+
+  return { tasks, addTask, updateTask, removeTaskState, reorderTasks };
 }

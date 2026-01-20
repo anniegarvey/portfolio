@@ -548,4 +548,29 @@ describe("useDayPlan", () => {
     // Should not crash
     expect(true).toBe(true);
   });
+  it("reorders planned tasks", () => {
+    const { result } = renderHook(() => useDayPlan());
+
+    act(() => {
+      result.current.addToPlan("task-1");
+      result.current.addToPlan("task-2");
+      result.current.addToPlan("task-3");
+    });
+
+    expect(result.current.dayPlan.selectedTaskIds).toEqual([
+      "task-1",
+      "task-2",
+      "task-3",
+    ]);
+
+    act(() => {
+      result.current.reorderPlannedTasks(["task-3", "task-1", "task-2"]);
+    });
+
+    expect(result.current.dayPlan.selectedTaskIds).toEqual([
+      "task-3",
+      "task-1",
+      "task-2",
+    ]);
+  });
 });
