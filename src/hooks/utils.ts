@@ -75,6 +75,7 @@ export function createEmptyDayPlan(date: string): DayPlan {
  * Get all stored day plan dates from localStorage
  */
 export function getAllStoredDates(): string[] {
+  if (!localStorage) return [];
   const dates: string[] = [];
   const prefix = "energy_planner_day_plan_";
   for (let i = 0; i < localStorage.length; i++) {
