@@ -9,6 +9,7 @@ import { EnergyTypeManager } from "@/components/energy-planner/EnergyTypeManager
 import { TaskForm } from "@/components/energy-planner/TaskForm";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { Modal } from "@/components/Modal";
+import { PageHeader } from "@/components/PageHeader";
 import { EnergyPlannerProvider } from "@/lib/energy-planner/context";
 import type { Task } from "@/lib/energy-planner/schema";
 import {
@@ -66,36 +67,33 @@ function PlannerContent() {
 
   return (
     <MaxWidthWrapper>
-      <PageLayout>
-        <HeaderSection>
-          <HeaderTop>
-            <div>
-              <h1>Energy Planner</h1>
-              <p>
-                Plan your day according to your energy levels. Based on extended
-                Spoon Theory.
-              </p>
-            </div>
-            <ButtonGroup>
-              <ActionButton onClick={handleExport} title="Export data">
-                <Download size={18} />
-                Export
-              </ActionButton>
-              <ActionButton onClick={handleImportClick} title="Import data">
-                <Upload size={18} />
-                Import
-              </ActionButton>
-              <input
-                accept=".json"
-                onChange={handleImportFile}
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                type="file"
-              />
-            </ButtonGroup>
-          </HeaderTop>
-        </HeaderSection>
+      <PageHeader>
+        <h1>Energy Planner</h1>
+        <ButtonGroup>
+          <ActionButton onClick={handleExport} title="Export data">
+            <Download size={18} />
+            Export
+          </ActionButton>
+          <ActionButton onClick={handleImportClick} title="Import data">
+            <Upload size={18} />
+            Import
+          </ActionButton>
+          <input
+            accept=".json"
+            onChange={handleImportFile}
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            type="file"
+          />
+        </ButtonGroup>
+      </PageHeader>
 
+      <p>
+        Plan your day according to your energy levels. Based on extended Spoon
+        Theory.
+      </p>
+
+      <Layout>
         <EnergyInput />
         <EnergyTypeManager />
 
@@ -118,7 +116,7 @@ function PlannerContent() {
         >
           <TaskForm initialData={editingTask} onClose={handleCloseTaskModal} />
         </Modal>
-      </PageLayout>
+      </Layout>
     </MaxWidthWrapper>
   );
 }
@@ -130,30 +128,6 @@ export default function EnergyPlannerPage() {
     </EnergyPlannerProvider>
   );
 }
-
-const PageLayout = styled.div`
-    padding-block: 2rem;
-`;
-
-const HeaderSection = styled.div`
-    margin-bottom: 3rem;
-`;
-
-const HeaderTop = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 2rem;
-    margin-bottom: 0.5rem;
-    
-    h1 {
-        margin-bottom: 0.5rem;
-    }
-    
-    p {
-        font-size: 1.1rem;
-    }
-`;
 
 const ButtonGroup = styled.div`
     display: flex;
@@ -202,4 +176,11 @@ const ActionButton = styled.button`
         background-color: var(--color-neutral-300);
         border-color: var(--color-neutral-400);
     }
+`;
+
+const Layout = styled.div`
+    display: flex;
+    gap: 32px;
+    flex-direction: column;
+    padding-block: 32px;
 `;

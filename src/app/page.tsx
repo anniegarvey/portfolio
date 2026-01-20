@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { styled } from "next-yak";
+import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { QUERIES } from "@/lib/constants";
-import MaxWidthWrapper from "../components/MaxWidthWrapper";
 
 export default function Home() {
   return (

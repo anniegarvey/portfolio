@@ -19,7 +19,7 @@ export function EnergyInput() {
 
   return (
     <Container>
-      <h3>Daily Energy Capacity</h3>
+      <h2>Daily Energy Capacity</h2>
       <p>How much energy do you have today?</p>
       <Grid>
         {energyTypes.map((type) => (
@@ -43,11 +43,10 @@ export function EnergyInput() {
 }
 
 const Container = styled.div`
-  background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-700));
   padding: 1.5rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
 `;
 
 const Grid = styled.div`

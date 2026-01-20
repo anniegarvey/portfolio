@@ -1,6 +1,7 @@
 import { styled } from "next-yak";
 import type React from "react";
-import MaxWidthWrapper from "../../components/MaxWidthWrapper";
+import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
+import { PageHeader } from "@/components/PageHeader";
 
 const SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
@@ -16,7 +17,9 @@ const COLOUR_CONTRAST_SWITCH_POINTS = {
 export default function ColourPalettePage() {
   return (
     <MaxWidthWrapper>
-      <h1>Colour Palette</h1>
+      <PageHeader>
+        <h1>Colour Palette</h1>
+      </PageHeader>
 
       {Object.keys(COLOUR_CONTRAST_SWITCH_POINTS).map((colour) => (
         <ColourSection
