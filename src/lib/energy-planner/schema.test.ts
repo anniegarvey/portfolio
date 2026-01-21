@@ -119,15 +119,15 @@ describe("TaskSchema", () => {
 });
 
 describe("DayPlanSchema", () => {
-  it("defaults completedTaskIds to empty array", () => {
+  it("defaults tasks to empty array if omitted (though it's required usually, let's check schema definition)", () => {
     const result = DayPlanSchema.safeParse({
       date: "2023-01-01",
-      selectedTaskIds: [],
+      tasks: [],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.completedTaskIds).toEqual([]);
+      expect(result.data.tasks).toEqual([]);
     }
   });
 });

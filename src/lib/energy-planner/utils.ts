@@ -6,11 +6,11 @@ import {
   getDailyCapacity,
   getDayPlan,
   getEnergyTypes,
-  getTasks,
+  getOneOffTasks,
   setDailyCapacity,
   setDayPlan,
   setEnergyTypes,
-  setTasks,
+  setOneOffTasks,
 } from "./storage";
 
 /**
@@ -42,20 +42,18 @@ export function getReorderedItems<T>(
   return null;
 }
 
-export const calculateEnergyUsage = (
-  tasks: Task[],
-  dayPlan: DayPlan,
-): EnergyCost => {
-  const selectedTasks = tasks.filter((t) =>
-    dayPlan.selectedTaskIds.includes(t.id),
+export const calculateEnergyUsage = (dayPlan: DayPlan): EnergyCost => {
+  const selectedTasks = dayPlan.tasks ?? [];
+  return selectedTasks.reduce(
+    (acc, task) => {
+      // Dynamically sum all energy type properties
+      for (const key in task.energyCost) {
+        acc[key] = (acc[key] || 0) + task.energyCost[key];
+      }
+      return acc;
+    },
+    { physical: 0, social: 0, executive: 0 } as EnergyCost,
   );
-  return selectedTasks.reduce((acc, task) => {
-    // Dynamically sum all energy type properties
-    for (const key in task.energyCost) {
-      acc[key] = (acc[key] || 0) + task.energyCost[key];
-    }
-    return acc;
-  }, {} as EnergyCost);
 };
 
 /**
@@ -66,14 +64,14 @@ export interface EnergyPlannerExportData {
   version: string;
   exportDate: string;
   data: {
-    tasks: Task[] | null;
+    oneOffTasks: Task[] | null;
     capacity: EnergyCost | null;
     energyTypes: Awaited<ReturnType<typeof getEnergyTypes>> | null;
     dayPlans: { date: string; plan: DayPlan }[] | null;
   };
 }
 
-const EXPORT_VERSION = "2.0.0"; // Incremented for IndexedDB format
+const EXPORT_VERSION = "3.0.0"; // Incremented for task structure change
 
 /**
  * Exports all energy planner data from IndexedDB to a JSON file
@@ -93,7 +91,7 @@ export async function exportEnergyPlannerData(): Promise<void> {
     version: EXPORT_VERSION,
     exportDate: new Date().toISOString(),
     data: {
-      tasks: await getTasks(),
+      oneOffTasks: await getOneOffTasks(),
       capacity: (await getDailyCapacity()) ?? null,
       energyTypes: (await getEnergyTypes()) ?? null,
       dayPlans: dayPlans.length > 0 ? dayPlans : null,
@@ -132,8 +130,8 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
   }
 
   // Import the data
-  if (data.data.tasks) {
-    await setTasks(data.data.tasks);
+  if (data.data.oneOffTasks) {
+    await setOneOffTasks(data.data.oneOffTasks);
   }
   if (data.data.capacity) {
     await setDailyCapacity(data.data.capacity);

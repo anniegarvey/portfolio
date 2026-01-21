@@ -3,22 +3,31 @@
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Task } from "@/lib/energy-planner/schema";
-import { getTasks, setTasks as saveTasks } from "@/lib/energy-planner/storage";
+import { getOneOffTasks, setOneOffTasks } from "@/lib/energy-planner/storage";
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load tasks on mount
   useEffect(() => {
-    getTasks().then((stored) => {
-      setTasks(stored);
+    let cancelled = false;
+    setIsLoading(true);
+    (async () => {
+      const storedTasks = await getOneOffTasks();
+      if (cancelled) return;
+      setTasks(storedTasks);
       setIsLoading(false);
-    });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  // Save tasks whenever they change (and loading is done)
   useEffect(() => {
     if (!isLoading) {
-      saveTasks(tasks);
+      setOneOffTasks(tasks);
     }
   }, [tasks, isLoading]);
 

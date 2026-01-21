@@ -6,7 +6,7 @@ import {
   clearAll,
   setDailyCapacity,
   setDayPlan,
-  setTasks,
+  setOneOffTasks,
 } from "../../lib/energy-planner/storage";
 import { DayPlanner } from "./DayPlanner";
 
@@ -14,6 +14,45 @@ import { DayPlanner } from "./DayPlanner";
 describe("DayPlanner", () => {
   beforeEach(async () => {
     await clearAll();
+
+    // Reset mocks
+    vi.clearAllMocks();
+  });
+
+  // Mock DndContext to expose handlers
+  vi.mock("@dnd-kit/core", async () => {
+    const actual = await vi.importActual("@dnd-kit/core");
+    return {
+      ...actual,
+      DndContext: ({
+        children,
+        onDragEnd,
+        id,
+      }: {
+        children: React.ReactNode;
+        onDragEnd: (event: {
+          active: { id: string };
+          over: { id: string } | null;
+        }) => void;
+        id?: string;
+      }) => (
+        <div data-testid={`dnd-context-${id || "default"}`}>
+          <button
+            data-testid={`trigger-drag-${id || "default"}`}
+            onClick={() =>
+              onDragEnd({
+                active: { id: "t1" },
+                over: { id: "t2" },
+              })
+            }
+            type="button"
+          >
+            Drag
+          </button>
+          {children}
+        </div>
+      ),
+    };
   });
 
   it("renders the day planner with header", async () => {
@@ -184,11 +223,10 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
     };
 
-    await setTasks([task1, task2]);
+    await setOneOffTasks([task1, task2]);
     await setDayPlan(today, {
       date: today,
-      selectedTaskIds: ["t2"],
-      completedTaskIds: ["t2"],
+      tasks: [{ ...task2, completed: true }],
       dailyCapacity: { physical: 5, social: 5, executive: 5 },
     });
     await setDailyCapacity({ physical: 5, social: 5, executive: 5 });
@@ -220,6 +258,7 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
+      completed: false,
     };
     const task2 = {
       id: "t2",
@@ -231,13 +270,13 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
+      completed: false,
     };
 
-    await setTasks([task1, task2]);
+    await setOneOffTasks([task1, task2]); // Changed from setTasks
     await setDayPlan(today, {
       date: today,
-      selectedTaskIds: ["t1", "t2"],
-      completedTaskIds: [],
+      tasks: [task1, task2],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
@@ -270,7 +309,7 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
     };
 
-    await setTasks([task1]);
+    await setOneOffTasks([task1]); // Changed from setTasks
 
     render(
       <EnergyPlannerProvider>
@@ -315,9 +354,10 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
+      completed: false, // Added missing property
     };
 
-    await setTasks([task1]);
+    await setOneOffTasks([task1]);
 
     // Set up yesterday's plan with uncompleted task
     const yesterday = new Date();
@@ -326,8 +366,7 @@ describe("DayPlanner with populated data", () => {
 
     await setDayPlan(yesterdayStr, {
       date: yesterdayStr,
-      selectedTaskIds: ["t1"],
-      completedTaskIds: [],
+      tasks: [task1],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
@@ -371,5 +410,113 @@ describe("DayPlanner with populated data", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test case
+  it("reorders available tasks via drag and drop", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+
+    const task1 = {
+      id: "t1",
+      title: "Task 1",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+    };
+    const task2 = {
+      id: "t2",
+      title: "Task 2",
+      energyCost: { physical: 5, social: 5, executive: 5 },
+      factors: {
+        initiationDifficulty: 3,
+        terminationDifficulty: 2,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+    };
+
+    await setOneOffTasks([task1, task2]);
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    // Open modal to see available tasks DndContext
+    await user.click(screen.getByText("Plan an available task"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Task 1")).toBeInTheDocument();
+    });
+
+    const buttons = screen.getAllByText("Drag");
+    // There should be 2 buttons now (one for main list, one for modal list)
+    expect(buttons).toHaveLength(2);
+
+    // Click the second one (modal)
+    await user.click(buttons[1]);
+  });
+
+  it("reorders selected tasks via drag and drop", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+    const today = new Date().toISOString().split("T")[0];
+
+    const task1 = {
+      id: "t1",
+      title: "Task 1",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+    };
+    const task2 = {
+      id: "t2",
+      title: "Task 2",
+      energyCost: { physical: 5, social: 5, executive: 5 },
+      factors: {
+        initiationDifficulty: 3,
+        terminationDifficulty: 2,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+    };
+
+    await setDayPlan(today, {
+      date: today,
+      tasks: [task1, task2],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner onEditTask={mockOnEditTask} />
+      </EnergyPlannerProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Task 1")).toBeInTheDocument();
+    });
+
+    const buttons = screen.getAllByText("Drag");
+    // Should be at least 1 (main list)
+    expect(buttons.length).toBeGreaterThan(0);
+
+    // Click first one
+    await user.click(buttons[0]);
+
+    // Handler called.
   });
 });

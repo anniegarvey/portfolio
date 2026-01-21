@@ -60,8 +60,7 @@ export async function createEmptyDayPlan(date: string): Promise<DayPlan> {
 
   return {
     date,
-    selectedTaskIds: [],
-    completedTaskIds: [],
+    tasks: [],
     dailyCapacity,
   };
 }
@@ -74,31 +73,10 @@ export async function getAllStoredDates(): Promise<string[]> {
 }
 
 /**
- * Get all task IDs that are planned for any day
- * Used to filter available tasks - tasks planned for any date should not appear as available
- */
-export async function getAllPlannedTaskIds(): Promise<Set<string>> {
-  const plannedIds = new Set<string>();
-  const dates = await getAllStoredDates();
-
-  for (const date of dates) {
-    const plan = await getDayPlanForDate(date);
-    if (plan?.selectedTaskIds) {
-      for (const id of plan.selectedTaskIds) {
-        plannedIds.add(id);
-      }
-    }
-  }
-
-  return plannedIds;
-}
-
-/**
  * Find uncompleted tasks from previous days
- * Returns tasks that were selected but not completed on days before today
+ * Returns tasks that were planned but not completed on days before today
  */
 export async function getUncompletedTasks(
-  tasks: Task[],
   today: string,
 ): Promise<{ task: Task; fromDate: string }[]> {
   const uncompleted: { task: Task; fromDate: string }[] = [];
@@ -108,22 +86,13 @@ export async function getUncompletedTasks(
     if (date >= today) continue; // Skip today and future dates
 
     const dayPlan = await getDayPlanForDate(date);
-    if (!dayPlan) continue;
+    if (!dayPlan?.tasks) continue;
 
-    const incompleteTaskIds = dayPlan.selectedTaskIds.filter(
-      (id) => !dayPlan.completedTaskIds.includes(id),
-    );
-
-    for (const taskId of incompleteTaskIds) {
-      const task = tasks.find((t) => t.id === taskId);
-      if (task) {
-        // Check if already added from an earlier date
-        const existingIndex = uncompleted.findIndex(
-          (u) => u.task.id === taskId,
-        );
-        if (existingIndex === -1) {
-          uncompleted.push({ task, fromDate: date });
-        }
+    for (const task of dayPlan.tasks) {
+      if (!task.completed) {
+        // Check if already added (though physically distinct copies)
+        // We probably want to show instances from previous days
+        uncompleted.push({ task, fromDate: date });
       }
     }
   }

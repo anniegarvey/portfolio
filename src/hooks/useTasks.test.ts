@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearAll, getTasks } from "@/lib/energy-planner/storage";
+import { clearAll, getOneOffTasks } from "@/lib/energy-planner/storage";
 import { useTasks } from "./useTasks";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
@@ -22,8 +22,8 @@ describe("useTasks", () => {
 
   it("loads tasks from IndexedDB on mount", async () => {
     // Pre-populate storage using the storage module
-    const { setTasks } = await import("@/lib/energy-planner/storage");
-    await setTasks([
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    await setOneOffTasks([
       {
         id: "1",
         title: "Test Task",
@@ -140,6 +140,7 @@ describe("useTasks", () => {
       result.current.updateTask({
         ...result.current.tasks[0],
         title: "Updated Task 1",
+        description: "",
       });
     });
 
@@ -239,7 +240,7 @@ describe("useTasks", () => {
 
     // Wait for the effect to persist
     await waitFor(async () => {
-      const stored = await getTasks();
+      const stored = await getOneOffTasks();
       expect(stored).toHaveLength(1);
       expect(stored[0].title).toBe("Persisted Task");
     });

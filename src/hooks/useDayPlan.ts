@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DayPlan } from "@/lib/energy-planner/schema";
+import { getOneOffTasks, setOneOffTasks } from "@/lib/energy-planner/storage";
 import {
   createEmptyDayPlan,
   defaultCapacity,
@@ -19,8 +20,7 @@ export function useDayPlan() {
   // Initialize with default values - actual data loaded in useEffect for SSR compatibility
   const [dayPlan, setDayPlan] = useState<DayPlan>({
     date: getTodayDateString(),
-    selectedTaskIds: [],
-    completedTaskIds: [],
+    tasks: [],
     dailyCapacity: defaultCapacity,
   });
 
@@ -71,62 +71,90 @@ export function useDayPlan() {
     setCurrentDate(getTodayDateString());
   }, []);
 
-  const addToPlan = useCallback((taskId: string) => {
-    setDayPlan((p) =>
-      p.selectedTaskIds.includes(taskId)
-        ? p
-        : { ...p, selectedTaskIds: [...p.selectedTaskIds, taskId] },
-    );
+  const addToPlan = useCallback(async (taskId: string) => {
+    // 1. Get task from one-off store
+    const oneOffTasks = await getOneOffTasks();
+    const taskIndex = oneOffTasks.findIndex((t) => t.id === taskId);
+    if (taskIndex === -1) {
+      console.error("Task not found in oneOffTasks", taskId);
+      // Task might already be in the plan (race condition?) or doesn't exist
+      return;
+    }
+    const task = oneOffTasks[taskIndex];
+
+    // 2. Remove from one-off store
+    const newOneOffTasks = [...oneOffTasks];
+    newOneOffTasks.splice(taskIndex, 1);
+    await setOneOffTasks(newOneOffTasks);
+
+    // 3. Add to day plan
+    setDayPlan((prev) => {
+      // Avoid duplicates just in case
+      if (prev.tasks.some((t) => t.id === taskId)) return prev;
+      return {
+        ...prev,
+        tasks: [...prev.tasks, { ...task, completed: false }],
+      };
+    });
   }, []);
 
-  const removeFromPlan = useCallback((taskId: string) => {
-    setDayPlan((prev) => ({
-      ...prev,
-      selectedTaskIds: prev.selectedTaskIds.filter((id) => id !== taskId),
-      completedTaskIds: (prev.completedTaskIds || []).filter(
-        (id) => id !== taskId,
-      ),
-    }));
+  const removeFromPlan = useCallback(async (taskId: string) => {
+    // We typically only remove from the *current* day plan in this hook's context
+    // But we need to handle the transaction: remove from day, add to one-off
+
+    // NOTE: We can't easily perform this transaction purely synchronously with setDayPlan
+    // because we need to read/write one-off tasks.
+    // However, for UI responsiveness, we update local state immediately.
+
+    setDayPlan((prev) => {
+      const taskToRemove = prev.tasks.find((t) => t.id === taskId);
+      if (!taskToRemove) return prev;
+
+      // Async side effect to update one-off tasks
+      // This is a bit risky if component unmounts, but typical for this simple app
+      (async () => {
+        const oneOffTasks = await getOneOffTasks();
+        // Check if already there
+        if (!oneOffTasks.some((t) => t.id === taskId)) {
+          // Strip 'completed' when moving back to one-off
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { completed: _completed, ...rawTask } = taskToRemove;
+          await setOneOffTasks([...oneOffTasks, rawTask]);
+        }
+      })();
+
+      return {
+        ...prev,
+        tasks: prev.tasks.filter((t) => t.id !== taskId),
+      };
+    });
   }, []);
 
   const toggleTaskCompletion = useCallback((taskId: string) => {
-    setDayPlan((prev) => {
-      const completed = prev.completedTaskIds;
-      const isCompleted = completed.includes(taskId);
-      return {
-        ...prev,
-        completedTaskIds: isCompleted
-          ? completed.filter((id) => id !== taskId)
-          : [...completed, taskId],
-      };
-    });
+    setDayPlan((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((t) =>
+        t.id === taskId ? { ...t, completed: !t.completed } : t,
+      ),
+    }));
   }, []);
 
   // Mark a task as complete on a specific date (for uncompleted tasks)
   const markTaskCompleteOnDate = useCallback(
     async (taskId: string, date: string) => {
       if (date === currentDate) {
-        // If it's the current date, just toggle completion
-        setDayPlan((prev) => ({
-          ...prev,
-          completedTaskIds: prev.completedTaskIds.includes(taskId)
-            ? prev.completedTaskIds
-            : [...prev.completedTaskIds, taskId],
-        }));
+        toggleTaskCompletion(taskId);
       } else {
-        // Update the plan for that specific date
         const plan = await getDayPlanForDate(date);
         if (plan) {
-          await saveDayPlanForDate(date, {
-            ...plan,
-            completedTaskIds: plan.completedTaskIds.includes(taskId)
-              ? plan.completedTaskIds
-              : [...plan.completedTaskIds, taskId],
-          });
+          const updatedTasks = plan.tasks.map((t) =>
+            t.id === taskId ? { ...t, completed: true } : t,
+          );
+          await saveDayPlanForDate(date, { ...plan, tasks: updatedTasks });
         }
       }
     },
-    [currentDate],
+    [currentDate, toggleTaskCompletion],
   );
 
   // Move a task from a past day to today
@@ -134,35 +162,45 @@ export function useDayPlan() {
     async (taskId: string, fromDate: string) => {
       const today = getTodayDateString();
 
-      // Remove from the old date
+      // 1. Get from old date
       const oldPlan = await getDayPlanForDate(fromDate);
-      if (oldPlan) {
+      if (!oldPlan) return;
+      const taskToMove = oldPlan.tasks.find((t) => t.id === taskId);
+      if (!taskToMove) return;
+
+      // 2. Remove from old date
+      if (currentDate === fromDate) {
+        // If we are viewing the fromDate, update state only.
+        // The useEffect will handle saving to storage.
+        setDayPlan((prev) => ({
+          ...prev,
+          tasks: prev.tasks.filter((t) => t.id !== taskId),
+        }));
+      } else {
+        // Otherwise update storage directly
+        const updatedOldTasks = oldPlan.tasks.filter((t) => t.id !== taskId);
         await saveDayPlanForDate(fromDate, {
           ...oldPlan,
-          selectedTaskIds: oldPlan.selectedTaskIds.filter(
-            (id) => id !== taskId,
-          ),
-          completedTaskIds: oldPlan.completedTaskIds.filter(
-            (id) => id !== taskId,
-          ),
+          tasks: updatedOldTasks,
         });
       }
 
-      // Add to today
+      // 3. Add to today
       if (currentDate === today) {
-        setDayPlan((prev) => ({
-          ...prev,
-          selectedTaskIds: prev.selectedTaskIds.includes(taskId)
-            ? prev.selectedTaskIds
-            : [...prev.selectedTaskIds, taskId],
-        }));
+        setDayPlan((prev) => {
+          if (prev.tasks.some((t) => t.id === taskId)) return prev;
+          return {
+            ...prev,
+            tasks: [...prev.tasks, taskToMove],
+          };
+        });
       } else {
         const todayPlan =
           (await getDayPlanForDate(today)) || (await createEmptyDayPlan(today));
-        if (!todayPlan.selectedTaskIds.includes(taskId)) {
+        if (!todayPlan.tasks.some((t) => t.id === taskId)) {
           await saveDayPlanForDate(today, {
             ...todayPlan,
-            selectedTaskIds: [...todayPlan.selectedTaskIds, taskId],
+            tasks: [...todayPlan.tasks, taskToMove],
           });
         }
       }
@@ -176,26 +214,47 @@ export function useDayPlan() {
       if (fromDate === currentDate) {
         removeFromPlan(taskId);
       } else {
+        // Remove from other date's plan
         const plan = await getDayPlanForDate(fromDate);
         if (plan) {
-          await saveDayPlanForDate(fromDate, {
-            ...plan,
-            selectedTaskIds: plan.selectedTaskIds.filter((id) => id !== taskId),
-            completedTaskIds: plan.completedTaskIds.filter(
-              (id) => id !== taskId,
-            ),
-          });
+          const taskToRemove = plan.tasks.find((t) => t.id === taskId);
+          if (taskToRemove) {
+            // Add back to one-off
+            const oneOffTasks = await getOneOffTasks();
+            if (!oneOffTasks.some((t) => t.id === taskId)) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { ...rawTask } = taskToRemove;
+              await setOneOffTasks([...oneOffTasks, rawTask]);
+            }
+
+            // Save plan
+            const updatedTasks = plan.tasks.filter((t) => t.id !== taskId);
+            await saveDayPlanForDate(fromDate, {
+              ...plan,
+              tasks: updatedTasks,
+            });
+          }
         }
       }
     },
     [currentDate, removeFromPlan],
   );
 
-  const reorderPlannedTasks = useCallback((itemIds: string[]) => {
-    setDayPlan((prev) => ({
-      ...prev,
-      selectedTaskIds: itemIds,
-    }));
+  const reorderPlannedTasksWithIds = useCallback((itemIds: string[]) => {
+    setDayPlan((prev) => {
+      const taskMap = new Map(prev.tasks.map((t) => [t.id, t]));
+      const newTasks = itemIds
+        .map((id) => taskMap.get(id))
+        .filter((t): t is typeof t & {} => !!t); // filter loose undefineds
+
+      // If length mismatch, simple safety fallback (don't reorder if data lost)
+      if (newTasks.length !== prev.tasks.length) return prev;
+
+      return {
+        ...prev,
+        tasks: newTasks,
+      };
+    });
   }, []);
 
   return {
@@ -212,6 +271,6 @@ export function useDayPlan() {
     markTaskCompleteOnDate,
     moveTaskToToday,
     moveTaskToUnplanned,
-    reorderPlannedTasks,
+    reorderPlannedTasks: reorderPlannedTasksWithIds,
   };
 }

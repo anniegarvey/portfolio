@@ -61,10 +61,15 @@ export const TaskSchema = z.object({
 
 export type Task = z.infer<typeof TaskSchema>;
 
+export const PlannedTaskSchema = TaskSchema.extend({
+  completed: z.boolean().default(false),
+});
+
+export type PlannedTask = z.infer<typeof PlannedTaskSchema>;
+
 export const DayPlanSchema = z.object({
   date: z.string(), // ISO date string YYYY-MM-DD
-  selectedTaskIds: z.array(z.string()),
-  completedTaskIds: z.array(z.string()).default([]),
+  tasks: z.array(PlannedTaskSchema).default([]),
   dailyCapacity: EnergyCostSchema,
 });
 

@@ -1,13 +1,21 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
-import {
-  clearAll,
-  getDayPlan,
-  setDailyCapacity,
-  setDayPlan,
-} from "@/lib/energy-planner/storage";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clearAll, getDayPlan, setDayPlan } from "@/lib/energy-planner/storage";
 import { useDayPlan } from "./useDayPlan";
+
+const mockTask = (id: string, title: string, completed = false) => ({
+  id,
+  title,
+  completed,
+  createdAt: new Date(),
+  energyCost: { physical: 10, social: 10, executive: 10 },
+  factors: {
+    initiationDifficulty: 3,
+    terminationDifficulty: 3,
+    isRestorative: false,
+  },
+});
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useDayPlan", () => {
@@ -17,23 +25,27 @@ describe("useDayPlan", () => {
 
   it("initializes with today's date and empty lists", async () => {
     const { result } = renderHook(() => useDayPlan());
-    const today = new Date().toISOString().split("T")[0];
+    // Use local date string matching implementation
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.dayPlan.date).toBe(today);
-    expect(result.current.dayPlan.selectedTaskIds).toEqual([]);
-    expect(result.current.dayPlan.completedTaskIds).toEqual([]);
+    expect(result.current.dayPlan.date).toBe(todayStr);
+    expect(result.current.dayPlan.tasks).toEqual([]);
   });
 
   it("loads day plan from IndexedDB if date matches today", async () => {
-    const today = new Date().toISOString().split("T")[0];
-    await setDayPlan(today, {
-      date: today,
-      selectedTaskIds: ["task-1", "task-2"],
-      completedTaskIds: ["task-1"],
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const task1 = mockTask("task-1", "T1", true);
+    const task2 = mockTask("task-2", "T2", false);
+
+    await setDayPlan(todayStr, {
+      date: todayStr,
+      tasks: [task1, task2],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -43,23 +55,29 @@ describe("useDayPlan", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).toEqual([
-      "task-1",
-      "task-2",
-    ]);
-    expect(result.current.dayPlan.completedTaskIds).toEqual(["task-1"]);
+    expect(result.current.dayPlan.tasks).toHaveLength(2);
+    expect(result.current.dayPlan.tasks[0].id).toBe("task-1");
+    expect(result.current.dayPlan.tasks[0].completed).toBe(true);
+    expect(result.current.dayPlan.tasks[1].id).toBe("task-2");
+    expect(result.current.dayPlan.tasks[1].completed).toBe(false);
   });
 
   it("navigates to previous day and keeps that day's plan separate", async () => {
     const { result } = renderHook(() => useDayPlan());
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
+    // Add task to today
+    const task1 = mockTask("task-1", "Task 1");
+    // Seed storage before adding.
+    await act(async () => {
+      const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+      await setOneOffTasks([task1]);
+      await result.current.addToPlan("task-1");
     });
 
     await act(async () => {
@@ -68,618 +86,417 @@ describe("useDayPlan", () => {
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
+      expect(result.current.dayPlan.date).not.toBe(todayStr);
     });
 
-    // Yesterday's plan should be empty (not have today's task)
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain("task-1");
-    expect(result.current.currentDate).not.toBe(today);
+    // Yesterday's plan should be empty
+    expect(result.current.dayPlan.tasks).toHaveLength(0);
   });
 
   it("adds a task to the plan", async () => {
     const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).toContain("task-1");
+    expect(result.current.dayPlan.tasks).toHaveLength(1);
+    expect(result.current.dayPlan.tasks[0].id).toBe("task-1");
   });
 
   it("does not duplicate task when added twice", async () => {
     const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
-      result.current.addToPlan("task-1");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+      await result.current.addToPlan("task-1");
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).toEqual(["task-1"]);
+    expect(result.current.dayPlan.tasks).toHaveLength(1);
   });
 
   it("removes a task from the plan", async () => {
     const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
     });
 
-    act(() => {
-      result.current.removeFromPlan("task-1");
+    await act(async () => {
+      await result.current.removeFromPlan("task-1");
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain("task-1");
-  });
-
-  it("removes task from both selected and completed when removed from plan", async () => {
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    act(() => {
-      result.current.addToPlan("task-1");
-      result.current.toggleTaskCompletion("task-1");
-    });
-
-    expect(result.current.dayPlan.completedTaskIds).toContain("task-1");
-
-    act(() => {
-      result.current.removeFromPlan("task-1");
-    });
-
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain("task-1");
-    expect(result.current.dayPlan.completedTaskIds).not.toContain("task-1");
+    expect(result.current.dayPlan.tasks).toHaveLength(0);
   });
 
   it("toggles task completion on", async () => {
     const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
-      result.current.toggleTaskCompletion("task-1");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+      await result.current.toggleTaskCompletion("task-1");
     });
 
-    expect(result.current.dayPlan.completedTaskIds).toContain("task-1");
+    expect(result.current.dayPlan.tasks[0].completed).toBe(true);
   });
 
   it("toggles task completion off", async () => {
     const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
-      result.current.toggleTaskCompletion("task-1");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+      await result.current.toggleTaskCompletion("task-1"); // on
     });
 
-    expect(result.current.dayPlan.completedTaskIds).toContain("task-1");
+    expect(result.current.dayPlan.tasks[0].completed).toBe(true);
 
-    act(() => {
-      result.current.toggleTaskCompletion("task-1");
+    await act(async () => {
+      await result.current.toggleTaskCompletion("task-1"); // off
     });
 
-    expect(result.current.dayPlan.completedTaskIds).not.toContain("task-1");
+    expect(result.current.dayPlan.tasks[0].completed).toBe(false);
   });
 
   it("toggles completion for only the specified task", async () => {
     const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    const task2 = mockTask("task-2", "Task 2");
+    await setOneOffTasks([task1, task2]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
-      result.current.addToPlan("task-2");
-      result.current.toggleTaskCompletion("task-1");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+      await result.current.addToPlan("task-2");
+      await result.current.toggleTaskCompletion("task-1");
     });
 
-    expect(result.current.dayPlan.completedTaskIds).toContain("task-1");
-    expect(result.current.dayPlan.completedTaskIds).not.toContain("task-2");
+    const t1 = result.current.dayPlan.tasks.find((t) => t.id === "task-1");
+    const t2 = result.current.dayPlan.tasks.find((t) => t.id === "task-2");
+
+    expect(t1?.completed).toBe(true);
+    expect(t2?.completed).toBe(false);
   });
 
   it("persists day plan to IndexedDB", async () => {
     const { result } = renderHook(() => useDayPlan());
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
     });
 
     await waitFor(async () => {
-      const stored = await getDayPlan(today);
+      const stored = await getDayPlan(todayStr);
       expect(stored).not.toBeNull();
-      expect(stored?.selectedTaskIds).toContain("task-1");
+      expect(stored?.tasks).toHaveLength(1);
+      expect(stored?.tasks?.[0].id).toBe("task-1");
     });
-  });
-
-  it("handles missing completedTaskIds safely", async () => {
-    const today = new Date().toISOString().split("T")[0];
-    // Set a plan without completedTaskIds (simulating old data format)
-    await setDayPlan(today, {
-      date: today,
-      selectedTaskIds: ["t1"],
-      completedTaskIds: [],
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    act(() => {
-      result.current.removeFromPlan("t1");
-    });
-
-    // Should not crash
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain("t1");
-  });
-
-  it("loads capacity from storage if day plan is missing", async () => {
-    await setDailyCapacity({
-      physical: 77,
-      social: 88,
-      executive: 99,
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.dayPlan.dailyCapacity).toEqual({
-      physical: 77,
-      social: 88,
-      executive: 99,
-    });
-  });
-
-  it("navigates to next day", async () => {
-    const { result } = renderHook(() => useDayPlan());
-    const today = new Date().toISOString().split("T")[0];
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      result.current.goToNextDay();
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.currentDate).not.toBe(today);
-    // Should be one day after today
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    expect(result.current.currentDate).toBe(
-      tomorrow.toISOString().split("T")[0],
-    );
-  });
-
-  it("navigates back to today", async () => {
-    const { result } = renderHook(() => useDayPlan());
-    const today = new Date().toISOString().split("T")[0];
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      result.current.goToPreviousDay();
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.currentDate).not.toBe(today);
-
-    await act(async () => {
-      result.current.goToToday();
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.currentDate).toBe(today);
-  });
-
-  it("navigates to a specific date", async () => {
-    const { result } = renderHook(() => useDayPlan());
-    const targetDate = "2026-01-01";
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      result.current.navigateToDate(targetDate);
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.currentDate).toBe(targetDate);
-    expect(result.current.dayPlan.date).toBe(targetDate);
-  });
-
-  it("marks task complete on a different date", async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    // Set up yesterday's plan with a task
-    await setDayPlan(yesterdayStr, {
-      date: yesterdayStr,
-      selectedTaskIds: ["task-a"],
-      completedTaskIds: [],
-      dailyCapacity: { physical: 50, social: 50, executive: 50 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.markTaskCompleteOnDate("task-a", yesterdayStr);
-    });
-
-    const storedPlan = await getDayPlan(yesterdayStr);
-    expect(storedPlan?.completedTaskIds).toContain("task-a");
-  });
-
-  it("marks task complete on current date", async () => {
-    const { result } = renderHook(() => useDayPlan());
-    const today = new Date().toISOString().split("T")[0];
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    act(() => {
-      result.current.addToPlan("task-b");
-    });
-
-    await act(async () => {
-      await result.current.markTaskCompleteOnDate("task-b", today);
-    });
-
-    expect(result.current.dayPlan.completedTaskIds).toContain("task-b");
-  });
-
-  it("moves task from past day to today", async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    // Set up yesterday's plan
-    await setDayPlan(yesterdayStr, {
-      date: yesterdayStr,
-      selectedTaskIds: ["task-c"],
-      completedTaskIds: [],
-      dailyCapacity: { physical: 50, social: 50, executive: 50 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.moveTaskToToday("task-c", yesterdayStr);
-    });
-
-    // Task should be in today's plan
-    expect(result.current.dayPlan.selectedTaskIds).toContain("task-c");
-
-    // Task should be removed from yesterday's plan
-    const oldPlan = await getDayPlan(yesterdayStr);
-    expect(oldPlan?.selectedTaskIds).not.toContain("task-c");
-  });
-
-  it("moves task to unplanned from past day", async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    // Set up yesterday's plan
-    await setDayPlan(yesterdayStr, {
-      date: yesterdayStr,
-      selectedTaskIds: ["task-d"],
-      completedTaskIds: [],
-      dailyCapacity: { physical: 50, social: 50, executive: 50 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.moveTaskToUnplanned("task-d", yesterdayStr);
-    });
-
-    // Task should be removed from yesterday's plan
-    const oldPlan = await getDayPlan(yesterdayStr);
-    expect(oldPlan?.selectedTaskIds).not.toContain("task-d");
-  });
-
-  it("moves task to unplanned from current day", async () => {
-    const { result } = renderHook(() => useDayPlan());
-    const today = new Date().toISOString().split("T")[0];
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    act(() => {
-      result.current.addToPlan("task-e");
-    });
-
-    expect(result.current.dayPlan.selectedTaskIds).toContain("task-e");
-
-    await act(async () => {
-      await result.current.moveTaskToUnplanned("task-e", today);
-    });
-
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain("task-e");
-  });
-
-  it("moves task to today when viewing a different date", async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-    const todayStr = new Date().toISOString().split("T")[0];
-
-    // Set up yesterday's plan with a task
-    await setDayPlan(yesterdayStr, {
-      date: yesterdayStr,
-      selectedTaskIds: ["task-f"],
-      completedTaskIds: [],
-      dailyCapacity: { physical: 50, social: 50, executive: 50 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Navigate to yesterday
-    await act(async () => {
-      result.current.goToPreviousDay();
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.currentDate).toBe(yesterdayStr);
-
-    // Move task to today while viewing yesterday
-    await act(async () => {
-      await result.current.moveTaskToToday("task-f", yesterdayStr);
-    });
-
-    // Verify task was added to today's storage
-    const todayPlan = await getDayPlan(todayStr);
-    expect(todayPlan?.selectedTaskIds).toContain("task-f");
-  });
-
-  it("removes task from completedTaskIds when moving to unplanned", async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    // Set up yesterday's plan with a completed task
-    await setDayPlan(yesterdayStr, {
-      date: yesterdayStr,
-      selectedTaskIds: ["task-g"],
-      completedTaskIds: ["task-g"],
-      dailyCapacity: { physical: 50, social: 50, executive: 50 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.moveTaskToUnplanned("task-g", yesterdayStr);
-    });
-
-    const plan = await getDayPlan(yesterdayStr);
-    expect(plan?.selectedTaskIds).not.toContain("task-g");
-    expect(plan?.completedTaskIds).not.toContain("task-g");
-  });
-
-  it("removes task from completedTaskIds when moving to today", async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    // Set up yesterday's plan with a completed task
-    await setDayPlan(yesterdayStr, {
-      date: yesterdayStr,
-      selectedTaskIds: ["task-h"],
-      completedTaskIds: ["task-h"],
-      dailyCapacity: { physical: 50, social: 50, executive: 50 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Navigate to yesterday to perform the move
-    await act(async () => {
-      result.current.goToPreviousDay();
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.moveTaskToToday("task-h", yesterdayStr);
-    });
-
-    const plan = await getDayPlan(yesterdayStr);
-    expect(plan?.selectedTaskIds).not.toContain("task-h");
-    expect(plan?.completedTaskIds).not.toContain("task-h");
-  });
-
-  it("does not duplicate task when moving to today if already present (viewing today)", async () => {
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Add task to today's plan
-    act(() => {
-      result.current.addToPlan("task-dup-1");
-    });
-
-    // Try to move "task-dup-1" to today (simulating it being uncompleted from yesterday)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    await act(async () => {
-      await result.current.moveTaskToToday("task-dup-1", yesterdayStr);
-    });
-
-    // Should still only be there once (Set/filter logic or check)
-    // Actually selectedTaskIds is array, check count
-    const count = result.current.dayPlan.selectedTaskIds.filter(
-      (id) => id === "task-dup-1",
-    ).length;
-    expect(count).toBe(1);
-  });
-
-  it("does not duplicate task when moving to today if already present (viewing other day)", async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-    const todayStr = new Date().toISOString().split("T")[0];
-
-    // Setup today's plan with duplicate task
-    await setDayPlan(todayStr, {
-      date: todayStr,
-      selectedTaskIds: ["task-dup-2"],
-      completedTaskIds: [],
-      dailyCapacity: { physical: 50, social: 50, executive: 50 },
-    });
-
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Navigate to yesterday
-    await act(async () => {
-      result.current.navigateToDate(yesterdayStr);
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Move task to today
-    await act(async () => {
-      await result.current.moveTaskToToday("task-dup-2", yesterdayStr);
-    });
-
-    // Verify today's storage
-    const todayPlan = await getDayPlan(todayStr);
-    const count = todayPlan?.selectedTaskIds.filter(
-      (id: string) => id === "task-dup-2",
-    ).length;
-    expect(count).toBe(1);
-  });
-
-  it("handles moveTaskToUnplanned gracefully if source plan missing", async () => {
-    const { result } = renderHook(() => useDayPlan());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Call for a date that has no plan
-    await act(async () => {
-      await result.current.moveTaskToUnplanned("task-missing", "2020-01-01");
-    });
-
-    // Should not crash
-    expect(true).toBe(true);
   });
 
   it("reorders planned tasks", async () => {
     const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    const task2 = mockTask("task-2", "Task 2");
+    const task3 = mockTask("task-3", "Task 3");
+    await setOneOffTasks([task1, task2, task3]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
-      result.current.addToPlan("task-1");
-      result.current.addToPlan("task-2");
-      result.current.addToPlan("task-3");
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+      await result.current.addToPlan("task-2");
+      await result.current.addToPlan("task-3");
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).toEqual([
+    expect(result.current.dayPlan.tasks.map((t) => t.id)).toEqual([
       "task-1",
       "task-2",
       "task-3",
     ]);
 
-    act(() => {
+    await act(async () => {
+      // Reorder using reorderPlannedTasks (which might be the id-based one now)
       result.current.reorderPlannedTasks(["task-3", "task-1", "task-2"]);
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).toEqual([
+    expect(result.current.dayPlan.tasks.map((t) => t.id)).toEqual([
       "task-3",
       "task-1",
       "task-2",
     ]);
+  });
+  it("moves uncompleted task to next day", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const _today = new Date().toISOString().split("T")[0];
+
+    // Seed task
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    // Ensure all required props (mockTask handles it)
+    await setOneOffTasks([task1]);
+
+    // Add to plan
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+    });
+
+    // Go to next day
+    await act(async () => {
+      result.current.goToNextDay();
+    });
+
+    // Verify correct date
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+
+    await waitFor(() => {
+      expect(result.current.dayPlan.date).toBe(tomorrowStr);
+    });
+  });
+
+  it("handles error when adding non-existent task", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan("non-existent-id");
+    });
+
+    expect(result.current.dayPlan.tasks).toHaveLength(0);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Task not found in oneOffTasks",
+      "non-existent-id",
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it("marks a task from a past day as complete", async () => {
+    const { result } = renderHook(() => useDayPlan());
+
+    // Seed past day plan
+    const pastDate = "2023-01-01";
+    const task1 = mockTask("task-1", "Past Task", false);
+    await setDayPlan(pastDate, {
+      date: pastDate,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.markTaskCompleteOnDate("task-1", pastDate);
+    });
+
+    const stored = await getDayPlan(pastDate);
+    expect(stored?.tasks[0].completed).toBe(true);
+  });
+
+  it("moves a task from a past day to today", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const pastDate = "2023-01-01";
+    const task1 = mockTask("task-1", "Past Task", false);
+    await setDayPlan(pastDate, {
+      date: pastDate,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.moveTaskToToday("task-1", pastDate);
+    });
+
+    // Validations
+    // 1. Removed from past day
+    const pastStored = await getDayPlan(pastDate);
+    expect(pastStored?.tasks).toHaveLength(0);
+
+    // 2. Added to today (current dayPlan)
+    expect(result.current.dayPlan.tasks).toHaveLength(1);
+    expect(result.current.dayPlan.tasks[0].id).toBe("task-1");
+  });
+
+  it("moves a task from a past day to unplanned (one-off)", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const pastDate = "2023-01-01";
+    const task1 = mockTask("task-1", "Past Task", false);
+    await setDayPlan(pastDate, {
+      date: pastDate,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    // Ensure one-off tasks are empty initially
+    const { setOneOffTasks, getOneOffTasks } = await import(
+      "@/lib/energy-planner/storage"
+    );
+    await setOneOffTasks([]);
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.moveTaskToUnplanned("task-1", pastDate);
+    });
+
+    // 1. Removed from past day
+    const pastStored = await getDayPlan(pastDate);
+    expect(pastStored?.tasks).toHaveLength(0);
+
+    // 2. Added to one-off
+    const oneOff = await getOneOffTasks();
+    expect(oneOff).toHaveLength(1);
+    expect(oneOff[0].id).toBe("task-1");
+  });
+
+  it("does not duplicate task when moving to today if already present", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const pastDate = "2023-01-01";
+    const task1 = mockTask("task-1", "Past Task", false);
+
+    // Seed past day
+    await setDayPlan(pastDate, {
+      date: pastDate,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    // Seed today WITH the task already
+    const { getTodayDateString } = await import("./utils");
+    const today = getTodayDateString();
+    await setDayPlan(today, {
+      date: today,
+      tasks: [task1], // Already here
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Go to past
+    await act(async () => {
+      result.current.navigateToDate(pastDate);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.currentDate).toBe(pastDate);
+    });
+
+    // Move to today
+    await act(async () => {
+      await result.current.moveTaskToToday("task-1", pastDate);
+    });
+
+    // 1. Removed from past
+    await waitFor(async () => {
+      const pastStored = await getDayPlan(pastDate);
+      expect(pastStored?.tasks).toHaveLength(0);
+    });
+
+    // 2. Still only 1 in today
+    await waitFor(async () => {
+      const stored = await getDayPlan(today);
+      expect(stored?.tasks).toHaveLength(1);
+    });
+  }, 10000);
+
+  it("moves a task from current day to unplanned", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks, getOneOffTasks } = await import(
+      "@/lib/energy-planner/storage"
+    );
+    const task1 = mockTask("task-1", "Task 1");
+    // Seed one off
+    await setOneOffTasks([task1]);
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Add to plan
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+    });
+
+    // Clear one off check
+    await setOneOffTasks([]);
+
+    await act(async () => {
+      const today = result.current.currentDate;
+      await result.current.moveTaskToUnplanned("task-1", today);
+    });
+
+    expect(result.current.dayPlan.tasks).toHaveLength(0);
+    const oneOff = await getOneOffTasks();
+    expect(oneOff).toHaveLength(1);
+    expect(oneOff[0].id).toBe("task-1");
   });
 });

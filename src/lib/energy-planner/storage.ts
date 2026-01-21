@@ -1,5 +1,11 @@
 import { clear, createStore, del, get, keys, set } from "idb-keyval";
-import type { DayPlan, EnergyCost, EnergyTypeConfig, Task } from "./schema";
+import type {
+  DayPlan,
+  EnergyCost,
+  EnergyTypeConfig,
+  PlannedTask,
+  Task,
+} from "./schema";
 
 /**
  * IndexedDB store for energy planner data
@@ -9,7 +15,7 @@ const store = createStore("energy-planner-db", "data");
 
 // Storage keys
 const KEYS = {
-  tasks: "tasks",
+  oneOffTasks: "one-off-tasks",
   types: "types",
   capacity: "capacity",
 } as const;
@@ -17,24 +23,22 @@ const KEYS = {
 /**
  * Storage-optimized DayPlan that omits redundant fields:
  * - date: derived from the storage key
- * - selectedTaskIds: omitted entirely if empty
- * - completedTaskIds: omitted entirely if empty
+ * - tasks: omitted entirely if empty
  */
 export interface StoredDayPlan {
-  selectedTaskIds?: string[];
-  completedTaskIds?: string[];
+  tasks?: PlannedTask[];
   dailyCapacity: EnergyCost;
 }
 
-// === Tasks ===
+// === One-Off Tasks ===
 
-export async function getTasks(): Promise<Task[]> {
-  const tasks = await get<Task[]>(KEYS.tasks, store);
+export async function getOneOffTasks(): Promise<Task[]> {
+  const tasks = await get<Task[]>(KEYS.oneOffTasks, store);
   return tasks ?? [];
 }
 
-export async function setTasks(tasks: Task[]): Promise<void> {
-  await set(KEYS.tasks, tasks, store);
+export async function setOneOffTasks(tasks: Task[]): Promise<void> {
+  await set(KEYS.oneOffTasks, tasks, store);
 }
 
 // === Energy Types ===
@@ -73,12 +77,9 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
     dailyCapacity: plan.dailyCapacity,
   };
 
-  // Only include arrays if they have items
-  if (plan.selectedTaskIds && plan.selectedTaskIds.length > 0) {
-    stored.selectedTaskIds = plan.selectedTaskIds;
-  }
-  if (plan.completedTaskIds && plan.completedTaskIds.length > 0) {
-    stored.completedTaskIds = plan.completedTaskIds;
+  // Only include tasks if there are any
+  if (plan.tasks && plan.tasks.length > 0) {
+    stored.tasks = plan.tasks;
   }
 
   return stored;
@@ -90,8 +91,7 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
 function fromStoredDayPlan(date: string, stored: StoredDayPlan): DayPlan {
   return {
     date,
-    selectedTaskIds: stored.selectedTaskIds ?? [],
-    completedTaskIds: stored.completedTaskIds ?? [],
+    tasks: stored.tasks ?? [],
     dailyCapacity: stored.dailyCapacity,
   };
 }

@@ -69,14 +69,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
   const viewingToday = isToday(currentDate);
   const viewedUncompletedTasks = viewingToday ? uncompletedTasks : [];
 
-  const { tasks } = useEnergyPlanner();
-
-  const selectedTasksFromAll = dayPlan.selectedTaskIds
-    .map((id) => tasks.find((t) => t.id === id))
-    .filter((t): t is Task => !!t);
-
-  const isCompleted = (taskId: string) =>
-    dayPlan.completedTaskIds.includes(taskId);
+  const selectedTasks = dayPlan.tasks ?? [];
 
   const handleAddToPlan = (taskId: string) => {
     addToPlan(taskId);
@@ -84,19 +77,15 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
   };
 
   const handleDragEndSelected = (event: DragEndEvent) => {
-    const newItems = getReorderedItems(
-      dayPlan.selectedTaskIds,
-      event,
-      (id) => id,
-    );
+    const newItems = getReorderedItems(dayPlan.tasks ?? [], event, (t) => t.id);
 
     if (newItems) {
-      reorderPlannedTasks(newItems);
+      reorderPlannedTasks(newItems.map((t) => t.id));
     }
   };
 
   const handleDragEndAvailable = (event: DragEndEvent) => {
-    const newItems = getReorderedItems(tasks, event, (t) => t.id);
+    const newItems = getReorderedItems(availableTasks, event, (t) => t.id);
 
     if (newItems) {
       reorderTasks(newItems);
@@ -152,7 +141,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
 
       <SelectedSection>
         <ColumnHeader>
-          <div>Selected Tasks ({selectedTasksFromAll.length})</div>
+          <div>Selected Tasks ({selectedTasks.length})</div>
           <UsageSummary>
             Usage:{" "}
             {energyTypes.map((type) => (
@@ -170,17 +159,17 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
           sensors={sensors}
         >
           <SortableContext
-            items={selectedTasksFromAll.map((t) => t.id)}
+            items={selectedTasks.map((t) => t.id)}
             strategy={verticalListSortingStrategy}
           >
             <TaskList>
-              {selectedTasksFromAll.length === 0 && (
+              {selectedTasks.length === 0 && (
                 <EmptyState>No tasks selected for this day.</EmptyState>
               )}
-              {selectedTasksFromAll.map((task) => (
+              {selectedTasks.map((task) => (
                 <SortableItem id={task.id} key={task.id}>
                   <PlannerTaskCard
-                    completed={isCompleted(task.id)}
+                    completed={task.completed}
                     isPastDay={!viewingToday}
                     onEdit={onEditTask}
                     onRemove={removeFromPlan}

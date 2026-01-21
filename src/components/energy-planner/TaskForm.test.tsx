@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
-import { clearAll, getTasks } from "../../lib/energy-planner/storage";
+import { clearAll, getOneOffTasks } from "../../lib/energy-planner/storage";
 import { TaskForm } from "./TaskForm";
+
+// Mock storage
+vi.mock("../../lib/energy-planner/storage");
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
@@ -56,7 +59,7 @@ describe("TaskForm", () => {
 
     // Verify storage
     await waitFor(async () => {
-      const tasks = await getTasks();
+      const tasks = await getOneOffTasks();
       expect(tasks).toHaveLength(1);
       expect(tasks[0]).toMatchObject({
         title: "New Chore",
@@ -71,7 +74,7 @@ describe("TaskForm", () => {
   });
 
   it("updates an existing task", async () => {
-    const { setTasks } = await import("../../lib/energy-planner/storage");
+    const { setOneOffTasks } = await import("../../lib/energy-planner/storage");
 
     const initialTask = {
       id: "123",
@@ -84,9 +87,10 @@ describe("TaskForm", () => {
         terminationDifficulty: 1,
         isRestorative: false,
       },
+      completed: false,
     };
 
-    await setTasks([initialTask]);
+    await setOneOffTasks([initialTask]);
 
     const onClose = vi.fn();
     render(<TaskForm initialData={initialTask} onClose={onClose} />, {
@@ -110,7 +114,7 @@ describe("TaskForm", () => {
 
     // Verify storage
     await waitFor(async () => {
-      const tasks = await getTasks();
+      const tasks = await getOneOffTasks();
       expect(tasks[0].title).toBe("Updated Task");
     });
   });
@@ -133,8 +137,10 @@ describe("TaskForm", () => {
       expect(titleInput.value).toBe("");
     });
 
-    const tasks = await getTasks();
-    expect(tasks).toHaveLength(1);
+    await waitFor(async () => {
+      const tasks = await getOneOffTasks();
+      expect(tasks).toHaveLength(1);
+    });
   });
 
   it("validates inputs", async () => {
@@ -149,7 +155,7 @@ describe("TaskForm", () => {
     fireEvent.click(screen.getByText("Add Task"));
 
     expect(onClose).not.toHaveBeenCalled();
-    const tasks = await getTasks();
+    const tasks = await getOneOffTasks();
     expect(tasks).toHaveLength(0);
   });
 });

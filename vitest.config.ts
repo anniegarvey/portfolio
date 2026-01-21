@@ -14,6 +14,7 @@ export default defineConfig({
     },
     coverage: {
       enabled: true,
+      exclude: ["src/**/__mocks__/**", "**/node_modules/**", "**/*.d.ts"],
       thresholds: {
         lines: 87,
         statements: 85.5,

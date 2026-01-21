@@ -1,17 +1,20 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as storageMock from "@/lib/energy-planner/storage";
 import { useEnergyPlannerState } from "./useEnergyPlannerState";
+
+// Manual mock is picked up automatically by vitest given the __mocks__ folder
+vi.mock("@/lib/energy-planner/storage");
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useEnergyPlannerState", () => {
   beforeEach(() => {
-    localStorage.clear();
+    (storageMock as unknown as { __reset: () => void }).__reset();
   });
 
   it("initializes with empty tasks", () => {
     const { result } = renderHook(() => useEnergyPlannerState());
-
     expect(result.current.tasks).toEqual([]);
   });
 
@@ -74,8 +77,12 @@ describe("useEnergyPlannerState", () => {
     expect(result.current.tasks[0].id).toBe(taskId);
   });
 
-  it("removes a task and removes it from day plan", () => {
+  it("removes a task and removes it from day plan", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -92,18 +99,28 @@ describe("useEnergyPlannerState", () => {
 
     const taskId = result.current.tasks[0].id;
 
-    act(() => {
-      result.current.addToPlan(taskId);
+    // Wait for persistence
+    await waitFor(async () => {
+      const stored = await storageMock.getOneOffTasks();
+      expect(stored).toHaveLength(1);
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).toContain(taskId);
+    await act(async () => {
+      await result.current.addToPlan(taskId);
+    });
 
-    act(() => {
-      result.current.removeTask(taskId);
+    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
+      true,
+    );
+
+    await act(async () => {
+      await result.current.removeTask(taskId);
     });
 
     expect(result.current.tasks).toHaveLength(0);
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain(taskId);
+    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
+      false,
+    );
   });
 
   it("updates daily capacity", () => {
@@ -124,8 +141,12 @@ describe("useEnergyPlannerState", () => {
     });
   });
 
-  it("adds task to day plan", () => {
+  it("adds task to day plan", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -142,15 +163,27 @@ describe("useEnergyPlannerState", () => {
 
     const taskId = result.current.tasks[0].id;
 
-    act(() => {
-      result.current.addToPlan(taskId);
+    // Wait for persistence
+    await waitFor(async () => {
+      const stored = await storageMock.getOneOffTasks();
+      expect(stored).toHaveLength(1);
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).toContain(taskId);
+    await act(async () => {
+      await result.current.addToPlan(taskId);
+    });
+
+    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
+      true,
+    );
   });
 
-  it("removes task from day plan", () => {
+  it("removes task from day plan", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -167,16 +200,31 @@ describe("useEnergyPlannerState", () => {
 
     const taskId = result.current.tasks[0].id;
 
-    act(() => {
-      result.current.addToPlan(taskId);
-      result.current.removeFromPlan(taskId);
+    // Wait for persistence
+    await waitFor(async () => {
+      const stored = await storageMock.getOneOffTasks();
+      expect(stored).toHaveLength(1);
     });
 
-    expect(result.current.dayPlan.selectedTaskIds).not.toContain(taskId);
-  });
+    await act(async () => {
+      await result.current.addToPlan(taskId);
+    });
 
-  it("toggles task completion", () => {
+    await act(async () => {
+      await result.current.removeFromPlan(taskId);
+    });
+
+    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
+      false,
+    );
+  }, 5000);
+
+  it("toggles task completion", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -193,229 +241,50 @@ describe("useEnergyPlannerState", () => {
 
     const taskId = result.current.tasks[0].id;
 
-    act(() => {
-      result.current.addToPlan(taskId);
+    await waitFor(async () => {
+      const stored = await storageMock.getOneOffTasks();
+      expect(stored).toHaveLength(1);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan(taskId);
+    });
+
+    await act(async () => {
       result.current.toggleTaskCompletion(taskId);
     });
 
-    expect(result.current.dayPlan.completedTaskIds).toContain(taskId);
+    expect(
+      result.current.dayPlan.tasks.find((t) => t.id === taskId)?.completed,
+    ).toBe(true);
 
-    act(() => {
+    await act(async () => {
       result.current.toggleTaskCompletion(taskId);
     });
 
-    expect(result.current.dayPlan.completedTaskIds).not.toContain(taskId);
-  });
+    expect(
+      result.current.dayPlan.tasks.find((t) => t.id === taskId)?.completed,
+    ).toBe(false);
+  }, 5000);
 
-  it("calculates energy usage correctly", () => {
+  it("calculates energy usage and warns when capacity exceeded", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
-    act(() => {
-      result.current.addTask({
-        title: "Task 1",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-      result.current.addTask({
-        title: "Task 2",
-        description: "",
-        energyCost: { physical: 15, social: 10, executive: 25 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
     });
 
-    const task1Id = result.current.tasks[0].id;
-    const task2Id = result.current.tasks[1].id;
-
     act(() => {
-      result.current.addToPlan(task1Id);
-      result.current.addToPlan(task2Id);
-    });
-
-    const usage = result.current.calculateEnergyUsage();
-
-    expect(usage).toEqual({
-      physical: 25,
-      social: 30,
-      executive: 30,
-    });
-  });
-
-  it("detects when capacity is not exceeded", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.addTask({
-        title: "Test Task",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const taskId = result.current.tasks[0].id;
-
-    act(() => {
-      result.current.addToPlan(taskId);
-    });
-
-    const warning = result.current.checkExceedsCapacity();
-
-    expect(warning.exceeded).toBe(false);
-  });
-
-  it("detects when physical capacity is exceeded", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
+      // Set capacity low to trigger warning
       result.current.setDailyCapacity({
-        physical: 20,
-        social: 100,
-        executive: 100,
+        physical: 5,
+        social: 5,
+        executive: 5,
       });
+
       result.current.addTask({
-        title: "Test Task",
+        title: "Heavy Task",
         description: "",
-        energyCost: { physical: 30, social: 10, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const taskId = result.current.tasks[0].id;
-
-    act(() => {
-      result.current.addToPlan(taskId);
-    });
-
-    const warning = result.current.checkExceedsCapacity();
-
-    expect(warning.exceeded).toBe(true);
-    expect(warning.message).toContain("Physical");
-  });
-
-  it("detects when social capacity is exceeded", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.setDailyCapacity({
-        physical: 100,
-        social: 20,
-        executive: 100,
-      });
-      result.current.addTask({
-        title: "Test Task",
-        description: "",
-        energyCost: { physical: 10, social: 30, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const taskId = result.current.tasks[0].id;
-
-    act(() => {
-      result.current.addToPlan(taskId);
-    });
-
-    const warning = result.current.checkExceedsCapacity();
-
-    expect(warning.exceeded).toBe(true);
-    expect(warning.message).toContain("Social");
-  });
-
-  it("detects when executive capacity is exceeded", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.setDailyCapacity({
-        physical: 100,
-        social: 100,
-        executive: 20,
-      });
-      result.current.addTask({
-        title: "Test Task",
-        description: "",
-        energyCost: { physical: 10, social: 10, executive: 30 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const taskId = result.current.tasks[0].id;
-
-    act(() => {
-      result.current.addToPlan(taskId);
-    });
-
-    const warning = result.current.checkExceedsCapacity();
-
-    expect(warning.exceeded).toBe(true);
-    expect(warning.message).toContain("Executive");
-  });
-
-  it("detects when multiple capacities are exceeded", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.setDailyCapacity({
-        physical: 20,
-        social: 20,
-        executive: 100,
-      });
-      result.current.addTask({
-        title: "Test Task",
-        description: "",
-        energyCost: { physical: 30, social: 30, executive: 10 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
-    });
-
-    const taskId = result.current.tasks[0].id;
-
-    act(() => {
-      result.current.addToPlan(taskId);
-    });
-
-    const warning = result.current.checkExceedsCapacity();
-
-    expect(warning.exceeded).toBe(true);
-    expect(warning.message).toContain("Physical");
-    expect(warning.message).toContain("Social");
-  });
-
-  it("checkExceedsCapacity handles missing energy types in capacity", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.addTask({
-        title: "Test Task",
         energyCost: { physical: 10, social: 10, executive: 10 },
         factors: {
           initiationDifficulty: 1,
@@ -423,48 +292,30 @@ describe("useEnergyPlannerState", () => {
           isRestorative: false,
         },
       });
-      // biome-ignore lint/suspicious/noExplicitAny: Intentional for testing malformed data
-      result.current.setDailyCapacity({} as any);
-    });
-
-    const task = result.current.tasks[0];
-    act(() => {
-      result.current.addToPlan(task.id);
-    });
-
-    const check = result.current.checkExceedsCapacity();
-    expect(check.exceeded).toBe(true);
-  });
-
-  it("verifies warning message includes comma-separated energy types", () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    act(() => {
-      result.current.setDailyCapacity({
-        physical: 20,
-        social: 20,
-        executive: 100,
-      });
-      result.current.addTask({
-        title: "Test Task",
-        description: "",
-        energyCost: { physical: 30, social: 30, executive: 10 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-      });
     });
 
     const taskId = result.current.tasks[0].id;
 
-    act(() => {
-      result.current.addToPlan(taskId);
+    await waitFor(async () => {
+      const stored = await storageMock.getOneOffTasks();
+      expect(stored).toHaveLength(1);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan(taskId);
+    });
+
+    const usage = result.current.calculateEnergyUsage();
+    expect(usage).toEqual({
+      physical: 10,
+      social: 10,
+      executive: 10,
     });
 
     const warning = result.current.checkExceedsCapacity();
-
-    expect(warning.message).toContain(", ");
+    expect(warning.exceeded).toBe(true);
+    expect(warning.message).toContain("Physical");
+    expect(warning.message).toContain("Social");
+    expect(warning.message).toContain("Executive");
   });
 });

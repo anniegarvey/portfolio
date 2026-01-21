@@ -7,7 +7,7 @@ import { useDailyCapacity } from "./useDailyCapacity";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useTasks } from "./useTasks";
-import { getAllPlannedTaskIds, getUncompletedTasks } from "./utils";
+import { getUncompletedTasks } from "./utils";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Hook aggregating multiple state management hooks
 export function useEnergyPlannerState() {
@@ -49,42 +49,38 @@ export function useEnergyPlannerState() {
   } = useEnergyTypes();
 
   // State for async-computed values
-  const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
   const [uncompletedTasks, setUncompletedTasks] = useState<
     { task: Task; fromDate: string }[]
   >([]);
 
-  // Load available tasks (tasks not planned for any day)
-  useEffect(() => {
-    if (tasksLoading) return;
-
-    (async () => {
-      const plannedIds = await getAllPlannedTaskIds();
-      setAvailableTasks(tasks.filter((t) => !plannedIds.has(t.id)));
-    })();
-  }, [tasks, tasksLoading]); // Recompute when tasks change
+  // Available tasks are just the one-off tasks
+  const availableTasks = tasks;
 
   // Load uncompleted tasks from previous days
   useEffect(() => {
     if (tasksLoading) return;
 
     (async () => {
-      const uncompleted = await getUncompletedTasks(tasks, currentDate);
+      const uncompleted = await getUncompletedTasks(currentDate);
       setUncompletedTasks(uncompleted);
     })();
-  }, [tasks, tasksLoading, currentDate]);
+  }, [tasksLoading, currentDate]);
 
   const removeTask = useCallback(
-    (taskId: string) => {
-      removeTaskState(taskId);
-      removeFromPlan(taskId);
+    async (taskId: string) => {
+      // If it's in the one-off list, remove it
+      if (tasks.find((t) => t.id === taskId)) {
+        removeTaskState(taskId);
+      }
+      // If it's in the day plan, remove it
+      await removeFromPlan(taskId);
     },
-    [removeTaskState, removeFromPlan],
+    [tasks, removeTaskState, removeFromPlan],
   );
 
   const calculateEnergyUsage = useCallback((): EnergyCost => {
-    return calcUsage(tasks, dayPlan);
-  }, [tasks, dayPlan]);
+    return calcUsage(dayPlan);
+  }, [dayPlan]);
 
   const checkExceedsCapacity = useCallback(() => {
     const usage = calculateEnergyUsage();
