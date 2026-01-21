@@ -17,6 +17,8 @@ import {
 export function useDayPlan() {
   const [currentDate, setCurrentDate] = useState<string>(getTodayDateString());
   const [isLoading, setIsLoading] = useState(true);
+  // Version counter to trigger re-renders when storage is modified for other dates
+  const [dayPlanVersion, setDayPlanVersion] = useState(0);
   // Initialize with default values - actual data loaded in useEffect for SSR compatibility
   const [dayPlan, setDayPlan] = useState<DayPlan>({
     date: getTodayDateString(),
@@ -151,6 +153,8 @@ export function useDayPlan() {
             t.id === taskId ? { ...t, completed: true } : t,
           );
           await saveDayPlanForDate(date, { ...plan, tasks: updatedTasks });
+          // Trigger refresh of uncompleted tasks
+          setDayPlanVersion((v) => v + 1);
         }
       }
     },
@@ -204,6 +208,8 @@ export function useDayPlan() {
           });
         }
       }
+      // Trigger refresh of uncompleted tasks
+      setDayPlanVersion((v) => v + 1);
     },
     [currentDate],
   );
@@ -233,6 +239,8 @@ export function useDayPlan() {
               ...plan,
               tasks: updatedTasks,
             });
+            // Trigger refresh of uncompleted tasks
+            setDayPlanVersion((v) => v + 1);
           }
         }
       }
@@ -260,6 +268,7 @@ export function useDayPlan() {
   return {
     currentDate,
     dayPlan,
+    dayPlanVersion,
     isLoading,
     navigateToDate,
     goToPreviousDay,

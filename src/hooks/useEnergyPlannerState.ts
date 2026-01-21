@@ -27,6 +27,7 @@ export function useEnergyPlannerState() {
   const {
     currentDate,
     dayPlan,
+    dayPlanVersion,
     isLoading: dayPlanLoading,
     navigateToDate,
     goToPreviousDay,
@@ -57,6 +58,8 @@ export function useEnergyPlannerState() {
   const availableTasks = tasks;
 
   // Load uncompleted tasks from previous days
+  // Re-run when dayPlanVersion changes (after uncompleted task actions)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dayPlanVersion intentionally triggers re-fetch after storage changes
   useEffect(() => {
     if (tasksLoading) return;
 
@@ -64,7 +67,7 @@ export function useEnergyPlannerState() {
       const uncompleted = await getUncompletedTasks(currentDate);
       setUncompletedTasks(uncompleted);
     })();
-  }, [tasksLoading, currentDate]);
+  }, [tasksLoading, currentDate, dayPlanVersion]);
 
   const removeTask = useCallback(
     async (taskId: string) => {

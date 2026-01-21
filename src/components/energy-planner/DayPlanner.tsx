@@ -122,7 +122,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
       </Header>
 
       {viewedUncompletedTasks.length > 0 && (
-        <UncompletedSection>
+        <UncompletedSection data-testid="uncompleted-tasks">
           <UncompletedHeader>
             Uncompleted Tasks ({viewedUncompletedTasks.length})
           </UncompletedHeader>
