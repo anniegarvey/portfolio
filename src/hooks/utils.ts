@@ -5,6 +5,12 @@ import type {
   Task,
 } from "@/lib/energy-planner/schema";
 import { DEFAULT_ENERGY_TYPES } from "@/lib/energy-planner/schema";
+import {
+  getAllDayPlanDates,
+  getDailyCapacity,
+  getDayPlan,
+  setDayPlan,
+} from "@/lib/energy-planner/storage";
 
 /**
  * Creates a default capacity object from energy types
@@ -29,39 +35,28 @@ export function getTodayDateString(): string {
 }
 
 /**
- * Get the localStorage key for a specific date's day plan
+ * Load a day plan for a specific date from IndexedDB
  */
-export function getStorageKeyForDate(date: string): string {
-  return `energy_planner_day_plan_${date}`;
+export async function getDayPlanForDate(date: string): Promise<DayPlan | null> {
+  return getDayPlan(date);
 }
 
 /**
- * Load a day plan for a specific date from localStorage
+ * Save a day plan for a specific date to IndexedDB
  */
-export function getDayPlanForDate(date: string): DayPlan | null {
-  const stored = localStorage.getItem(getStorageKeyForDate(date));
-  if (!stored) return null;
-  try {
-    return JSON.parse(stored);
-  } catch (error) {
-    console.error(`Failed to parse day plan for ${date}`, error);
-    return null;
-  }
-}
-
-/**
- * Save a day plan for a specific date to localStorage
- */
-export function saveDayPlanForDate(date: string, plan: DayPlan): void {
-  localStorage.setItem(getStorageKeyForDate(date), JSON.stringify(plan));
+export async function saveDayPlanForDate(
+  date: string,
+  plan: DayPlan,
+): Promise<void> {
+  await setDayPlan(date, plan);
 }
 
 /**
  * Create a fresh day plan for a given date
  */
-export function createEmptyDayPlan(date: string): DayPlan {
-  const cap = localStorage.getItem("energy_planner_capacity");
-  const dailyCapacity = cap ? JSON.parse(cap) : defaultCapacity;
+export async function createEmptyDayPlan(date: string): Promise<DayPlan> {
+  const storedCapacity = await getDailyCapacity();
+  const dailyCapacity = storedCapacity ?? defaultCapacity;
 
   return {
     date,
@@ -72,31 +67,22 @@ export function createEmptyDayPlan(date: string): DayPlan {
 }
 
 /**
- * Get all stored day plan dates from localStorage
+ * Get all stored day plan dates from IndexedDB
  */
-export function getAllStoredDates(): string[] {
-  if (typeof localStorage === "undefined") return [];
-  const dates: string[] = [];
-  const prefix = "energy_planner_day_plan_";
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(prefix)) {
-      dates.push(key.slice(prefix.length));
-    }
-  }
-  return dates.sort();
+export async function getAllStoredDates(): Promise<string[]> {
+  return getAllDayPlanDates();
 }
 
 /**
  * Get all task IDs that are planned for any day
  * Used to filter available tasks - tasks planned for any date should not appear as available
  */
-export function getAllPlannedTaskIds(): Set<string> {
+export async function getAllPlannedTaskIds(): Promise<Set<string>> {
   const plannedIds = new Set<string>();
-  const dates = getAllStoredDates();
+  const dates = await getAllStoredDates();
 
   for (const date of dates) {
-    const plan = getDayPlanForDate(date);
+    const plan = await getDayPlanForDate(date);
     if (plan?.selectedTaskIds) {
       for (const id of plan.selectedTaskIds) {
         plannedIds.add(id);
@@ -111,17 +97,17 @@ export function getAllPlannedTaskIds(): Set<string> {
  * Find uncompleted tasks from previous days
  * Returns tasks that were selected but not completed on days before today
  */
-export function getUncompletedTasks(
+export async function getUncompletedTasks(
   tasks: Task[],
   today: string,
-): { task: Task; fromDate: string }[] {
+): Promise<{ task: Task; fromDate: string }[]> {
   const uncompleted: { task: Task; fromDate: string }[] = [];
-  const storedDates = getAllStoredDates();
+  const storedDates = await getAllStoredDates();
 
   for (const date of storedDates) {
     if (date >= today) continue; // Skip today and future dates
 
-    const dayPlan = getDayPlanForDate(date);
+    const dayPlan = await getDayPlanForDate(date);
     if (!dayPlan) continue;
 
     const incompleteTaskIds = dayPlan.selectedTaskIds.filter(

@@ -15,6 +15,7 @@ import {
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Hook with multiple state management functions
 export function useDayPlan() {
   const [currentDate, setCurrentDate] = useState<string>(getTodayDateString());
+  const [isLoading, setIsLoading] = useState(true);
   // Initialize with default values - actual data loaded in useEffect for SSR compatibility
   const [dayPlan, setDayPlan] = useState<DayPlan>({
     date: getTodayDateString(),
@@ -25,18 +26,34 @@ export function useDayPlan() {
 
   // Load day plan when date changes
   useEffect(() => {
-    const stored = getDayPlanForDate(currentDate);
-    if (stored) {
-      setDayPlan(stored);
-    } else {
-      setDayPlan(createEmptyDayPlan(currentDate));
-    }
+    let cancelled = false;
+    setIsLoading(true);
+
+    (async () => {
+      const stored = await getDayPlanForDate(currentDate);
+      if (cancelled) return;
+
+      if (stored) {
+        setDayPlan(stored);
+      } else {
+        const empty = await createEmptyDayPlan(currentDate);
+        if (cancelled) return;
+        setDayPlan(empty);
+      }
+      setIsLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentDate]);
 
   // Save day plan when it changes
   useEffect(() => {
-    saveDayPlanForDate(currentDate, dayPlan);
-  }, [dayPlan, currentDate]);
+    if (!isLoading) {
+      saveDayPlanForDate(currentDate, dayPlan);
+    }
+  }, [dayPlan, currentDate, isLoading]);
 
   const navigateToDate = useCallback((date: string) => {
     setCurrentDate(date);
@@ -87,7 +104,7 @@ export function useDayPlan() {
 
   // Mark a task as complete on a specific date (for uncompleted tasks)
   const markTaskCompleteOnDate = useCallback(
-    (taskId: string, date: string) => {
+    async (taskId: string, date: string) => {
       if (date === currentDate) {
         // If it's the current date, just toggle completion
         setDayPlan((prev) => ({
@@ -98,9 +115,9 @@ export function useDayPlan() {
         }));
       } else {
         // Update the plan for that specific date
-        const plan = getDayPlanForDate(date);
+        const plan = await getDayPlanForDate(date);
         if (plan) {
-          saveDayPlanForDate(date, {
+          await saveDayPlanForDate(date, {
             ...plan,
             completedTaskIds: plan.completedTaskIds.includes(taskId)
               ? plan.completedTaskIds
@@ -114,13 +131,13 @@ export function useDayPlan() {
 
   // Move a task from a past day to today
   const moveTaskToToday = useCallback(
-    (taskId: string, fromDate: string) => {
+    async (taskId: string, fromDate: string) => {
       const today = getTodayDateString();
 
       // Remove from the old date
-      const oldPlan = getDayPlanForDate(fromDate);
+      const oldPlan = await getDayPlanForDate(fromDate);
       if (oldPlan) {
-        saveDayPlanForDate(fromDate, {
+        await saveDayPlanForDate(fromDate, {
           ...oldPlan,
           selectedTaskIds: oldPlan.selectedTaskIds.filter(
             (id) => id !== taskId,
@@ -140,9 +157,10 @@ export function useDayPlan() {
             : [...prev.selectedTaskIds, taskId],
         }));
       } else {
-        const todayPlan = getDayPlanForDate(today) || createEmptyDayPlan(today);
+        const todayPlan =
+          (await getDayPlanForDate(today)) || (await createEmptyDayPlan(today));
         if (!todayPlan.selectedTaskIds.includes(taskId)) {
-          saveDayPlanForDate(today, {
+          await saveDayPlanForDate(today, {
             ...todayPlan,
             selectedTaskIds: [...todayPlan.selectedTaskIds, taskId],
           });
@@ -154,13 +172,13 @@ export function useDayPlan() {
 
   // Return a task to unplanned (remove from day plan entirely)
   const moveTaskToUnplanned = useCallback(
-    (taskId: string, fromDate: string) => {
+    async (taskId: string, fromDate: string) => {
       if (fromDate === currentDate) {
         removeFromPlan(taskId);
       } else {
-        const plan = getDayPlanForDate(fromDate);
+        const plan = await getDayPlanForDate(fromDate);
         if (plan) {
-          saveDayPlanForDate(fromDate, {
+          await saveDayPlanForDate(fromDate, {
             ...plan,
             selectedTaskIds: plan.selectedTaskIds.filter((id) => id !== taskId),
             completedTaskIds: plan.completedTaskIds.filter(
@@ -183,6 +201,7 @@ export function useDayPlan() {
   return {
     currentDate,
     dayPlan,
+    isLoading,
     navigateToDate,
     goToPreviousDay,
     goToNextDay,

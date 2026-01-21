@@ -2,23 +2,31 @@
 
 import { useEffect, useState } from "react";
 import type { EnergyCost } from "@/lib/energy-planner/schema";
+import {
+  getDailyCapacity,
+  setDailyCapacity as saveCapacity,
+} from "@/lib/energy-planner/storage";
 import { defaultCapacity } from "./utils";
 
 export function useDailyCapacity() {
   const [dailyCapacity, setDailyCapacity] =
     useState<EnergyCost>(defaultCapacity);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("energy_planner_capacity");
-    if (stored) setDailyCapacity(JSON.parse(stored));
+    getDailyCapacity().then((stored) => {
+      if (stored) {
+        setDailyCapacity(stored);
+      }
+      setIsLoading(false);
+    });
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(
-      "energy_planner_capacity",
-      JSON.stringify(dailyCapacity),
-    );
-  }, [dailyCapacity]);
+    if (!isLoading) {
+      saveCapacity(dailyCapacity);
+    }
+  }, [dailyCapacity, isLoading]);
 
-  return { dailyCapacity, setDailyCapacity };
+  return { dailyCapacity, isLoading, setDailyCapacity };
 }

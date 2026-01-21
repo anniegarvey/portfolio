@@ -1,16 +1,25 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
+import {
+  clearAll,
+  getEnergyTypes,
+  setEnergyTypes,
+} from "@/lib/energy-planner/storage";
 import { useEnergyTypes } from "./useEnergyTypes";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useEnergyTypes", () => {
-  beforeEach(() => {
-    localStorage.clear();
+  beforeEach(async () => {
+    await clearAll();
   });
 
-  it("initializes with default energy types", () => {
+  it("initializes with default energy types", async () => {
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(result.current.energyTypes).toHaveLength(3);
     expect(result.current.energyTypes.map((t) => t.id)).toContain("physical");
@@ -18,20 +27,27 @@ describe("useEnergyTypes", () => {
     expect(result.current.energyTypes.map((t) => t.id)).toContain("executive");
   });
 
-  it("loads energy types from localStorage on mount", () => {
-    const storedTypes = [
+  it("loads energy types from IndexedDB on mount", async () => {
+    await setEnergyTypes([
       { id: "custom", label: "Custom", color: "#ff0000", isPreset: false },
-    ];
-    localStorage.setItem("energy_planner_types", JSON.stringify(storedTypes));
+    ]);
 
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(result.current.energyTypes).toHaveLength(1);
     expect(result.current.energyTypes[0].id).toBe("custom");
   });
 
-  it("adds a new energy type with generated id", () => {
+  it("adds a new energy type with generated id", async () => {
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addEnergyType({
@@ -49,8 +65,12 @@ describe("useEnergyTypes", () => {
     expect(newType?.isPreset).toBe(false);
   });
 
-  it("updates an existing energy type", () => {
+  it("updates an existing energy type", async () => {
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     const physical = result.current.energyTypes.find(
       (t) => t.id === "physical",
@@ -70,8 +90,12 @@ describe("useEnergyTypes", () => {
     expect(updated?.label).toBe("Body Energy");
   });
 
-  it("updates only the specified energy type", () => {
+  it("updates only the specified energy type", async () => {
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     const physical = result.current.energyTypes.find(
       (t) => t.id === "physical",
@@ -96,8 +120,12 @@ describe("useEnergyTypes", () => {
     expect(social?.label).toBe("Social");
   });
 
-  it("removes an energy type", () => {
+  it("removes an energy type", async () => {
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addEnergyType({
@@ -123,8 +151,12 @@ describe("useEnergyTypes", () => {
     ).toBeUndefined();
   });
 
-  it("removes only the specified energy type", () => {
+  it("removes only the specified energy type", async () => {
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addEnergyType({
@@ -154,8 +186,12 @@ describe("useEnergyTypes", () => {
     ).toBeDefined();
   });
 
-  it("persists energy types to localStorage", () => {
+  it("persists energy types to IndexedDB", async () => {
     const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addEnergyType({
@@ -164,13 +200,10 @@ describe("useEnergyTypes", () => {
       });
     });
 
-    const stored = localStorage.getItem("energy_planner_types");
-    expect(stored).not.toBeNull();
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      expect(
-        parsed.find((t: { label: string }) => t.label === "Persisted"),
-      ).toBeDefined();
-    }
+    await waitFor(async () => {
+      const stored = await getEnergyTypes();
+      expect(stored).toBeDefined();
+      expect(stored?.find((t) => t.label === "Persisted")).toBeDefined();
+    });
   });
 });

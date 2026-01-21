@@ -45,8 +45,8 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
     checkExceedsCapacity,
     calculateEnergyUsage,
     energyTypes,
-    getUncompleted,
-    getAvailableTasks,
+    uncompletedTasks,
+    availableTasks,
     reorderPlannedTasks,
     reorderTasks,
   } = useEnergyPlanner();
@@ -67,9 +67,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
   const usage = calculateEnergyUsage();
   const warning = checkExceedsCapacity();
   const viewingToday = isToday(currentDate);
-  const uncompletedTasks = viewingToday ? getUncompleted() : [];
-
-  const availableTasks = getAvailableTasks();
+  const viewedUncompletedTasks = viewingToday ? uncompletedTasks : [];
 
   const { tasks } = useEnergyPlanner();
 
@@ -134,13 +132,13 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
         {warning.exceeded && <Warning>{warning.message}</Warning>}
       </Header>
 
-      {uncompletedTasks.length > 0 && (
+      {viewedUncompletedTasks.length > 0 && (
         <UncompletedSection>
           <UncompletedHeader>
-            Uncompleted Tasks ({uncompletedTasks.length})
+            Uncompleted Tasks ({viewedUncompletedTasks.length})
           </UncompletedHeader>
           <UncompletedList>
-            {uncompletedTasks.map(({ task, fromDate }) => (
+            {viewedUncompletedTasks.map(({ task, fromDate }) => (
               <UncompletedTaskCard
                 fromDate={fromDate}
                 key={`${task.id}-${fromDate}`}

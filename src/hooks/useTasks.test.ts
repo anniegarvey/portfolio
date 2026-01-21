@@ -1,25 +1,33 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { clearAll, getTasks } from "@/lib/energy-planner/storage";
 import { useTasks } from "./useTasks";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useTasks", () => {
-  beforeEach(() => {
-    localStorage.clear();
+  beforeEach(async () => {
+    await clearAll();
   });
 
-  it("initializes with empty tasks", () => {
+  it("initializes with empty tasks", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
     expect(result.current.tasks).toEqual([]);
   });
 
-  it("loads tasks from localStorage on mount", () => {
-    const storedTasks = [
+  it("loads tasks from IndexedDB on mount", async () => {
+    // Pre-populate storage using the storage module
+    const { setTasks } = await import("@/lib/energy-planner/storage");
+    await setTasks([
       {
         id: "1",
         title: "Test Task",
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         energyCost: { physical: 10, social: 20, executive: 5 },
         factors: {
           initiationDifficulty: 1,
@@ -27,16 +35,24 @@ describe("useTasks", () => {
           isRestorative: false,
         },
       },
-    ];
-    localStorage.setItem("energy_planner_tasks", JSON.stringify(storedTasks));
+    ]);
 
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
     expect(result.current.tasks).toHaveLength(1);
     expect(result.current.tasks[0].title).toBe("Test Task");
   });
 
-  it("adds a new task with generated id and createdAt", () => {
+  it("adds a new task with generated id and createdAt", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -57,8 +73,12 @@ describe("useTasks", () => {
     expect(result.current.tasks[0].createdAt).toBeDefined();
   });
 
-  it("updates an existing task", () => {
+  it("updates an existing task", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -86,8 +106,12 @@ describe("useTasks", () => {
     expect(result.current.tasks[0].id).toBe(taskId);
   });
 
-  it("updates only the specified task", () => {
+  it("updates only the specified task", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -123,8 +147,12 @@ describe("useTasks", () => {
     expect(result.current.tasks[1].title).toBe("Task 2");
   });
 
-  it("removes a task", () => {
+  it("removes a task", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -148,8 +176,12 @@ describe("useTasks", () => {
     expect(result.current.tasks).toHaveLength(0);
   });
 
-  it("removes only the specified task", () => {
+  it("removes only the specified task", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -185,8 +217,12 @@ describe("useTasks", () => {
     expect(result.current.tasks[0].id).toBe(task2Id);
   });
 
-  it("persists tasks to localStorage", () => {
+  it("persists tasks to IndexedDB", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({
@@ -201,16 +237,20 @@ describe("useTasks", () => {
       });
     });
 
-    const stored = localStorage.getItem("energy_planner_tasks");
-    expect(stored).not.toBeNull();
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      expect(parsed).toHaveLength(1);
-      expect(parsed[0].title).toBe("Persisted Task");
-    }
+    // Wait for the effect to persist
+    await waitFor(async () => {
+      const stored = await getTasks();
+      expect(stored).toHaveLength(1);
+      expect(stored[0].title).toBe("Persisted Task");
+    });
   });
-  it("reorders tasks", () => {
+
+  it("reorders tasks", async () => {
     const { result } = renderHook(() => useTasks());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addTask({

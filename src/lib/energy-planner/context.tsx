@@ -25,8 +25,9 @@ interface EnergyPlannerContextType {
   moveTaskToUnplanned: (taskId: string, fromDate: string) => void;
   calculateEnergyUsage: () => EnergyCost;
   checkExceedsCapacity: () => { exceeded: boolean; message?: string };
-  getUncompleted: () => { task: Task; fromDate: string }[];
-  getAvailableTasks: () => Task[];
+  uncompletedTasks: { task: Task; fromDate: string }[];
+  availableTasks: Task[];
+  isLoading: boolean;
   energyTypes: EnergyTypeConfig[];
   addEnergyType: (typeData: Omit<EnergyTypeConfig, "id" | "isPreset">) => void;
   updateEnergyType: (updatedType: EnergyTypeConfig) => void;

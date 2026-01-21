@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
+import { clearAll, getTasks } from "../../lib/energy-planner/storage";
 import { TaskForm } from "./TaskForm";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -9,19 +10,26 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("TaskForm", () => {
-  beforeEach(() => {
-    localStorage.clear();
+  beforeEach(async () => {
+    await clearAll();
   });
-  it("renders empty form for new task", () => {
+
+  it("renders empty form for new task", async () => {
     render(<TaskForm />, { wrapper });
 
-    expect(screen.getByPlaceholderText(/Do Laundry/i)).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Do Laundry/i)).toBeDefined();
+    });
     expect(screen.getByText("Add Task")).toBeDefined();
   });
 
   it("adds a new task with factors and energy costs", async () => {
     const onClose = vi.fn();
     render(<TaskForm onClose={onClose} />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Do Laundry/i)).toBeDefined();
+    });
 
     // Fill Title
     fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
@@ -46,23 +54,25 @@ describe("TaskForm", () => {
     // Verify onClose called
     expect(onClose).toHaveBeenCalled();
 
-    // Verify localStorage
-    const tasks = JSON.parse(
-      localStorage.getItem("energy_planner_tasks") || "[]",
-    );
-    expect(tasks).toHaveLength(1);
-    expect(tasks[0]).toMatchObject({
-      title: "New Chore",
-      energyCost: { physical: 50, social: 10, executive: 10 }, // Default 10
-      factors: {
-        initiationDifficulty: 8,
-        terminationDifficulty: 3,
-        isRestorative: true,
-      },
+    // Verify storage
+    await waitFor(async () => {
+      const tasks = await getTasks();
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0]).toMatchObject({
+        title: "New Chore",
+        energyCost: { physical: 50, social: 10, executive: 10 }, // Default 10
+        factors: {
+          initiationDifficulty: 8,
+          terminationDifficulty: 3,
+          isRestorative: true,
+        },
+      });
     });
   });
 
-  it("updates an existing task", () => {
+  it("updates an existing task", async () => {
+    const { setTasks } = await import("../../lib/energy-planner/storage");
+
     const initialTask = {
       id: "123",
       createdAt: new Date(),
@@ -75,20 +85,17 @@ describe("TaskForm", () => {
         isRestorative: false,
       },
     };
-    // Seed it in storage so update works
-    // Note: dates in localStorage are strings
-    const seedTaskStr = {
-      ...initialTask,
-      createdAt: initialTask.createdAt.toISOString(),
-    };
-    localStorage.setItem("energy_planner_tasks", JSON.stringify([seedTaskStr]));
+
+    await setTasks([initialTask]);
 
     const onClose = vi.fn();
     render(<TaskForm initialData={initialTask} onClose={onClose} />, {
       wrapper,
     });
 
-    expect(screen.getByDisplayValue("Existing Task")).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Existing Task")).toBeDefined();
+    });
     expect(screen.getByText("Update Task")).toBeDefined();
 
     // Change title
@@ -102,14 +109,18 @@ describe("TaskForm", () => {
     expect(onClose).toHaveBeenCalled();
 
     // Verify storage
-    const tasks = JSON.parse(
-      localStorage.getItem("energy_planner_tasks") || "[]",
-    );
-    expect(tasks[0].title).toBe("Updated Task");
+    await waitFor(async () => {
+      const tasks = await getTasks();
+      expect(tasks[0].title).toBe("Updated Task");
+    });
   });
 
-  it("resets form after submission if onClose is not provided", () => {
+  it("resets form after submission if onClose is not provided", async () => {
     render(<TaskForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Do Laundry/i)).toBeDefined();
+    });
 
     const titleInput = screen.getByPlaceholderText(
       /Do Laundry/i,
@@ -118,23 +129,27 @@ describe("TaskForm", () => {
 
     fireEvent.click(screen.getByText("Add Task"));
 
-    expect(titleInput.value).toBe("");
-    const tasks = JSON.parse(
-      localStorage.getItem("energy_planner_tasks") || "[]",
-    );
+    await waitFor(() => {
+      expect(titleInput.value).toBe("");
+    });
+
+    const tasks = await getTasks();
     expect(tasks).toHaveLength(1);
   });
 
-  it("validates inputs", () => {
+  it("validates inputs", async () => {
     const onClose = vi.fn();
     render(<TaskForm onClose={onClose} />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("Add Task")).toBeDefined();
+    });
 
     // Submit without title
     fireEvent.click(screen.getByText("Add Task"));
 
     expect(onClose).not.toHaveBeenCalled();
-    const stored = localStorage.getItem("energy_planner_tasks");
-    const parsed = stored ? JSON.parse(stored) : [];
-    expect(parsed).toHaveLength(0);
+    const tasks = await getTasks();
+    expect(tasks).toHaveLength(0);
   });
 });

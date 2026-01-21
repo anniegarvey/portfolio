@@ -1,16 +1,25 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
+import {
+  clearAll,
+  getDailyCapacity,
+  setDailyCapacity,
+} from "@/lib/energy-planner/storage";
 import { useDailyCapacity } from "./useDailyCapacity";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useDailyCapacity", () => {
-  beforeEach(() => {
-    localStorage.clear();
+  beforeEach(async () => {
+    await clearAll();
   });
 
-  it("initializes with default capacity", () => {
+  it("initializes with default capacity", async () => {
     const { result } = renderHook(() => useDailyCapacity());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(result.current.dailyCapacity).toEqual({
       physical: 50,
@@ -19,20 +28,25 @@ describe("useDailyCapacity", () => {
     });
   });
 
-  it("loads capacity from localStorage on mount", () => {
+  it("loads capacity from IndexedDB on mount", async () => {
     const storedCapacity = { physical: 70, social: 80, executive: 90 };
-    localStorage.setItem(
-      "energy_planner_capacity",
-      JSON.stringify(storedCapacity),
-    );
+    await setDailyCapacity(storedCapacity);
 
     const { result } = renderHook(() => useDailyCapacity());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(result.current.dailyCapacity).toEqual(storedCapacity);
   });
 
-  it("updates daily capacity", () => {
+  it("updates daily capacity", async () => {
     const { result } = renderHook(() => useDailyCapacity());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.setDailyCapacity({
@@ -49,8 +63,12 @@ describe("useDailyCapacity", () => {
     });
   });
 
-  it("persists capacity to localStorage", () => {
+  it("persists capacity to IndexedDB", async () => {
     const { result } = renderHook(() => useDailyCapacity());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.setDailyCapacity({
@@ -60,15 +78,13 @@ describe("useDailyCapacity", () => {
       });
     });
 
-    const stored = localStorage.getItem("energy_planner_capacity");
-    expect(stored).not.toBeNull();
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      expect(parsed).toEqual({
+    await waitFor(async () => {
+      const stored = await getDailyCapacity();
+      expect(stored).toEqual({
         physical: 60,
         social: 70,
         executive: 80,
       });
-    }
+    });
   });
 });

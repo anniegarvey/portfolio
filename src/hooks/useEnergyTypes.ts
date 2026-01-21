@@ -4,21 +4,30 @@ import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { EnergyTypeConfig } from "@/lib/energy-planner/schema";
 import { DEFAULT_ENERGY_TYPES } from "@/lib/energy-planner/schema";
+import {
+  getEnergyTypes,
+  setEnergyTypes as saveEnergyTypes,
+} from "@/lib/energy-planner/storage";
 
 export function useEnergyTypes() {
   const [energyTypes, setEnergyTypes] =
     useState<EnergyTypeConfig[]>(DEFAULT_ENERGY_TYPES);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("energy_planner_types");
-    if (stored) {
-      setEnergyTypes(JSON.parse(stored));
-    }
+    getEnergyTypes().then((stored) => {
+      if (stored) {
+        setEnergyTypes(stored);
+      }
+      setIsLoading(false);
+    });
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("energy_planner_types", JSON.stringify(energyTypes));
-  }, [energyTypes]);
+    if (!isLoading) {
+      saveEnergyTypes(energyTypes);
+    }
+  }, [energyTypes, isLoading]);
 
   const addEnergyType = (
     typeData: Omit<EnergyTypeConfig, "id" | "isPreset">,
@@ -41,5 +50,11 @@ export function useEnergyTypes() {
     setEnergyTypes((prev) => prev.filter((t) => t.id !== typeId));
   };
 
-  return { energyTypes, addEnergyType, updateEnergyType, removeEnergyType };
+  return {
+    energyTypes,
+    isLoading,
+    addEnergyType,
+    updateEnergyType,
+    removeEnergyType,
+  };
 }

@@ -1,6 +1,17 @@
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { DayPlan, EnergyCost, Task } from "./schema";
+import {
+  getAllDayPlanDates,
+  getDailyCapacity,
+  getDayPlan,
+  getEnergyTypes,
+  getTasks,
+  setDailyCapacity,
+  setDayPlan,
+  setEnergyTypes,
+  setTasks,
+} from "./storage";
 
 /**
  * Calculates the new order of items after a drag and drop operation.
@@ -55,31 +66,37 @@ export interface EnergyPlannerExportData {
   version: string;
   exportDate: string;
   data: {
-    tasks: string | null;
-    capacity: string | null;
-    dayPlan: string | null;
+    tasks: Task[] | null;
+    capacity: EnergyCost | null;
+    energyTypes: Awaited<ReturnType<typeof getEnergyTypes>> | null;
+    dayPlans: { date: string; plan: DayPlan }[] | null;
   };
 }
 
-const STORAGE_KEYS = {
-  tasks: "energy_planner_tasks",
-  capacity: "energy_planner_capacity",
-  dayPlan: "energy_planner_day_plan",
-} as const;
-
-const EXPORT_VERSION = "1.0.0";
+const EXPORT_VERSION = "2.0.0"; // Incremented for IndexedDB format
 
 /**
- * Exports all energy planner data from localStorage to a JSON file
+ * Exports all energy planner data from IndexedDB to a JSON file
  */
-export function exportEnergyPlannerData(): void {
+export async function exportEnergyPlannerData(): Promise<void> {
+  const dates = await getAllDayPlanDates();
+  const dayPlans: { date: string; plan: DayPlan }[] = [];
+
+  for (const date of dates) {
+    const plan = await getDayPlan(date);
+    if (plan) {
+      dayPlans.push({ date, plan });
+    }
+  }
+
   const exportData: EnergyPlannerExportData = {
     version: EXPORT_VERSION,
     exportDate: new Date().toISOString(),
     data: {
-      tasks: localStorage.getItem(STORAGE_KEYS.tasks),
-      capacity: localStorage.getItem(STORAGE_KEYS.capacity),
-      dayPlan: localStorage.getItem(STORAGE_KEYS.dayPlan),
+      tasks: await getTasks(),
+      capacity: (await getDailyCapacity()) ?? null,
+      energyTypes: (await getEnergyTypes()) ?? null,
+      dayPlans: dayPlans.length > 0 ? dayPlans : null,
     },
   };
 
@@ -97,7 +114,7 @@ export function exportEnergyPlannerData(): void {
 }
 
 /**
- * Imports energy planner data from a JSON file into localStorage
+ * Imports energy planner data from a JSON file into IndexedDB
  * @param file - The JSON file to import
  * @throws Error if file is invalid or parsing fails
  */
@@ -116,13 +133,18 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
 
   // Import the data
   if (data.data.tasks) {
-    localStorage.setItem(STORAGE_KEYS.tasks, data.data.tasks);
+    await setTasks(data.data.tasks);
   }
   if (data.data.capacity) {
-    localStorage.setItem(STORAGE_KEYS.capacity, data.data.capacity);
+    await setDailyCapacity(data.data.capacity);
   }
-  if (data.data.dayPlan) {
-    localStorage.setItem(STORAGE_KEYS.dayPlan, data.data.dayPlan);
+  if (data.data.energyTypes) {
+    await setEnergyTypes(data.data.energyTypes);
+  }
+  if (data.data.dayPlans) {
+    for (const { date, plan } of data.data.dayPlans) {
+      await setDayPlan(date, plan);
+    }
   }
 
   // Reload the page to reflect the imported data

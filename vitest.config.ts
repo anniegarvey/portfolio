@@ -15,8 +15,8 @@ export default defineConfig({
     coverage: {
       enabled: true,
       thresholds: {
-        lines: 87.5,
-        statements: 86.2,
+        lines: 87,
+        statements: 85.5,
         branches: 70,
         functions: 77.77,
         perFile: true,

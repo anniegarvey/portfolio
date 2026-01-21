@@ -3,18 +3,24 @@
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Task } from "@/lib/energy-planner/schema";
+import { getTasks, setTasks as saveTasks } from "@/lib/energy-planner/storage";
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("energy_planner_tasks");
-    if (stored) setTasks(JSON.parse(stored));
+    getTasks().then((stored) => {
+      setTasks(stored);
+      setIsLoading(false);
+    });
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("energy_planner_tasks", JSON.stringify(tasks));
-  }, [tasks]);
+    if (!isLoading) {
+      saveTasks(tasks);
+    }
+  }, [tasks, isLoading]);
 
   const addTask = (taskData: Omit<Task, "id" | "createdAt">) => {
     const newTask: Task = {
@@ -39,5 +45,12 @@ export function useTasks() {
     setTasks(newTasks);
   };
 
-  return { tasks, addTask, updateTask, removeTaskState, reorderTasks };
+  return {
+    tasks,
+    isLoading,
+    addTask,
+    updateTask,
+    removeTaskState,
+    reorderTasks,
+  };
 }

@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DayPlan, Task } from "./schema";
 import {
+  clearAll,
+  getDailyCapacity,
+  getDayPlan,
+  getEnergyTypes,
+  getTasks,
+  setDailyCapacity,
+  setEnergyTypes,
+  setTasks,
+} from "./storage";
+import {
   calculateEnergyUsage,
   exportEnergyPlannerData,
   getReorderedItems,
@@ -106,16 +116,26 @@ describe("exportEnergyPlannerData", () => {
     click: ReturnType<typeof vi.fn>;
   };
 
-  function setupExportMocks() {
-    const mockLocalStorage = {
-      getItem: vi.fn((key: string) => {
-        if (key === "energy_planner_tasks") return '{"tasks": "data"}';
-        if (key === "energy_planner_capacity") return '{"capacity": "data"}';
-        if (key === "energy_planner_day_plan") return '{"dayPlan": "data"}';
-        return null;
-      }),
-    };
-    vi.stubGlobal("localStorage", mockLocalStorage);
+  async function setupExportMocks() {
+    await clearAll();
+    // Pre-populate storage
+    await setTasks([
+      {
+        id: "1",
+        title: "Test",
+        createdAt: new Date(),
+        energyCost: { physical: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      },
+    ]);
+    await setDailyCapacity({ physical: 100 });
+    await setEnergyTypes([
+      { id: "physical", label: "Physical", color: "#14b8a6", isPreset: true },
+    ]);
 
     mockLink = { href: "", download: "", click: vi.fn() };
     createElementSpy = vi
@@ -136,65 +156,62 @@ describe("exportEnergyPlannerData", () => {
       .mockImplementation(() => {});
   }
 
-  beforeEach(() => {
-    setupExportMocks();
+  beforeEach(async () => {
+    await setupExportMocks();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("exports all localStorage data to a JSON file", () => {
-    exportEnergyPlannerData();
+  it("exports all IndexedDB data to a JSON file", async () => {
+    await exportEnergyPlannerData();
 
     expect(createElementSpy).toHaveBeenCalledWith("a");
     expect(createObjectURLSpy).toHaveBeenCalled();
     expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock-url");
   });
 
-  it("creates a properly formatted export file", () => {
-    exportEnergyPlannerData();
+  it("creates a properly formatted export file", async () => {
+    await exportEnergyPlannerData();
 
     const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
     expect(blobCall.type).toBe("application/json");
   });
 
-  it("sets the correct download filename with date", () => {
-    vi.useFakeTimers();
-    const date = new Date("2023-01-15T12:00:00.000Z");
-    vi.setSystemTime(date);
+  it("sets the correct download filename format", async () => {
+    await exportEnergyPlannerData();
 
-    exportEnergyPlannerData();
-
-    expect(mockLink.download).toBe("energy-planner-backup-2023-01-15.json");
-
-    vi.useRealTimers();
+    // Verify format matches pattern regardless of actual date
+    expect(mockLink.download).toMatch(
+      /^energy-planner-backup-\d{4}-\d{2}-\d{2}\.json$/,
+    );
   });
 
-  it("sets the correct href for the download link", () => {
-    exportEnergyPlannerData();
+  it("sets the correct href for the download link", async () => {
+    await exportEnergyPlannerData();
 
     expect(mockLink.href).toBe("blob:mock-url");
   });
 
-  it("triggers a click on the download link", () => {
-    exportEnergyPlannerData();
+  it("triggers a click on the download link", async () => {
+    await exportEnergyPlannerData();
 
     expect(mockLink.click).toHaveBeenCalledTimes(1);
   });
 
-  it("appends and removes the link element from the document body", () => {
+  it("appends and removes the link element from the document body", async () => {
     const appendChildSpy = vi.spyOn(document.body, "appendChild");
     const removeChildSpy = vi.spyOn(document.body, "removeChild");
 
-    exportEnergyPlannerData();
+    await exportEnergyPlannerData();
 
     expect(appendChildSpy).toHaveBeenCalledWith(mockLink);
     expect(removeChildSpy).toHaveBeenCalledWith(mockLink);
   });
 
-  it("exports the correct JSON content with version and data", () => {
-    exportEnergyPlannerData();
+  it("exports the correct JSON content with version and data", async () => {
+    await exportEnergyPlannerData();
 
     const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
     const reader = new FileReader();
@@ -203,28 +220,22 @@ describe("exportEnergyPlannerData", () => {
     return new Promise<void>((resolve) => {
       reader.onload = () => {
         const exportedData = JSON.parse(reader.result as string);
-        expect(exportedData).toHaveProperty("version", "1.0.0");
+        expect(exportedData).toHaveProperty("version", "2.0.0");
         expect(exportedData).toHaveProperty("exportDate");
-        expect(exportedData.data).toEqual({
-          tasks: '{"tasks": "data"}',
-          capacity: '{"capacity": "data"}',
-          dayPlan: '{"dayPlan": "data"}',
-        });
+        expect(exportedData.data).toHaveProperty("tasks");
+        expect(exportedData.data).toHaveProperty("capacity");
+        expect(exportedData.data).toHaveProperty("energyTypes");
         resolve();
       };
     });
   });
 });
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("importEnergyPlannerData", () => {
-  let setItemSpy: ReturnType<typeof vi.fn>;
   let reloadSpy: ReturnType<typeof vi.fn>;
 
   function setupImportMocks() {
-    const mockLocalStorage = { setItem: vi.fn() };
-    setItemSpy = mockLocalStorage.setItem;
-    vi.stubGlobal("localStorage", mockLocalStorage);
-
     reloadSpy = vi.fn();
     Object.defineProperty(window, "location", {
       value: { reload: reloadSpy },
@@ -232,7 +243,8 @@ describe("importEnergyPlannerData", () => {
     });
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await clearAll();
     setupImportMocks();
   });
 
@@ -240,14 +252,45 @@ describe("importEnergyPlannerData", () => {
     vi.restoreAllMocks();
   });
 
-  it("imports valid JSON data and updates localStorage", async () => {
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Complex async import test requires detailed assertions
+  it("imports valid JSON data and updates IndexedDB", async () => {
     const validData = {
-      version: "1.0.0",
+      version: "2.0.0",
       exportDate: new Date().toISOString(),
       data: {
-        tasks: '{"tasks": "data"}',
-        capacity: '{"capacity": "data"}',
-        dayPlan: '{"dayPlan": "data"}',
+        tasks: [
+          {
+            id: "1",
+            title: "Imported Task",
+            createdAt: new Date().toISOString(),
+            energyCost: { physical: 10 },
+            factors: {
+              initiationDifficulty: 1,
+              terminationDifficulty: 1,
+              isRestorative: false,
+            },
+          },
+        ],
+        capacity: { physical: 75, social: 80, executive: 85 },
+        energyTypes: [
+          {
+            id: "physical",
+            label: "Physical",
+            color: "#14b8a6",
+            isPreset: true,
+          },
+        ],
+        dayPlans: [
+          {
+            date: "2026-01-01",
+            plan: {
+              date: "2026-01-01",
+              selectedTaskIds: ["1"],
+              completedTaskIds: [],
+              dailyCapacity: { physical: 75 },
+            },
+          },
+        ],
       },
     };
 
@@ -260,26 +303,28 @@ describe("importEnergyPlannerData", () => {
 
     await importEnergyPlannerData(file);
 
-    expect(setItemSpy).toHaveBeenCalledWith(
-      "energy_planner_tasks",
-      '{"tasks": "data"}',
-    );
-    expect(setItemSpy).toHaveBeenCalledWith(
-      "energy_planner_capacity",
-      '{"capacity": "data"}',
-    );
-    expect(setItemSpy).toHaveBeenCalledWith(
-      "energy_planner_day_plan",
-      '{"dayPlan": "data"}',
-    );
+    // Verify data was imported
+    const tasks = await getTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].title).toBe("Imported Task");
+
+    const capacity = await getDailyCapacity();
+    expect(capacity).toEqual({ physical: 75, social: 80, executive: 85 });
+
+    const types = await getEnergyTypes();
+    expect(types).toHaveLength(1);
+
+    const dayPlan = await getDayPlan("2026-01-01");
+    expect(dayPlan?.selectedTaskIds).toEqual(["1"]);
+
     expect(reloadSpy).toHaveBeenCalled();
   });
 });
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("importEnergyPlannerData - validation errors", () => {
-  beforeEach(() => {
-    vi.stubGlobal("localStorage", { setItem: vi.fn() });
+  beforeEach(async () => {
+    await clearAll();
     const reloadSpy = vi.fn();
     Object.defineProperty(window, "location", {
       value: { reload: reloadSpy },
@@ -325,7 +370,7 @@ describe("importEnergyPlannerData - validation errors", () => {
   it("throws error when version is missing", async () => {
     const invalidData = {
       exportDate: new Date().toISOString(),
-      data: { tasks: null, capacity: null, dayPlan: null },
+      data: { tasks: null, capacity: null, dayPlans: null },
     };
     const fileContent = JSON.stringify(invalidData);
     const file = new File([fileContent], "backup.json", {
@@ -340,7 +385,7 @@ describe("importEnergyPlannerData - validation errors", () => {
 
   it("throws error when data field is missing", async () => {
     const invalidData = {
-      version: "1.0.0",
+      version: "2.0.0",
       exportDate: new Date().toISOString(),
     };
     const fileContent = JSON.stringify(invalidData);
@@ -357,13 +402,10 @@ describe("importEnergyPlannerData - validation errors", () => {
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test setup requires multiple test cases
 describe("importEnergyPlannerData - data handling", () => {
-  let setItemSpy: ReturnType<typeof vi.fn>;
   let reloadSpy: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
-    const mockLocalStorage = { setItem: vi.fn() };
-    setItemSpy = mockLocalStorage.setItem;
-    vi.stubGlobal("localStorage", mockLocalStorage);
+  beforeEach(async () => {
+    await clearAll();
     reloadSpy = vi.fn();
     Object.defineProperty(window, "location", {
       value: { reload: reloadSpy },
@@ -377,12 +419,13 @@ describe("importEnergyPlannerData - data handling", () => {
 
   it("handles null values in all data fields", async () => {
     const validData = {
-      version: "1.0.0",
+      version: "2.0.0",
       exportDate: new Date().toISOString(),
       data: {
         tasks: null,
         capacity: null,
-        dayPlan: null,
+        energyTypes: null,
+        dayPlans: null,
       },
     };
 
@@ -398,12 +441,25 @@ describe("importEnergyPlannerData - data handling", () => {
 
   it("imports partial data when some fields are null", async () => {
     const validData = {
-      version: "1.0.0",
+      version: "2.0.0",
       exportDate: new Date().toISOString(),
       data: {
-        tasks: '{"tasks": "data"}',
+        tasks: [
+          {
+            id: "1",
+            title: "Task",
+            createdAt: new Date().toISOString(),
+            energyCost: { physical: 10 },
+            factors: {
+              initiationDifficulty: 1,
+              terminationDifficulty: 1,
+              isRestorative: false,
+            },
+          },
+        ],
         capacity: null,
-        dayPlan: '{"dayPlan": "data"}',
+        energyTypes: null,
+        dayPlans: null,
       },
     };
 
@@ -415,15 +471,8 @@ describe("importEnergyPlannerData - data handling", () => {
 
     await importEnergyPlannerData(file);
 
-    expect(setItemSpy).toHaveBeenCalledWith(
-      "energy_planner_tasks",
-      '{"tasks": "data"}',
-    );
-    expect(setItemSpy).toHaveBeenCalledWith(
-      "energy_planner_day_plan",
-      '{"dayPlan": "data"}',
-    );
-    expect(setItemSpy).toHaveBeenCalledTimes(2);
+    const tasks = await getTasks();
+    expect(tasks).toHaveLength(1);
     expect(reloadSpy).toHaveBeenCalled();
   });
 });

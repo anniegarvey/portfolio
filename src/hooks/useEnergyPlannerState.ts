@@ -1,6 +1,7 @@
 "use client";
 
-import type { EnergyCost } from "@/lib/energy-planner/schema";
+import { useCallback, useEffect, useState } from "react";
+import type { EnergyCost, Task } from "@/lib/energy-planner/schema";
 import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
 import { useDailyCapacity } from "./useDailyCapacity";
 import { useDayPlan } from "./useDayPlan";
@@ -10,12 +11,23 @@ import { getAllPlannedTaskIds, getUncompletedTasks } from "./utils";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Hook aggregating multiple state management hooks
 export function useEnergyPlannerState() {
-  const { tasks, addTask, updateTask, removeTaskState, reorderTasks } =
-    useTasks();
-  const { dailyCapacity, setDailyCapacity } = useDailyCapacity();
+  const {
+    tasks,
+    isLoading: tasksLoading,
+    addTask,
+    updateTask,
+    removeTaskState,
+    reorderTasks,
+  } = useTasks();
+  const {
+    dailyCapacity,
+    isLoading: capacityLoading,
+    setDailyCapacity,
+  } = useDailyCapacity();
   const {
     currentDate,
     dayPlan,
+    isLoading: dayPlanLoading,
     navigateToDate,
     goToPreviousDay,
     goToNextDay,
@@ -28,19 +40,53 @@ export function useEnergyPlannerState() {
     moveTaskToUnplanned,
     reorderPlannedTasks,
   } = useDayPlan();
-  const { energyTypes, addEnergyType, updateEnergyType, removeEnergyType } =
-    useEnergyTypes();
+  const {
+    energyTypes,
+    isLoading: typesLoading,
+    addEnergyType,
+    updateEnergyType,
+    removeEnergyType,
+  } = useEnergyTypes();
 
-  const removeTask = (taskId: string) => {
-    removeTaskState(taskId);
-    removeFromPlan(taskId);
-  };
+  // State for async-computed values
+  const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
+  const [uncompletedTasks, setUncompletedTasks] = useState<
+    { task: Task; fromDate: string }[]
+  >([]);
 
-  const calculateEnergyUsage = (): EnergyCost => {
+  // Load available tasks (tasks not planned for any day)
+  useEffect(() => {
+    if (tasksLoading) return;
+
+    (async () => {
+      const plannedIds = await getAllPlannedTaskIds();
+      setAvailableTasks(tasks.filter((t) => !plannedIds.has(t.id)));
+    })();
+  }, [tasks, tasksLoading]); // Recompute when tasks change
+
+  // Load uncompleted tasks from previous days
+  useEffect(() => {
+    if (tasksLoading) return;
+
+    (async () => {
+      const uncompleted = await getUncompletedTasks(tasks, currentDate);
+      setUncompletedTasks(uncompleted);
+    })();
+  }, [tasks, tasksLoading, currentDate]);
+
+  const removeTask = useCallback(
+    (taskId: string) => {
+      removeTaskState(taskId);
+      removeFromPlan(taskId);
+    },
+    [removeTaskState, removeFromPlan],
+  );
+
+  const calculateEnergyUsage = useCallback((): EnergyCost => {
     return calcUsage(tasks, dayPlan);
-  };
+  }, [tasks, dayPlan]);
 
-  const checkExceedsCapacity = () => {
+  const checkExceedsCapacity = useCallback(() => {
     const usage = calculateEnergyUsage();
     const exceededTypes: string[] = [];
 
@@ -59,19 +105,14 @@ export function useEnergyPlannerState() {
       };
     }
     return { exceeded: false };
-  };
+  }, [calculateEnergyUsage, energyTypes, dailyCapacity]);
 
-  const getUncompleted = () => {
-    return getUncompletedTasks(tasks, currentDate);
-  };
-
-  const getAvailableTasks = () => {
-    const plannedIds = getAllPlannedTaskIds();
-    return tasks.filter((t) => !plannedIds.has(t.id));
-  };
+  const isLoading =
+    tasksLoading || capacityLoading || dayPlanLoading || typesLoading;
 
   return {
     tasks,
+    isLoading,
     addTask,
     updateTask,
     removeTask,
@@ -91,8 +132,8 @@ export function useEnergyPlannerState() {
     moveTaskToUnplanned,
     calculateEnergyUsage,
     checkExceedsCapacity,
-    getUncompleted,
-    getAvailableTasks,
+    uncompletedTasks,
+    availableTasks,
     energyTypes,
     addEnergyType,
     updateEnergyType,
