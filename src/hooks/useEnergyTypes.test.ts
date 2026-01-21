@@ -42,7 +42,7 @@ describe("useEnergyTypes", () => {
     expect(result.current.energyTypes[0].id).toBe("custom");
   });
 
-  it("adds a new energy type with generated id", async () => {
+  it("adds a new energy type with human-readable id based on label", async () => {
     const { result } = renderHook(() => useEnergyTypes());
 
     await waitFor(() => {
@@ -51,18 +51,40 @@ describe("useEnergyTypes", () => {
 
     act(() => {
       result.current.addEnergyType({
-        label: "Custom",
+        label: "Creative Energy",
         color: "#ff0000",
       });
     });
 
     expect(result.current.energyTypes).toHaveLength(4);
     const newType = result.current.energyTypes.find(
-      (t) => t.label === "Custom",
+      (t) => t.label === "Creative Energy",
     );
     expect(newType).toBeDefined();
-    expect(newType?.id).toBeDefined();
+    expect(newType?.id).toBe("creative-energy");
     expect(newType?.isPreset).toBe(false);
+  });
+
+  it("generates unique id when label clashes with existing key", async () => {
+    const { result } = renderHook(() => useEnergyTypes());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // "Physical" should clash with the preset "physical" id
+    act(() => {
+      result.current.addEnergyType({
+        label: "Physical",
+        color: "#ff0000",
+      });
+    });
+
+    const newType = result.current.energyTypes.find(
+      (t) => t.label === "Physical" && !t.isPreset,
+    );
+    expect(newType).toBeDefined();
+    expect(newType?.id).toBe("physical-2");
   });
 
   it("updates an existing energy type", async () => {

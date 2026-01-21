@@ -137,3 +137,36 @@ export function getNextDay(dateString: string): string {
   date.setDate(date.getDate() + 1);
   return date.toISOString().split("T")[0];
 }
+
+/**
+ * Generate a slug from a label (e.g., "Creative Energy" -> "creative-energy")
+ */
+export function slugify(label: string): string {
+  return label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Generate a unique key from a label, ensuring no clashes with existing keys.
+ * If a clash occurs, appends a numeric suffix (e.g., "physical-2").
+ */
+export function generateUniqueKey(
+  label: string,
+  existingKeys: string[],
+): string {
+  const baseKey = slugify(label);
+
+  if (!existingKeys.includes(baseKey)) {
+    return baseKey;
+  }
+
+  let suffix = 2;
+  while (existingKeys.includes(`${baseKey}-${suffix}`)) {
+    suffix++;
+  }
+
+  return `${baseKey}-${suffix}`;
+}

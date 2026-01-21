@@ -5,6 +5,7 @@ import {
   createEmptyDayPlan,
   defaultCapacity,
   formatDateForDisplay,
+  generateUniqueKey,
   getAllStoredDates,
   getDayPlanForDate,
   getDefaultCapacity,
@@ -14,6 +15,7 @@ import {
   getUncompletedTasks,
   isToday,
   saveDayPlanForDate,
+  slugify,
 } from "./utils";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test file with multiple test cases
@@ -339,6 +341,72 @@ describe("hooks/utils", () => {
       // This test is irrelevant now as we don't cross reference a master task list
       // We trust the day plan.
       // So we can remove this test.
+    });
+  });
+
+  describe("slugify", () => {
+    it("converts label to lowercase kebab-case", () => {
+      expect(slugify("Creative Energy")).toBe("creative-energy");
+    });
+
+    it("handles single word", () => {
+      expect(slugify("Physical")).toBe("physical");
+    });
+
+    it("removes special characters", () => {
+      expect(slugify("Energy!@#$%^&*()Type")).toBe("energy-type");
+    });
+
+    it("trims whitespace", () => {
+      expect(slugify("  Physical Energy  ")).toBe("physical-energy");
+    });
+
+    it("handles multiple spaces", () => {
+      expect(slugify("My   Custom   Type")).toBe("my-custom-type");
+    });
+
+    it("handles numbers", () => {
+      expect(slugify("Energy 2024")).toBe("energy-2024");
+    });
+
+    it("returns empty string for empty input", () => {
+      expect(slugify("")).toBe("");
+    });
+
+    it("returns empty string for special chars only", () => {
+      expect(slugify("!@#$%^")).toBe("");
+    });
+  });
+
+  describe("generateUniqueKey", () => {
+    it("returns slugified label when no clash", () => {
+      const existingKeys = ["physical", "social"];
+      expect(generateUniqueKey("Creative Energy", existingKeys)).toBe(
+        "creative-energy",
+      );
+    });
+
+    it("appends -2 suffix when key clashes", () => {
+      const existingKeys = ["physical", "social", "creative-energy"];
+      expect(generateUniqueKey("Creative Energy", existingKeys)).toBe(
+        "creative-energy-2",
+      );
+    });
+
+    it("appends -3 suffix when -2 also clashes", () => {
+      const existingKeys = ["creative-energy", "creative-energy-2"];
+      expect(generateUniqueKey("Creative Energy", existingKeys)).toBe(
+        "creative-energy-3",
+      );
+    });
+
+    it("handles empty existing keys", () => {
+      expect(generateUniqueKey("New Type", [])).toBe("new-type");
+    });
+
+    it("handles key that matches exactly", () => {
+      const existingKeys = ["physical"];
+      expect(generateUniqueKey("Physical", existingKeys)).toBe("physical-2");
     });
   });
 });

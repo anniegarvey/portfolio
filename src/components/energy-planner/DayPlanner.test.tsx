@@ -411,7 +411,7 @@ describe("DayPlanner with populated data", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test case
+
   it("reorders available tasks via drag and drop", async () => {
     const user = userEvent.setup();
     const mockOnEditTask = vi.fn();

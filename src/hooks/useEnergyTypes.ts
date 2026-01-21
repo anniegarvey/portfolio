@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 import type { EnergyTypeConfig } from "@/lib/energy-planner/schema";
 import { DEFAULT_ENERGY_TYPES } from "@/lib/energy-planner/schema";
 import {
   getEnergyTypes,
   setEnergyTypes as saveEnergyTypes,
 } from "@/lib/energy-planner/storage";
+import { generateUniqueKey } from "./utils";
 
 export function useEnergyTypes() {
   const [energyTypes, setEnergyTypes] =
@@ -32,9 +32,10 @@ export function useEnergyTypes() {
   const addEnergyType = (
     typeData: Omit<EnergyTypeConfig, "id" | "isPreset">,
   ) => {
+    const existingIds = energyTypes.map((t) => t.id);
     const newType: EnergyTypeConfig = {
       ...typeData,
-      id: uuidv4(),
+      id: generateUniqueKey(typeData.label, existingIds),
       isPreset: false,
     };
     setEnergyTypes((prev) => [...prev, newType]);
