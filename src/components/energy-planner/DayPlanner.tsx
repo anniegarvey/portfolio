@@ -162,7 +162,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
             items={selectedTasks.map((t) => t.id)}
             strategy={verticalListSortingStrategy}
           >
-            <TaskList>
+            <TaskList data-testid="selected-tasks">
               {selectedTasks.length === 0 && (
                 <EmptyState>No tasks selected for this day.</EmptyState>
               )}
