@@ -125,4 +125,48 @@ describe("EnergyInput", () => {
     fireEvent.change(slider, { target: { value: "-50" } });
     expect(slider.value).toBe("0");
   });
+
+  it("renders settings button with correct aria-label", () => {
+    render(<EnergyInput />, { wrapper });
+
+    const settingsButton = screen.getByRole("button", {
+      name: "Manage Energy Types",
+    });
+    expect(settingsButton).toBeInTheDocument();
+  });
+
+  it("opens energy type manager modal when settings button is clicked", () => {
+    render(<EnergyInput />, { wrapper });
+
+    const settingsButton = screen.getByRole("button", {
+      name: "Manage Energy Types",
+    });
+    fireEvent.click(settingsButton);
+
+    expect(
+      screen.getByRole("dialog", { name: "Manage Energy Types" }),
+    ).toBeInTheDocument();
+  });
+
+  it("closes energy type manager modal when close button is clicked", () => {
+    render(<EnergyInput />, { wrapper });
+
+    // Open modal
+    const settingsButton = screen.getByRole("button", {
+      name: "Manage Energy Types",
+    });
+    fireEvent.click(settingsButton);
+
+    expect(
+      screen.getByRole("dialog", { name: "Manage Energy Types" }),
+    ).toBeInTheDocument();
+
+    // Close modal
+    const closeButton = screen.getByRole("button", { name: "Close modal" });
+    fireEvent.click(closeButton);
+
+    expect(
+      screen.queryByRole("dialog", { name: "Manage Energy Types" }),
+    ).not.toBeInTheDocument();
+  });
 });

@@ -5,7 +5,6 @@ import { styled } from "next-yak";
 import { useRef, useState } from "react";
 import { DayPlanner } from "@/components/energy-planner/DayPlanner";
 import { EnergyInput } from "@/components/energy-planner/EnergyInput";
-import { EnergyTypeManager } from "@/components/energy-planner/EnergyTypeManager";
 import { TaskForm } from "@/components/energy-planner/TaskForm";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { Modal } from "@/components/Modal";
@@ -95,7 +94,6 @@ function PlannerContent() {
 
       <Layout>
         <EnergyInput />
-        <EnergyTypeManager />
 
         <HeaderActions>
           <h3>Your Task Bank</h3>

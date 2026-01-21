@@ -1,10 +1,14 @@
 "use client";
 
+import { Settings } from "lucide-react";
 import { styled } from "next-yak";
+import { useState } from "react";
 import { useEnergyPlanner } from "../../lib/energy-planner/context";
+import { EnergyTypeManagerModal } from "./EnergyTypeManager";
 
 export function EnergyInput() {
   const { dailyCapacity, setDailyCapacity, energyTypes } = useEnergyPlanner();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleChange = (typeId: string, value: string) => {
     const numValue = Math.min(
@@ -19,8 +23,16 @@ export function EnergyInput() {
 
   return (
     <Container>
-      <h2>Daily Energy Capacity</h2>
-      <p>How much energy do you have today?</p>
+      <Header>
+        <div>
+          <h2>Daily Energy Capacity</h2>
+          <p>How much energy do you have today?</p>
+        </div>
+        <SettingsButton onClick={() => setIsModalOpen(true)} type="button">
+          <Settings size={20} />
+          Manage Energy Types
+        </SettingsButton>
+      </Header>
       <Grid>
         {energyTypes.map((type) => (
           <InputGroup key={type.id}>
@@ -38,6 +50,10 @@ export function EnergyInput() {
           </InputGroup>
         ))}
       </Grid>
+      <EnergyTypeManagerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </Container>
   );
 }
@@ -47,6 +63,33 @@ const Container = styled.div`
   padding: 1.5rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+`;
+
+const SettingsButton = styled.button`
+  --color: light-dark(var(--color-grey-700), var(--color-grey-300));
+  background: transparent;
+  border: 1px solid var(--color);
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  color: var(--color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: light-dark(var(--color-grey-100), var(--color-grey-600));
+    color: light-dark(var(--color-grey-800), var(--color-grey-200));
+  }
 `;
 
 const Grid = styled.div`

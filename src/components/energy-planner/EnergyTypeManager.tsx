@@ -94,7 +94,7 @@ function EnergyTypeDialog({
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Component complexity is acceptable
-export function EnergyTypeManager() {
+function EnergyTypeManagerContent() {
   const { energyTypes, addEnergyType, updateEnergyType, removeEnergyType } =
     useEnergyPlanner();
   const [isOpen, setIsOpen] = useState(false);
@@ -164,13 +164,10 @@ export function EnergyTypeManager() {
   };
 
   return (
-    <Container>
-      <Header>
-        <h3>Energy Types</h3>
-        <AddButton onClick={() => handleOpenDialog()}>
-          + Add Energy Type
-        </AddButton>
-      </Header>
+    <>
+      <AddButton onClick={() => handleOpenDialog()}>
+        + Add Energy Type
+      </AddButton>
 
       <TypeList>
         {energyTypes.map((type) => (
@@ -219,38 +216,42 @@ export function EnergyTypeManager() {
           </DeleteConfirmButton>
         </DialogActions>
       </Modal>
-    </Container>
+    </>
   );
 }
 
-const Container = styled.div`
-  background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-`;
+interface EnergyTypeManagerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-
-  h3 {
-    margin: 0;
-    color: light-dark(var(--color-grey-900), var(--color-grey-100));
-  }
-`;
+export function EnergyTypeManagerModal({
+  isOpen,
+  onClose,
+}: EnergyTypeManagerModalProps) {
+  return (
+    <Modal
+      description="Manage what energy types matter most to you."
+      isOpen={isOpen}
+      onClose={onClose}
+      showDescription
+      title="Manage Energy Types"
+    >
+      <EnergyTypeManagerContent />
+    </Modal>
+  );
+}
 
 const AddButton = styled.button`
   background-color: var(--color-teal-500);
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 16px;
   border-radius: 0.25rem;
   cursor: pointer;
   font-weight: 500;
+  width: 100%;
+  margin-bottom: 16px;
 
   &:hover {
     background-color: var(--color-teal-600);

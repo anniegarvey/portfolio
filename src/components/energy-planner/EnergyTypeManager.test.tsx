@@ -1,23 +1,32 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
-import { EnergyTypeManager } from "./EnergyTypeManager";
+import { EnergyTypeManagerModal } from "./EnergyTypeManager";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
-);
+function TestWrapper() {
+  const [isOpen, setIsOpen] = React.useState(true);
+  return (
+    <EnergyPlannerProvider>
+      <EnergyTypeManagerModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+      />
+    </EnergyPlannerProvider>
+  );
+}
+
+import React from "react";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple cases
-describe("EnergyTypeManager", () => {
+describe("EnergyTypeManagerModal", () => {
   afterEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
   });
 
-  it("renders energy types list", () => {
-    render(<EnergyTypeManager />, { wrapper });
+  it("renders energy types list when open", () => {
+    render(<TestWrapper />);
 
-    expect(screen.getByText("Energy Types")).toBeInTheDocument();
     // Default types
     expect(screen.getByText("Physical")).toBeInTheDocument();
     expect(screen.getByText("Social")).toBeInTheDocument();
@@ -25,7 +34,7 @@ describe("EnergyTypeManager", () => {
   });
 
   it("opens add dialog when clicking add button", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     const addButton = screen.getByText("+ Add Energy Type");
     fireEvent.click(addButton);
@@ -37,11 +46,7 @@ describe("EnergyTypeManager", () => {
   });
 
   it("allows adding a new energy type", async () => {
-    // We can't easily verify the context update without a spy in the provider,
-    // but we can check if it appears in the list if the provider is working properly.
-    // Since context is real, it should update.
-
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     fireEvent.click(screen.getByText("+ Add Energy Type"));
 
@@ -61,7 +66,7 @@ describe("EnergyTypeManager", () => {
   });
 
   it("opens edit dialog with existing values", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     // Find edit button for Physical (first one)
     const editButtons = screen.getAllByText("Edit");
@@ -74,7 +79,7 @@ describe("EnergyTypeManager", () => {
   });
 
   it("updates existing energy type", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     const editButtons = screen.getAllByText("Edit");
     fireEvent.click(editButtons[0]);
@@ -89,7 +94,7 @@ describe("EnergyTypeManager", () => {
   });
 
   it("deletes energy type when confirmed", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     const deleteButtons = screen.getAllByText("Delete");
 
@@ -101,8 +106,16 @@ describe("EnergyTypeManager", () => {
     );
     expect(modal).toBeInTheDocument();
 
-    const dialog = screen.getByRole("dialog");
-    const confirmBtn = within(dialog).getByRole("button", { name: "Delete" });
+    const dialogs = screen.getAllByRole("dialog");
+    const deleteDialog = dialogs.find((d) =>
+      within(d).queryByText(
+        "Are you sure you want to delete this energy type?",
+      ),
+    );
+    // biome-ignore lint/style/noNonNullAssertion: Test assertion - dialog guaranteed to exist
+    const confirmBtn = within(deleteDialog!).getByRole("button", {
+      name: "Delete",
+    });
 
     fireEvent.click(confirmBtn);
 
@@ -111,54 +124,56 @@ describe("EnergyTypeManager", () => {
   });
 
   it("does not delete if not confirmed", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     const deleteButtons = screen.getAllByText("Delete");
 
     fireEvent.click(deleteButtons[0]);
 
-    const dialog = screen.getByRole("dialog");
-    const cancelBtn = within(dialog).getByRole("button", { name: "Cancel" });
+    const dialogs = screen.getAllByRole("dialog");
+    const deleteDialog = dialogs.find((d) =>
+      within(d).queryByText(
+        "Are you sure you want to delete this energy type?",
+      ),
+    );
+    // biome-ignore lint/style/noNonNullAssertion: Test assertion - dialog guaranteed to exist
+    const cancelBtn = within(deleteDialog!).getByRole("button", {
+      name: "Cancel",
+    });
 
     fireEvent.click(cancelBtn);
 
-    // Modal closed
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     // Item still there
     expect(screen.getByText("Physical")).toBeInTheDocument();
   });
 
   it("uses preset suggestions", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
     fireEvent.click(screen.getByText("+ Add Energy Type"));
 
     const preset = screen.getByText("Executive Functioning");
     fireEvent.click(preset);
 
     expect(screen.getByLabelText("Label")).toHaveValue("Executive Functioning");
-    // Color value check might be tricky depending on browser format (hex vs rgb), skipping strict color check
   });
 
   it("updates color when changed manually", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     // Open dialog
     fireEvent.click(screen.getByText("+ Add Energy Type"));
 
     // Find color input
-    // It has type="color", usually label is "Color"
     const colorInput = screen.getByLabelText("Color");
 
     fireEvent.change(colorInput, { target: { value: "#123456" } });
 
     expect(colorInput).toHaveValue("#123456");
-    expect(screen.getByText("#123456")).toBeInTheDocument(); // The hex code is displayed next to it
-    expect(colorInput).toHaveValue("#123456");
-    expect(screen.getByText("#123456")).toBeInTheDocument(); // The hex code is displayed next to it
+    expect(screen.getByText("#123456")).toBeInTheDocument();
   });
 
   it("does not save when label is empty", () => {
-    render(<EnergyTypeManager />, { wrapper });
+    render(<TestWrapper />);
 
     // Open add dialog
     fireEvent.click(screen.getByText("+ Add Energy Type"));
