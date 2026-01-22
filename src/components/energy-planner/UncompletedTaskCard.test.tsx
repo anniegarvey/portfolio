@@ -18,7 +18,6 @@ const mockTask: Task = {
   createdAt: new Date(),
 };
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite with multiple test cases
 describe("UncompletedTaskCard", () => {
   beforeEach(() => {
     localStorage.clear();

@@ -21,7 +21,6 @@ const mockTask: Task = {
   },
 };
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("PlannerTaskCard", () => {
   it("renders task title and energy costs", () => {
     const mockOnEdit = vi.fn();

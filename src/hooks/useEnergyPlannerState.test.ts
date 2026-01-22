@@ -7,7 +7,6 @@ import { useEnergyPlannerState } from "./useEnergyPlannerState";
 // Manual mock is picked up automatically by vitest given the __mocks__ folder
 vi.mock("@/lib/energy-planner/storage");
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useEnergyPlannerState", () => {
   beforeEach(() => {
     (storageMock as unknown as { __reset: () => void }).__reset();

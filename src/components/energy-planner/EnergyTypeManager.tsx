@@ -93,7 +93,6 @@ function EnergyTypeDialog({
   );
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Component complexity is acceptable
 function EnergyTypeManagerContent() {
   const { energyTypes, addEnergyType, updateEnergyType, removeEnergyType } =
     useEnergyPlanner();

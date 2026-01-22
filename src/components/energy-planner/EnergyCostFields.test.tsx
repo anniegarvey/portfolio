@@ -7,7 +7,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
 );
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("EnergyCostFields", () => {
   it("renders all three energy type fields", () => {
     const mockOnChange = vi.fn();

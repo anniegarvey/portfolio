@@ -32,7 +32,6 @@ interface DayPlannerProps {
   onOpenCreateTask: () => void;
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: React component with comprehensive JSX layout
 export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
   const {
     currentDate,

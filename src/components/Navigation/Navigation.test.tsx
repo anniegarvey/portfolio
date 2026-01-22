@@ -37,7 +37,6 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires many cases
 describe("Navigation", () => {
   it("renders the logo with correct alt text", () => {
     render(<Navigation />);

@@ -2,7 +2,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DateSelector } from "./DateSelector";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("DateSelector", () => {
   const defaultProps = {
     currentDate: "2026-01-22",

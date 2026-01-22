@@ -9,7 +9,6 @@ import {
 } from "../../lib/energy-planner/storage";
 import { DayPlanner } from "./DayPlanner";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("DayPlanner", () => {
   beforeEach(async () => {
     await clearAll();
@@ -190,7 +189,6 @@ describe("DayPlanner", () => {
   });
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test with extensive storage seeding
 describe("DayPlanner with populated data", () => {
   beforeEach(async () => {
     await clearAll();

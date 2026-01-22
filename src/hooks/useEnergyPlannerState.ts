@@ -8,7 +8,6 @@ import { useEnergyTypes } from "./useEnergyTypes";
 import { useTasks } from "./useTasks";
 import { getUncompletedTasks } from "./utils";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Hook aggregating multiple state management hooks
 export function useEnergyPlannerState() {
   const {
     tasks,

@@ -10,7 +10,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
 );
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("EnergyInput", () => {
   beforeEach(() => {
     localStorage.clear();

@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { clearAll, getOneOffTasks } from "@/lib/energy-planner/storage";
 import { useTasks } from "./useTasks";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useTasks", () => {
   beforeEach(async () => {
     await clearAll();

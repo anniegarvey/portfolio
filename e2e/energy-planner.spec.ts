@@ -61,7 +61,6 @@ async function planTaskForToday(page: Page, taskName: string) {
   await expect(modal).not.toBeVisible();
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: E2E test suites require multiple test cases
 test.describe("Energy Planner", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/energy-planner");
@@ -210,7 +209,6 @@ test.describe("Energy Planner", () => {
     ).toBeVisible();
   });
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: E2E test suites require multiple test cases
   test.describe("Uncompleted Tasks", () => {
     test.beforeEach(async ({ page }) => {
       // Create a task and plan it for yesterday

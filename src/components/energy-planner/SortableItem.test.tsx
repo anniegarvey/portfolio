@@ -21,7 +21,6 @@ vi.mock("@dnd-kit/utilities", () => ({
   },
 }));
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite
 describe("SortableItem", () => {
   it("renders children correctly", () => {
     mockUseSortable.mockReturnValue({

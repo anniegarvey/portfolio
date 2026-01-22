@@ -13,7 +13,6 @@ import {
   saveDayPlanForDate,
 } from "./utils";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Hook with multiple state management functions
 export function useDayPlan() {
   const [currentDate, setCurrentDate] = useState<string>(getTodayDateString());
   const [isLoading, setIsLoading] = useState(true);

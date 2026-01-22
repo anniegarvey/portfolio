@@ -13,7 +13,6 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 );
 
 // Main suite
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite is comprehensive
 describe("EnergyPlannerContext", () => {
   beforeEach(async () => {
     // biome-ignore lint/suspicious/noExplicitAny: wrapper for mock reset
@@ -21,7 +20,6 @@ describe("EnergyPlannerContext", () => {
     localStorage.clear();
   });
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite needs structure
   describe("Task Management", () => {
     it("throws error when used outside provider", () => {
       // Suppress console.error for this test as React logs the error
@@ -201,7 +199,6 @@ describe("EnergyPlannerContext", () => {
     }, 5000);
   });
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite grouping
   describe("Day Planning (Edge Cases)", () => {
     it("does not warn when usage equals capacity", async () => {
       const { result } = renderHook(() => useEnergyPlanner(), { wrapper });

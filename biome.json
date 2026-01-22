@@ -41,7 +41,6 @@
       },
       "complexity": {
         "noExcessiveCognitiveComplexity": "error",
-        "noExcessiveLinesPerFunction": "error",
         "useSimplifiedLogicExpression": "error"
       },
       "correctness": {

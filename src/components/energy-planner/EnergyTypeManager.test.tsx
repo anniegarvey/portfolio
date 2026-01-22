@@ -17,7 +17,6 @@ function TestWrapper() {
 
 import React from "react";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple cases
 describe("EnergyTypeManagerModal", () => {
   afterEach(() => {
     vi.clearAllMocks();

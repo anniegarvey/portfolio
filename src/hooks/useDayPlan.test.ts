@@ -17,7 +17,6 @@ const mockTask = (id: string, title: string, completed = false) => ({
   },
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useDayPlan", () => {
   beforeEach(async () => {
     await clearAll();

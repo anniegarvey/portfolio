@@ -85,7 +85,6 @@ describe("calculateEnergyUsage", () => {
   });
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("exportEnergyPlannerData", () => {
   let _createElementSpy: ReturnType<typeof vi.spyOn>;
   let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
@@ -163,7 +162,6 @@ describe("exportEnergyPlannerData", () => {
   });
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("importEnergyPlannerData", () => {
   let reloadSpy: ReturnType<typeof vi.fn>;
 
@@ -184,7 +182,6 @@ describe("importEnergyPlannerData", () => {
     vi.restoreAllMocks();
   });
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Complex async import test requires detailed assertions
   it("imports valid JSON data and updates IndexedDB", async () => {
     const validData = {
       version: "3.0.0",
@@ -264,7 +261,6 @@ describe("importEnergyPlannerData", () => {
 
 // ... validation tests ...
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test setup requires multiple test cases
 describe("importEnergyPlannerData - data handling", () => {
   let reloadSpy: ReturnType<typeof vi.fn>;
 

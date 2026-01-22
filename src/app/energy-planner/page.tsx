@@ -29,7 +29,6 @@ const handleFileImportError = (error: Error | unknown) => {
   );
 };
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Component with many UI handlers
 function PlannerContent() {
   const { currentDate, goToPreviousDay, goToNextDay, goToToday } =
     useEnergyPlanner();

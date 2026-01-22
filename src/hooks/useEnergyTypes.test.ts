@@ -8,7 +8,6 @@ import {
 } from "@/lib/energy-planner/storage";
 import { useEnergyTypes } from "./useEnergyTypes";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useEnergyTypes", () => {
   beforeEach(async () => {
     await clearAll();

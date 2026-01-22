@@ -17,7 +17,6 @@ const mockTask: Task = {
   },
 };
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("useTaskForm", () => {
   it("initializes with default values when no initial data", () => {
     const { result } = renderHook(() => useTaskForm({}), {

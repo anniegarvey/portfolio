@@ -2,7 +2,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TaskFactorFields } from "./TaskFactorFields";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite requires multiple test cases
 describe("TaskFactorFields", () => {
   it("renders all factor fields", () => {
     const mockOnChange = vi.fn();

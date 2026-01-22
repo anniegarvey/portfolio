@@ -18,7 +18,6 @@ import {
   slugify,
 } from "./utils";
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test file with multiple test cases
 describe("hooks/utils", () => {
   beforeEach(async () => {
     await clearAll();
@@ -170,7 +169,6 @@ describe("hooks/utils", () => {
     });
   });
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: Test suite with multiple cases
   describe("getUncompletedTasks", () => {
     // getUncompletedTasks no longer takes a tasks list argument in the new implementation (it checks DayPlan)
     // Wait, let's check utils.ts signature: export async function getUncompletedTasks(today: string): Promise<{ task: Task; fromDate: string }[]>
