@@ -1,0 +1,9 @@
+---
+trigger: glob
+globs: src/**/*.tsx
+---
+
+- Use next-yak and existing global CSS variables from src/app/globals.css for styling
+- Use pixels in multiples of 4 for things that don't need to scale with text, like 
+- Make sure all UI changes follow all a11y best practices, verify this in the browser for each change
+- Use Radix, ShadCN or Reach components as a basis where possible, in priority order
