@@ -39,16 +39,22 @@ async function verifyTaskEnergyBadges(container: Locator, task: TaskData) {
 }
 
 async function createTask(page: Page, task: TaskData) {
+  // New task creation now requires: Manage Tasks -> New Task
+  await page.getByRole("button", { name: "Manage Tasks" }).click();
+  const availableModal = page.getByRole("dialog", { name: "Available Tasks" });
+  await expect(availableModal).toBeVisible();
   await page.getByRole("button", { name: "New Task" }).click();
-  const modal = page.getByRole("dialog", { name: "Create New Task" });
-  await expect(modal).toBeVisible();
-  await fillTaskForm(modal, task);
+  const createModal = page.getByRole("dialog", { name: "Create New Task" });
+  await expect(createModal).toBeVisible();
+  await fillTaskForm(createModal, task);
   await page.getByRole("button", { name: "Add Task" }).click();
-  await expect(modal).not.toBeVisible();
+  await expect(createModal).not.toBeVisible();
+  // Close the Available Tasks modal if still open
+  await page.getByRole("button", { name: "Close modal" }).click();
 }
 
 async function planTaskForToday(page: Page, taskName: string) {
-  await page.getByRole("button", { name: "Plan an available task" }).click();
+  await page.getByRole("button", { name: "Manage Tasks" }).click();
   const modal = page.getByRole("dialog", { name: "Available Tasks" });
   await expect(modal.getByText(taskName)).toBeVisible();
   await modal.getByRole("button", { name: "Add to day", exact: true }).click();
@@ -77,7 +83,7 @@ test.describe("Energy Planner", () => {
     await createTask(page, testTask);
 
     // Open available tasks and click edit
-    await page.getByRole("button", { name: "Plan an available task" }).click();
+    await page.getByRole("button", { name: "Manage Tasks" }).click();
     const modal = page.getByRole("dialog", { name: "Available Tasks" });
     await modal.getByRole("button", { name: "Edit task", exact: true }).click();
 
@@ -250,9 +256,7 @@ test.describe("Energy Planner", () => {
       ).not.toBeVisible();
 
       // Verify task is now available (not planned anywhere)
-      await page
-        .getByRole("button", { name: "Plan an available task" })
-        .click();
+      await page.getByRole("button", { name: "Manage Tasks" }).click();
       const modal = page.getByRole("dialog", { name: "Available Tasks" });
       await expect(modal.getByText(testTask.name)).toBeVisible();
     });

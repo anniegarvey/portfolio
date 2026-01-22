@@ -7,7 +7,6 @@ import type {
 import { DEFAULT_ENERGY_TYPES } from "@/lib/energy-planner/schema";
 import {
   getAllDayPlanDates,
-  getDailyCapacity,
   getDayPlan,
   setDayPlan,
 } from "@/lib/energy-planner/storage";
@@ -54,14 +53,11 @@ export async function saveDayPlanForDate(
 /**
  * Create a fresh day plan for a given date
  */
-export async function createEmptyDayPlan(date: string): Promise<DayPlan> {
-  const storedCapacity = await getDailyCapacity();
-  const dailyCapacity = storedCapacity ?? defaultCapacity;
-
+export function createEmptyDayPlan(date: string): DayPlan {
   return {
     date,
     tasks: [],
-    dailyCapacity,
+    dailyCapacity: defaultCapacity,
   };
 }
 

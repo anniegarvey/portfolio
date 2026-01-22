@@ -17,7 +17,6 @@ const store = createStore("energy-planner-db", "data");
 const KEYS = {
   oneOffTasks: "one-off-tasks",
   types: "types",
-  capacity: "capacity",
 } as const;
 
 /**
@@ -51,16 +50,6 @@ export async function getEnergyTypes(): Promise<
 
 export async function setEnergyTypes(types: EnergyTypeConfig[]): Promise<void> {
   await set(KEYS.types, types, store);
-}
-
-// === Daily Capacity ===
-
-export async function getDailyCapacity(): Promise<EnergyCost | undefined> {
-  return get<EnergyCost>(KEYS.capacity, store);
-}
-
-export async function setDailyCapacity(capacity: EnergyCost): Promise<void> {
-  await set(KEYS.capacity, capacity, store);
 }
 
 // === Day Plans ===

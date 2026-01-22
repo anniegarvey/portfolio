@@ -3,11 +3,9 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { DayPlan, EnergyCost, Task } from "./schema";
 import {
   getAllDayPlanDates,
-  getDailyCapacity,
   getDayPlan,
   getEnergyTypes,
   getOneOffTasks,
-  setDailyCapacity,
   setDayPlan,
   setEnergyTypes,
   setOneOffTasks,
@@ -65,7 +63,6 @@ export interface EnergyPlannerExportData {
   exportDate: string;
   data: {
     oneOffTasks: Task[] | null;
-    capacity: EnergyCost | null;
     energyTypes: Awaited<ReturnType<typeof getEnergyTypes>> | null;
     dayPlans: { date: string; plan: DayPlan }[] | null;
   };
@@ -92,7 +89,6 @@ export async function exportEnergyPlannerData(): Promise<void> {
     exportDate: new Date().toISOString(),
     data: {
       oneOffTasks: await getOneOffTasks(),
-      capacity: (await getDailyCapacity()) ?? null,
       energyTypes: (await getEnergyTypes()) ?? null,
       dayPlans: dayPlans.length > 0 ? dayPlans : null,
     },
@@ -132,9 +128,6 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
   // Import the data
   if (data.data.oneOffTasks) {
     await setOneOffTasks(data.data.oneOffTasks);
-  }
-  if (data.data.capacity) {
-    await setDailyCapacity(data.data.capacity);
   }
   if (data.data.energyTypes) {
     await setEnergyTypes(data.data.energyTypes);

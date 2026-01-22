@@ -1,5 +1,4 @@
 // Hooks barrel export
-export { useDailyCapacity } from "./useDailyCapacity";
 export { useDayPlan } from "./useDayPlan";
 export { useEnergyPlannerState } from "./useEnergyPlannerState";
 export { useEnergyTypes } from "./useEnergyTypes";

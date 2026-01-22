@@ -2,11 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DayPlan, Task } from "./schema";
 import {
   clearAll,
-  getDailyCapacity,
   getDayPlan,
   getEnergyTypes,
   getOneOffTasks,
-  setDailyCapacity,
   setEnergyTypes,
   setOneOffTasks,
 } from "./storage";
@@ -114,7 +112,6 @@ describe("exportEnergyPlannerData", () => {
         },
       },
     ]);
-    await setDailyCapacity({ physical: 100 });
     await setEnergyTypes([
       { id: "physical", label: "Physical", color: "#14b8a6", isPreset: true },
     ]);
@@ -159,7 +156,6 @@ describe("exportEnergyPlannerData", () => {
         expect(exportedData).toHaveProperty("version", "3.0.0");
         expect(exportedData).toHaveProperty("exportDate");
         expect(exportedData.data).toHaveProperty("oneOffTasks");
-        expect(exportedData.data).toHaveProperty("capacity");
         expect(exportedData.data).toHaveProperty("energyTypes");
         resolve();
       };
@@ -207,7 +203,6 @@ describe("importEnergyPlannerData", () => {
             },
           },
         ],
-        capacity: { physical: 75, social: 80, executive: 85 },
         energyTypes: [
           {
             id: "physical",
@@ -255,9 +250,6 @@ describe("importEnergyPlannerData", () => {
     const tasks = await getOneOffTasks();
     expect(tasks).toHaveLength(1);
     expect(tasks[0].title).toBe("Imported Task");
-
-    const capacity = await getDailyCapacity();
-    expect(capacity).toEqual({ physical: 75, social: 80, executive: 85 });
 
     const types = await getEnergyTypes();
     expect(types).toHaveLength(1);

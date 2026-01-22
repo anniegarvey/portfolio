@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { EnergyCost, Task } from "@/lib/energy-planner/schema";
 import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
-import { useDailyCapacity } from "./useDailyCapacity";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useTasks } from "./useTasks";
@@ -20,11 +19,6 @@ export function useEnergyPlannerState() {
     reorderTasks,
   } = useTasks();
   const {
-    dailyCapacity,
-    isLoading: capacityLoading,
-    setDailyCapacity,
-  } = useDailyCapacity();
-  const {
     currentDate,
     dayPlan,
     dayPlanVersion,
@@ -33,6 +27,7 @@ export function useEnergyPlannerState() {
     goToPreviousDay,
     goToNextDay,
     goToToday,
+    setDailyCapacity,
     addToPlan,
     removeFromPlan,
     toggleTaskCompletion,
@@ -91,7 +86,7 @@ export function useEnergyPlannerState() {
 
     energyTypes.forEach((type) => {
       const usageValue = usage[type.id] || 0;
-      const capacityValue = dailyCapacity[type.id] || 0;
+      const capacityValue = dayPlan.dailyCapacity[type.id] || 0;
       if (usageValue > capacityValue) {
         exceededTypes.push(type.label);
       }
@@ -104,10 +99,9 @@ export function useEnergyPlannerState() {
       };
     }
     return { exceeded: false };
-  }, [calculateEnergyUsage, energyTypes, dailyCapacity]);
+  }, [calculateEnergyUsage, energyTypes, dayPlan.dailyCapacity]);
 
-  const isLoading =
-    tasksLoading || capacityLoading || dayPlanLoading || typesLoading;
+  const isLoading = tasksLoading || dayPlanLoading || typesLoading;
 
   return {
     tasks,
@@ -115,7 +109,7 @@ export function useEnergyPlannerState() {
     addTask,
     updateTask,
     removeTask,
-    dailyCapacity,
+    dailyCapacity: dayPlan.dailyCapacity,
     setDailyCapacity,
     currentDate,
     dayPlan,

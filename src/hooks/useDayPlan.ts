@@ -38,9 +38,7 @@ export function useDayPlan() {
       if (stored) {
         setDayPlan(stored);
       } else {
-        const empty = await createEmptyDayPlan(currentDate);
-        if (cancelled) return;
-        setDayPlan(empty);
+        setDayPlan(createEmptyDayPlan(currentDate));
       }
       setIsLoading(false);
     })();
@@ -72,6 +70,16 @@ export function useDayPlan() {
   const goToToday = useCallback(() => {
     setCurrentDate(getTodayDateString());
   }, []);
+
+  const setDailyCapacity = useCallback(
+    (capacity: { [key: string]: number }) => {
+      setDayPlan((prev) => ({
+        ...prev,
+        dailyCapacity: capacity,
+      }));
+    },
+    [],
+  );
 
   const addToPlan = useCallback(async (taskId: string) => {
     // 1. Get task from one-off store
@@ -274,6 +282,7 @@ export function useDayPlan() {
     goToPreviousDay,
     goToNextDay,
     goToToday,
+    setDailyCapacity,
     addToPlan,
     removeFromPlan,
     toggleTaskCompletion,

@@ -1,15 +1,20 @@
 "use client";
 
-import { Download, Plus, Upload } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import { styled } from "next-yak";
 import { useRef, useState } from "react";
+import { DateSelector } from "@/components/energy-planner/DateSelector";
 import { DayPlanner } from "@/components/energy-planner/DayPlanner";
 import { EnergyInput } from "@/components/energy-planner/EnergyInput";
 import { TaskForm } from "@/components/energy-planner/TaskForm";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
-import { EnergyPlannerProvider } from "@/lib/energy-planner/context";
+import { isToday } from "@/hooks/utils";
+import {
+  EnergyPlannerProvider,
+  useEnergyPlanner,
+} from "@/lib/energy-planner/context";
 import type { Task } from "@/lib/energy-planner/schema";
 import {
   exportEnergyPlannerData,
@@ -23,10 +28,17 @@ const handleFileImportError = (error: Error | unknown) => {
       : "Failed to import data. Please check the file format.",
   );
 };
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Component with many UI handlers
 function PlannerContent() {
+  const { currentDate, goToPreviousDay, goToNextDay, goToToday } =
+    useEnergyPlanner();
+
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const viewingToday = isToday(currentDate);
 
   const handleOpenCreate = () => {
     setEditingTask(undefined);
@@ -93,17 +105,20 @@ function PlannerContent() {
       </p>
 
       <Layout>
+        <DateSelector
+          currentDate={currentDate}
+          onGoToToday={goToToday}
+          onNextDay={goToNextDay}
+          onPreviousDay={goToPreviousDay}
+          viewingToday={viewingToday}
+        />
+
         <EnergyInput />
 
-        <HeaderActions>
-          <h3>Your Task Bank</h3>
-          <CreateButton onClick={handleOpenCreate}>
-            <Plus size={18} />
-            New Task
-          </CreateButton>
-        </HeaderActions>
-
-        <DayPlanner onEditTask={handleEditTask} />
+        <DayPlanner
+          onEditTask={handleEditTask}
+          onOpenCreateTask={handleOpenCreate}
+        />
 
         <Modal
           description="Record how completing this task may affect your energy levels."
@@ -131,30 +146,6 @@ const ButtonGroup = styled.div`
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-`;
-
-const CreateButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: var(--color-primary-600);
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.25rem;
-    font-weight: 600;
-    cursor: pointer;
-    
-    &:hover {
-        background-color: var(--color-primary-700);
-    }
 `;
 
 const ActionButton = styled.button`

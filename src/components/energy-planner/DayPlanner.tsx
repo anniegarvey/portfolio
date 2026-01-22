@@ -15,10 +15,10 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
-import { formatDateForDisplay, isToday } from "@/hooks/utils";
+import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Task } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
@@ -29,16 +29,14 @@ import { UncompletedTaskCard } from "./UncompletedTaskCard";
 
 interface DayPlannerProps {
   onEditTask: (task: Task) => void;
+  onOpenCreateTask: () => void;
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: React component with comprehensive JSX layout
-export function DayPlanner({ onEditTask }: DayPlannerProps) {
+export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
   const {
     currentDate,
     dayPlan,
-    goToPreviousDay,
-    goToNextDay,
-    goToToday,
     addToPlan,
     removeFromPlan,
     toggleTaskCompletion,
@@ -94,30 +92,14 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
 
   return (
     <Container>
-      <DateNavigation>
-        <NavButton
-          aria-label="Previous day"
-          onClick={goToPreviousDay}
-          type="button"
-        >
-          <ChevronLeft size={20} />
-        </NavButton>
-        <DateDisplay>
-          <CurrentDate>{formatDateForDisplay(currentDate)}</CurrentDate>
-          {!viewingToday && (
-            <TodayButton onClick={goToToday} type="button">
-              Go to Today
-            </TodayButton>
-          )}
-          {viewingToday && <TodayIndicator>Today</TodayIndicator>}
-        </DateDisplay>
-        <NavButton aria-label="Next day" onClick={goToNextDay} type="button">
-          <ChevronRight size={20} />
-        </NavButton>
-      </DateNavigation>
-
       <Header>
-        <h3>Your Day Plan</h3>
+        <HeaderLeft>
+          <h3>Your Day Plan</h3>
+          <ManageTasksButton onClick={() => setIsModalOpen(true)} type="button">
+            <Plus size={16} />
+            Manage Tasks
+          </ManageTasksButton>
+        </HeaderLeft>
         {warning.exceeded && <Warning>{warning.message}</Warning>}
       </Header>
 
@@ -182,11 +164,6 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
             </TaskList>
           </SortableContext>
         </DndContext>
-
-        <AddTaskButton onClick={() => setIsModalOpen(true)} type="button">
-          <Plus size={18} />
-          Plan an available task
-        </AddTaskButton>
       </SelectedSection>
 
       <Modal
@@ -208,7 +185,7 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
             >
               {availableTasks.length === 0 ? (
                 <ModalEmptyState>
-                  No tasks available. Create some tasks above!
+                  No tasks available. Create a new task to get started!
                 </ModalEmptyState>
               ) : (
                 <ModalTaskList>
@@ -225,6 +202,12 @@ export function DayPlanner({ onEditTask }: DayPlannerProps) {
               )}
             </SortableContext>
           </DndContext>
+          <ModalActions>
+            <CreateTaskButton onClick={onOpenCreateTask} type="button">
+              <Plus size={18} />
+              New Task
+            </CreateTaskButton>
+          </ModalActions>
         </ModalContent>
       </Modal>
     </Container>
@@ -239,71 +222,56 @@ const Container = styled.div`
   margin-top: 2rem;
 `;
 
-const DateNavigation = styled.div`
+const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-grey-200);
+  flex-wrap: wrap;
 `;
 
-const NavButton = styled.button`
+const ManageTasksButton = styled.button`
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  background-color: light-dark(var(--color-grey-100), var(--color-grey-700));
-  border: 1px solid var(--color-grey-300);
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s var(--ease);
-
-  &:hover {
-    background-color: light-dark(var(--color-grey-200), var(--color-grey-600));
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const DateDisplay = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 200px;
-`;
-
-const CurrentDate = styled.span`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: light-dark(var(--color-grey-800), var(--color-grey-100));
-`;
-
-const TodayButton = styled.button`
-  background: none;
+  gap: 0.375rem;
+  background-color: var(--color-primary-600);
+  color: white;
+  padding: 0.375rem 0.75rem;
   border: none;
-  color: var(--color-primary-600);
+  border-radius: 0.375rem;
   font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  text-decoration: underline;
+  transition: all 0.2s;
 
   &:hover {
-    color: var(--color-primary-700);
+    background-color: var(--color-primary-700);
   }
 `;
 
-const TodayIndicator = styled.span`
-  font-size: 0.75rem;
-  color: var(--color-teal-600);
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--color-grey-200);
+`;
+
+const CreateTaskButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-primary-600);
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
   font-weight: 500;
-  background-color: light-dark(var(--color-teal-100), var(--color-teal-900));
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: var(--color-primary-700);
+  }
 `;
 
 const Header = styled.div`
@@ -380,30 +348,6 @@ const EmptyState = styled.div`
   color: var(--color-grey-400);
   font-style: italic;
   margin-top: 2rem;
-`;
-
-const AddTaskButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background-color: var(--color-primary-600);
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s var(--ease);
-
-  &:hover {
-    background-color: var(--color-primary-700);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
 `;
 
 const ModalContent = styled.div`

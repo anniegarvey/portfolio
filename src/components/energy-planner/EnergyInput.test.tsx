@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
+import {
+  EnergyPlannerProvider,
+  useEnergyPlanner,
+} from "../../lib/energy-planner/context";
 import { EnergyInput } from "./EnergyInput";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -168,5 +171,60 @@ describe("EnergyInput", () => {
     expect(
       screen.queryByRole("dialog", { name: "Manage Energy Types" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows today header when viewing today", () => {
+    render(<EnergyInput />, { wrapper });
+
+    expect(
+      screen.getByText("How much energy do you have today?"),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show edit button when viewing today", () => {
+    render(<EnergyInput />, { wrapper });
+
+    expect(
+      screen.queryByRole("button", { name: /Edit Capacities/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows read-only view and edit button when viewing past day", async () => {
+    const DateManipulator = () => {
+      const { goToPreviousDay } = useEnergyPlanner();
+      return (
+        <button onClick={goToPreviousDay} type="button">
+          Go Back
+        </button>
+      );
+    };
+
+    render(
+      <EnergyPlannerProvider>
+        <EnergyInput />
+        <DateManipulator />
+      </EnergyPlannerProvider>,
+    );
+
+    // Go to yesterday
+    fireEvent.click(screen.getByText("Go Back"));
+
+    expect(
+      screen.getByRole("button", { name: /Edit Capacities/i }),
+    ).toBeInTheDocument();
+
+    // Inputs should be read-only (or effectively by not being sliders/being disabled in UI logic)
+    // The implementation renders styling specific components, but easier to check if we can toggle edit mode.
+
+    // Enter edit mode
+    fireEvent.click(screen.getByText("Edit Capacities"));
+
+    // Should see Done Editing
+    expect(screen.getByText("Done Editing")).toBeInTheDocument();
+    expect(screen.queryByText("Edit Capacities")).not.toBeInTheDocument();
+
+    // Exit edit mode
+    fireEvent.click(screen.getByText("Done Editing"));
+    expect(screen.getByText("Edit Capacities")).toBeInTheDocument();
   });
 });
