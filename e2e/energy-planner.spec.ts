@@ -183,6 +183,33 @@ test.describe("Energy Planner", () => {
     await expect(page.getByText("50%").first()).toBeVisible();
   });
 
+  test("should show warning when energy capacity is exceeded", async ({
+    page,
+  }) => {
+    // 1. Create a task with high energy cost
+    const highEnergyTask: TaskData = {
+      ...testTask,
+      name: "High Energy Task",
+      physical: "20",
+    };
+    await createTask(page, highEnergyTask);
+
+    // 2. Set daily capacity lower than task cost
+    // The physical slider is the first one
+    const physicalSlider = page.getByLabel("Physical").first();
+    await physicalSlider.fill("10");
+
+    // 3. Plan the task for today
+    await planTaskForToday(page, highEnergyTask.name);
+
+    // 4. Verify warning appears
+    await expect(
+      page.getByText(
+        "Warning: You have exceeded your Physical energy capacity!",
+      ),
+    ).toBeVisible();
+  });
+
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: E2E test suites require multiple test cases
   test.describe("Uncompleted Tasks", () => {
     test.beforeEach(async ({ page }) => {
