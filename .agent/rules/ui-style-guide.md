@@ -10,3 +10,4 @@ globs: src/**/*.tsx
 - Keep React components small, with a single responsibility. Move any reusable components to the top level of src/components
 - Reuse components from src/components where appropriate
 - When building new UI patterns, use Radix, ShadCN or Reach components as a basis where possible, in priority order
+- When making significant UX changes, make sure they are covered in the /e2e playwright tests
