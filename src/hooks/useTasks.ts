@@ -54,6 +54,21 @@ export function useTasks() {
     setTasks(newTasks);
   };
 
+  // Add task back to available tasks (used when unplanning a task)
+  const addTaskToAvailable = (task: Task) => {
+    setTasks((prev) => {
+      // Don't add if already exists
+      if (prev.some((t) => t.id === task.id)) return prev;
+      // Add to beginning (most recently unplanned appears first)
+      return [task, ...prev];
+    });
+  };
+
+  // Remove task from available tasks (used when planning a task)
+  const removeTaskFromAvailable = (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  };
+
   return {
     tasks,
     isLoading,
@@ -61,5 +76,7 @@ export function useTasks() {
     updateTask,
     removeTaskState,
     reorderTasks,
+    addTaskToAvailable,
+    removeTaskFromAvailable,
   };
 }

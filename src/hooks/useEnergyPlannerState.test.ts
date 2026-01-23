@@ -317,4 +317,63 @@ describe("useEnergyPlannerState", () => {
     expect(warning.message).toContain("Social");
     expect(warning.message).toContain("Executive");
   });
+
+  it("should move task back to available when unplanned from current day", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Create and plan a task
+    act(() => {
+      result.current.addTask({
+        title: "Test Task",
+        description: "",
+        energyCost: { physical: 10, social: 20, executive: 5 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+    });
+
+    const taskId = result.current.tasks[0].id;
+
+    await waitFor(async () => {
+      const stored = await storageMock.getOneOffTasks();
+      expect(stored).toHaveLength(1);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan(taskId);
+    });
+
+    // Task should be in day plan and not in available tasks
+    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
+      true,
+    );
+    expect(result.current.availableTasks.some((t) => t.id === taskId)).toBe(
+      false,
+    );
+
+    // Unplan the task
+    await act(async () => {
+      await result.current.moveTaskToUnplanned(
+        taskId,
+        result.current.currentDate,
+      );
+    });
+
+    // Task should be back in available tasks and not in day plan
+    await waitFor(() => {
+      expect(result.current.availableTasks.some((t) => t.id === taskId)).toBe(
+        true,
+      );
+    });
+    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
+      false,
+    );
+  }, 10000);
 });

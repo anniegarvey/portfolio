@@ -10,14 +10,6 @@ import { getUncompletedTasks } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
-    tasks,
-    isLoading: tasksLoading,
-    addTask,
-    updateTask,
-    removeTaskState,
-    reorderTasks,
-  } = useTasks();
-  const {
     currentDate,
     dayPlan,
     dayPlanVersion,
@@ -27,14 +19,24 @@ export function useEnergyPlannerState() {
     goToNextDay,
     goToToday,
     setDailyCapacity,
-    addToPlan,
-    removeFromPlan,
+    addToPlan: addToPlanBase,
+    removeFromPlan: removeFromPlanBase,
     toggleTaskCompletion,
     markTaskCompleteOnDate,
     moveTaskToToday,
-    moveTaskToUnplanned,
+    moveTaskToUnplanned: moveTaskToUnplannedBase,
     reorderPlannedTasks,
   } = useDayPlan();
+  const {
+    tasks,
+    isLoading: tasksLoading,
+    addTask,
+    updateTask,
+    removeTaskState,
+    reorderTasks,
+    addTaskToAvailable,
+    removeTaskFromAvailable,
+  } = useTasks();
   const {
     energyTypes,
     isLoading: typesLoading,
@@ -63,16 +65,83 @@ export function useEnergyPlannerState() {
     })();
   }, [tasksLoading, currentDate, dayPlanVersion]);
 
+  // Wrap addToPlan to also remove from local tasks state
+  const addToPlan = useCallback(
+    async (taskId: string) => {
+      // Update storage and day plan first
+      await addToPlanBase(taskId);
+      // Then remove from local state
+      removeTaskFromAvailable(taskId);
+    },
+    [addToPlanBase, removeTaskFromAvailable],
+  );
+
+  // Wrap removeFromPlan to also add back to local tasks state
+  const removeFromPlan = useCallback(
+    async (taskId: string) => {
+      // Find the task in the day plan before removing
+      const taskToRemove = dayPlan.tasks.find((t) => t.id === taskId);
+      // Update storage and day plan first
+      await removeFromPlanBase(taskId);
+      // Then add to local state
+      if (taskToRemove) {
+        // Strip 'completed' when moving back to available tasks
+        const { completed: _completed, ...rawTask } = taskToRemove;
+        addTaskToAvailable(rawTask as Task);
+      }
+    },
+    [dayPlan.tasks, addTaskToAvailable, removeFromPlanBase],
+  );
+
+  // Wrap moveTaskToUnplanned to also add back to local tasks state
+  const moveTaskToUnplanned = useCallback(
+    async (taskId: string, fromDate: string) => {
+      // Get the task to add back to available tasks
+      let taskToAdd: Task | undefined;
+
+      if (fromDate === currentDate) {
+        // For current date, get from local day plan
+        const taskInPlan = dayPlan.tasks.find((t) => t.id === taskId);
+        if (taskInPlan) {
+          // Strip 'completed' when moving back to available tasks
+          const { completed: _completed, ...rawTask } = taskInPlan;
+          taskToAdd = rawTask as Task;
+        }
+      } else {
+        // For other dates, we need to get from storage
+        const { getDayPlanForDate } = await import("./utils");
+        const plan = await getDayPlanForDate(fromDate);
+        if (plan) {
+          const taskInPlan = plan.tasks.find((t) => t.id === taskId);
+          if (taskInPlan) {
+            // Strip 'completed' when moving back to available tasks
+            const { completed: _completed, ...rawTask } = taskInPlan;
+            taskToAdd = rawTask as Task;
+          }
+        }
+      }
+
+      // Update storage and day plan first
+      await moveTaskToUnplannedBase(taskId, fromDate);
+
+      // Then add to local state
+      if (taskToAdd) {
+        addTaskToAvailable(taskToAdd);
+      }
+    },
+    [currentDate, dayPlan.tasks, addTaskToAvailable, moveTaskToUnplannedBase],
+  );
+
   const removeTask = useCallback(
     async (taskId: string) => {
       // If it's in the one-off list, remove it
       if (tasks.find((t) => t.id === taskId)) {
         removeTaskState(taskId);
       }
-      // If it's in the day plan, remove it
-      await removeFromPlan(taskId);
+      // If it's in the day plan, remove it (but don't add back to available)
+      await removeFromPlanBase(taskId);
     },
-    [tasks, removeTaskState, removeFromPlan],
+    [tasks, removeTaskState, removeFromPlanBase],
   );
 
   const calculateEnergyUsage = useCallback((): EnergyCost => {
