@@ -29,7 +29,7 @@ describe("DayPlanner", () => {
       }: {
         children: React.ReactNode;
         onDragEnd: (event: {
-          active: { id: string };
+          active: { id: string; data?: { current?: unknown } };
           over: { id: string } | null;
         }) => void;
         id?: string;
@@ -37,12 +37,22 @@ describe("DayPlanner", () => {
         <div data-testid={`dnd-context-${id || "default"}`}>
           <button
             data-testid={`trigger-drag-${id || "default"}`}
-            onClick={() =>
+            onClick={(e) => {
+              const target = e.currentTarget;
+              const activeId = target.getAttribute("data-active") || "t1";
+              const overId = target.getAttribute("data-over") || "t2";
+              const activeData = target.getAttribute("data-active-data");
+
               onDragEnd({
-                active: { id: "t1" },
-                over: { id: "t2" },
-              })
-            }
+                active: {
+                  id: activeId,
+                  data: {
+                    current: activeData ? JSON.parse(activeData) : undefined,
+                  },
+                },
+                over: overId ? { id: overId } : null,
+              });
+            }}
             type="button"
           >
             Drag
@@ -119,9 +129,7 @@ describe("DayPlanner", () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.getByText("No tasks selected for this day."),
-      ).toBeInTheDocument();
+      expect(screen.getAllByText("No tasks in this zone")).toHaveLength(3); // 3 default zones
     });
   });
 
@@ -543,5 +551,188 @@ describe("DayPlanner with populated data", () => {
     await user.click(buttons[0]);
 
     // Handler called.
+  });
+
+  it("reorders selected tasks across zones", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+    const today = new Date().toISOString().split("T")[0];
+
+    const task1 = {
+      id: "t1",
+      title: "Task 1",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+      zoneId: "morning",
+    };
+    const task2 = {
+      id: "t2",
+      title: "Task 2",
+      energyCost: { physical: 5, social: 5, executive: 5 },
+      factors: {
+        initiationDifficulty: 3,
+        terminationDifficulty: 2,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+      zoneId: "afternoon",
+    };
+
+    await setDayPlan(today, {
+      date: today,
+      tasks: [task1, task2],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    const mockOnOpenCreateTask = vi.fn();
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner
+          onEditTask={mockOnEditTask}
+          onOpenCreateTask={mockOnOpenCreateTask}
+        />
+      </EnergyPlannerProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Task 1")).toBeInTheDocument();
+      expect(screen.getByText("Task 2")).toBeInTheDocument();
+    });
+
+    // Simulate dragging T1 (morning) to T2 (afternoon)
+    const dragBtn = screen.getByTestId("trigger-drag-default");
+    dragBtn.setAttribute("data-active", "t1");
+    dragBtn.setAttribute("data-over", "t2");
+
+    await user.click(dragBtn);
+
+    // Verify persistence update
+    await waitFor(async () => {
+      const { getDayPlan } = await import("../../lib/energy-planner/storage");
+      const plan = await getDayPlan(today);
+      const t1 = plan?.tasks?.find((t) => t.id === "t1");
+      expect(t1?.zoneId).toBe("afternoon");
+    });
+  });
+
+  it("handles adding task to specific zone", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+    const mockOnOpenCreateTask = vi.fn();
+
+    // Setup available task
+    const task1 = {
+      id: "t1",
+      title: "Available Task",
+      energyCost: { physical: 5, social: 5, executive: 5 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+    };
+    await setOneOffTasks([task1]);
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner
+          onEditTask={mockOnEditTask}
+          onOpenCreateTask={mockOnOpenCreateTask}
+        />
+      </EnergyPlannerProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Manage Tasks")).toBeInTheDocument();
+    });
+
+    // Find "Add Task" button for a specific zone (Afternoon is index 1)
+    const addButtons = screen.getAllByText("Add Task");
+    expect(addButtons).toHaveLength(3);
+
+    await user.click(addButtons[1]);
+
+    // Modal opens
+    expect(
+      screen.getByRole("heading", { name: "Available Tasks" }),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("Available Task")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByLabelText("Add to day"));
+
+    // Verify task added to Afternoon zone
+    const today = new Date().toISOString().split("T")[0];
+    await waitFor(async () => {
+      const { getDayPlan } = await import("../../lib/energy-planner/storage");
+      const plan = await getDayPlan(today);
+      const t1 = plan?.tasks?.find((t) => t.id === "t1");
+      expect(t1?.zoneId).toBe("afternoon");
+    });
+  });
+
+  it("moves task to a zone container", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+    const today = new Date().toISOString().split("T")[0];
+
+    const task1 = {
+      id: "t1",
+      title: "Task 1",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+      zoneId: "morning",
+    };
+
+    await setDayPlan(today, {
+      date: today,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    const mockOnOpenCreateTask = vi.fn();
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner
+          onEditTask={mockOnEditTask}
+          onOpenCreateTask={mockOnOpenCreateTask}
+        />
+      </EnergyPlannerProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Task 1")).toBeInTheDocument();
+    });
+
+    // Simulate dragging T1 (morning) to Afternoon Zone container
+    const dragBtn = screen.getByTestId("trigger-drag-default");
+    dragBtn.setAttribute("data-active", "t1");
+    // Assuming afternoon zone id is "afternoon"
+    dragBtn.setAttribute("data-over", "afternoon");
+
+    await user.click(dragBtn);
+
+    await waitFor(async () => {
+      const { getDayPlan } = await import("../../lib/energy-planner/storage");
+      const plan = await getDayPlan(today);
+      const t1 = plan?.tasks?.find((t) => t.id === "t1");
+      expect(t1?.zoneId).toBe("afternoon");
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Task } from "@/lib/energy-planner/schema";
+import type { Task, ZoneConfig } from "@/lib/energy-planner/schema";
 
 let mockTasks: Task[] = [];
 let mockCapacity = { physical: 100, social: 100, executive: 100 };
@@ -53,8 +53,17 @@ export const clearAll = vi.fn(async () => {
 });
 
 // Helper to reset the mock store
+let mockZones: ZoneConfig[] = [];
+
+export const getZones = vi.fn(async () => mockZones);
+export const setZones = vi.fn((zones) => {
+  mockZones = zones;
+  return Promise.resolve();
+});
+
 export const __reset = () => {
   mockTasks = [];
   mockCapacity = { physical: 100, social: 100, executive: 100 };
   mockDayPlans = {};
+  mockZones = [];
 };

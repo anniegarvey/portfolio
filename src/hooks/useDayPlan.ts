@@ -80,7 +80,7 @@ export function useDayPlan() {
     [],
   );
 
-  const addToPlan = useCallback(async (taskId: string) => {
+  const addToPlan = useCallback(async (taskId: string, zoneId?: string) => {
     // 1. Get task from one-off store
     const oneOffTasks = await getOneOffTasks();
     const taskIndex = oneOffTasks.findIndex((t) => t.id === taskId);
@@ -96,13 +96,13 @@ export function useDayPlan() {
     newOneOffTasks.splice(taskIndex, 1);
     await setOneOffTasks(newOneOffTasks);
 
-    // 3. Add to day plan
+    // 3. Add to day plan with optional zone assignment
     setDayPlan((prev) => {
       // Avoid duplicates just in case
       if (prev.tasks.some((t) => t.id === taskId)) return prev;
       return {
         ...prev,
-        tasks: [...prev.tasks, { ...task, completed: false }],
+        tasks: [...prev.tasks, { ...task, completed: false, zoneId }],
       };
     });
   }, []);
@@ -272,6 +272,13 @@ export function useDayPlan() {
     });
   }, []);
 
+  const assignTaskToZone = useCallback((taskId: string, zoneId: string) => {
+    setDayPlan((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, zoneId } : t)),
+    }));
+  }, []);
+
   return {
     currentDate,
     dayPlan,
@@ -289,5 +296,6 @@ export function useDayPlan() {
     moveTaskToToday,
     moveTaskToUnplanned,
     reorderPlannedTasks: reorderPlannedTasksWithIds,
+    assignTaskToZone,
   };
 }

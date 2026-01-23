@@ -6,6 +6,7 @@ import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useTasks } from "./useTasks";
+import { useZones } from "./useZones";
 import { getUncompletedTasks } from "./utils";
 
 export function useEnergyPlannerState() {
@@ -26,6 +27,7 @@ export function useEnergyPlannerState() {
     moveTaskToToday,
     moveTaskToUnplanned: moveTaskToUnplannedBase,
     reorderPlannedTasks,
+    assignTaskToZone,
   } = useDayPlan();
   const {
     tasks,
@@ -44,6 +46,14 @@ export function useEnergyPlannerState() {
     updateEnergyType,
     removeEnergyType,
   } = useEnergyTypes();
+  const {
+    zones,
+    isLoading: zonesLoading,
+    addZone,
+    updateZone,
+    removeZone,
+    reorderZones,
+  } = useZones();
 
   // State for async-computed values
   const [uncompletedTasks, setUncompletedTasks] = useState<
@@ -67,9 +77,9 @@ export function useEnergyPlannerState() {
 
   // Wrap addToPlan to also remove from local tasks state
   const addToPlan = useCallback(
-    async (taskId: string) => {
+    async (taskId: string, zoneId?: string) => {
       // Update storage and day plan first
-      await addToPlanBase(taskId);
+      await addToPlanBase(taskId, zoneId);
       // Then remove from local state
       removeTaskFromAvailable(taskId);
     },
@@ -169,7 +179,8 @@ export function useEnergyPlannerState() {
     return { exceeded: false };
   }, [calculateEnergyUsage, energyTypes, dayPlan.dailyCapacity]);
 
-  const isLoading = tasksLoading || dayPlanLoading || typesLoading;
+  const isLoading =
+    tasksLoading || dayPlanLoading || typesLoading || zonesLoading;
 
   return {
     tasks,
@@ -199,7 +210,13 @@ export function useEnergyPlannerState() {
     addEnergyType,
     updateEnergyType,
     removeEnergyType,
-    reorderPlannedTasks: reorderPlannedTasks,
-    reorderTasks: reorderTasks,
+    reorderPlannedTasks,
+    reorderTasks,
+    zones,
+    addZone,
+    updateZone,
+    removeZone,
+    reorderZones,
+    assignTaskToZone,
   };
 }

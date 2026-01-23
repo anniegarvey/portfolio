@@ -2,7 +2,13 @@
 
 import { createContext, type ReactNode, useContext } from "react";
 import { useEnergyPlannerState } from "@/hooks/useEnergyPlannerState";
-import type { DayPlan, EnergyCost, EnergyTypeConfig, Task } from "./schema";
+import type {
+  DayPlan,
+  EnergyCost,
+  EnergyTypeConfig,
+  Task,
+  ZoneConfig,
+} from "./schema";
 
 interface EnergyPlannerContextType {
   tasks: Task[];
@@ -17,7 +23,7 @@ interface EnergyPlannerContextType {
   goToPreviousDay: () => void;
   goToNextDay: () => void;
   goToToday: () => void;
-  addToPlan: (taskId: string) => void;
+  addToPlan: (taskId: string, zoneId?: string) => void;
   removeFromPlan: (taskId: string) => void;
   toggleTaskCompletion: (taskId: string) => void;
   markTaskCompleteOnDate: (taskId: string, date: string) => void;
@@ -34,6 +40,12 @@ interface EnergyPlannerContextType {
   removeEnergyType: (typeId: string) => void;
   reorderPlannedTasks: (itemIds: string[]) => void;
   reorderTasks: (newTasks: Task[]) => void;
+  zones: ZoneConfig[];
+  addZone: (zone: Omit<ZoneConfig, "id">) => void;
+  updateZone: (zone: ZoneConfig) => void;
+  removeZone: (zoneId: string) => void;
+  reorderZones: (zones: ZoneConfig[]) => void;
+  assignTaskToZone: (taskId: string, zoneId: string) => void;
 }
 
 const EnergyPlannerContext = createContext<

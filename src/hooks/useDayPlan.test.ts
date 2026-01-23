@@ -498,4 +498,106 @@ describe("useDayPlan", () => {
     expect(oneOff).toHaveLength(1);
     expect(oneOff[0].id).toBe("task-1");
   });
+
+  it("assigns task to a zone", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+    });
+
+    // Default zone is undefined or handled by util/default
+
+    await act(async () => {
+      result.current.assignTaskToZone("task-1", "evening");
+    });
+
+    expect(result.current.dayPlan.tasks[0].zoneId).toBe("evening");
+  });
+
+  it("moves a task to today when viewing a different day", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const pastDate = "2023-01-01";
+    const task1 = mockTask("task-1", "Past Task", false);
+    await setDayPlan(pastDate, {
+      date: pastDate,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    // We are currently on today
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Go to tomorrow
+    await act(async () => {
+      result.current.goToNextDay();
+    });
+
+    // Move task from past to today (not current view)
+    await act(async () => {
+      await result.current.moveTaskToToday("task-1", pastDate);
+    });
+
+    // Verify it is in today's plan in storage
+    const { getDayPlan } = await import("@/lib/energy-planner/storage");
+    // getTodayDateString is not exported from storage but utils...
+    // Just construct string
+    const today = new Date().toISOString().split("T")[0];
+    const todayPlan = await getDayPlan(today);
+
+    expect(todayPlan?.tasks).toHaveLength(1);
+    expect(todayPlan?.tasks[0].id).toBe("task-1");
+  });
+
+  it("navigates to today", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const today = new Date().toISOString().split("T")[0];
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      result.current.goToPreviousDay();
+    });
+
+    expect(result.current.currentDate).not.toBe(today);
+
+    await act(async () => {
+      result.current.goToToday();
+    });
+
+    expect(result.current.currentDate).toBe(today);
+  });
+
+  it("marks a task as complete on the current day", async () => {
+    const { result } = renderHook(() => useDayPlan());
+    const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
+    const task1 = mockTask("task-1", "Task 1");
+    await setOneOffTasks([task1]);
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan("task-1");
+    });
+
+    const today = result.current.currentDate;
+    await act(async () => {
+      await result.current.markTaskCompleteOnDate("task-1", today);
+    });
+
+    expect(result.current.dayPlan.tasks[0].completed).toBe(true);
+  });
 });

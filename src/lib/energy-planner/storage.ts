@@ -5,6 +5,7 @@ import type {
   EnergyTypeConfig,
   PlannedTask,
   Task,
+  ZoneConfig,
 } from "./schema";
 
 /**
@@ -17,6 +18,7 @@ const store = createStore("energy-planner-db", "data");
 const KEYS = {
   oneOffTasks: "one-off-tasks",
   types: "types",
+  zones: "zones",
 } as const;
 
 /**
@@ -50,6 +52,16 @@ export async function getEnergyTypes(): Promise<
 
 export async function setEnergyTypes(types: EnergyTypeConfig[]): Promise<void> {
   await set(KEYS.types, types, store);
+}
+
+// === Zones ===
+
+export async function getZones(): Promise<ZoneConfig[] | undefined> {
+  return get<ZoneConfig[]>(KEYS.zones, store);
+}
+
+export async function setZones(zones: ZoneConfig[]): Promise<void> {
+  await set(KEYS.zones, zones, store);
 }
 
 // === Day Plans ===

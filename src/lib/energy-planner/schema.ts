@@ -24,6 +24,21 @@ export const PRESET_ENERGY_TYPES = [
   { label: "Physical", color: "#14b8a6" },
 ];
 
+// Zone Configuration
+export const ZoneConfigSchema = z.object({
+  id: z.string().min(1, "ID is required"),
+  name: z.string().min(1, "Name is required"),
+  order: z.number().int().min(0),
+});
+
+export type ZoneConfig = z.infer<typeof ZoneConfigSchema>;
+
+export const DEFAULT_ZONES: ZoneConfig[] = [
+  { id: "morning", name: "Morning", order: 0 },
+  { id: "afternoon", name: "Afternoon", order: 1 },
+  { id: "evening", name: "Evening", order: 2 },
+];
+
 export const EnergyLevelSchema = z.number().min(0).max(100);
 
 // EnergyCost is now a dynamic record based on configured energy types
@@ -63,6 +78,7 @@ export type Task = z.infer<typeof TaskSchema>;
 
 export const PlannedTaskSchema = TaskSchema.extend({
   completed: z.boolean().default(false),
+  zoneId: z.string().optional(),
 });
 
 export type PlannedTask = z.infer<typeof PlannedTaskSchema>;

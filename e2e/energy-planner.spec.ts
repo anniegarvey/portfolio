@@ -132,9 +132,7 @@ test.describe("Energy Planner", () => {
 
     // Task count should decrease
     await expect(page.getByText("Selected Tasks (0)")).toBeVisible();
-    await expect(
-      page.getByText("No tasks selected for this day."),
-    ).toBeVisible();
+    await expect(page.getByText("No tasks in this zone").first()).toBeVisible();
   });
 
   test("should allow navigating between days", async ({ page }) => {
@@ -284,6 +282,73 @@ test.describe("Energy Planner", () => {
       await page.getByRole("button", { name: "Manage Tasks" }).click();
       const modal = page.getByRole("dialog", { name: "Available Tasks" });
       await expect(modal.getByText(testTask.name)).toBeVisible();
+    });
+  });
+
+  test.describe("Zone Management", () => {
+    test("should allow adding, renaming, and removing zones", async ({
+      page,
+    }) => {
+      // 1. Open Zone Manager
+      // Any zone will do, pick the first one
+      const zoneHeader = page.getByTestId("zone-morning").locator("h4");
+      await expect(zoneHeader).toHaveText("Morning");
+
+      const manageButton = page
+        .getByTestId("zone-morning")
+        .getByRole("button", { name: "Manage zones" });
+      await manageButton.click();
+
+      const modal = page.getByRole("dialog", { name: "Manage Zones" });
+      await expect(modal).toBeVisible();
+
+      // 2. Add a new zone
+      await modal.getByRole("button", { name: "Add Zone" }).click();
+      const newZoneInput = modal.getByPlaceholder("New zone name...");
+      await newZoneInput.fill("Night");
+      await modal.getByRole("button", { name: "Add", exact: true }).click();
+
+      // Verify added in modal (it's text, not input, unless editing)
+      await expect(modal.getByText("Night", { exact: true })).toBeVisible();
+
+      // 3. Rename "Night" to "Late Night"
+      // Need to click edit first
+      await modal.getByRole("button", { name: "Edit Night" }).click();
+
+      const zoneInput = modal.getByTestId("zone-edit-input");
+      await zoneInput.fill("Late Night");
+      await zoneInput.press("Enter");
+
+      // 4. Close modal and verify changes in main view
+      await modal.getByRole("button", { name: "Close modal" }).click();
+      await expect(modal).not.toBeVisible();
+
+      // Verify "Late Night" zone exists
+      await expect(page.getByText("Late Night", { exact: true })).toBeVisible();
+
+      // 5. Remove the zone
+      await manageButton.click();
+      await expect(modal).toBeVisible();
+
+      // Click remove button
+      await page.getByRole("button", { name: "Remove Late Night" }).click();
+
+      // Expect confirmation modal
+      const confirmModal = page.getByRole("dialog", { name: "Delete Zone?" });
+      await expect(confirmModal).toBeVisible();
+
+      // Click Delete in confirmation modal
+      await confirmModal.getByRole("button", { name: "Delete" }).click();
+      await expect(confirmModal).not.toBeVisible();
+
+      // Verify "Late Night" is gone from modal
+      await expect(
+        modal.locator('input[value="Late Night"]'),
+      ).not.toBeVisible();
+
+      // Close and verify gone from main view
+      await modal.getByRole("button", { name: "Close modal" }).click();
+      await expect(page.getByText("Late Night")).not.toBeVisible();
     });
   });
 });

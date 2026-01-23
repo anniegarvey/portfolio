@@ -4,8 +4,11 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
+  type DragOverEvent,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
+  rectIntersection,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -17,15 +20,17 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { styled } from "next-yak";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
-import type { Task } from "@/lib/energy-planner/schema";
+import type { PlannedTask, Task } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { Modal } from "../Modal";
 import { PlannerTaskCard } from "./PlannerTaskCard";
 import { SortableItem } from "./SortableItem";
 import { UncompletedTaskCard } from "./UncompletedTaskCard";
+import { ZoneManagerModal } from "./ZoneManagerModal";
+import { ZoneSection } from "./ZoneSection";
 
 interface DayPlannerProps {
   onEditTask: (task: Task) => void;
@@ -46,9 +51,18 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     availableTasks,
     reorderPlannedTasks,
     reorderTasks,
+    zones,
+    assignTaskToZone,
+    addZone,
+    updateZone,
+    removeZone,
+    reorderZones,
   } = useEnergyPlanner();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isZoneManagerOpen, setIsZoneManagerOpen] = useState(false);
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeTask, setActiveTask] = useState<PlannedTask | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -68,16 +82,95 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
 
   const selectedTasks = dayPlan.tasks ?? [];
 
-  const handleAddToPlan = (taskId: string) => {
-    addToPlan(taskId);
+  // Group tasks by zone
+  const tasksByZone = useMemo(() => {
+    const grouped = new Map<string, PlannedTask[]>();
+
+    // Initialize all zones with empty arrays
+    for (const zone of zones) {
+      grouped.set(zone.id, []);
+    }
+
+    // Assign tasks to their zones
+    for (const task of selectedTasks) {
+      const zoneId = task.zoneId ?? zones[0]?.id;
+      if (zoneId && grouped.has(zoneId)) {
+        grouped.get(zoneId)?.push(task);
+      } else if (zones[0]) {
+        // Fallback to first zone if zone doesn't exist
+        grouped.get(zones[0].id)?.push(task);
+      }
+    }
+
+    return grouped;
+  }, [selectedTasks, zones]);
+
+  const handleAddToPlanForZone = (taskId: string) => {
+    if (activeZoneId) {
+      addToPlan(taskId, activeZoneId);
+    } else {
+      addToPlan(taskId, zones[0]?.id);
+    }
     setIsModalOpen(false);
+    setActiveZoneId(null);
   };
 
-  const handleDragEndSelected = (event: DragEndEvent) => {
-    const newItems = getReorderedItems(dayPlan.tasks ?? [], event, (t) => t.id);
+  const handleOpenModalForZone = (zoneId: string) => {
+    setActiveZoneId(zoneId);
+    setIsModalOpen(true);
+  };
 
-    if (newItems) {
-      reorderPlannedTasks(newItems.map((t) => t.id));
+  const handleDragStart = (event: DragOverEvent) => {
+    const { active } = event;
+    const task = selectedTasks.find((t) => t.id === active.id);
+    if (task) {
+      setActiveTask(task);
+    }
+  };
+
+  const findZoneForTask = (taskId: string): string | null => {
+    for (const zone of zones) {
+      const zoneTasks = tasksByZone.get(zone.id) ?? [];
+      if (zoneTasks.some((t) => t.id === taskId)) {
+        return zone.id;
+      }
+    }
+    return null;
+  };
+
+  const getTargetZoneId = (overId: string): string | null => {
+    // Check if dropping directly on a zone container
+    const targetZone = zones.find((z) => z.id === overId);
+    if (targetZone) {
+      return targetZone.id;
+    }
+    // Check if dropping on a task within a zone
+    return findZoneForTask(overId);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const sourceZoneId = findZoneForTask(activeId);
+    const targetZoneId = getTargetZoneId(overId);
+
+    // Move task to new zone if zones differ
+    if (targetZoneId && sourceZoneId !== targetZoneId) {
+      assignTaskToZone(activeId, targetZoneId);
+    }
+
+    // Handle reordering
+    if (activeId !== overId) {
+      const newItems = getReorderedItems(selectedTasks, event, (t) => t.id);
+      if (newItems) {
+        reorderPlannedTasks(newItems.map((t) => t.id));
+      }
     }
   };
 
@@ -87,6 +180,10 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     if (newItems) {
       reorderTasks(newItems);
     }
+  };
+
+  const handleManageZones = () => {
+    setIsZoneManagerOpen(true);
   };
 
   return (
@@ -131,41 +228,48 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
         </ColumnHeader>
 
         <DndContext
-          collisionDetection={closestCenter}
+          collisionDetection={rectIntersection}
           modifiers={[restrictToVerticalAxis]}
-          onDragEnd={handleDragEndSelected}
+          onDragEnd={handleDragEnd}
+          onDragStart={handleDragStart}
           sensors={sensors}
         >
-          <SortableContext
-            items={selectedTasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <TaskList data-testid="selected-tasks">
-              {selectedTasks.length === 0 && (
-                <EmptyState>No tasks selected for this day.</EmptyState>
-              )}
-              {selectedTasks.map((task) => (
-                <SortableItem id={task.id} key={task.id}>
-                  <PlannerTaskCard
-                    completed={task.completed}
-                    isPastDay={!viewingToday}
-                    onEdit={onEditTask}
-                    onRemove={removeFromPlan}
-                    onToggleCompletion={toggleTaskCompletion}
-                    selected
-                    task={task}
-                  />
-                </SortableItem>
-              ))}
-            </TaskList>
-          </SortableContext>
+          <ZonesContainer data-testid="selected-tasks">
+            {zones.map((zone) => (
+              <ZoneSection
+                isPastDay={!viewingToday}
+                key={zone.id}
+                onAddTask={() => handleOpenModalForZone(zone.id)}
+                onEditTask={onEditTask}
+                onManageZones={handleManageZones}
+                onRemove={removeFromPlan}
+                onToggleCompletion={toggleTaskCompletion}
+                tasks={tasksByZone.get(zone.id) ?? []}
+                zone={zone}
+              />
+            ))}
+          </ZonesContainer>
+          <DragOverlay>
+            {activeTask ? (
+              <PlannerTaskCard
+                completed={activeTask.completed}
+                isPastDay={!viewingToday}
+                onEdit={onEditTask}
+                selected
+                task={activeTask}
+              />
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </SelectedSection>
 
       <Modal
         description="Manage your unplanned tasks."
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setActiveZoneId(null);
+        }}
         title="Available Tasks"
       >
         <ModalContent>
@@ -194,7 +298,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
                   {availableTasks.map((task) => (
                     <SortableItem id={task.id} key={task.id}>
                       <PlannerTaskCard
-                        onAdd={handleAddToPlan}
+                        onAdd={handleAddToPlanForZone}
                         onEdit={onEditTask}
                         task={task}
                       />
@@ -206,6 +310,16 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
           </DndContext>
         </ModalContent>
       </Modal>
+
+      <ZoneManagerModal
+        isOpen={isZoneManagerOpen}
+        onAddZone={addZone}
+        onClose={() => setIsZoneManagerOpen(false)}
+        onRemoveZone={removeZone}
+        onReorderZones={reorderZones}
+        onUpdateZone={updateZone}
+        zones={zones}
+      />
     </Container>
   );
 }
@@ -324,21 +438,10 @@ const ColumnHeader = styled.div`
 const UsageSummary = styled.span`
 `;
 
-const TaskList = styled.div`
+const ZonesContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 150px;
-  background-color: light-dark(var(--color-grey-100), var(--color-grey-900));
-  padding: 16px;
-  border-radius: 8px;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  color: var(--color-grey-400);
-  font-style: italic;
-  margin-top: 32px;
+  gap: 16px;
 `;
 
 const ModalContent = styled.div`
