@@ -9,13 +9,11 @@ import type { Task } from "@/lib/energy-planner/schema";
 interface UncompletedTaskCardProps {
   task: Task;
   fromDate: string;
-  onEdit: (task: Task) => void;
 }
 
 export function UncompletedTaskCard({
   task,
   fromDate,
-  onEdit,
 }: UncompletedTaskCardProps) {
   const {
     energyTypes,
@@ -40,9 +38,7 @@ export function UncompletedTaskCard({
     <Card>
       <TaskContent>
         <TaskHeader>
-          <TaskTitle onClick={() => onEdit(task)} title="Edit Task">
-            {task.title}
-          </TaskTitle>
+          <TaskTitle>{task.title}</TaskTitle>
           <FromDate>from {formatDateForDisplay(fromDate)}</FromDate>
         </TaskHeader>
         <EnergyBadges>
@@ -88,14 +84,14 @@ export function UncompletedTaskCard({
   );
 }
 
-const Card = styled.div`
+const Card = styled.article`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
-  padding: 0.75rem;
-  border-radius: 0.5rem;
+  padding: 12px;
+  border-radius: 8px;
   border: 2px solid var(--color-orange-400);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 `;
 
 const TaskContent = styled.div`
@@ -112,29 +108,24 @@ const TaskHeader = styled.div`
 
 const TaskTitle = styled.span`
   font-weight: 600;
-  cursor: pointer;
-  color: var(--color-orange-900);
-
-  &:hover {
-    text-decoration: underline;
-  }
+  color: light-dark(var(--color-orange-900), var(--color-orange-100));
 `;
 
 const FromDate = styled.span`
   font-size: 0.75rem;
-  color: var(--color-orange-700);
+  color: light-dark(var(--color-orange-700), var(--color-orange-300));
   white-space: nowrap;
 `;
 
 const EnergyBadges = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
   flex-wrap: wrap;
 `;
 
 const Badge = styled.span<{ $color: string }>`
   font-size: 0.7rem;
-  padding: 0.1rem 0.3rem;
+  padding: 4px 8px;
   border-radius: 999px;
   background-color: ${({ $color }) => `${$color}20`};
   color: ${({ $color }) => $color};
@@ -143,18 +134,19 @@ const Badge = styled.span<{ $color: string }>`
 
 const Actions = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 12px;
   flex-wrap: wrap;
 `;
 
 const ActionButton = styled.button<{ $secondary?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.625rem;
+  gap: 8px;
+  padding: 8px;
+  padding-right: 16px;
   font-size: 0.8rem;
   font-weight: 500;
-  border-radius: 0.25rem;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s var(--ease);
 

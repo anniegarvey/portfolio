@@ -31,9 +31,7 @@ export function PlannerTaskCard({
   return (
     <Card $completed={completed} $selected={selected}>
       <TaskContent $completed={completed}>
-        <TaskTitle onClick={() => onEdit(task)} title="Edit Task">
-          {task.title}
-        </TaskTitle>
+        <TaskTitle>{task.title}</TaskTitle>
         <EnergyBadges>
           {energyTypes.map((type) => {
             const value = task.energyCost[type.id] || 0;
@@ -91,91 +89,88 @@ export function PlannerTaskCard({
   );
 }
 
-const Card = styled.div<{ $selected?: boolean; $completed?: boolean }>`
-    background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
-    padding: 0.75rem;
-    border-radius: 0.25rem;
-    border: 1px solid var(--color-grey-200);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    transition: transform 0.1s;
+const Card = styled.article<{ $selected?: boolean; $completed?: boolean }>`
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--color-grey-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: transform 0.1s;
 
-    ${({ $selected }) =>
-      $selected &&
-      css`
-        border-color: var(--color-primary-300);
-        background-color: light-dark(var(--color-primary-50), var(--color-primary-950));
+  ${({ $selected }) =>
+    $selected &&
+    css`
+      border-color: var(--color-primary-300);
+      background-color: light-dark(var(--color-primary-50), var(--color-primary-950));
+  `}
+
+  ${({ $completed }: { $completed?: boolean }) =>
+    $completed &&
+    css`
+      background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
+      border-color: var(--color-grey-300);
+      opacity: 0.8;
     `}
 
-    ${({ $completed }: { $completed?: boolean }) =>
-      $completed &&
-      css`
-            background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
-            border-color: var(--color-grey-300);
-            opacity: 0.8;
-       `}
-
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
 `;
 
 const TaskContent = styled.div<{ $completed?: boolean }>`
-    flex: 1;
-    ${({ $completed }) =>
-      $completed &&
-      css`
-        text-decoration: line-through;
-        color: var(--color-grey-500);
-    `}
+  flex: 1;
+  ${({ $completed }) =>
+    $completed &&
+    css`
+      text-decoration: line-through;
+      color: var(--color-grey-500);
+  `}
 `;
 
 const TaskTitle = styled.div`
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-    cursor: pointer;
-    &:hover {
-        text-decoration: underline;
-    }
+  font-weight: 500;
+  margin-bottom: 0.25rem;
 `;
 
 const EnergyBadges = styled.div`
-    display: flex;
-    gap: 0.5rem;
+  display: flex;
+  gap: 8px;
 `;
 
 const Badge = styled.span<{ $color: string }>`
-    font-size: 0.7rem;
-    padding: 0.1rem 0.3rem;
-    border-radius: 999px;
-    background-color: ${({ $color }) => `${$color}20`};
-    color: ${({ $color }) => $color};
-    border: 1px solid ${({ $color }) => `${$color}40`};
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background-color: ${({ $color }) => `${$color}20`};
+  color: ${({ $color }) => $color};
+  border: 1px solid ${({ $color }) => `${$color}40`};
 `;
 
 const Actions = styled.div`
-    display: flex;
-    gap: 0.25rem;
+  display: flex;
+  gap: 4px;
 `;
 
 const ActionButton = styled.button<{ $remove?: boolean; $completed?: boolean }>`
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: ${({ $remove, $completed }) => {
-      if ($remove) return "var(--color-rose-500)";
-      if ($completed) return "var(--color-teal-600)";
-      return "var(--color-primary-500)";
-    }};
-    padding: 0.25rem;
-    border-radius: 0.25rem;
-    display: flex;
-    align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${({ $remove, $completed }) => {
+    if ($remove) return "var(--color-rose-500)";
+    if ($completed) return "var(--color-teal-600)";
+    return "var(--color-primary-500)";
+  }};
 
-    &:hover {
-        background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
-    }
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
+  }
 `;

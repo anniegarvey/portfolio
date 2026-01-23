@@ -9,7 +9,7 @@ import { EnergyInput } from "@/components/energy-planner/EnergyInput";
 import { TaskForm } from "@/components/energy-planner/TaskForm";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { Modal } from "@/components/Modal";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { isToday } from "@/hooks/utils";
 import {
   EnergyPlannerProvider,
@@ -76,9 +76,9 @@ function PlannerContent() {
   };
 
   return (
-    <MaxWidthWrapper>
+    <MaxWidthWrapper as="main">
       <PageHeader>
-        <h1>Energy Planner</h1>
+        <PageTitle>Energy Planner</PageTitle>
         <ButtonGroup>
           <ActionButton onClick={handleExport} title="Export data">
             <Download size={18} />
@@ -142,33 +142,33 @@ export default function EnergyPlannerPage() {
 }
 
 const ButtonGroup = styled.div`
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
 `;
 
 const ActionButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: var(--color-neutral-200);
-    color: var(--color-neutral-900);
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--color-neutral-300);
-    border-radius: 0.25rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    
-    &:hover {
-        background-color: var(--color-neutral-300);
-        border-color: var(--color-neutral-400);
-    }
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+      background-color: var(--color-neutral-300);
+      border-color: var(--color-neutral-400);
+  }
 `;
 
 const Layout = styled.div`
-    display: flex;
-    gap: 32px;
-    flex-direction: column;
-    padding-block: 32px;
+  display: flex;
+  gap: 32px;
+  flex-direction: column;
+  padding-block: 32px;
 `;

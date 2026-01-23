@@ -48,7 +48,7 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 16px;
 `;
 
 const NavButton = styled.button`
@@ -59,7 +59,7 @@ const NavButton = styled.button`
   height: 2.5rem;
   background-color: light-dark(var(--color-grey-100), var(--color-grey-700));
   border: 1px solid var(--color-grey-300);
-  border-radius: 0.5rem;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s var(--ease);
 
@@ -104,6 +104,6 @@ const TodayIndicator = styled.span`
   color: var(--color-teal-600);
   font-weight: 500;
   background-color: light-dark(var(--color-teal-100), var(--color-teal-900));
-  padding: 0.125rem 0.5rem;
+  padding: 2px 8px;
   border-radius: 999px;
 `;

@@ -92,15 +92,13 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
   return (
     <Container>
       <Header>
-        <HeaderLeft>
-          <h3>Your Day Plan</h3>
-          <ManageTasksButton onClick={() => setIsModalOpen(true)} type="button">
-            <Plus size={16} />
-            Manage Tasks
-          </ManageTasksButton>
-        </HeaderLeft>
-        {warning.exceeded && <Warning>{warning.message}</Warning>}
+        <h2>Your Day Plan</h2>
+        <ManageTasksButton onClick={() => setIsModalOpen(true)} type="button">
+          <Plus size={24} />
+          Manage Tasks
+        </ManageTasksButton>
       </Header>
+      {warning.exceeded && <Warning>{warning.message}</Warning>}
 
       {viewedUncompletedTasks.length > 0 && (
         <UncompletedSection data-testid="uncompleted-tasks">
@@ -112,7 +110,6 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
               <UncompletedTaskCard
                 fromDate={fromDate}
                 key={`${task.id}-${fromDate}`}
-                onEdit={onEditTask}
                 task={task}
               />
             ))}
@@ -122,7 +119,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
 
       <SelectedSection>
         <ColumnHeader>
-          <div>Selected Tasks ({selectedTasks.length})</div>
+          <h3>Selected Tasks ({selectedTasks.length})</h3>
           <UsageSummary>
             Usage:{" "}
             {energyTypes.map((type) => (
@@ -172,6 +169,12 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
         title="Available Tasks"
       >
         <ModalContent>
+          <ModalActions>
+            <CreateTaskButton onClick={onOpenCreateTask} type="button">
+              <Plus size={18} />
+              New Task
+            </CreateTaskButton>
+          </ModalActions>
           <DndContext
             collisionDetection={closestCenter}
             modifiers={[restrictToVerticalAxis]}
@@ -201,42 +204,32 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
               )}
             </SortableContext>
           </DndContext>
-          <ModalActions>
-            <CreateTaskButton onClick={onOpenCreateTask} type="button">
-              <Plus size={18} />
-              New Task
-            </CreateTaskButton>
-          </ModalActions>
         </ModalContent>
       </Modal>
     </Container>
   );
 }
 
-const Container = styled.div`
-  background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
-  padding: 1.5rem;
-  border-radius: 0.5rem;
+const Container = styled.section`
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-700));
+  padding: 24px;
+  border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  margin-top: 2rem;
-`;
-
-const HeaderLeft = styled.div`
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 16px;
 `;
 
 const ManageTasksButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 8px;
   background-color: var(--color-primary-600);
   color: white;
-  padding: 0.375rem 0.75rem;
+  padding: 8px;
+  padding-right: 16px;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -249,21 +242,21 @@ const ManageTasksButton = styled.button`
 
 const ModalActions = styled.div`
   display: flex;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  margin-top: 1rem;
-  border-top: 1px solid var(--color-grey-200);
+  justify-content: center;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-grey-200);
 `;
 
 const CreateTaskButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   background-color: var(--color-primary-600);
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 8px 16px;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -277,76 +270,75 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 16px;
 `;
 
 const Warning = styled.div`
   background-color: var(--color-orange-100);
   color: var(--color-orange-900);
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  padding: 8px 16px;
+  border-radius: 4px;
   font-weight: 500;
   font-size: 0.875rem;
   border: 1px solid var(--color-orange-300);
 `;
 
-const UncompletedSection = styled.div`
+const UncompletedSection = styled.section`
   background-color: light-dark(var(--color-orange-50), oklch(25% 0.05 50));
   border: 1px solid var(--color-orange-300);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
 `;
 
-const UncompletedHeader = styled.h4`
-  color: var(--color-orange-900);
-  margin-bottom: 0.75rem;
+const UncompletedHeader = styled.h3`
+  color: light-dark(var(--color-orange-900), var(--color-orange-100));
+  margin-bottom: 12px;
   font-size: 0.95rem;
 `;
 
 const UncompletedList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 `;
 
-const SelectedSection = styled.div`
+const SelectedSection = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
 `;
 
 const ColumnHeader = styled.div`
   font-weight: 600;
-  color: var(--color-grey-600);
+  color: light-dark(var(--color-grey-600), var(--color-grey-300));
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  padding-left: 28px;
+  padding-right: 32px;
 `;
 
 const UsageSummary = styled.span`
-  font-size: 0.75rem;
-  color: var(--color-grey-500);
-  font-weight: normal;
 `;
 
 const TaskList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
   min-height: 150px;
   background-color: light-dark(var(--color-grey-100), var(--color-grey-900));
-  padding: 1rem;
-  border-radius: 0.5rem;
+  padding: 16px;
+  border-radius: 8px;
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   color: var(--color-grey-400);
   font-style: italic;
-  margin-top: 2rem;
+  margin-top: 32px;
 `;
 
 const ModalContent = styled.div`
@@ -356,12 +348,12 @@ const ModalContent = styled.div`
 const ModalEmptyState = styled.div`
   text-align: center;
   color: var(--color-grey-500);
-  padding: 2rem;
+  padding: 32px;
   font-style: italic;
 `;
 
 const ModalTaskList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 `;

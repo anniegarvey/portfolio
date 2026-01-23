@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
 import type { Task } from "../../lib/energy-planner/schema";
 import { UncompletedTaskCard } from "./UncompletedTaskCard";
@@ -24,14 +24,9 @@ describe("UncompletedTaskCard", () => {
   });
 
   it("renders task title", () => {
-    const mockOnEdit = vi.fn();
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -39,14 +34,9 @@ describe("UncompletedTaskCard", () => {
   });
 
   it("displays the original date", () => {
-    const mockOnEdit = vi.fn();
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -55,14 +45,9 @@ describe("UncompletedTaskCard", () => {
   });
 
   it("displays energy badges", () => {
-    const mockOnEdit = vi.fn();
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -72,7 +57,6 @@ describe("UncompletedTaskCard", () => {
   });
 
   it("hides unchecked/zero energy types", () => {
-    const mockOnEdit = vi.fn();
     const zeroEnergyTask: Task = {
       ...mockTask,
       energyCost: { physical: 10, social: 0, executive: 0 },
@@ -80,11 +64,7 @@ describe("UncompletedTaskCard", () => {
 
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={zeroEnergyTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={zeroEnergyTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -93,32 +73,10 @@ describe("UncompletedTaskCard", () => {
     expect(screen.queryByText(/E/)).not.toBeInTheDocument();
   });
 
-  it("calls onEdit when task title clicked", async () => {
-    const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
-      </EnergyPlannerProvider>,
-    );
-
-    await user.click(screen.getByText("Test Uncompleted Task"));
-    expect(mockOnEdit).toHaveBeenCalledWith(mockTask);
-  });
-
   it("renders Complete button", () => {
-    const mockOnEdit = vi.fn();
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -126,14 +84,9 @@ describe("UncompletedTaskCard", () => {
   });
 
   it("renders Move to Today button", () => {
-    const mockOnEdit = vi.fn();
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -141,14 +94,9 @@ describe("UncompletedTaskCard", () => {
   });
 
   it("renders Unplan button", () => {
-    const mockOnEdit = vi.fn();
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -157,7 +105,6 @@ describe("UncompletedTaskCard", () => {
 
   it("handles Complete button click", async () => {
     const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
 
     // Setup localStorage with the task planned for fromDate
     localStorage.setItem(
@@ -172,11 +119,7 @@ describe("UncompletedTaskCard", () => {
 
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -187,7 +130,6 @@ describe("UncompletedTaskCard", () => {
 
   it("handles Move to Today button click", async () => {
     const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
 
     // Setup localStorage with the task planned for fromDate
     localStorage.setItem(
@@ -202,11 +144,7 @@ describe("UncompletedTaskCard", () => {
 
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 
@@ -217,7 +155,6 @@ describe("UncompletedTaskCard", () => {
 
   it("handles Unplan button click", async () => {
     const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
 
     // Setup localStorage with the task planned for fromDate
     localStorage.setItem(
@@ -232,11 +169,7 @@ describe("UncompletedTaskCard", () => {
 
     render(
       <EnergyPlannerProvider>
-        <UncompletedTaskCard
-          fromDate="2026-01-13"
-          onEdit={mockOnEdit}
-          task={mockTask}
-        />
+        <UncompletedTaskCard fromDate="2026-01-13" task={mockTask} />
       </EnergyPlannerProvider>,
     );
 

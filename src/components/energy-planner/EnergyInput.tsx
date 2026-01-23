@@ -91,13 +91,15 @@ export function EnergyInput() {
 
 const Container = styled.div`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-700));
-  padding: 1.5rem;
-  border-radius: 0.5rem;
+  padding: 24px;
+  border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 `;
 
 const Header = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
@@ -107,8 +109,8 @@ const SettingsButton = styled.button`
   --color: light-dark(var(--color-grey-700), var(--color-grey-300));
   background: transparent;
   border: 1px solid var(--color);
-  padding: 0.5rem;
-  border-radius: 0.375rem;
+  padding: 8px;
+  border-radius: 6px;
   cursor: pointer;
   color: var(--color);
   display: flex;
@@ -125,15 +127,15 @@ const SettingsButton = styled.button`
 
 const Grid = styled.div`
   display: grid;
-  gap: 1.5rem;
-  margin-top: 1rem;
+  gap: 24px;
+  margin-top: 16px;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 `;
 
 const Label = styled.label`
@@ -155,7 +157,7 @@ const Input = styled.input<{ $energyColor: string }>`
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
   flex-wrap: wrap;
 `;
 
@@ -163,13 +165,13 @@ const EditButton = styled.button`
   --color: var(--color-primary-600);
   background: transparent;
   border: 1px solid var(--color);
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
+  padding: 6px 12px;
+  border-radius: 4px;
   cursor: pointer;
   color: var(--color);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 0.875rem;
   transition: all 0.15s ease;
 
@@ -182,20 +184,20 @@ const EditButton = styled.button`
 const ReadOnlyBadge = styled.div`
   background-color: light-dark(var(--color-grey-100), var(--color-grey-600));
   color: light-dark(var(--color-grey-600), var(--color-grey-300));
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 0.875rem;
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 `;
 
 const EditingBadge = styled.div`
   background-color: light-dark(var(--color-orange-100), oklch(25% 0.05 50));
   color: var(--color-orange-800);
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 0.875rem;
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
   border: 1px solid var(--color-orange-300);
 `;

@@ -9,15 +9,15 @@ export function PageHeader({ children }: PageHeaderProps) {
   return <Header>{children}</Header>;
 }
 
-const Header = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2rem;
-    margin-block: 16px;
+export const PageTitle = styled.h1`
+  font-size: 2.5rem;
+  color: light-dark(var(--color-primary-700), var(--color-primary-300));
+`;
 
-    h1 {
-      font-size: 2.5rem;
-      color: light-dark(var(--color-primary-700), var(--color-primary-300));
-    }
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  margin-block: 16px;
 `;
