@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  closestCenter,
   DndContext,
   type DragEndEvent,
   type DragOverEvent,
@@ -13,11 +12,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
@@ -25,9 +20,8 @@ import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { PlannedTask, Task } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
-import { Modal } from "../Modal";
+import { AvailableTasksModal } from "./AvailableTasksModal";
 import { PlannerTaskCard } from "./PlannerTaskCard";
-import { SortableItem } from "./SortableItem";
 import { UncompletedTaskCard } from "./UncompletedTaskCard";
 import { ZoneManagerModal } from "./ZoneManagerModal";
 import { ZoneSection } from "./ZoneSection";
@@ -174,14 +168,6 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     }
   };
 
-  const handleDragEndAvailable = (event: DragEndEvent) => {
-    const newItems = getReorderedItems(availableTasks, event, (t) => t.id);
-
-    if (newItems) {
-      reorderTasks(newItems);
-    }
-  };
-
   const handleManageZones = () => {
     setIsZoneManagerOpen(true);
   };
@@ -263,53 +249,18 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
         </DndContext>
       </SelectedSection>
 
-      <Modal
-        description="Manage your unplanned tasks."
+      <AvailableTasksModal
+        availableTasks={availableTasks}
         isOpen={isModalOpen}
+        onAddTask={handleAddToPlanForZone}
         onClose={() => {
           setIsModalOpen(false);
           setActiveZoneId(null);
         }}
-        title="Available Tasks"
-      >
-        <ModalContent>
-          <ModalActions>
-            <CreateTaskButton onClick={onOpenCreateTask} type="button">
-              <Plus size={18} />
-              New Task
-            </CreateTaskButton>
-          </ModalActions>
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEndAvailable}
-            sensors={sensors}
-          >
-            <SortableContext
-              items={availableTasks.map((t) => t.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {availableTasks.length === 0 ? (
-                <ModalEmptyState>
-                  No tasks available. Create a new task to get started!
-                </ModalEmptyState>
-              ) : (
-                <ModalTaskList>
-                  {availableTasks.map((task) => (
-                    <SortableItem id={task.id} key={task.id}>
-                      <PlannerTaskCard
-                        onAdd={handleAddToPlanForZone}
-                        onEdit={onEditTask}
-                        task={task}
-                      />
-                    </SortableItem>
-                  ))}
-                </ModalTaskList>
-              )}
-            </SortableContext>
-          </DndContext>
-        </ModalContent>
-      </Modal>
+        onEditTask={onEditTask}
+        onOpenCreateTask={onOpenCreateTask}
+        onReorderTasks={reorderTasks}
+      />
 
       <ZoneManagerModal
         isOpen={isZoneManagerOpen}
@@ -345,32 +296,6 @@ const ManageTasksButton = styled.button`
   border: none;
   border-radius: 6px;
   font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: var(--color-primary-700);
-  }
-`;
-
-const ModalActions = styled.div`
-  display: flex;
-  justify-content: center;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--color-grey-200);
-`;
-
-const CreateTaskButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--color-primary-600);
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -442,21 +367,4 @@ const ZonesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-`;
-
-const ModalContent = styled.div`
-  min-height: 200px;
-`;
-
-const ModalEmptyState = styled.div`
-  text-align: center;
-  color: var(--color-grey-500);
-  padding: 32px;
-  font-style: italic;
-`;
-
-const ModalTaskList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 `;
