@@ -19,11 +19,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
 import type { ZoneConfig } from "@/lib/energy-planner/schema";
 import { Modal } from "../Modal";
+import { ZoneFormModal } from "./ZoneFormModal";
 
 interface ZoneManagerModalProps {
   isOpen: boolean;
@@ -44,13 +45,11 @@ export function ZoneManagerModal({
   onRemoveZone,
   onReorderZones,
 }: ZoneManagerModalProps) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [newZoneName, setNewZoneName] = useState("");
-  const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingZone, setEditingZone] = useState<ZoneConfig | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -69,33 +68,14 @@ export function ZoneManagerModal({
     }
   };
 
-  const handleAddZone = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newZoneName.trim()) {
-      onAddZone({
-        name: newZoneName.trim(),
-        order: zones.length,
-      });
-      setNewZoneName("");
-      setIsAdding(false);
-    }
+  const startAdding = () => {
+    setEditingZone(null);
+    setIsFormOpen(true);
   };
 
   const startEditing = (zone: ZoneConfig) => {
-    setEditingZoneId(zone.id);
-    setEditName(zone.name);
-  };
-
-  const saveEdit = (zone: ZoneConfig) => {
-    if (editName.trim() && editName !== zone.name) {
-      onUpdateZone({ ...zone, name: editName.trim() });
-    }
-    setEditingZoneId(null);
-  };
-
-  const cancelEdit = () => {
-    setEditingZoneId(null);
-    setEditName("");
+    setEditingZone(zone);
+    setIsFormOpen(true);
   };
 
   return (
@@ -120,59 +100,35 @@ export function ZoneManagerModal({
               {zones.map((zone) => (
                 <SortableZoneItem id={zone.id} key={zone.id}>
                   <ZoneContent>
-                    {editingZoneId === zone.id ? (
-                      <EditForm
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          saveEdit(zone);
-                        }}
+                    <ZoneName>
+                      {zone.name}
+                      {zone.description && (
+                        <ZoneDescriptionPreview>
+                          {zone.description}
+                        </ZoneDescriptionPreview>
+                      )}
+                    </ZoneName>
+                    <Actions>
+                      <IconButton
+                        aria-label={`Edit ${zone.name}`}
+                        onClick={() => startEditing(zone)}
+                        type="button"
                       >
-                        <Input
-                          autoFocus
-                          data-testid="zone-edit-input"
-                          onChange={(e) => setEditName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") cancelEdit();
-                          }}
-                          value={editName}
-                        />
-                        <IconButton title="Save" type="submit">
-                          <Plus size={16} />
-                        </IconButton>
-                        <IconButton
-                          onClick={cancelEdit}
-                          title="Cancel"
-                          type="button"
-                        >
-                          <X size={16} />
-                        </IconButton>
-                      </EditForm>
-                    ) : (
-                      <>
-                        <ZoneName>{zone.name}</ZoneName>
-                        <Actions>
-                          <IconButton
-                            aria-label={`Edit ${zone.name}`}
-                            onClick={() => startEditing(zone)}
-                            type="button"
-                          >
-                            <Pencil size={16} />
-                          </IconButton>
-                          <IconButton
-                            disabled={zones.length <= 1}
-                            onClick={() => setDeleteConfirmation(zone.id)}
-                            title={
-                              zones.length <= 1
-                                ? "Cannot remove last zone"
-                                : `Remove ${zone.name}`
-                            }
-                            type="button"
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
-                        </Actions>
-                      </>
-                    )}
+                        <Pencil size={16} />
+                      </IconButton>
+                      <IconButton
+                        disabled={zones.length <= 1}
+                        onClick={() => setDeleteConfirmation(zone.id)}
+                        title={
+                          zones.length <= 1
+                            ? "Cannot remove last zone"
+                            : `Remove ${zone.name}`
+                        }
+                        type="button"
+                      >
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Actions>
                   </ZoneContent>
                 </SortableZoneItem>
               ))}
@@ -180,31 +136,9 @@ export function ZoneManagerModal({
           </SortableContext>
         </DndContext>
 
-        {isAdding ? (
-          <AddForm onSubmit={handleAddZone}>
-            <Input
-              autoFocus
-              onChange={(e) => setNewZoneName(e.target.value)}
-              placeholder="New zone name..."
-              value={newZoneName}
-            />
-            <Button type="submit">Add</Button>
-            <Button
-              onClick={() => {
-                setIsAdding(false);
-                setNewZoneName("");
-              }}
-              type="button"
-              variant="secondary"
-            >
-              Cancel
-            </Button>
-          </AddForm>
-        ) : (
-          <AddButton onClick={() => setIsAdding(true)} type="button">
-            <Plus size={16} /> Add Zone
-          </AddButton>
-        )}
+        <AddButton onClick={startAdding} type="button">
+          <Plus size={16} /> Add Zone
+        </AddButton>
       </Container>
 
       {deleteConfirmation && (
@@ -234,6 +168,22 @@ export function ZoneManagerModal({
           </ConfirmationActions>
         </Modal>
       )}
+
+      <ZoneFormModal
+        editingZone={editingZone}
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingZone(null);
+        }}
+        onSubmit={(zone) => {
+          if (editingZone) {
+            onUpdateZone(zone as ZoneConfig);
+          } else {
+            onAddZone(zone);
+          }
+        }}
+      />
     </Modal>
   );
 }
@@ -337,10 +287,21 @@ const DragHandle = styled.div`
   }
 `;
 
-const ZoneName = styled.span`
+const ZoneName = styled.div`
   flex: 1;
+  display: flex;
+  flex-direction: column;
   font-weight: 500;
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
+`;
+
+const ZoneDescriptionPreview = styled.span`
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: light-dark(var(--color-grey-500), var(--color-grey-400));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 `;
 
 const Actions = styled.div`
@@ -388,34 +349,6 @@ const AddButton = styled.button`
     border-color: var(--color-primary-500);
     color: var(--color-primary-600);
     background-color: var(--color-primary-50);
-  }
-`;
-
-const AddForm = styled.form`
-  display: flex;
-  gap: 8px;
-`;
-
-const EditForm = styled.form`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 8px;
-`;
-
-const Input = styled.input`
-  flex: 1;
-  padding: 6px 12px;
-  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-  border-radius: 4px;
-  font-size: 0.9rem;
-  background-color: light-dark(#ffffff, var(--color-grey-900));
-  color: light-dark(var(--color-grey-900), var(--color-grey-100));
-
-  &:focus {
-    outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 2px var(--color-primary-100);
   }
 `;
 

@@ -43,16 +43,19 @@ export function ZoneSection({
   return (
     <ZoneContainer data-testid={`zone-${zone.id}`} ref={setNodeRef}>
       <ZoneHeaderWrapper>
-        <ZoneHeader>{zone.name}</ZoneHeader>
-        <ManageZonesButton
-          aria-label="Manage zones"
+        <HeaderContent>
+          <ZoneTitle>{zone.name}</ZoneTitle>
+          {zone.description && (
+            <ZoneDescription>{zone.description}</ZoneDescription>
+          )}
+        </HeaderContent>
+        <ManageButton
           onClick={onManageZones}
-          title="Configure zones"
+          title="Manage Zones"
           type="button"
         >
-          <Settings size={14} />
-          Manage Zones
-        </ManageZonesButton>
+          <Settings size={16} />
+        </ManageButton>
       </ZoneHeaderWrapper>
       <SortableContext
         id={zone.id}
@@ -97,10 +100,23 @@ const ZoneContainer = styled.div`
   gap: 12px;
 `;
 
-const ZoneHeader = styled.h4`
+const ZoneTitle = styled.h4`
   font-weight: 600;
   font-size: 0.95rem;
   color: light-dark(var(--color-grey-700), var(--color-grey-200));
+  margin: 0;
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const ZoneDescription = styled.p`
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: light-dark(var(--color-grey-500), var(--color-grey-400));
   margin: 0;
 `;
 
@@ -112,7 +128,7 @@ const ZoneHeaderWrapper = styled.div`
   border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-600));
 `;
 
-const ManageZonesButton = styled.button`
+const ManageButton = styled.button`
   background: transparent;
   border: 1px solid light-dark(var(--color-grey-400), var(--color-grey-300));
   color: light-dark(var(--color-grey-600), var(--color-grey-300));

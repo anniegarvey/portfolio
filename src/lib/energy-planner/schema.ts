@@ -28,6 +28,7 @@ export const PRESET_ENERGY_TYPES = [
 export const ZoneConfigSchema = z.object({
   id: z.string().min(1, "ID is required"),
   name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
   order: z.number().int().min(0),
 });
 
