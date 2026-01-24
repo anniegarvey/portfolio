@@ -376,4 +376,124 @@ describe("useEnergyPlannerState", () => {
       false,
     );
   }, 10000);
+
+  it("should move task back to available when unplanned from PAST day", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Setup a task on a past day directly in storage
+    const pastDate = "2025-01-01";
+    const taskId = "past-task-id";
+    const pastTask = {
+      id: taskId,
+      title: "Past Task",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 1,
+        terminationDifficulty: 1,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+    };
+
+    await storageMock.setDayPlan(pastDate, {
+      date: pastDate,
+      tasks: [pastTask],
+      dailyCapacity: { physical: 50, social: 50, executive: 50 },
+    });
+
+    // Initially task is not in available tasks
+    expect(result.current.tasks).toHaveLength(0);
+
+    // Unplan the task from the past date
+    await act(async () => {
+      await result.current.moveTaskToUnplanned(taskId, pastDate);
+    });
+
+    // Task should be back in available tasks
+    await waitFor(() => {
+      expect(result.current.availableTasks.some((t) => t.id === taskId)).toBe(
+        true,
+      );
+    });
+  });
+
+  it("removes available task directly from state", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Add a task (goes to available tasks)
+    act(() => {
+      result.current.addTask({
+        title: "Available Task",
+        description: "",
+        energyCost: { physical: 10, social: 10, executive: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+    });
+
+    const taskId = result.current.tasks[0].id;
+    expect(result.current.tasks).toHaveLength(1);
+
+    // Remove the task
+    await act(async () => {
+      await result.current.removeTask(taskId);
+    });
+
+    expect(result.current.tasks).toHaveLength(0);
+  });
+
+  it("handles moving unplanned task from date with no plan gracefully", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    // Call with a date that has no plan in storage
+    await act(async () => {
+      await result.current.moveTaskToUnplanned("2099-01-01", "2099-01-01");
+    });
+
+    // Should not crash, and should not add anything to available tasks
+    expect(result.current.tasks).toHaveLength(0);
+  });
+
+  it("checks capacity returns exceeded: false when within limits", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Default capacity is 50,50,50.
+    // Add a small task
+    act(() => {
+      result.current.addTask({
+        title: "Small Task",
+        description: "",
+        energyCost: { physical: 10, social: 10, executive: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      });
+    });
+
+    const taskId = result.current.tasks[0].id;
+    await act(async () => {
+      await result.current.addToPlan(taskId);
+    });
+
+    const status = result.current.checkExceedsCapacity();
+    expect(status.exceeded).toBe(false);
+  });
 });
