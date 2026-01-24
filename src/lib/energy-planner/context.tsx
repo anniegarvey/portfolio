@@ -62,6 +62,7 @@ export function EnergyPlannerProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// biome-ignore lint/style/useComponentExportOnlyModules: Standard pattern for Context + Hook
 export function useEnergyPlanner() {
   const context = useContext(EnergyPlannerContext);
   if (context === undefined) {

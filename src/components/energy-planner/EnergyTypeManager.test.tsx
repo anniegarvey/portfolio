@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
 import { EnergyTypeManagerModal } from "./EnergyTypeManager";
 
+// biome-ignore lint/style/useComponentExportOnlyModules: Test component in test file
 function TestWrapper() {
   const [isOpen, setIsOpen] = React.useState(true);
   return (

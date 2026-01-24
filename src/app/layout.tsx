@@ -15,12 +15,14 @@ const tangerine = Tangerine({
   weight: "700",
 });
 
+// biome-ignore lint/style/useComponentExportOnlyModules: Next.js metadata must be exported from layout
 export const metadata: Metadata = {
   title: "Annie Garvey's Portfolio",
   description:
     "Principal software engineer specializing in front-end development.",
 };
 
+// biome-ignore lint/style/useComponentExportOnlyModules: Next.js viewport must be exported from layout
 export const viewport: Viewport = {
   colorScheme: "dark light",
 };
