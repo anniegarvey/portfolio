@@ -93,11 +93,14 @@ export function AvailableTasksModal({
               <ModalTaskList>
                 {availableTasks.map((task) => (
                   <SortableItem id={task.id} key={task.id}>
-                    <PlannerTaskCard
-                      onAdd={onAddTask}
-                      onEdit={onEditTask}
-                      task={task}
-                    />
+                    {({ dragHandleProps }) => (
+                      <PlannerTaskCard
+                        dragHandleProps={dragHandleProps}
+                        onAdd={onAddTask}
+                        onEdit={onEditTask}
+                        task={task}
+                      />
+                    )}
                   </SortableItem>
                 ))}
               </ModalTaskList>

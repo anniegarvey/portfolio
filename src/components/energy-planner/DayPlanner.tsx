@@ -3,6 +3,8 @@
 import {
   DndContext,
   type DragEndEvent,
+  type DraggableAttributes,
+  type DraggableSyntheticListeners,
   type DragOverEvent,
   DragOverlay,
   KeyboardSensor,
@@ -239,6 +241,11 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
             {activeTask ? (
               <PlannerTaskCard
                 completed={activeTask.completed}
+                dragHandleProps={{
+                  listeners: {} as DraggableSyntheticListeners,
+                  attributes: {} as DraggableAttributes,
+                  ref: () => {},
+                }}
                 isPastDay={!viewingToday}
                 onEdit={onEditTask}
                 selected

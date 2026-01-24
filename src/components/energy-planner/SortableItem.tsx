@@ -1,11 +1,24 @@
+import type {
+  DraggableAttributes,
+  DraggableSyntheticListeners,
+} from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { styled } from "next-yak";
 import type { ReactNode } from "react";
 
+interface RenderProps {
+  dragHandleProps: {
+    listeners: DraggableSyntheticListeners;
+    attributes: DraggableAttributes;
+    ref: (node: HTMLElement | null) => void;
+  };
+  isDragging: boolean;
+}
+
 interface SortableItemProps {
   id: string;
-  children: ReactNode;
+  children: (props: RenderProps) => ReactNode;
   disabled?: boolean;
 }
 
@@ -14,6 +27,7 @@ export function SortableItem({ id, children, disabled }: SortableItemProps) {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -28,12 +42,19 @@ export function SortableItem({ id, children, disabled }: SortableItemProps) {
   };
 
   return (
-    <Item ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
+    <Item ref={setNodeRef} style={style}>
+      {children({
+        dragHandleProps: {
+          listeners,
+          attributes,
+          ref: setActivatorNodeRef,
+        },
+        isDragging,
+      })}
     </Item>
   );
 }
 
 const Item = styled.div`
-  touch-action: none; /* Required for dnd-kit on mobile */
+  touch-action: none;
 `;

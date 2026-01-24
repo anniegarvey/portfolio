@@ -25,6 +25,7 @@ describe("DayPlanner", () => {
       DndContext: ({
         children,
         onDragEnd,
+        onDragStart,
         id,
       }: {
         children: React.ReactNode;
@@ -32,9 +33,27 @@ describe("DayPlanner", () => {
           active: { id: string; data?: { current?: unknown } };
           over: { id: string } | null;
         }) => void;
+        onDragStart?: (event: {
+          active: { id: string; data?: { current?: unknown } };
+        }) => void;
         id?: string;
       }) => (
         <div data-testid={`dnd-context-${id || "default"}`}>
+          <button
+            data-testid={`trigger-drag-start-${id || "default"}`}
+            onClick={(e) => {
+              const target = e.currentTarget;
+              const activeId = target.getAttribute("data-active") || "t1";
+              if (onDragStart) {
+                onDragStart({
+                  active: { id: activeId },
+                });
+              }
+            }}
+            type="button"
+          >
+            Start Drag
+          </button>
           <button
             data-testid={`trigger-drag-${id || "default"}`}
             onClick={(e) => {
@@ -59,6 +78,9 @@ describe("DayPlanner", () => {
           </button>
           {children}
         </div>
+      ),
+      DragOverlay: ({ children }: { children: React.ReactNode }) => (
+        <div data-testid="drag-overlay">{children}</div>
       ),
     };
   });
@@ -733,6 +755,126 @@ describe("DayPlanner with populated data", () => {
       const plan = await getDayPlan(today);
       const t1 = plan?.tasks?.find((t) => t.id === "t1");
       expect(t1?.zoneId).toBe("afternoon");
+    });
+  });
+
+  it("handles fallback to first zone when zoneId is invalid", async () => {
+    const mockOnEditTask = vi.fn();
+    const today = new Date().toISOString().split("T")[0];
+
+    const task1 = {
+      id: "t1",
+      title: "Task with Invalid Zone",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+      zoneId: "invalid-zone-id",
+    };
+
+    await setDayPlan(today, {
+      date: today,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    const mockOnOpenCreateTask = vi.fn();
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner
+          onEditTask={mockOnEditTask}
+          onOpenCreateTask={mockOnOpenCreateTask}
+        />
+      </EnergyPlannerProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Task with Invalid Zone")).toBeInTheDocument();
+    });
+
+    // Should default to first zone (Morning)
+    const morningZone = screen.getByTestId("zone-morning");
+    expect(morningZone).toHaveTextContent("Task with Invalid Zone");
+  });
+
+  it("opens zone manager when manager button is clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+    const mockOnOpenCreateTask = vi.fn();
+
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner
+          onEditTask={mockOnEditTask}
+          onOpenCreateTask={mockOnOpenCreateTask}
+        />
+      </EnergyPlannerProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle("Manage Zones")).toHaveLength(3);
+    });
+
+    const manageButtons = screen.getAllByTitle("Manage Zones");
+    await user.click(manageButtons[0]);
+
+    expect(
+      screen.getByRole("heading", { name: "Manage Zones" }),
+    ).toBeInTheDocument();
+  });
+
+  it("activates task active state on drag start", async () => {
+    const user = userEvent.setup();
+    const mockOnEditTask = vi.fn();
+    const today = new Date().toISOString().split("T")[0];
+
+    const task1 = {
+      id: "t1",
+      title: "Task 1",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      completed: false,
+      zoneId: "morning",
+    };
+
+    await setDayPlan(today, {
+      date: today,
+      tasks: [task1],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    const mockOnOpenCreateTask = vi.fn();
+    render(
+      <EnergyPlannerProvider>
+        <DayPlanner
+          onEditTask={mockOnEditTask}
+          onOpenCreateTask={mockOnOpenCreateTask}
+        />
+      </EnergyPlannerProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Task 1")).toBeInTheDocument();
+    });
+
+    // Start drag
+    const startDragBtn = screen.getByTestId("trigger-drag-start-default");
+    startDragBtn.setAttribute("data-active", "t1");
+    await user.click(startDragBtn);
+
+    // activeTask should be set, and DragOverlay should render it
+    await waitFor(() => {
+      const overlay = screen.getByTestId("drag-overlay");
+      expect(overlay).toHaveTextContent("Task 1");
     });
   });
 });

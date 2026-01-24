@@ -66,15 +66,18 @@ export function ZoneSection({
           {tasks.length === 0 && <EmptyZone>No tasks in this zone</EmptyZone>}
           {tasks.map((task) => (
             <SortableItem id={task.id} key={task.id}>
-              <PlannerTaskCard
-                completed={task.completed}
-                isPastDay={isPastDay}
-                onEdit={onEditTask}
-                onRemove={onRemove}
-                onToggleCompletion={onToggleCompletion}
-                selected
-                task={task}
-              />
+              {({ dragHandleProps }) => (
+                <PlannerTaskCard
+                  completed={task.completed}
+                  dragHandleProps={dragHandleProps}
+                  isPastDay={isPastDay}
+                  onEdit={onEditTask}
+                  onRemove={onRemove}
+                  onToggleCompletion={onToggleCompletion}
+                  selected
+                  task={task}
+                />
+              )}
             </SortableItem>
           ))}
         </ZoneTaskList>

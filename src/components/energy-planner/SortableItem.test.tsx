@@ -27,6 +27,7 @@ describe("SortableItem", () => {
       attributes: {},
       listeners: {},
       setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
       transform: null,
       transition: null,
       isDragging: false,
@@ -34,9 +35,7 @@ describe("SortableItem", () => {
 
     render(
       // biome-ignore lint/correctness/useUniqueElementIds: Static IDs in tests
-      <SortableItem id="test-id">
-        <div>Test Content</div>
-      </SortableItem>,
+      <SortableItem id="test-id">{() => <div>Test Content</div>}</SortableItem>,
     );
 
     expect(screen.getByText("Test Content")).toBeInTheDocument();
@@ -47,6 +46,7 @@ describe("SortableItem", () => {
       attributes: {},
       listeners: {},
       setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
       transform: { x: 10, y: 20, scaleX: 1, scaleY: 1 },
       transition: "transform 0.2s ease",
       isDragging: true,
@@ -54,9 +54,7 @@ describe("SortableItem", () => {
 
     const { container } = render(
       // biome-ignore lint/correctness/useUniqueElementIds: Static IDs in tests
-      <SortableItem id="test-id">
-        <div>Test Content</div>
-      </SortableItem>,
+      <SortableItem id="test-id">{() => <div>Test Content</div>}</SortableItem>,
     );
 
     const item = container.firstChild as HTMLElement;
@@ -72,6 +70,7 @@ describe("SortableItem", () => {
       attributes: {},
       listeners: {},
       setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
       transform: null,
       transition: null,
       isDragging: false,
@@ -79,9 +78,7 @@ describe("SortableItem", () => {
 
     const { container } = render(
       // biome-ignore lint/correctness/useUniqueElementIds: Static IDs in tests
-      <SortableItem id="test-id">
-        <div>Test Content</div>
-      </SortableItem>,
+      <SortableItem id="test-id">{() => <div>Test Content</div>}</SortableItem>,
     );
 
     const item = container.firstChild as HTMLElement;
@@ -96,6 +93,7 @@ describe("SortableItem", () => {
       attributes: {},
       listeners: {},
       setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
       transform: null,
       transition: null,
       isDragging: false,
@@ -104,7 +102,7 @@ describe("SortableItem", () => {
     render(
       // biome-ignore lint/correctness/useUniqueElementIds: Static IDs in tests
       <SortableItem disabled={true} id="test-id">
-        <div>Test Content</div>
+        {() => <div>Test Content</div>}
       </SortableItem>,
     );
 

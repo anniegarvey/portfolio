@@ -1,6 +1,10 @@
 "use client";
 
-import { Check, CopyPlus, Pencil, X } from "lucide-react";
+import type {
+  DraggableAttributes,
+  DraggableSyntheticListeners,
+} from "@dnd-kit/core";
+import { Check, CopyPlus, GripVertical, Pencil, X } from "lucide-react";
 import { css, styled } from "next-yak";
 import { useEnergyPlanner } from "../../lib/energy-planner/context";
 import type { Task } from "../../lib/energy-planner/schema";
@@ -14,6 +18,11 @@ interface PlannerTaskCardProps {
   onToggleCompletion?: (taskId: string) => void;
   onRemove?: (taskId: string) => void;
   onAdd?: (taskId: string) => void;
+  dragHandleProps?: {
+    listeners: DraggableSyntheticListeners;
+    attributes: DraggableAttributes;
+    ref: (node: HTMLElement | null) => void;
+  };
 }
 
 export function PlannerTaskCard({
@@ -25,11 +34,22 @@ export function PlannerTaskCard({
   onToggleCompletion,
   onRemove,
   onAdd,
+  dragHandleProps,
 }: PlannerTaskCardProps) {
   const { energyTypes } = useEnergyPlanner();
 
   return (
     <Card $completed={completed} $selected={selected}>
+      {dragHandleProps && (
+        <DragHandle
+          {...dragHandleProps.listeners}
+          {...dragHandleProps.attributes}
+          aria-label={`Reorder task: ${task.title}`}
+          ref={dragHandleProps.ref}
+        >
+          <GripVertical size={20} />
+        </DragHandle>
+      )}
       <TaskContent $completed={completed}>
         <TaskTitle>{task.title}</TaskTitle>
         <EnergyBadges>
@@ -89,6 +109,26 @@ export function PlannerTaskCard({
   );
 }
 
+const DragHandle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-right: 4px;
+  color: var(--color-grey-400);
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+    color: var(--color-grey-600);
+  }
+
+  &:hover {
+    color: var(--color-grey-500);
+  }
+`;
+
 const Card = styled.article<{ $selected?: boolean; $completed?: boolean }>`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
   padding: 12px;
@@ -115,7 +155,7 @@ const Card = styled.article<{ $selected?: boolean; $completed?: boolean }>`
       opacity: 0.8;
     `}
 
-  &:hover {
+  &:has(${DragHandle}:hover) {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }

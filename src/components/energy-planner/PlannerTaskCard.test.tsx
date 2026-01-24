@@ -1,3 +1,7 @@
+import type {
+  DraggableAttributes,
+  DraggableSyntheticListeners,
+} from "@dnd-kit/core";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -258,5 +262,32 @@ describe("PlannerTaskCard", () => {
     });
 
     expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
+  });
+  it("renders drag handle when dragHandleProps are provided", () => {
+    const mockOnEdit = vi.fn();
+    const dragHandleProps = {
+      listeners: {
+        onPointerDown: vi.fn(),
+      } as unknown as DraggableSyntheticListeners,
+      attributes: {
+        "data-testid": "drag-handle",
+        "aria-pressed": false,
+        role: "button",
+        tabIndex: 0,
+      } as unknown as DraggableAttributes,
+      ref: vi.fn(),
+    };
+
+    render(
+      <PlannerTaskCard
+        dragHandleProps={dragHandleProps}
+        onEdit={mockOnEdit}
+        task={mockTask}
+      />,
+      { wrapper },
+    );
+
+    const handle = screen.getByLabelText("Reorder task: Test Task");
+    expect(handle).toBeInTheDocument();
   });
 });
