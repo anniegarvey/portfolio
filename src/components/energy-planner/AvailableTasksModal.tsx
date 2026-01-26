@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { styled } from "next-yak";
+import { useState } from "react";
 import type { Task } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { Modal } from "../Modal";
@@ -27,6 +28,7 @@ interface AvailableTasksModalProps {
   isOpen: boolean;
   onClose: () => void;
   availableTasks: Task[];
+  repeatingTasks: Task[];
   onOpenCreateTask: () => void;
   onEditTask: (task: Task) => void;
   onAddTask: (taskId: string) => void;
@@ -37,11 +39,16 @@ export function AvailableTasksModal({
   isOpen,
   onClose,
   availableTasks,
+  repeatingTasks,
   onOpenCreateTask,
   onEditTask,
   onAddTask,
   onReorderTasks,
 }: AvailableTasksModalProps) {
+  const [activeTab, setActiveTab] = useState<"one-off" | "repeating">(
+    "one-off",
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -75,38 +82,74 @@ export function AvailableTasksModal({
             New Task
           </CreateTaskButton>
         </ModalActions>
-        <DndContext
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis]}
-          onDragEnd={handleDragEnd}
-          sensors={sensors}
-        >
-          <SortableContext
-            items={availableTasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
+
+        <TabList>
+          <Tab
+            $active={activeTab === "one-off"}
+            onClick={() => setActiveTab("one-off")}
           >
-            {availableTasks.length === 0 ? (
-              <ModalEmptyState>
-                No tasks available. Create a new task to get started!
-              </ModalEmptyState>
+            One-Off Tasks
+          </Tab>
+          <Tab
+            $active={activeTab === "repeating"}
+            onClick={() => setActiveTab("repeating")}
+          >
+            Repeating Tasks
+          </Tab>
+        </TabList>
+
+        {activeTab === "one-off" && (
+          <DndContext
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEnd}
+            sensors={sensors}
+          >
+            <SortableContext
+              items={availableTasks.map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {availableTasks.length === 0 ? (
+                <ModalEmptyState>
+                  No one-off tasks available. Create a new task to get started!
+                </ModalEmptyState>
+              ) : (
+                <ModalTaskList>
+                  {availableTasks.map((task) => (
+                    <SortableItem id={task.id} key={task.id}>
+                      {({ dragHandleProps }) => (
+                        <PlannerTaskCard
+                          dragHandleProps={dragHandleProps}
+                          onAdd={onAddTask}
+                          onEdit={onEditTask}
+                          task={task}
+                        />
+                      )}
+                    </SortableItem>
+                  ))}
+                </ModalTaskList>
+              )}
+            </SortableContext>
+          </DndContext>
+        )}
+
+        {activeTab === "repeating" && (
+          <ModalTaskList>
+            {repeatingTasks.length === 0 ? (
+              <ModalEmptyState>No repeating tasks configured.</ModalEmptyState>
             ) : (
-              <ModalTaskList>
-                {availableTasks.map((task) => (
-                  <SortableItem id={task.id} key={task.id}>
-                    {({ dragHandleProps }) => (
-                      <PlannerTaskCard
-                        dragHandleProps={dragHandleProps}
-                        onAdd={onAddTask}
-                        onEdit={onEditTask}
-                        task={task}
-                      />
-                    )}
-                  </SortableItem>
-                ))}
-              </ModalTaskList>
+              repeatingTasks.map((task) => (
+                <PlannerTaskCard
+                  key={task.id}
+                  // No drag handle for repeating tasks list (for now)
+                  // No onAdd (automatically planned)
+                  onEdit={onEditTask}
+                  task={task}
+                />
+              ))
             )}
-          </SortableContext>
-        </DndContext>
+          </ModalTaskList>
+        )}
       </ModalContent>
     </Modal>
   );
@@ -153,4 +196,27 @@ const ModalTaskList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+`;
+
+const TabList = styled.div`
+    display: flex;
+    gap: 1rem;
+    border-bottom: 2px solid var(--color-grey-200);
+    margin-bottom: 1rem;
+`;
+
+const Tab = styled.button<{ $active?: boolean }>`
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    color: ${({ $active }) => ($active ? "var(--color-primary-100)" : "var(--color-grey-500)")};
+    border-bottom: 2px solid ${({ $active }) => ($active ? "var(--color-primary-600)" : "transparent")};
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        color: var(--color-primary-200);
+    }
 `;

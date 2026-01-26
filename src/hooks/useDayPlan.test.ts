@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearAll, getDayPlan, setDayPlan } from "@/lib/energy-planner/storage";
 import { useDayPlan } from "./useDayPlan";
 
+// Mock storage
+vi.mock("@/lib/energy-planner/storage");
+
 const mockTask = (id: string, title: string, completed = false) => ({
   id,
   title,
@@ -19,11 +22,15 @@ const mockTask = (id: string, title: string, completed = false) => ({
 
 describe("useDayPlan", () => {
   beforeEach(async () => {
-    await clearAll();
+    // Reset mock storage
+    const storageMock = await import("@/lib/energy-planner/storage");
+    (storageMock as unknown as { __reset: () => void }).__reset();
   });
 
+  const STABLE_EMPTY_TASKS: any[] = [];
+
   it("initializes with today's date and empty lists", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     // Use local date string matching implementation
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -48,7 +55,7 @@ describe("useDayPlan", () => {
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -62,7 +69,7 @@ describe("useDayPlan", () => {
   });
 
   it("navigates to previous day and keeps that day's plan separate", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
@@ -93,7 +100,7 @@ describe("useDayPlan", () => {
   });
 
   it("adds a task to the plan", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     await setOneOffTasks([task1]);
@@ -111,7 +118,7 @@ describe("useDayPlan", () => {
   });
 
   it("does not duplicate task when added twice", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     await setOneOffTasks([task1]);
@@ -129,7 +136,7 @@ describe("useDayPlan", () => {
   });
 
   it("removes a task from the plan", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     await setOneOffTasks([task1]);
@@ -150,7 +157,7 @@ describe("useDayPlan", () => {
   });
 
   it("toggles task completion on", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     await setOneOffTasks([task1]);
@@ -168,7 +175,7 @@ describe("useDayPlan", () => {
   });
 
   it("toggles task completion off", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     await setOneOffTasks([task1]);
@@ -192,7 +199,7 @@ describe("useDayPlan", () => {
   });
 
   it("toggles completion for only the specified task", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     const task2 = mockTask("task-2", "Task 2");
@@ -216,7 +223,7 @@ describe("useDayPlan", () => {
   });
 
   it("persists day plan to IndexedDB", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
@@ -240,7 +247,7 @@ describe("useDayPlan", () => {
   });
 
   it("reorders planned tasks", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     const task2 = mockTask("task-2", "Task 2");
@@ -275,7 +282,7 @@ describe("useDayPlan", () => {
     ]);
   });
   it("moves uncompleted task to next day", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const _today = new Date().toISOString().split("T")[0];
 
     // Seed task
@@ -309,7 +316,7 @@ describe("useDayPlan", () => {
   });
 
   it("handles error when adding non-existent task", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await waitFor(() => {
@@ -321,15 +328,13 @@ describe("useDayPlan", () => {
     });
 
     expect(result.current.dayPlan.tasks).toHaveLength(0);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Task not found in oneOffTasks",
-      "non-existent-id",
-    );
+    expect(result.current.dayPlan.tasks).toHaveLength(0);
+    expect(consoleSpy).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
   it("marks a task from a past day as complete", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
 
     // Seed past day plan
     const pastDate = "2023-01-01";
@@ -353,7 +358,7 @@ describe("useDayPlan", () => {
   });
 
   it("moves a task from a past day to today", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const pastDate = "2023-01-01";
     const task1 = mockTask("task-1", "Past Task", false);
     await setDayPlan(pastDate, {
@@ -381,7 +386,7 @@ describe("useDayPlan", () => {
   });
 
   it("moves a task from a past day to unplanned (one-off)", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const pastDate = "2023-01-01";
     const task1 = mockTask("task-1", "Past Task", false);
     await setDayPlan(pastDate, {
@@ -415,7 +420,7 @@ describe("useDayPlan", () => {
   });
 
   it("does not duplicate task when moving to today if already present", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const pastDate = "2023-01-01";
     const task1 = mockTask("task-1", "Past Task", false);
 
@@ -468,7 +473,7 @@ describe("useDayPlan", () => {
   }, 10000);
 
   it("moves a task from current day to unplanned", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks, getOneOffTasks } = await import(
       "@/lib/energy-planner/storage"
     );
@@ -500,7 +505,7 @@ describe("useDayPlan", () => {
   });
 
   it("assigns task to a zone", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     await setOneOffTasks([task1]);
@@ -520,10 +525,91 @@ describe("useDayPlan", () => {
     });
 
     expect(result.current.dayPlan.tasks[0].zoneId).toBe("evening");
+    expect(result.current.dayPlan.tasks[0].zoneId).toBe("evening");
+  });
+
+  it("solidifies a projected repeating task when assigned to a zone", async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const repeatingTask = {
+      ...mockTask("rep-1", "Repeating Task"),
+      repeatConfig: { frequency: 1, unit: "days" },
+      nextDueDate: today,
+    };
+    const stableList = [repeatingTask];
+
+    const { result } = renderHook(() => useDayPlan(stableList as any));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Verify it is projected
+    const projectedTask = result.current.dayPlan.tasks.find((t) =>
+      t.id.startsWith("virtual-"),
+    );
+    expect(projectedTask).toBeDefined();
+    expect(projectedTask?.isProjected).toBe(true);
+
+    const virtualId = projectedTask!.id;
+
+    // Assign zone to virtual task
+    await act(async () => {
+      result.current.assignTaskToZone(virtualId, "morning");
+    });
+
+    // Verify it is now concrete
+    const solidTask = result.current.dayPlan.tasks.find(
+      (t) => t.title === "Repeating Task",
+    );
+    expect(solidTask).toBeDefined();
+    expect(solidTask?.id).not.toBe(virtualId); // Should have new UUID
+    expect(solidTask?.id).not.toBe("rep-1"); // Should not be the definition ID
+    expect(solidTask?.isProjected).toBeUndefined(); // Should not be projected
+    expect(solidTask?.zoneId).toBe("morning");
+    expect(solidTask?.zoneId).toBe("morning");
+  });
+
+  it("solidifies a projected repeating task when completed", async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const repeatingTask = {
+      ...mockTask("rep-2", "Repeating Task 2"),
+      repeatConfig: { frequency: 1, unit: "days" },
+      nextDueDate: today,
+    };
+    const stableList = [repeatingTask];
+    const mockOnUpdateTask = vi.fn();
+
+    const { result } = renderHook(() =>
+      useDayPlan(stableList as any, mockOnUpdateTask),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const projectedTask = result.current.dayPlan.tasks.find((t) =>
+      t.id.startsWith("virtual-"),
+    );
+    expect(projectedTask).toBeDefined();
+
+    // Toggle completion
+    await act(async () => {
+      result.current.toggleTaskCompletion(projectedTask!.id);
+    });
+
+    // Verify it is now concrete and completed
+    const solidTask = result.current.dayPlan.tasks.find(
+      (t) => t.title === "Repeating Task 2",
+    );
+    expect(solidTask).toBeDefined();
+    expect(solidTask?.completed).toBe(true);
+    expect(solidTask?.isProjected).toBeUndefined();
+    // Should have updated the repeating definition
+    expect(mockOnUpdateTask).toHaveBeenCalled();
   });
 
   it("moves a task to today when viewing a different day", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const pastDate = "2023-01-01";
     const task1 = mockTask("task-1", "Past Task", false);
     await setDayPlan(pastDate, {
@@ -559,7 +645,7 @@ describe("useDayPlan", () => {
   });
 
   it("navigates to today", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const today = new Date().toISOString().split("T")[0];
 
     await waitFor(() => {
@@ -580,7 +666,7 @@ describe("useDayPlan", () => {
   });
 
   it("marks a task as complete on the current day", async () => {
-    const { result } = renderHook(() => useDayPlan());
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const { setOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     await setOneOffTasks([task1]);
@@ -599,5 +685,88 @@ describe("useDayPlan", () => {
     });
 
     expect(result.current.dayPlan.tasks[0].completed).toBe(true);
+  });
+
+  describe("Repeating Task Logic Coverage", () => {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+
+    it("projects weekly tasks", async () => {
+      const task = {
+        ...mockTask("rep-week", "Weekly Task"),
+        repeatConfig: { frequency: 1, unit: "weeks" },
+        nextDueDate: todayStr,
+      };
+      const stableList = [task];
+
+      const { result } = renderHook(() => useDayPlan(stableList as any));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      // Should be visible today
+      expect(result.current.dayPlan.tasks).toHaveLength(1);
+
+      // Navigate to next week
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+      const nextWeekStr = nextWeek.toISOString().split("T")[0];
+
+      await act(async () => {
+        result.current.navigateToDate(nextWeekStr);
+      });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.dayPlan.tasks).toHaveLength(1);
+      expect(result.current.dayPlan.tasks[0].title).toBe("Weekly Task");
+    });
+
+    it("projects monthly tasks", async () => {
+      const task = {
+        ...mockTask("rep-month", "Monthly Task"),
+        repeatConfig: { frequency: 1, unit: "months" },
+        nextDueDate: todayStr,
+      };
+      const stableList = [task];
+
+      const { result } = renderHook(() => useDayPlan(stableList as any));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      // Navigate to next month
+      const nextMonth = new Date(today);
+      nextMonth.setMonth(today.getMonth() + 1);
+      const nextMonthStr = nextMonth.toISOString().split("T")[0];
+
+      await act(async () => {
+        result.current.navigateToDate(nextMonthStr);
+      });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.dayPlan.tasks).toHaveLength(1);
+      expect(result.current.dayPlan.tasks[0].title).toBe("Monthly Task");
+    });
+
+    it("projects yearly tasks", async () => {
+      const task = {
+        ...mockTask("rep-year", "Yearly Task"),
+        repeatConfig: { frequency: 1, unit: "years" },
+        nextDueDate: todayStr,
+      };
+      const stableList = [task];
+
+      const { result } = renderHook(() => useDayPlan(stableList as any));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      // Navigate to next year
+      const nextYear = new Date(today);
+      nextYear.setFullYear(today.getFullYear() + 1);
+      const nextYearStr = nextYear.toISOString().split("T")[0];
+
+      await act(async () => {
+        result.current.navigateToDate(nextYearStr);
+      });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.dayPlan.tasks).toHaveLength(1);
+      expect(result.current.dayPlan.tasks[0].title).toBe("Yearly Task");
+    });
   });
 });

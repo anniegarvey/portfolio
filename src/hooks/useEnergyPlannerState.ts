@@ -11,6 +11,17 @@ import { getUncompletedTasks } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
+    tasks,
+    repeatingTasks,
+    isLoading: tasksLoading,
+    addTask: addTaskBase,
+    updateTask,
+    removeTaskState,
+    reorderTasks,
+    addTaskToAvailable,
+    removeTaskFromAvailable,
+  } = useTasks();
+  const {
     currentDate,
     dayPlan,
     dayPlanVersion,
@@ -28,17 +39,7 @@ export function useEnergyPlannerState() {
     moveTaskToUnplanned: moveTaskToUnplannedBase,
     reorderPlannedTasks,
     assignTaskToZone,
-  } = useDayPlan();
-  const {
-    tasks,
-    isLoading: tasksLoading,
-    addTask,
-    updateTask,
-    removeTaskState,
-    reorderTasks,
-    addTaskToAvailable,
-    removeTaskFromAvailable,
-  } = useTasks();
+  } = useDayPlan(repeatingTasks, updateTask);
   const {
     energyTypes,
     isLoading: typesLoading,
@@ -60,7 +61,7 @@ export function useEnergyPlannerState() {
     { task: Task; fromDate: string }[]
   >([]);
 
-  // Available tasks are just the one-off tasks
+  // Available tasks are just the one-off tasks (repeating tasks are separate)
   const availableTasks = tasks;
 
   // Load uncompleted tasks from previous days
@@ -75,15 +76,32 @@ export function useEnergyPlannerState() {
     })();
   }, [tasksLoading, currentDate, dayPlanVersion]);
 
+  const addTask = useCallback(
+    (taskData: Omit<Task, "id" | "createdAt">) => {
+      const newTask = addTaskBase(taskData);
+
+      // If it's repeating, the projection logic in useDayPlan will handle showing it
+      // based on the nextDueDate (which defaults to today for new tasks).
+      // So no need to manually add to plan.
+
+      return newTask;
+    },
+    [addTaskBase],
+  );
+
   // Wrap addToPlan to also remove from local tasks state
   const addToPlan = useCallback(
     async (taskId: string, zoneId?: string) => {
       // Update storage and day plan first
       await addToPlanBase(taskId, zoneId);
-      // Then remove from local state
-      removeTaskFromAvailable(taskId);
+      // Then remove from local state (ONLY if it's one-off)
+      // Check if it is a repeating task - we can check existence in repeatingTasks list
+      // Note: repeatingTasks is available in closure scope
+      if (!repeatingTasks.some((t) => t.id === taskId)) {
+        removeTaskFromAvailable(taskId);
+      }
     },
-    [addToPlanBase, removeTaskFromAvailable],
+    [addToPlanBase, removeTaskFromAvailable, repeatingTasks],
   );
 
   // Wrap removeFromPlan to also add back to local tasks state
@@ -206,6 +224,7 @@ export function useEnergyPlannerState() {
     checkExceedsCapacity,
     uncompletedTasks,
     availableTasks,
+    repeatingTasks,
     energyTypes,
     addEnergyType,
     updateEnergyType,

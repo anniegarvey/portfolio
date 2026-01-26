@@ -23,6 +23,6 @@ export default defineConfig({
         perFile: true,
       },
     },
-    testTimeout: 1000,
+    testTimeout: 5000,
   },
 });

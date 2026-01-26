@@ -6,11 +6,20 @@ import type { EnergyCost, Task } from "@/lib/energy-planner/schema";
 
 interface UseTaskFormProps {
   initialData?: Task;
+  initialContext?: {
+    date: string; // The date we are viewing/planning for
+    zoneId?: string; // The zone we clicked "Add Task" from
+  };
   onClose?: () => void;
 }
 
-export function useTaskForm({ initialData, onClose }: UseTaskFormProps) {
-  const { addTask, updateTask } = useEnergyPlanner();
+export function useTaskForm({
+  initialData,
+  initialContext,
+  onClose,
+}: UseTaskFormProps) {
+  const { addTask, updateTask, addToPlan, assignTaskToZone, isLoading } =
+    useEnergyPlanner();
   const formId = useId();
   const [title, setTitle] = useState(initialData?.title || "");
   const [energyCost, setEnergyCost] = useState<EnergyCost>(
@@ -24,29 +33,92 @@ export function useTaskForm({ initialData, onClose }: UseTaskFormProps) {
     },
   );
 
+  // Repeating Task State
+  const [isRepeating, setIsRepeating] = useState(!!initialData?.repeatConfig);
+  const [frequency, setFrequency] = useState(
+    initialData?.repeatConfig?.frequency || 1,
+  );
+  const [unit, setUnit] = useState<"days" | "weeks" | "months" | "years">(
+    initialData?.repeatConfig?.unit || "days",
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title) return;
+    if (!title || isLoading) return;
 
-    const taskData = { title, energyCost, factors };
+    const taskData: Partial<Task> = {
+      title,
+      energyCost,
+      factors,
+    };
+
+    if (isRepeating) {
+      taskData.repeatConfig = { frequency, unit };
+    } else {
+      taskData.repeatConfig = undefined;
+    }
 
     if (initialData) {
       updateTask({ ...initialData, ...taskData });
     } else {
-      addTask({ ...taskData, description: "" });
+      handleCreate(taskData);
     }
 
     if (onClose) {
       onClose();
     } else {
-      setTitle("");
-      setEnergyCost({ physical: 10, social: 10, executive: 10 });
-      setFactors({
-        initiationDifficulty: 5,
-        terminationDifficulty: 5,
-        isRestorative: false,
-      });
+      resetForm();
     }
+  };
+
+  const handleCreate = (taskData: Partial<Task>) => {
+    const baseData = { ...taskData, description: "" } as Omit<
+      Task,
+      "id" | "createdAt"
+    >;
+
+    // Check if we are creating a repeating task from a specific context
+    if (isRepeating && initialContext?.date) {
+      // augment with nextDueDate for Immediate Start
+      const dataWithDate = {
+        ...baseData,
+        nextDueDate: initialContext.date,
+      } as any;
+      const newRepeatingTask = addTask(dataWithDate);
+
+      // If we have a zoneId, we must implicitly assign the first instance to that zone
+      if (initialContext.zoneId) {
+        // We know useDayPlan projects instances with this deterministic ID format
+        const virtualId = `virtual-${newRepeatingTask.id}-${initialContext.date}`;
+        assignTaskToZone(virtualId, initialContext.zoneId);
+      }
+      return;
+    }
+
+    // Standard creation
+    const newTask = addTask(baseData);
+
+    // If we have context (and it's not repeating), plan it immediately!
+    if (newTask && !isRepeating && initialContext?.date) {
+      if (initialContext.zoneId) {
+        addToPlan(newTask.id, initialContext.zoneId);
+      } else {
+        addToPlan(newTask.id);
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setEnergyCost({ physical: 10, social: 10, executive: 10 });
+    setFactors({
+      initiationDifficulty: 5,
+      terminationDifficulty: 5,
+      isRestorative: false,
+    });
+    setIsRepeating(false);
+    setFrequency(1);
+    setUnit("days");
   };
 
   return {
@@ -56,7 +128,14 @@ export function useTaskForm({ initialData, onClose }: UseTaskFormProps) {
     setEnergyCost,
     factors,
     setFactors,
+    isRepeating,
+    setIsRepeating,
+    frequency,
+    setFrequency,
+    unit,
+    setUnit,
     handleSubmit,
     formId,
+    isLoading,
   };
 }

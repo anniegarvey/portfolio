@@ -30,7 +30,7 @@ import { ZoneSection } from "./ZoneSection";
 
 interface DayPlannerProps {
   onEditTask: (task: Task) => void;
-  onOpenCreateTask: () => void;
+  onOpenCreateTask: (context?: { date: string; zoneId?: string }) => void;
 }
 
 export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
@@ -45,6 +45,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     energyTypes,
     uncompletedTasks,
     availableTasks,
+    repeatingTasks,
     reorderPlannedTasks,
     reorderTasks,
     zones,
@@ -174,6 +175,17 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     setIsZoneManagerOpen(true);
   };
 
+  const handleCreateTask = () => {
+    // Pass current context (date and active zone)
+    onOpenCreateTask({
+      date: currentDate,
+      zoneId: activeZoneId || undefined,
+    });
+    // We can close the available tasks modal since the create modal will open
+    setIsModalOpen(false);
+    setActiveZoneId(null);
+  };
+
   return (
     <Container>
       <Header>
@@ -265,8 +277,9 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
           setActiveZoneId(null);
         }}
         onEditTask={onEditTask}
-        onOpenCreateTask={onOpenCreateTask}
+        onOpenCreateTask={handleCreateTask}
         onReorderTasks={reorderTasks}
+        repeatingTasks={repeatingTasks}
       />
 
       <ZoneManagerModal

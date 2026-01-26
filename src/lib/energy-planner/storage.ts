@@ -4,6 +4,7 @@ import type {
   EnergyCost,
   EnergyTypeConfig,
   PlannedTask,
+  RepeatingTask,
   Task,
   ZoneConfig,
 } from "./schema";
@@ -17,6 +18,7 @@ const store = createStore("energy-planner-db", "data");
 // Storage keys
 const KEYS = {
   oneOffTasks: "one-off-tasks",
+  repeatingTasks: "repeating-tasks",
   types: "types",
   zones: "zones",
 } as const;
@@ -40,6 +42,17 @@ export async function getOneOffTasks(): Promise<Task[]> {
 
 export async function setOneOffTasks(tasks: Task[]): Promise<void> {
   await set(KEYS.oneOffTasks, tasks, store);
+}
+
+// === Repeating Tasks ===
+
+export async function getRepeatingTasks(): Promise<RepeatingTask[]> {
+  const tasks = await get<RepeatingTask[]>(KEYS.repeatingTasks, store);
+  return tasks ?? [];
+}
+
+export async function setRepeatingTasks(tasks: RepeatingTask[]): Promise<void> {
+  await set(KEYS.repeatingTasks, tasks, store);
 }
 
 // === Energy Types ===

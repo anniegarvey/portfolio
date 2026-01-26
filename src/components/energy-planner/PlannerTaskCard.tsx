@@ -4,7 +4,14 @@ import type {
   DraggableAttributes,
   DraggableSyntheticListeners,
 } from "@dnd-kit/core";
-import { Check, CopyPlus, GripVertical, Pencil, X } from "lucide-react";
+import {
+  Check,
+  CopyPlus,
+  GripVertical,
+  Pencil,
+  RotateCw,
+  X,
+} from "lucide-react";
 import { css, styled } from "next-yak";
 import { useEnergyPlanner } from "../../lib/energy-planner/context";
 import type { Task } from "../../lib/energy-planner/schema";
@@ -39,7 +46,11 @@ export function PlannerTaskCard({
   const { energyTypes } = useEnergyPlanner();
 
   return (
-    <Card $completed={completed} $selected={selected}>
+    <Card
+      $completed={completed}
+      $isProjected={(task as any).isProjected}
+      $selected={selected}
+    >
       {dragHandleProps && (
         <DragHandle
           {...dragHandleProps.listeners}
@@ -51,7 +62,14 @@ export function PlannerTaskCard({
         </DragHandle>
       )}
       <TaskContent $completed={completed}>
-        <TaskTitle>{task.title}</TaskTitle>
+        <TaskTitleRow>
+          {task.repeatConfig && (
+            <RepeatIconWrapper title="Repeating Task">
+              <RotateCw size={14} />
+            </RepeatIconWrapper>
+          )}
+          <TaskTitle>{task.title}</TaskTitle>
+        </TaskTitleRow>
         <EnergyBadges>
           {energyTypes.map((type) => {
             const value = task.energyCost[type.id] || 0;
@@ -90,12 +108,13 @@ export function PlannerTaskCard({
             aria-label="Remove from day"
             onClick={() => onRemove(task.id)}
             title="Remove from day"
+            // Start of Selection
           >
             <X size={18} />
           </ActionButton>
         )}
 
-        {!selected && onAdd && !isPastDay && (
+        {!selected && onAdd && !isPastDay && !(task as any).repeatConfig && (
           <ActionButton
             aria-label="Add to day"
             onClick={() => onAdd(task.id)}
@@ -129,7 +148,11 @@ const DragHandle = styled.div`
   }
 `;
 
-const Card = styled.article<{ $selected?: boolean; $completed?: boolean }>`
+const Card = styled.article<{
+  $selected?: boolean;
+  $completed?: boolean;
+  $isProjected?: boolean;
+}>`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
   padding: 12px;
   border-radius: 4px;
@@ -140,11 +163,20 @@ const Card = styled.article<{ $selected?: boolean; $completed?: boolean }>`
   gap: 8px;
   transition: transform 0.1s;
 
+  ${({ $isProjected }) =>
+    $isProjected &&
+    css`
+        background-color: light-dark(var(--color-blue-50), var(--color-blue-950));
+        border-style: dashed;
+        border-color: var(--color-blue-300);
+    `}
+
   ${({ $selected }) =>
     $selected &&
     css`
       border-color: var(--color-primary-300);
       background-color: light-dark(var(--color-primary-50), var(--color-primary-950));
+      border-style: solid; 
   `}
 
   ${({ $completed }: { $completed?: boolean }) =>
@@ -171,9 +203,21 @@ const TaskContent = styled.div<{ $completed?: boolean }>`
   `}
 `;
 
+const TaskTitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0.25rem;
+`;
+
 const TaskTitle = styled.div`
   font-weight: 500;
-  margin-bottom: 0.25rem;
+`;
+
+const RepeatIconWrapper = styled.div`
+    color: var(--color-grey-500);
+    display: flex;
+    align-items: center;
 `;
 
 const EnergyBadges = styled.div`

@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import type { Task, ZoneConfig } from "@/lib/energy-planner/schema";
 
 let mockTasks: Task[] = [];
+let mockRepeatingTasks: any[] = [];
 let mockCapacity = { physical: 100, social: 100, executive: 100 };
 // biome-ignore lint/suspicious/noExplicitAny: Mock storage
 let mockDayPlans: Record<string, any> = {};
@@ -9,6 +10,12 @@ let mockDayPlans: Record<string, any> = {};
 export const getOneOffTasks = vi.fn(async () => [...mockTasks]);
 export const setOneOffTasks = vi.fn((tasks) => {
   mockTasks = [...tasks];
+  return Promise.resolve();
+});
+
+export const getRepeatingTasks = vi.fn(async () => [...mockRepeatingTasks]);
+export const setRepeatingTasks = vi.fn((tasks) => {
+  mockRepeatingTasks = [...tasks];
   return Promise.resolve();
 });
 
@@ -48,6 +55,7 @@ export const setEnergyTypes = vi.fn(() => Promise.resolve());
 
 export const clearAll = vi.fn(async () => {
   mockTasks = [];
+  mockRepeatingTasks = [];
   mockDayPlans = {};
   mockCapacity = { physical: 100, social: 100, executive: 100 };
 });
@@ -63,6 +71,7 @@ export const setZones = vi.fn((zones) => {
 
 export const __reset = () => {
   mockTasks = [];
+  mockRepeatingTasks = [];
   mockCapacity = { physical: 100, social: 100, executive: 100 };
   mockDayPlans = {};
   mockZones = [];

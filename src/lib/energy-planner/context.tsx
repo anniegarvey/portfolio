@@ -11,8 +11,9 @@ import type {
 } from "./schema";
 
 interface EnergyPlannerContextType {
-  tasks: Task[];
-  addTask: (task: Omit<Task, "id" | "createdAt">) => void;
+  tasks: Task[]; // One-Off Tasks
+  repeatingTasks: Task[];
+  addTask: (task: Omit<Task, "id" | "createdAt">) => Task;
   updateTask: (task: Task) => void;
   removeTask: (taskId: string) => void;
   dailyCapacity: EnergyCost;

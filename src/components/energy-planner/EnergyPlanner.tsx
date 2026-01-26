@@ -34,21 +34,28 @@ export function EnergyPlanner() {
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [creationContext, setCreationContext] = useState<
+    { date: string; zoneId?: string } | undefined
+  >(undefined);
+
   const viewingToday = isToday(currentDate);
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = (context?: { date: string; zoneId?: string }) => {
     setEditingTask(undefined);
+    setCreationContext(context);
     setIsTaskModalOpen(true);
   };
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
+    setCreationContext(undefined); // Editing doesn't use creation context (yet)
     setIsTaskModalOpen(true);
   };
 
   const handleCloseTaskModal = () => {
     setIsTaskModalOpen(false);
     setEditingTask(undefined);
+    setCreationContext(undefined);
   };
 
   const handleExport = () => {
@@ -123,7 +130,11 @@ export function EnergyPlanner() {
           showDescription={false}
           title={editingTask ? "Edit Task" : "Create New Task"}
         >
-          <TaskForm initialData={editingTask} onClose={handleCloseTaskModal} />
+          <TaskForm
+            initialContext={creationContext}
+            initialData={editingTask}
+            onClose={handleCloseTaskModal}
+          />
         </Modal>
       </Layout>
     </MaxWidthWrapper>

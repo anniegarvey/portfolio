@@ -55,6 +55,21 @@ describe("EnergyCostFields", () => {
     });
   });
 
+  it("handles missing energy costs", () => {
+    const incompleteCost = { physical: 50 } as any; // Missing others
+    const mockOnChange = vi.fn();
+
+    render(
+      <EnergyCostFields energyCost={incompleteCost} onChange={mockOnChange} />,
+      { wrapper },
+    );
+
+    // Should default to 0 for missing ones
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    expect(inputs[1].value).toBe("0");
+    expect(inputs[2].value).toBe("0");
+  });
+
   it("calls onChange when social energy is updated", () => {
     const mockOnChange = vi.fn();
     const energyCost = { physical: 10, social: 20, executive: 30 };
