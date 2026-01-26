@@ -64,7 +64,9 @@ export function useTasks() {
       const repeatingTask: RepeatingTask = {
         ...newTask,
         repeatConfig: taskData.repeatConfig,
-        nextDueDate: new Date().toISOString().split("T")[0], // Default to today
+        nextDueDate:
+          (taskData as any).nextDueDate ||
+          new Date().toISOString().split("T")[0],
       };
       setRepeatingTasksState((prev) => [...prev, repeatingTask]);
       return repeatingTask;

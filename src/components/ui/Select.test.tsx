@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "./Select";
 
+// biome-ignore lint/style/useComponentExportOnlyModules: test component
 const TestComponent = () => {
   const [value, setValue] = useState("apple");
   return (

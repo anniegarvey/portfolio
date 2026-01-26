@@ -5,10 +5,13 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { styled } from "next-yak";
 import React from "react";
 
+// biome-ignore lint/style/useComponentExportOnlyModules: primitive export
 export const Select = SelectPrimitive.Root;
 
+// biome-ignore lint/style/useComponentExportOnlyModules: primitive export
 export const SelectGroup = SelectPrimitive.Group;
 
+// biome-ignore lint/style/useComponentExportOnlyModules: primitive export
 export const SelectValue = SelectPrimitive.Value;
 
 export const SelectTrigger = React.forwardRef<

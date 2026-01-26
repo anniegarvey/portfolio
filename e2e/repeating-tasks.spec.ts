@@ -230,10 +230,7 @@ test.describe("Repeating Tasks", () => {
       .getByTestId("selected-tasks")
       .locator("> div")
       .first(); // First child is first zone usually
-    const addBtn = firstZone.getByRole("button").first();
-    // This might correspond to Manage Zones? No, Manage is text. Add is Icon.
-    // Let's try clicking the first button in the zone which is usually Add.
-
+    const addBtn = firstZone.getByRole("button", { name: "Add Task" });
     await addBtn.click();
 
     const availableModal = page.getByRole("dialog", {

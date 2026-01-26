@@ -1,7 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearAll } from "@/lib/energy-planner/storage";
 import { useTasks } from "./useTasks";
 
 // Reuse the manual mock from storage

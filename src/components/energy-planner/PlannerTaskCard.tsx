@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { css, styled } from "next-yak";
 import { useEnergyPlanner } from "../../lib/energy-planner/context";
-import type { Task } from "../../lib/energy-planner/schema";
+import type { PlannedTask, Task } from "../../lib/energy-planner/schema";
 
 interface PlannerTaskCardProps {
   task: Task;
@@ -48,7 +48,7 @@ export function PlannerTaskCard({
   return (
     <Card
       $completed={completed}
-      $isProjected={(task as any).isProjected}
+      $isProjected={(task as PlannedTask).isProjected}
       $selected={selected}
     >
       {dragHandleProps && (
@@ -114,7 +114,7 @@ export function PlannerTaskCard({
           </ActionButton>
         )}
 
-        {!selected && onAdd && !isPastDay && !(task as any).repeatConfig && (
+        {!selected && onAdd && !isPastDay && !task.repeatConfig && (
           <ActionButton
             aria-label="Add to day"
             onClick={() => onAdd(task.id)}

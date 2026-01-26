@@ -18,7 +18,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
-import { isToday } from "@/hooks/utils";
+import { getTodayDateString, isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { PlannedTask, Task } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
@@ -181,9 +181,6 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
       date: currentDate,
       zoneId: activeZoneId || undefined,
     });
-    // We can close the available tasks modal since the create modal will open
-    setIsModalOpen(false);
-    setActiveZoneId(null);
   };
 
   return (
@@ -237,7 +234,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
           <ZonesContainer data-testid="selected-tasks">
             {zones.map((zone) => (
               <ZoneSection
-                isPastDay={!viewingToday}
+                isPastDay={currentDate < getTodayDateString()}
                 key={zone.id}
                 onAddTask={() => handleOpenModalForZone(zone.id)}
                 onEditTask={onEditTask}

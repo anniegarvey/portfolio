@@ -76,10 +76,12 @@ export function useDayPlan(
       const date = new Date(currentDueDate);
       const { frequency, unit } = config;
 
-      if (unit === "days") date.setDate(date.getDate() + frequency);
-      if (unit === "weeks") date.setDate(date.getDate() + frequency * 7);
-      if (unit === "months") date.setMonth(date.getMonth() + frequency);
-      if (unit === "years") date.setFullYear(date.getFullYear() + frequency);
+      // Use UTC methods to ensure we stay on the correct "Calendar Date" regardless of local time
+      if (unit === "days") date.setUTCDate(date.getUTCDate() + frequency);
+      if (unit === "weeks") date.setUTCDate(date.getUTCDate() + frequency * 7);
+      if (unit === "months") date.setUTCMonth(date.getUTCMonth() + frequency);
+      if (unit === "years")
+        date.setUTCFullYear(date.getUTCFullYear() + frequency);
 
       return date.toISOString().split("T")[0];
     },
@@ -130,7 +132,8 @@ export function useDayPlan(
     return () => {
       cancelled = true;
     };
-  }, [currentDate, repeatingTasks, isTaskDueOnDate]); // Added repeatingTasks dependency
+    // biome-ignore lint/correctness/useExhaustiveDependencies: dayPlan is causal for the basePlan but not a trigger for reload
+  }, [currentDate, repeatingTasks, isTaskDueOnDate]);
 
   // Save day plan when it changes
   useEffect(() => {

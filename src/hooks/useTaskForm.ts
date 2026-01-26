@@ -99,12 +99,14 @@ export function useTaskForm({
     const newTask = addTask(baseData);
 
     // If we have context (and it's not repeating), plan it immediately!
-    if (newTask && !isRepeating && initialContext?.date) {
-      if (initialContext.zoneId) {
-        addToPlan(newTask.id, initialContext.zoneId);
-      } else {
-        addToPlan(newTask.id);
-      }
+    // Only plan if we have a specific ZONE. If it's a global "New Task", just add to pool.
+    if (
+      newTask &&
+      !isRepeating &&
+      initialContext?.date &&
+      initialContext?.zoneId
+    ) {
+      addToPlan(newTask.id, initialContext.zoneId);
     }
   };
 

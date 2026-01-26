@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
-import type { RepeatingTask, Task } from "../../lib/energy-planner/schema";
 import {
   clearAll,
   getOneOffTasks,
@@ -55,8 +54,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 // Helper to type mocks
 import type { Mock } from "vitest";
 
-const mockGetOneOffTasks = getOneOffTasks as unknown as Mock;
-const mockGetRepeatingTasks = getRepeatingTasks as unknown as Mock;
 const mockSetOneOffTasks = setOneOffTasks as unknown as Mock;
 const mockSetRepeatingTasks = setRepeatingTasks as unknown as Mock;
 
