@@ -16,6 +16,7 @@ const mockTask: Task = {
     isRestorative: false,
   },
   createdAt: new Date(),
+  completed: false,
 };
 
 describe("UncompletedTaskCard", () => {

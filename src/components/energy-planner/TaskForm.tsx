@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { useTaskForm } from "@/hooks/useTaskForm";
-import type { Task } from "@/lib/energy-planner/schema";
+import type { RepeatUnit, Task } from "@/lib/energy-planner/schema";
 import { EnergyCostFields } from "./EnergyCostFields";
 import { TaskFactorFields } from "./TaskFactorFields";
 
@@ -85,7 +85,10 @@ export function TaskForm({
             type="number"
             value={frequency}
           />
-          <Select onValueChange={(val: any) => setUnit(val)} value={unit}>
+          <Select
+            onValueChange={(val: RepeatUnit) => setUnit(val)}
+            value={unit}
+          >
             <SelectTrigger aria-label="Repeat Unit">
               <SelectValue placeholder="Unit" />
             </SelectTrigger>

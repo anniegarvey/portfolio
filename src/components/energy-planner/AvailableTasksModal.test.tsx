@@ -1,14 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { EnergyPlannerProvider } from "@/lib/energy-planner/context";
+import type { Task } from "@/lib/energy-planner/schema";
 import { AvailableTasksModal } from "./AvailableTasksModal";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
-);
-
 vi.mock("./PlannerTaskCard", () => ({
-  PlannerTaskCard: ({ task }: { task: any }) => (
+  PlannerTaskCard: ({ task }: { task: Task }) => (
     <div data-testid="task-card">{task.title}</div>
   ),
 }));
@@ -37,8 +33,8 @@ describe("AvailableTasksModal", () => {
     render(
       <AvailableTasksModal
         {...mockProps}
-        availableTasks={[{ id: "1", title: "One Off" } as any]}
-        repeatingTasks={[{ id: "2", title: "Repeating" } as any]}
+        availableTasks={[{ id: "1", title: "One Off" } as Task]}
+        repeatingTasks={[{ id: "2", title: "Repeating" } as Task]}
       />,
     );
 

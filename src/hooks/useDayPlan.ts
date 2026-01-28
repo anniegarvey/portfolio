@@ -2,20 +2,24 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import type { DayPlan, RepeatingTask, Task } from "@/lib/energy-planner/schema";
-import { getOneOffTasks, setOneOffTasks } from "@/lib/energy-planner/storage";
+import type { DayPlan, Task } from "@/lib/energy-planner/schema";
+import {
+  fetchOneOffTasks,
+  storeOneOffTasks,
+} from "@/lib/energy-planner/storage";
 import {
   createEmptyDayPlan,
   defaultCapacity,
-  getDayPlanForDate,
+  fetchDayPlanForDate,
   getNextDay,
   getPreviousDay,
   getTodayDateString,
   saveDayPlanForDate,
 } from "./utils";
 
-function checkIsTaskDue(task: RepeatingTask, date: string): boolean {
-  const start = new Date(task.nextDueDate);
+function checkIsTaskDue(task: Task, date: string): boolean {
+  if (!task.repeatConfig?.nextDueDate) return false;
+  const start = new Date(task.repeatConfig.nextDueDate);
   const target = new Date(date);
 
   // Ignore time components
@@ -51,28 +55,32 @@ function checkIsTaskDue(task: RepeatingTask, date: string): boolean {
 }
 
 export function useDayPlan(
-  repeatingTasks: RepeatingTask[] = [],
+  repeatingTasks: Task[] = [],
   onUpdateTask?: (task: Task) => void,
 ) {
   const [currentDate, setCurrentDate] = useState<string>(getTodayDateString());
   const [isLoading, setIsLoading] = useState(true);
   // Version counter to trigger re-renders when storage is modified for other dates
-  const [dayPlanVersion, setDayPlanVersion] = useState(0);
+  const [dayPlanVersion, storeDayPlanVersion] = useState(0);
   // Initialize with default values - actual data loaded in useEffect for SSR compatibility
-  const [dayPlan, setDayPlan] = useState<DayPlan>({
+  const [dayPlan, storeDayPlan] = useState<DayPlan>({
     date: getTodayDateString(),
     tasks: [],
     dailyCapacity: defaultCapacity,
   });
 
   // Helper to check if a task is due on a given date
-  const isTaskDueOnDate = useCallback((task: RepeatingTask, date: string) => {
+  const isTaskDueOnDate = useCallback((task: Task, date: string) => {
     return checkIsTaskDue(task, date);
   }, []);
 
   // Calculate next due date
   const calculateNextDueDate = useCallback(
-    (currentDueDate: string, config: RepeatingTask["repeatConfig"]): string => {
+    (
+      currentDueDate: string | undefined,
+      config: Task["repeatConfig"],
+    ): string | undefined => {
+      if (!(config && currentDueDate)) return;
       const date = new Date(currentDueDate);
       const { frequency, unit } = config;
 
@@ -94,7 +102,7 @@ export function useDayPlan(
     setIsLoading(true);
 
     (async () => {
-      const stored = await getDayPlanForDate(currentDate);
+      const stored = await fetchDayPlanForDate(currentDate);
       if (cancelled) return;
 
       let basePlan = stored;
@@ -121,7 +129,7 @@ export function useDayPlan(
           isProjected: true,
         }));
 
-      setDayPlan({
+      storeDayPlan({
         ...basePlan,
         tasks: [...basePlan.tasks, ...projectedTasks],
       });
@@ -132,7 +140,6 @@ export function useDayPlan(
     return () => {
       cancelled = true;
     };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: dayPlan is causal for the basePlan but not a trigger for reload
   }, [currentDate, repeatingTasks, isTaskDueOnDate]);
 
   // Save day plan when it changes
@@ -140,7 +147,6 @@ export function useDayPlan(
     if (!isLoading) {
       // Filter out projected tasks before saving!
       const tasksToSave = dayPlan.tasks.filter((t) => !t.isProjected);
-      // Only save if we have actual changes (optimization? checking strict equality might be enough if react handles it)
       // We pass the filtered tasks to save
       saveDayPlanForDate(currentDate, { ...dayPlan, tasks: tasksToSave });
     }
@@ -148,7 +154,7 @@ export function useDayPlan(
 
   const toggleTaskCompletion = useCallback(
     (taskId: string) => {
-      setDayPlan((prev) => {
+      storeDayPlan((prev) => {
         const taskIndex = prev.tasks.findIndex((t) => t.id === taskId);
         if (taskIndex === -1) return prev;
 
@@ -172,7 +178,7 @@ export function useDayPlan(
           );
           if (repeatingTask) {
             const nextDate = calculateNextDueDate(
-              repeatingTask.nextDueDate,
+              repeatingTask.repeatConfig?.nextDueDate,
               repeatingTask.repeatConfig,
             );
             onUpdateTask({ ...repeatingTask, nextDueDate: nextDate } as Task);
@@ -197,14 +203,14 @@ export function useDayPlan(
       if (date === currentDate) {
         toggleTaskCompletion(taskId);
       } else {
-        const plan = await getDayPlanForDate(date);
+        const plan = await fetchDayPlanForDate(date);
         if (plan) {
           const updatedTasks = plan.tasks.map((t) =>
             t.id === taskId ? { ...t, completed: true } : t,
           );
           await saveDayPlanForDate(date, { ...plan, tasks: updatedTasks });
           // Trigger refresh of uncompleted tasks
-          setDayPlanVersion((v) => v + 1);
+          storeDayPlanVersion((v) => v + 1);
         }
       }
     },
@@ -213,8 +219,8 @@ export function useDayPlan(
 
   const addToPlan = useCallback(async (taskId: string, zoneId?: string) => {
     // 1. Get task from one-off store
-    const oneOffTasks = await getOneOffTasks();
-    const taskIndex = oneOffTasks.findIndex((t) => t.id === taskId);
+    const oneOffTasks = await fetchOneOffTasks();
+    const taskIndex = oneOffTasks.findIndex((t: Task) => t.id === taskId);
     if (taskIndex === -1) {
       // Task might already be in the plan (race condition?) or doesn't exist
       // Or it is a repeating task (handled elsewhere)
@@ -225,10 +231,10 @@ export function useDayPlan(
     // 2. Remove from one-off store
     const newOneOffTasks = [...oneOffTasks];
     newOneOffTasks.splice(taskIndex, 1);
-    await setOneOffTasks(newOneOffTasks);
+    await storeOneOffTasks(newOneOffTasks);
 
     // 3. Add to day plan with optional zone assignment
-    setDayPlan((prev) => {
+    storeDayPlan((prev) => {
       // Avoid duplicates just in case
       if (prev.tasks.some((t) => t.id === taskId)) return prev;
       return {
@@ -242,24 +248,22 @@ export function useDayPlan(
     // We typically only remove from the *current* day plan in this hook's context
     // But we need to handle the transaction: remove from day, add to one-off
 
-    // NOTE: We can't easily perform this transaction purely synchronously with setDayPlan
+    // NOTE: We can't easily perform this transaction purely synchronously with storeDayPlan
     // because we need to read/write one-off tasks.
     // However, for UI responsiveness, we update local state immediately.
 
-    setDayPlan((prev) => {
+    storeDayPlan((prev) => {
       const taskToRemove = prev.tasks.find((t) => t.id === taskId);
       if (!taskToRemove) return prev;
 
       // Async side effect to update one-off tasks
       // This is a bit risky if component unmounts, but typical for this simple app
       (async () => {
-        const oneOffTasks = await getOneOffTasks();
+        const oneOffTasks = await fetchOneOffTasks();
         // Check if already there
-        if (!oneOffTasks.some((t) => t.id === taskId)) {
-          // Strip 'completed' when moving back to one-off
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { completed: _completed, ...rawTask } = taskToRemove;
-          await setOneOffTasks([...oneOffTasks, rawTask]);
+        if (!oneOffTasks.some((t: Task) => t.id === taskId)) {
+          taskToRemove.completed = false;
+          await storeOneOffTasks([...oneOffTasks, taskToRemove]);
         }
       })();
 
@@ -276,7 +280,7 @@ export function useDayPlan(
       const today = getTodayDateString();
 
       // 1. Get from old date
-      const oldPlan = await getDayPlanForDate(fromDate);
+      const oldPlan = await fetchDayPlanForDate(fromDate);
       if (!oldPlan) return;
       const taskToMove = oldPlan.tasks.find((t) => t.id === taskId);
       if (!taskToMove) return;
@@ -285,7 +289,7 @@ export function useDayPlan(
       if (currentDate === fromDate) {
         // If we are viewing the fromDate, update state only.
         // The useEffect will handle saving to storage.
-        setDayPlan((prev) => ({
+        storeDayPlan((prev) => ({
           ...prev,
           tasks: prev.tasks.filter((t) => t.id !== taskId),
         }));
@@ -300,7 +304,7 @@ export function useDayPlan(
 
       // 3. Add to today
       if (currentDate === today) {
-        setDayPlan((prev) => {
+        storeDayPlan((prev) => {
           if (prev.tasks.some((t) => t.id === taskId)) return prev;
           return {
             ...prev,
@@ -309,7 +313,8 @@ export function useDayPlan(
         });
       } else {
         const todayPlan =
-          (await getDayPlanForDate(today)) || (await createEmptyDayPlan(today));
+          (await fetchDayPlanForDate(today)) ||
+          (await createEmptyDayPlan(today));
         if (!todayPlan.tasks.some((t) => t.id === taskId)) {
           await saveDayPlanForDate(today, {
             ...todayPlan,
@@ -318,7 +323,7 @@ export function useDayPlan(
         }
       }
       // Trigger refresh of uncompleted tasks
-      setDayPlanVersion((v) => v + 1);
+      storeDayPlanVersion((v) => v + 1);
     },
     [currentDate],
   );
@@ -330,16 +335,16 @@ export function useDayPlan(
         removeFromPlan(taskId);
       } else {
         // Remove from other date's plan
-        const plan = await getDayPlanForDate(fromDate);
+        const plan = await fetchDayPlanForDate(fromDate);
         if (plan) {
           const taskToRemove = plan.tasks.find((t) => t.id === taskId);
           if (taskToRemove) {
             // Add back to one-off
-            const oneOffTasks = await getOneOffTasks();
-            if (!oneOffTasks.some((t) => t.id === taskId)) {
+            const oneOffTasks = await fetchOneOffTasks();
+            if (!oneOffTasks.some((t: Task) => t.id === taskId)) {
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const { ...rawTask } = taskToRemove;
-              await setOneOffTasks([...oneOffTasks, rawTask]);
+              await storeOneOffTasks([...oneOffTasks, rawTask]);
             }
 
             // Save plan
@@ -349,7 +354,7 @@ export function useDayPlan(
               tasks: updatedTasks,
             });
             // Trigger refresh of uncompleted tasks
-            setDayPlanVersion((v) => v + 1);
+            storeDayPlanVersion((v) => v + 1);
           }
         }
       }
@@ -358,7 +363,7 @@ export function useDayPlan(
   );
 
   const reorderPlannedTasksWithIds = useCallback((itemIds: string[]) => {
-    setDayPlan((prev) => {
+    storeDayPlan((prev) => {
       const taskMap = new Map(prev.tasks.map((t) => [t.id, t]));
       const newTasks = itemIds
         .map((id) => taskMap.get(id))
@@ -390,15 +395,15 @@ export function useDayPlan(
     setCurrentDate(getTodayDateString());
   }, []);
 
-  const setDailyCapacity = useCallback((capacity: any) => {
-    setDayPlan((prev) => ({
+  const setDailyCapacity = useCallback((capacity: DayPlan["dailyCapacity"]) => {
+    storeDayPlan((prev) => ({
       ...prev,
       dailyCapacity: capacity,
     }));
   }, []);
 
   const assignTaskToZone = useCallback((taskId: string, zoneId: string) => {
-    setDayPlan((prev) => {
+    storeDayPlan((prev) => {
       const taskIndex = prev.tasks.findIndex((t) => t.id === taskId);
       if (taskIndex === -1) return prev;
 

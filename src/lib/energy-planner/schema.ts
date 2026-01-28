@@ -72,6 +72,7 @@ export type RepeatUnit = z.infer<typeof RepeatUnitSchema>;
 export const RepeatConfigSchema = z.object({
   frequency: z.number().int().min(1),
   unit: RepeatUnitSchema,
+  nextDueDate: z.string().optional(),
 });
 export type RepeatConfig = z.infer<typeof RepeatConfigSchema>;
 
@@ -83,16 +84,9 @@ export const TaskSchema = z.object({
   factors: TaskFactorSchema,
   createdAt: z.date(),
   repeatConfig: RepeatConfigSchema.optional(),
+  completed: z.boolean().default(false),
 });
-
 export type Task = z.infer<typeof TaskSchema>;
-
-export const RepeatingTaskSchema = TaskSchema.extend({
-  nextDueDate: z.string(), // ISO Date string YYYY-MM-DD
-  repeatConfig: RepeatConfigSchema, // Required for RepeatingTask
-});
-
-export type RepeatingTask = z.infer<typeof RepeatingTaskSchema>;
 
 export const PlannedTaskSchema = TaskSchema.extend({
   completed: z.boolean().default(false),
@@ -100,7 +94,6 @@ export const PlannedTaskSchema = TaskSchema.extend({
   repeatingTaskId: z.string().optional(), // Link back to the definition
   isProjected: z.boolean().optional(), // Transient flag for virtual instances
 });
-
 export type PlannedTask = z.infer<typeof PlannedTaskSchema>;
 
 export const DayPlanSchema = z.object({

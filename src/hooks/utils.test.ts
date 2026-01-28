@@ -4,10 +4,10 @@ import { clearAll } from "@/lib/energy-planner/storage";
 import {
   createEmptyDayPlan,
   defaultCapacity,
+  fetchDayPlanForDate,
   formatDateForDisplay,
   generateUniqueKey,
   getAllStoredDates,
-  getDayPlanForDate,
   getDefaultCapacity,
   getNextDay,
   getPreviousDay,
@@ -73,7 +73,7 @@ describe("hooks/utils", () => {
     });
   });
 
-  describe("getDayPlanForDate and saveDayPlanForDate", () => {
+  describe("fetchDayPlanForDate and saveDayPlanForDate", () => {
     it("saves and retrieves day plan", async () => {
       const plan = {
         date: "2026-01-14",
@@ -95,7 +95,7 @@ describe("hooks/utils", () => {
       };
       await saveDayPlanForDate("2026-01-14", plan);
 
-      const retrieved = await getDayPlanForDate("2026-01-14");
+      const retrieved = await fetchDayPlanForDate("2026-01-14");
       // JSON serialization converts Date to string, so we need to match loosely or adjust expectations
       // Using basic structural match
       expect(retrieved?.date).toBe(plan.date);
@@ -104,7 +104,7 @@ describe("hooks/utils", () => {
     });
 
     it("returns null for non-existent date", async () => {
-      const result = await getDayPlanForDate("1999-01-01");
+      const result = await fetchDayPlanForDate("1999-01-01");
       expect(result).toBeNull();
     });
   });

@@ -23,6 +23,7 @@ const mockTask: Task = {
     terminationDifficulty: 1,
     isRestorative: false,
   },
+  completed: false,
 };
 
 describe("PlannerTaskCard", () => {

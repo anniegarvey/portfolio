@@ -2,13 +2,13 @@ import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { DayPlan, EnergyCost, Task } from "./schema";
 import {
-  getAllDayPlanDates,
-  getDayPlan,
-  getEnergyTypes,
-  getOneOffTasks,
-  setDayPlan,
-  setEnergyTypes,
-  setOneOffTasks,
+  fetchAllDayPlanDates,
+  fetchDayPlan,
+  fetchEnergyTypes,
+  fetchOneOffTasks,
+  storeDayPlan,
+  storeEnergyTypes,
+  storeOneOffTasks,
 } from "./storage";
 
 /**
@@ -63,7 +63,7 @@ export interface EnergyPlannerExportData {
   exportDate: string;
   data: {
     oneOffTasks: Task[] | null;
-    energyTypes: Awaited<ReturnType<typeof getEnergyTypes>> | null;
+    energyTypes: Awaited<ReturnType<typeof fetchEnergyTypes>> | null;
     dayPlans: { date: string; plan: DayPlan }[] | null;
   };
 }
@@ -74,11 +74,11 @@ const EXPORT_VERSION = "3.0.0"; // Incremented for task structure change
  * Exports all energy planner data from IndexedDB to a JSON file
  */
 export async function exportEnergyPlannerData(): Promise<void> {
-  const dates = await getAllDayPlanDates();
+  const dates = await fetchAllDayPlanDates();
   const dayPlans: { date: string; plan: DayPlan }[] = [];
 
   for (const date of dates) {
-    const plan = await getDayPlan(date);
+    const plan = await fetchDayPlan(date);
     if (plan) {
       dayPlans.push({ date, plan });
     }
@@ -88,8 +88,8 @@ export async function exportEnergyPlannerData(): Promise<void> {
     version: EXPORT_VERSION,
     exportDate: new Date().toISOString(),
     data: {
-      oneOffTasks: await getOneOffTasks(),
-      energyTypes: (await getEnergyTypes()) ?? null,
+      oneOffTasks: await fetchOneOffTasks(),
+      energyTypes: (await fetchEnergyTypes()) ?? null,
       dayPlans: dayPlans.length > 0 ? dayPlans : null,
     },
   };
@@ -127,14 +127,14 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
 
   // Import the data
   if (data.data.oneOffTasks) {
-    await setOneOffTasks(data.data.oneOffTasks);
+    await storeOneOffTasks(data.data.oneOffTasks);
   }
   if (data.data.energyTypes) {
-    await setEnergyTypes(data.data.energyTypes);
+    await storeEnergyTypes(data.data.energyTypes);
   }
   if (data.data.dayPlans) {
     for (const { date, plan } of data.data.dayPlans) {
-      await setDayPlan(date, plan);
+      await storeDayPlan(date, plan);
     }
   }
 

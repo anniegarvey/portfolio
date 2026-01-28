@@ -26,7 +26,7 @@ describe("useZones", () => {
 
   it("loads zones from storage", async () => {
     const storedZones = [{ id: "z1", name: "Custom Zone", order: 0 }];
-    await storageMock.setZones(storedZones);
+    await storageMock.storeZones(storedZones);
 
     const { result } = renderHook(() => useZones());
 
@@ -87,7 +87,7 @@ describe("useZones", () => {
 
   it("prevents removing the last zone", async () => {
     const storedZones = [{ id: "z1", name: "Only Zone", order: 0 }];
-    await storageMock.setZones(storedZones);
+    await storageMock.storeZones(storedZones);
 
     const { result } = renderHook(() => useZones());
 

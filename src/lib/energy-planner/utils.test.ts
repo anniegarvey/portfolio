@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DayPlan, Task } from "./schema";
 import {
   clearAll,
-  getDayPlan,
-  getEnergyTypes,
-  getOneOffTasks,
-  setEnergyTypes,
-  setOneOffTasks,
+  fetchDayPlan,
+  fetchEnergyTypes,
+  fetchOneOffTasks,
+  storeEnergyTypes,
+  storeOneOffTasks,
 } from "./storage";
 import {
   calculateEnergyUsage,
@@ -26,6 +26,7 @@ const mockTasks: Task[] = [
       terminationDifficulty: 1,
       isRestorative: false,
     },
+    completed: false,
   },
   {
     id: "task-2",
@@ -37,6 +38,7 @@ const mockTasks: Task[] = [
       terminationDifficulty: 1,
       isRestorative: false,
     },
+    completed: false,
   },
   {
     id: "task-3",
@@ -48,6 +50,7 @@ const mockTasks: Task[] = [
       terminationDifficulty: 1,
       isRestorative: false,
     },
+    completed: false,
   },
 ];
 
@@ -98,7 +101,7 @@ describe("exportEnergyPlannerData", () => {
   async function setupExportMocks() {
     await clearAll();
     // Pre-populate storage
-    await setOneOffTasks([
+    await storeOneOffTasks([
       {
         id: "1",
         title: "Test",
@@ -109,9 +112,10 @@ describe("exportEnergyPlannerData", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       },
     ]);
-    await setEnergyTypes([
+    await storeEnergyTypes([
       { id: "physical", label: "Physical", color: "#14b8a6", isPreset: true },
     ]);
 
@@ -244,14 +248,14 @@ describe("importEnergyPlannerData", () => {
     await importEnergyPlannerData(file);
 
     // Verify data was imported
-    const tasks = await getOneOffTasks();
+    const tasks = await fetchOneOffTasks();
     expect(tasks).toHaveLength(1);
     expect(tasks[0].title).toBe("Imported Task");
 
-    const types = await getEnergyTypes();
+    const types = await fetchEnergyTypes();
     expect(types).toHaveLength(1);
 
-    const dayPlan = await getDayPlan("2026-01-01");
+    const dayPlan = await fetchDayPlan("2026-01-01");
     expect(dayPlan?.tasks).toHaveLength(1);
     expect(dayPlan?.tasks[0].id).toBe("1");
 
@@ -331,7 +335,7 @@ describe("importEnergyPlannerData - data handling", () => {
 
     await importEnergyPlannerData(file);
 
-    const tasks = await getOneOffTasks();
+    const tasks = await fetchOneOffTasks();
     expect(tasks).toHaveLength(1);
     expect(reloadSpy).toHaveBeenCalled();
   });

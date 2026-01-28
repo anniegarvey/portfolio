@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { EnergyCost } from "@/lib/energy-planner/schema";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
 import { EnergyCostFields } from "./EnergyCostFields";
 
@@ -56,7 +57,7 @@ describe("EnergyCostFields", () => {
   });
 
   it("handles missing energy costs", () => {
-    const incompleteCost = { physical: 50 } as any; // Missing others
+    const incompleteCost = { physical: 50 } as EnergyCost; // Missing others
     const mockOnChange = vi.fn();
 
     render(

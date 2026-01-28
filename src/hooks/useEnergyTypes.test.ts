@@ -3,8 +3,8 @@ import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearAll,
-  getEnergyTypes,
-  setEnergyTypes,
+  fetchEnergyTypes,
+  storeEnergyTypes,
 } from "@/lib/energy-planner/storage";
 import { useEnergyTypes } from "./useEnergyTypes";
 
@@ -27,7 +27,7 @@ describe("useEnergyTypes", () => {
   });
 
   it("loads energy types from IndexedDB on mount", async () => {
-    await setEnergyTypes([
+    await storeEnergyTypes([
       { id: "custom", label: "Custom", color: "#ff0000", isPreset: false },
     ]);
 
@@ -222,7 +222,7 @@ describe("useEnergyTypes", () => {
     });
 
     await waitFor(async () => {
-      const stored = await getEnergyTypes();
+      const stored = await fetchEnergyTypes();
       expect(stored).toBeDefined();
       expect(stored?.find((t) => t.label === "Persisted")).toBeDefined();
     });

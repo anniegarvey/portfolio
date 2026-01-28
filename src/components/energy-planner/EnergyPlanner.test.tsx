@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, type Mock, test, vi } from "vitest";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
+import type { Task } from "@/lib/energy-planner/schema";
 import {
   exportEnergyPlannerData,
   importEnergyPlannerData,
@@ -20,7 +21,7 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
     onEditTask,
   }: {
     onOpenCreateTask: () => void;
-    onEditTask: (task: any) => void;
+    onEditTask: (task: Task) => void;
   }) => (
     <div data-testid="day-planner">
       Day Planner
@@ -33,7 +34,20 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
       </button>
       <button
         data-testid="edit-task-btn"
-        onClick={() => onEditTask({ id: "1", title: "Test Task" })}
+        onClick={() =>
+          onEditTask({
+            id: "1",
+            title: "Test Task",
+            energyCost: {},
+            createdAt: new Date(),
+            factors: {
+              initiationDifficulty: 0,
+              terminationDifficulty: 0,
+              isRestorative: false,
+            },
+            completed: false,
+          })
+        }
         type="button"
       >
         Edit Task
@@ -95,7 +109,7 @@ describe("EnergyPlanner", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useEnergyPlanner as any).mockReturnValue({
+    (useEnergyPlanner as unknown as Mock).mockReturnValue({
       currentDate: new Date(),
       goToToday: mockGoToToday,
       goToNextDay: mockGoToNextDay,
@@ -157,7 +171,7 @@ describe("EnergyPlanner", () => {
 
   test("handles file import error", async () => {
     // Mock implementation to throw
-    (importEnergyPlannerData as any).mockRejectedValueOnce(
+    (importEnergyPlannerData as unknown as Mock).mockRejectedValueOnce(
       new Error("Invalid format"),
     );
     const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
@@ -180,7 +194,9 @@ describe("EnergyPlanner", () => {
   });
 
   test("handles file import unknown error", async () => {
-    (importEnergyPlannerData as any).mockRejectedValueOnce("Unknown error");
+    (importEnergyPlannerData as unknown as Mock).mockRejectedValueOnce(
+      "Unknown error",
+    );
     const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
 
     render(<EnergyPlanner />);

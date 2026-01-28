@@ -14,7 +14,7 @@ describe("useEnergyPlannerState", () => {
 
   it("initializes with empty tasks", () => {
     const { result } = renderHook(() => useEnergyPlannerState());
-    expect(result.current.tasks).toEqual([]);
+    expect(result.current.oneOffTasks).toEqual([]);
   });
 
   it("initializes with default daily capacity", () => {
@@ -40,11 +40,12 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    expect(result.current.tasks).toHaveLength(1);
-    expect(result.current.tasks[0].title).toBe("Test Task");
+    expect(result.current.oneOffTasks).toHaveLength(1);
+    expect(result.current.oneOffTasks[0].title).toBe("Test Task");
   });
 
   it("updates an existing task", () => {
@@ -60,20 +61,21 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
 
     act(() => {
       result.current.updateTask({
-        ...result.current.tasks[0],
+        ...result.current.oneOffTasks[0],
         title: "Updated Title",
       });
     });
 
-    expect(result.current.tasks[0].title).toBe("Updated Title");
-    expect(result.current.tasks[0].id).toBe(taskId);
+    expect(result.current.oneOffTasks[0].title).toBe("Updated Title");
+    expect(result.current.oneOffTasks[0].id).toBe(taskId);
   });
 
   it("removes a task and removes it from day plan", async () => {
@@ -93,14 +95,15 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
 
     // Wait for persistence
     await waitFor(async () => {
-      const stored = await storageMock.getOneOffTasks();
+      const stored = await storageMock.fetchOneOffTasks();
       expect(stored).toHaveLength(1);
     });
 
@@ -116,7 +119,7 @@ describe("useEnergyPlannerState", () => {
       await result.current.removeTask(taskId);
     });
 
-    expect(result.current.tasks).toHaveLength(0);
+    expect(result.current.oneOffTasks).toHaveLength(0);
     expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
       false,
     );
@@ -157,14 +160,15 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
 
     // Wait for persistence
     await waitFor(async () => {
-      const stored = await storageMock.getOneOffTasks();
+      const stored = await storageMock.fetchOneOffTasks();
       expect(stored).toHaveLength(1);
     });
 
@@ -194,14 +198,15 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
 
     // Wait for persistence
     await waitFor(async () => {
-      const stored = await storageMock.getOneOffTasks();
+      const stored = await storageMock.fetchOneOffTasks();
       expect(stored).toHaveLength(1);
     });
 
@@ -235,13 +240,14 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
 
     await waitFor(async () => {
-      const stored = await storageMock.getOneOffTasks();
+      const stored = await storageMock.fetchOneOffTasks();
       expect(stored).toHaveLength(1);
     });
 
@@ -290,13 +296,14 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
 
     await waitFor(async () => {
-      const stored = await storageMock.getOneOffTasks();
+      const stored = await storageMock.fetchOneOffTasks();
       expect(stored).toHaveLength(1);
     });
 
@@ -336,13 +343,14 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
 
     await waitFor(async () => {
-      const stored = await storageMock.getOneOffTasks();
+      const stored = await storageMock.fetchOneOffTasks();
       expect(stored).toHaveLength(1);
     });
 
@@ -400,14 +408,14 @@ describe("useEnergyPlannerState", () => {
       completed: false,
     };
 
-    await storageMock.setDayPlan(pastDate, {
+    await storageMock.storeDayPlan(pastDate, {
       date: pastDate,
       tasks: [pastTask],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
     // Initially task is not in available tasks
-    expect(result.current.tasks).toHaveLength(0);
+    expect(result.current.oneOffTasks).toHaveLength(0);
 
     // Unplan the task from the past date
     await act(async () => {
@@ -440,18 +448,19 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
-    expect(result.current.tasks).toHaveLength(1);
+    const taskId = result.current.oneOffTasks[0].id;
+    expect(result.current.oneOffTasks).toHaveLength(1);
 
     // Remove the task
     await act(async () => {
       await result.current.removeTask(taskId);
     });
 
-    expect(result.current.tasks).toHaveLength(0);
+    expect(result.current.oneOffTasks).toHaveLength(0);
   });
 
   it("handles moving unplanned task from date with no plan gracefully", async () => {
@@ -463,7 +472,7 @@ describe("useEnergyPlannerState", () => {
     });
 
     // Should not crash, and should not add anything to available tasks
-    expect(result.current.tasks).toHaveLength(0);
+    expect(result.current.oneOffTasks).toHaveLength(0);
   });
 
   it("checks capacity returns exceeded: false when within limits", async () => {
@@ -485,10 +494,11 @@ describe("useEnergyPlannerState", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
+        completed: false,
       });
     });
 
-    const taskId = result.current.tasks[0].id;
+    const taskId = result.current.oneOffTasks[0].id;
     await act(async () => {
       await result.current.addToPlan(taskId);
     });

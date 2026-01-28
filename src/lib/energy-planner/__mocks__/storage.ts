@@ -2,19 +2,18 @@ import { vi } from "vitest";
 import type { Task, ZoneConfig } from "@/lib/energy-planner/schema";
 
 let mockTasks: Task[] = [];
-let mockRepeatingTasks: any[] = [];
+let mockRepeatingTasks: Task[] = [];
 let mockCapacity = { physical: 100, social: 100, executive: 100 };
-// biome-ignore lint/suspicious/noExplicitAny: Mock storage
-let mockDayPlans: Record<string, any> = {};
+let mockDayPlans: Record<string, unknown> = {};
 
-export const getOneOffTasks = vi.fn(async () => [...mockTasks]);
-export const setOneOffTasks = vi.fn((tasks) => {
+export const fetchOneOffTasks = vi.fn(async () => [...mockTasks]);
+export const storeOneOffTasks = vi.fn((tasks) => {
   mockTasks = [...tasks];
   return Promise.resolve();
 });
 
-export const getRepeatingTasks = vi.fn(async () => [...mockRepeatingTasks]);
-export const setRepeatingTasks = vi.fn((tasks) => {
+export const fetchRepeatingTasks = vi.fn(async () => [...mockRepeatingTasks]);
+export const storeRepeatingTasks = vi.fn((tasks) => {
   mockRepeatingTasks = [...tasks];
   return Promise.resolve();
 });
@@ -25,13 +24,13 @@ export const setDailyCapacity = vi.fn((capacity) => {
   return Promise.resolve();
 });
 
-export const getDayPlan = vi.fn(async (date) => mockDayPlans[date] || null);
-export const setDayPlan = vi.fn((date, plan) => {
+export const fetchDayPlan = vi.fn(async (date) => mockDayPlans[date] || null);
+export const storeDayPlan = vi.fn((date, plan) => {
   mockDayPlans[date] = plan;
   return Promise.resolve();
 });
 
-export const getDayPlanForDate = vi.fn(
+export const fetchDayPlanForDate = vi.fn(
   async (date) => mockDayPlans[date] || null,
 );
 export const saveDayPlanForDate = vi.fn((date, plan) => {
@@ -44,14 +43,16 @@ export const deleteDayPlan = vi.fn((date) => {
   return Promise.resolve();
 });
 
-export const getAllDayPlanDates = vi.fn(async () => Object.keys(mockDayPlans));
+export const fetchAllDayPlanDates = vi.fn(async () =>
+  Object.keys(mockDayPlans),
+);
 
-export const getEnergyTypes = vi.fn(async () => [
+export const fetchEnergyTypes = vi.fn(async () => [
   { id: "physical", label: "Physical", weight: 1 },
   { id: "social", label: "Social", weight: 1 },
   { id: "executive", label: "Executive", weight: 1 },
 ]);
-export const setEnergyTypes = vi.fn(() => Promise.resolve());
+export const storeEnergyTypes = vi.fn(() => Promise.resolve());
 
 export const clearAll = vi.fn(async () => {
   mockTasks = [];
@@ -63,8 +64,8 @@ export const clearAll = vi.fn(async () => {
 // Helper to reset the mock store
 let mockZones: ZoneConfig[] = [];
 
-export const getZones = vi.fn(async () => mockZones);
-export const setZones = vi.fn((zones) => {
+export const fetchZones = vi.fn(async () => mockZones);
+export const storeZones = vi.fn((zones) => {
   mockZones = zones;
   return Promise.resolve();
 });

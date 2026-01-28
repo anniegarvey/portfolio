@@ -47,11 +47,12 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
+          completed: false,
         });
       });
 
-      expect(result.current.tasks).toHaveLength(1);
-      expect(result.current.tasks[0].title).toBe("Test Task");
+      expect(result.current.oneOffTasks).toHaveLength(1);
+      expect(result.current.oneOffTasks[0].title).toBe("Test Task");
     });
 
     it("removes a task and cleans up day plan", async () => {
@@ -70,14 +71,15 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
+          completed: false,
         });
       });
 
-      const task = result.current.tasks[0];
+      const task = result.current.oneOffTasks[0];
 
       // Add to plan first
       await waitFor(async () => {
-        const stored = await storageMock.getOneOffTasks();
+        const stored = await storageMock.fetchOneOffTasks();
         expect(stored).toHaveLength(1);
       });
 
@@ -95,7 +97,7 @@ describe("EnergyPlannerContext", () => {
         await result.current.removeTask(task.id);
       });
 
-      expect(result.current.tasks).toHaveLength(0);
+      expect(result.current.oneOffTasks).toHaveLength(0);
       expect(result.current.dayPlan.tasks.some((t) => t.id === task.id)).toBe(
         false,
       );
@@ -121,14 +123,15 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
+          completed: false,
         });
       });
 
-      const task = result.current.tasks[0];
+      const task = result.current.oneOffTasks[0];
 
       // Add to plan
       await waitFor(async () => {
-        const stored = await storageMock.getOneOffTasks();
+        const stored = await storageMock.fetchOneOffTasks();
         expect(stored).toHaveLength(1);
       });
 
@@ -176,13 +179,14 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
+          completed: false,
         });
       });
 
-      const task = result.current.tasks[0];
+      const task = result.current.oneOffTasks[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.getOneOffTasks();
+        const stored = await storageMock.fetchOneOffTasks();
         expect(stored).toHaveLength(1);
       });
 
@@ -221,13 +225,14 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 1,
             isRestorative: false,
           },
+          completed: false,
         });
       });
 
-      const task = result.current.tasks[0];
+      const task = result.current.oneOffTasks[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.getOneOffTasks();
+        const stored = await storageMock.fetchOneOffTasks();
         expect(stored).toHaveLength(1);
       });
 
@@ -256,12 +261,13 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 1,
             isRestorative: false,
           },
+          completed: false,
         });
       });
-      const task = result.current.tasks[0];
+      const task = result.current.oneOffTasks[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.getOneOffTasks();
+        const stored = await storageMock.fetchOneOffTasks();
         expect(stored).toHaveLength(1);
       });
 
@@ -294,13 +300,14 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
+          completed: false,
         });
       });
 
-      const task = result.current.tasks[0];
+      const task = result.current.oneOffTasks[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.getOneOffTasks();
+        const stored = await storageMock.fetchOneOffTasks();
         expect(stored).toHaveLength(1);
       });
 

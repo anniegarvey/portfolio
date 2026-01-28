@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { DEFAULT_ZONES, type ZoneConfig } from "@/lib/energy-planner/schema";
-import { getZones, setZones } from "@/lib/energy-planner/storage";
+import { fetchZones, storeZones } from "@/lib/energy-planner/storage";
 
 export function useZones() {
-  const [zones, setZonesState] = useState<ZoneConfig[]>(DEFAULT_ZONES);
+  const [zones, storeZonesState] = useState<ZoneConfig[]>(DEFAULT_ZONES);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load zones from storage on mount
@@ -14,14 +14,14 @@ export function useZones() {
     let cancelled = false;
 
     (async () => {
-      const stored = await getZones();
+      const stored = await fetchZones();
       if (cancelled) return;
 
       if (stored && stored.length > 0) {
-        setZonesState(stored);
+        storeZonesState(stored);
       } else {
         // Initialize with defaults
-        setZonesState(DEFAULT_ZONES);
+        storeZonesState(DEFAULT_ZONES);
       }
       setIsLoading(false);
     })();
@@ -34,7 +34,7 @@ export function useZones() {
   // Save zones when they change
   useEffect(() => {
     if (!isLoading) {
-      setZones(zones);
+      storeZones(zones);
     }
   }, [zones, isLoading]);
 
@@ -43,17 +43,17 @@ export function useZones() {
       ...zoneData,
       id: uuidv4(),
     };
-    setZonesState((prev) => [...prev, newZone]);
+    storeZonesState((prev) => [...prev, newZone]);
   }, []);
 
   const updateZone = useCallback((updatedZone: ZoneConfig) => {
-    setZonesState((prev) =>
+    storeZonesState((prev) =>
       prev.map((zone) => (zone.id === updatedZone.id ? updatedZone : zone)),
     );
   }, []);
 
   const removeZone = useCallback((zoneId: string) => {
-    setZonesState((prev) => {
+    storeZonesState((prev) => {
       // Prevent removing the last zone
       if (prev.length <= 1) return prev;
       return prev.filter((zone) => zone.id !== zoneId);
@@ -61,7 +61,7 @@ export function useZones() {
   }, []);
 
   const reorderZones = useCallback((newOrder: ZoneConfig[]) => {
-    setZonesState(
+    storeZonesState(
       newOrder.map((zone, index) => ({
         ...zone,
         order: index,

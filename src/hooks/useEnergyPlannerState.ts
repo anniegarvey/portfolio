@@ -11,7 +11,7 @@ import { getUncompletedTasks } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
-    tasks,
+    oneOffTasks,
     repeatingTasks,
     isLoading: tasksLoading,
     addTask: addTaskBase,
@@ -61,8 +61,7 @@ export function useEnergyPlannerState() {
     { task: Task; fromDate: string }[]
   >([]);
 
-  // Available tasks are just the one-off tasks (repeating tasks are separate)
-  const availableTasks = tasks;
+  const availableTasks = oneOffTasks;
 
   // Load uncompleted tasks from previous days
   // Re-run when dayPlanVersion changes (after uncompleted task actions)
@@ -137,8 +136,8 @@ export function useEnergyPlannerState() {
         }
       } else {
         // For other dates, we need to get from storage
-        const { getDayPlanForDate } = await import("./utils");
-        const plan = await getDayPlanForDate(fromDate);
+        const { fetchDayPlanForDate } = await import("./utils");
+        const plan = await fetchDayPlanForDate(fromDate);
         if (plan) {
           const taskInPlan = plan.tasks.find((t) => t.id === taskId);
           if (taskInPlan) {
@@ -163,13 +162,13 @@ export function useEnergyPlannerState() {
   const removeTask = useCallback(
     async (taskId: string) => {
       // If it's in the one-off list, remove it
-      if (tasks.find((t) => t.id === taskId)) {
+      if (oneOffTasks.find((t) => t.id === taskId)) {
         removeTaskState(taskId);
       }
       // If it's in the day plan, remove it (but don't add back to available)
       await removeFromPlanBase(taskId);
     },
-    [tasks, removeTaskState, removeFromPlanBase],
+    [oneOffTasks, removeTaskState, removeFromPlanBase],
   );
 
   const calculateEnergyUsage = useCallback((): EnergyCost => {
@@ -201,7 +200,7 @@ export function useEnergyPlannerState() {
     tasksLoading || dayPlanLoading || typesLoading || zonesLoading;
 
   return {
-    tasks,
+    oneOffTasks,
     isLoading,
     addTask,
     updateTask,

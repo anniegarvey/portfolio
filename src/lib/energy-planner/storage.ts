@@ -4,7 +4,6 @@ import type {
   EnergyCost,
   EnergyTypeConfig,
   PlannedTask,
-  RepeatingTask,
   Task,
   ZoneConfig,
 } from "./schema";
@@ -35,51 +34,53 @@ export interface StoredDayPlan {
 
 // === One-Off Tasks ===
 
-export async function getOneOffTasks(): Promise<Task[]> {
+export async function fetchOneOffTasks(): Promise<Task[]> {
   const tasks = await get<Task[]>(KEYS.oneOffTasks, store);
   return tasks ?? [];
 }
 
-export async function setOneOffTasks(tasks: Task[]): Promise<void> {
+export async function storeOneOffTasks(tasks: Task[]): Promise<void> {
   await set(KEYS.oneOffTasks, tasks, store);
 }
 
 // === Repeating Tasks ===
 
-export async function getRepeatingTasks(): Promise<RepeatingTask[]> {
-  const tasks = await get<RepeatingTask[]>(KEYS.repeatingTasks, store);
+export async function fetchRepeatingTasks(): Promise<Task[]> {
+  const tasks = await get<Task[]>(KEYS.repeatingTasks, store);
   return tasks ?? [];
 }
 
-export async function setRepeatingTasks(tasks: RepeatingTask[]): Promise<void> {
+export async function storeRepeatingTasks(tasks: Task[]): Promise<void> {
   await set(KEYS.repeatingTasks, tasks, store);
 }
 
 // === Energy Types ===
 
-export async function getEnergyTypes(): Promise<
+export async function fetchEnergyTypes(): Promise<
   EnergyTypeConfig[] | undefined
 > {
   return get<EnergyTypeConfig[]>(KEYS.types, store);
 }
 
-export async function setEnergyTypes(types: EnergyTypeConfig[]): Promise<void> {
+export async function storeEnergyTypes(
+  types: EnergyTypeConfig[],
+): Promise<void> {
   await set(KEYS.types, types, store);
 }
 
 // === Zones ===
 
-export async function getZones(): Promise<ZoneConfig[] | undefined> {
+export async function fetchZones(): Promise<ZoneConfig[] | undefined> {
   return get<ZoneConfig[]>(KEYS.zones, store);
 }
 
-export async function setZones(zones: ZoneConfig[]): Promise<void> {
+export async function storeZones(zones: ZoneConfig[]): Promise<void> {
   await set(KEYS.zones, zones, store);
 }
 
 // === Day Plans ===
 
-function getDayPlanKey(date: string): string {
+function fetchDayPlanKey(date: string): string {
   return `day-${date}`;
 }
 
@@ -110,24 +111,24 @@ function fromStoredDayPlan(date: string, stored: StoredDayPlan): DayPlan {
   };
 }
 
-export async function getDayPlan(date: string): Promise<DayPlan | null> {
-  const stored = await get<StoredDayPlan>(getDayPlanKey(date), store);
+export async function fetchDayPlan(date: string): Promise<DayPlan | null> {
+  const stored = await get<StoredDayPlan>(fetchDayPlanKey(date), store);
   if (!stored) return null;
   return fromStoredDayPlan(date, stored);
 }
 
-export async function setDayPlan(date: string, plan: DayPlan): Promise<void> {
-  await set(getDayPlanKey(date), toStoredDayPlan(plan), store);
+export async function storeDayPlan(date: string, plan: DayPlan): Promise<void> {
+  await set(fetchDayPlanKey(date), toStoredDayPlan(plan), store);
 }
 
 export async function deleteDayPlan(date: string): Promise<void> {
-  await del(getDayPlanKey(date), store);
+  await del(fetchDayPlanKey(date), store);
 }
 
 /**
  * Get all dates that have stored day plans
  */
-export async function getAllDayPlanDates(): Promise<string[]> {
+export async function fetchAllDayPlanDates(): Promise<string[]> {
   const allKeys = await keys<string>(store);
   const prefix = "day-";
   return allKeys

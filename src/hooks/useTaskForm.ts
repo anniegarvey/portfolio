@@ -83,7 +83,7 @@ export function useTaskForm({
       const dataWithDate = {
         ...baseData,
         nextDueDate: initialContext.date,
-      } as any;
+      };
       const newRepeatingTask = addTask(dataWithDate);
 
       // If we have a zoneId, we must implicitly assign the first instance to that zone

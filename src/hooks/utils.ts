@@ -6,9 +6,9 @@ import type {
 } from "@/lib/energy-planner/schema";
 import { DEFAULT_ENERGY_TYPES } from "@/lib/energy-planner/schema";
 import {
-  getAllDayPlanDates,
-  getDayPlan,
-  setDayPlan,
+  fetchAllDayPlanDates,
+  fetchDayPlan,
+  storeDayPlan,
 } from "@/lib/energy-planner/storage";
 
 /**
@@ -36,8 +36,10 @@ export function getTodayDateString(): string {
 /**
  * Load a day plan for a specific date from IndexedDB
  */
-export async function getDayPlanForDate(date: string): Promise<DayPlan | null> {
-  return getDayPlan(date);
+export async function fetchDayPlanForDate(
+  date: string,
+): Promise<DayPlan | null> {
+  return fetchDayPlan(date);
 }
 
 /**
@@ -47,7 +49,7 @@ export async function saveDayPlanForDate(
   date: string,
   plan: DayPlan,
 ): Promise<void> {
-  await setDayPlan(date, plan);
+  await storeDayPlan(date, plan);
 }
 
 /**
@@ -65,7 +67,7 @@ export function createEmptyDayPlan(date: string): DayPlan {
  * Get all stored day plan dates from IndexedDB
  */
 export async function getAllStoredDates(): Promise<string[]> {
-  return getAllDayPlanDates();
+  return fetchAllDayPlanDates();
 }
 
 /**
@@ -81,7 +83,7 @@ export async function getUncompletedTasks(
   for (const date of storedDates) {
     if (date >= today) continue; // Skip today and future dates
 
-    const dayPlan = await getDayPlanForDate(date);
+    const dayPlan = await fetchDayPlanForDate(date);
     if (!dayPlan?.tasks) continue;
 
     for (const task of dayPlan.tasks) {

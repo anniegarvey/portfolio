@@ -1,49 +1,50 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
+import type { Task } from "../../lib/energy-planner/schema";
 import {
   clearAll,
-  getOneOffTasks,
-  getRepeatingTasks,
-  setOneOffTasks,
-  setRepeatingTasks,
+  fetchOneOffTasks,
+  fetchRepeatingTasks,
+  storeOneOffTasks,
+  storeRepeatingTasks,
 } from "../../lib/energy-planner/storage";
 import { TaskForm } from "./TaskForm";
 
 // Explicitly type the mock implementations to avoid 'any'
 vi.mock("../../lib/energy-planner/storage", () => {
-  let mockOneOffTasks: any[] = [];
-  let mockRepeatingTasks: any[] = [];
+  let mockOneOffTasks: Task[] = [];
+  let mockRepeatingTasks: Task[] = [];
 
   return {
     clearAll: vi.fn().mockImplementation(async () => {
       mockOneOffTasks = [];
       mockRepeatingTasks = [];
     }),
-    getOneOffTasks: vi.fn().mockImplementation(async () => {
+    fetchOneOffTasks: vi.fn().mockImplementation(async () => {
       return mockOneOffTasks;
     }),
-    setOneOffTasks: vi.fn().mockImplementation(async (tasks) => {
+    storeOneOffTasks: vi.fn().mockImplementation(async (tasks) => {
       mockOneOffTasks = tasks;
     }),
-    getRepeatingTasks: vi
+    fetchRepeatingTasks: vi
       .fn()
       .mockImplementation(async () => mockRepeatingTasks),
-    setRepeatingTasks: vi.fn().mockImplementation(async (tasks) => {
+    storeRepeatingTasks: vi.fn().mockImplementation(async (tasks) => {
       mockRepeatingTasks = tasks;
     }),
-    getEnergyTypes: vi.fn().mockResolvedValue([
+    fetchEnergyTypes: vi.fn().mockResolvedValue([
       { id: "physical", label: "Physical", color: "red" },
       { id: "social", label: "Social", color: "blue" },
       { id: "executive", label: "Executive", color: "green" },
     ]),
-    setEnergyTypes: vi.fn().mockResolvedValue(undefined),
-    getZones: vi.fn().mockResolvedValue([]),
-    setZones: vi.fn().mockResolvedValue(undefined),
-    getDayPlan: vi.fn().mockResolvedValue(null),
-    setDayPlan: vi.fn().mockResolvedValue(undefined),
+    storeEnergyTypes: vi.fn().mockResolvedValue(undefined),
+    fetchZones: vi.fn().mockResolvedValue([]),
+    storeZones: vi.fn().mockResolvedValue(undefined),
+    fetchDayPlan: vi.fn().mockResolvedValue(null),
+    storeDayPlan: vi.fn().mockResolvedValue(undefined),
     deleteDayPlan: vi.fn().mockResolvedValue(undefined),
-    getAllDayPlanDates: vi.fn().mockResolvedValue([]),
+    fetchAllDayPlanDates: vi.fn().mockResolvedValue([]),
   };
 });
 
@@ -54,15 +55,15 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 // Helper to type mocks
 import type { Mock } from "vitest";
 
-const mockSetOneOffTasks = setOneOffTasks as unknown as Mock;
-const mockSetRepeatingTasks = setRepeatingTasks as unknown as Mock;
+const mockstoreOneOffTasks = storeOneOffTasks as unknown as Mock;
+const mockstoreRepeatingTasks = storeRepeatingTasks as unknown as Mock;
 
 describe("TaskForm", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    (getOneOffTasks as any).mockResolvedValue([]);
-    (getRepeatingTasks as any).mockResolvedValue([]);
-    (setRepeatingTasks as any).mockResolvedValue(undefined);
+    (fetchOneOffTasks as unknown as Mock).mockResolvedValue([]);
+    (fetchRepeatingTasks as unknown as Mock).mockResolvedValue([]);
+    (storeRepeatingTasks as unknown as Mock).mockResolvedValue(undefined);
     await clearAll();
   });
 
@@ -117,7 +118,7 @@ describe("TaskForm", () => {
 
     // Verify storage
     await waitFor(() => {
-      expect(mockSetOneOffTasks).toHaveBeenCalledWith(
+      expect(mockstoreOneOffTasks).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             title: "New Chore",
@@ -149,7 +150,9 @@ describe("TaskForm", () => {
     };
 
     // Initialize mock state
-    (getOneOffTasks as any).mockImplementation(async () => [initialTask]);
+    (fetchOneOffTasks as unknown as Mock).mockImplementation(async () => [
+      initialTask,
+    ]);
 
     const onClose = vi.fn();
     render(<TaskForm initialData={initialTask} onClose={onClose} />, {
@@ -181,10 +184,12 @@ describe("TaskForm", () => {
 
     // Verify storage
     await waitFor(() => {
-      // console.log("Calls:", mockSetOneOffTasks.mock.calls);
-      expect(mockSetOneOffTasks).toHaveBeenCalled();
+      // console.log("Calls:", mockstoreOneOffTasks.mock.calls);
+      expect(mockstoreOneOffTasks).toHaveBeenCalled();
       const lastCall =
-        mockSetOneOffTasks.mock.calls[mockSetOneOffTasks.mock.calls.length - 1];
+        mockstoreOneOffTasks.mock.calls[
+          mockstoreOneOffTasks.mock.calls.length - 1
+        ];
       expect(lastCall[0]).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -224,7 +229,7 @@ describe("TaskForm", () => {
     });
 
     await waitFor(() => {
-      expect(mockSetOneOffTasks).toHaveBeenCalledWith(
+      expect(mockstoreOneOffTasks).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             title: "Another Task",
@@ -258,7 +263,7 @@ describe("TaskForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /Add Task/i }));
 
     expect(onClose).not.toHaveBeenCalled();
-    expect(mockSetOneOffTasks).not.toHaveBeenCalled();
+    expect(mockstoreOneOffTasks).not.toHaveBeenCalled();
   });
 
   it("toggles repeating task options", async () => {
@@ -284,7 +289,7 @@ describe("TaskForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /Add Task/i }));
 
     await waitFor(() => {
-      expect(mockSetRepeatingTasks).toHaveBeenCalledWith(
+      expect(mockstoreRepeatingTasks).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             title: "Repeater",

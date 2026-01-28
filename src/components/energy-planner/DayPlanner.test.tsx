@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../lib/energy-planner/context";
 import {
   clearAll,
-  setDayPlan,
-  setOneOffTasks,
+  storeDayPlan,
+  storeOneOffTasks,
 } from "../../lib/energy-planner/storage";
 import { DayPlanner } from "./DayPlanner";
 
@@ -238,6 +238,7 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
+      completed: false,
     };
     const task2 = {
       id: "t2",
@@ -249,10 +250,11 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
+      completed: false,
     };
 
-    await setOneOffTasks([task1, task2]);
-    await setDayPlan(today, {
+    await storeOneOffTasks([task1, task2]);
+    await storeDayPlan(today, {
       date: today,
       tasks: [{ ...task2, completed: true }],
       dailyCapacity: { physical: 5, social: 5, executive: 5 },
@@ -304,8 +306,8 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await setOneOffTasks([task1, task2]); // Changed from setTasks
-    await setDayPlan(today, {
+    await storeOneOffTasks([task1, task2]); // Changed from setTasks
+    await storeDayPlan(today, {
       date: today,
       tasks: [task1, task2],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
@@ -342,9 +344,10 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
+      completed: false,
     };
 
-    await setOneOffTasks([task1]); // Changed from setTasks
+    await storeOneOffTasks([task1]); // Changed from setTasks
 
     const mockOnOpenCreateTask = vi.fn();
     render(
@@ -396,14 +399,14 @@ describe("DayPlanner with populated data", () => {
       completed: false, // Added missing property
     };
 
-    await setOneOffTasks([task1]);
+    await storeOneOffTasks([task1]);
 
     // Set up yesterday's plan with uncompleted task
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split("T")[0];
 
-    await setDayPlan(yesterdayStr, {
+    await storeDayPlan(yesterdayStr, {
       date: yesterdayStr,
       tasks: [task1],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
@@ -488,7 +491,7 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await setOneOffTasks([task1, task2]);
+    await storeOneOffTasks([task1, task2]);
 
     const mockOnOpenCreateTask = vi.fn();
     render(
@@ -545,7 +548,7 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await setDayPlan(today, {
+    await storeDayPlan(today, {
       date: today,
       tasks: [task1, task2],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
@@ -607,7 +610,7 @@ describe("DayPlanner with populated data", () => {
       zoneId: "afternoon",
     };
 
-    await setDayPlan(today, {
+    await storeDayPlan(today, {
       date: today,
       tasks: [task1, task2],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
@@ -637,8 +640,8 @@ describe("DayPlanner with populated data", () => {
 
     // Verify persistence update
     await waitFor(async () => {
-      const { getDayPlan } = await import("../../lib/energy-planner/storage");
-      const plan = await getDayPlan(today);
+      const { fetchDayPlan } = await import("../../lib/energy-planner/storage");
+      const plan = await fetchDayPlan(today);
       const t1 = plan?.tasks?.find((t) => t.id === "t1");
       expect(t1?.zoneId).toBe("afternoon");
     });
@@ -660,8 +663,9 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
+      completed: false,
     };
-    await setOneOffTasks([task1]);
+    await storeOneOffTasks([task1]);
 
     render(
       <EnergyPlannerProvider>
@@ -696,8 +700,8 @@ describe("DayPlanner with populated data", () => {
     // Verify task added to Afternoon zone
     const today = new Date().toISOString().split("T")[0];
     await waitFor(async () => {
-      const { getDayPlan } = await import("../../lib/energy-planner/storage");
-      const plan = await getDayPlan(today);
+      const { fetchDayPlan } = await import("../../lib/energy-planner/storage");
+      const plan = await fetchDayPlan(today);
       const t1 = plan?.tasks?.find((t) => t.id === "t1");
       expect(t1?.zoneId).toBe("afternoon");
     });
@@ -722,7 +726,7 @@ describe("DayPlanner with populated data", () => {
       zoneId: "morning",
     };
 
-    await setDayPlan(today, {
+    await storeDayPlan(today, {
       date: today,
       tasks: [task1],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
@@ -751,8 +755,8 @@ describe("DayPlanner with populated data", () => {
     await user.click(dragBtn);
 
     await waitFor(async () => {
-      const { getDayPlan } = await import("../../lib/energy-planner/storage");
-      const plan = await getDayPlan(today);
+      const { fetchDayPlan } = await import("../../lib/energy-planner/storage");
+      const plan = await fetchDayPlan(today);
       const t1 = plan?.tasks?.find((t) => t.id === "t1");
       expect(t1?.zoneId).toBe("afternoon");
     });
@@ -776,7 +780,7 @@ describe("DayPlanner with populated data", () => {
       zoneId: "invalid-zone-id",
     };
 
-    await setDayPlan(today, {
+    await storeDayPlan(today, {
       date: today,
       tasks: [task1],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
@@ -846,7 +850,7 @@ describe("DayPlanner with populated data", () => {
       zoneId: "morning",
     };
 
-    await setDayPlan(today, {
+    await storeDayPlan(today, {
       date: today,
       tasks: [task1],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
