@@ -3,12 +3,11 @@
 import { Download, Upload } from "lucide-react";
 import { styled } from "next-yak";
 import { useRef, useState } from "react";
+import { CreateTask } from "@/components/energy-planner/CreateTask";
 import { DateSelector } from "@/components/energy-planner/DateSelector";
 import { DayPlanner } from "@/components/energy-planner/DayPlanner";
 import { EnergyInput } from "@/components/energy-planner/EnergyInput";
-import { TaskForm } from "@/components/energy-planner/TaskForm";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
-import { Modal } from "@/components/Modal";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
@@ -123,19 +122,12 @@ export function EnergyPlanner() {
           onOpenCreateTask={handleOpenCreate}
         />
 
-        <Modal
-          description="Record how completing this task may affect your energy levels."
+        <CreateTask
+          creationContext={creationContext}
+          editingTask={editingTask}
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
-          showDescription={false}
-          title={editingTask ? "Edit Task" : "Create New Task"}
-        >
-          <TaskForm
-            initialContext={creationContext}
-            initialData={editingTask}
-            onClose={handleCloseTaskModal}
-          />
-        </Modal>
+        />
       </Layout>
     </MaxWidthWrapper>
   );
