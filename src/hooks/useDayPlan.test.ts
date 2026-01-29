@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "@/lib/energy-planner/schema";
 import { fetchDayPlan, storeDayPlan } from "@/lib/energy-planner/storage";
 import { useDayPlan } from "./useDayPlan";
@@ -689,10 +689,21 @@ describe("useDayPlan", () => {
   });
 
   describe("Repeating Task Logic Coverage", () => {
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
+    beforeEach(() => {
+      // Set a safe date (middle of month) to avoid end-of-month overflow issues
+      // e.g. Jan 31 + 1 month -> March 2/3
+      // Only fake Date, leave setTimeout/Interval/etc real so waitFor works naturally
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
     it("projects weekly tasks", async () => {
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
       const task = {
         ...mockTask("rep-week", "Weekly Task"),
         repeatConfig: { frequency: 1, unit: "weeks", nextDueDate: todayStr },
@@ -720,6 +731,8 @@ describe("useDayPlan", () => {
     });
 
     it("projects monthly tasks", async () => {
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
       const task = {
         ...mockTask("rep-month", "Monthly Task"),
         repeatConfig: { frequency: 1, unit: "months", nextDueDate: todayStr },
@@ -744,6 +757,8 @@ describe("useDayPlan", () => {
     });
 
     it("projects yearly tasks", async () => {
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
       const task = {
         ...mockTask("rep-year", "Yearly Task"),
         repeatConfig: { frequency: 1, unit: "years", nextDueDate: todayStr },
