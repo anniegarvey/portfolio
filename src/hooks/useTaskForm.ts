@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
-import type { EnergyCost, Task } from "@/lib/energy-planner/schema";
+import type { EnergyCost, RepeatUnit, Task } from "@/lib/energy-planner/schema";
 
 interface UseTaskFormProps {
   initialData?: Task;
@@ -38,7 +38,7 @@ export function useTaskForm({
   const [frequency, setFrequency] = useState(
     initialData?.repeatConfig?.frequency || 1,
   );
-  const [unit, setUnit] = useState<"days" | "weeks" | "months" | "years">(
+  const [unit, setUnit] = useState<RepeatUnit>(
     initialData?.repeatConfig?.unit || "days",
   );
 
@@ -79,10 +79,15 @@ export function useTaskForm({
 
     // Check if we are creating a repeating task from a specific context
     if (isRepeating && initialContext?.date) {
-      // augment with nextDueDate for Immediate Start
+      if (!(baseData.repeatConfig?.frequency && baseData.repeatConfig?.unit)) {
+        throw new Error("Repeat config is required for repeating tasks");
+      }
       const dataWithDate = {
         ...baseData,
-        nextDueDate: initialContext.date,
+        repeatConfig: {
+          ...baseData.repeatConfig,
+          nextDueDate: initialContext.date,
+        },
       };
       const newRepeatingTask = addTask(dataWithDate);
 

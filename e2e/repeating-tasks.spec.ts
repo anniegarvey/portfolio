@@ -144,7 +144,7 @@ test.describe("Repeating Tasks", () => {
     ).toBeVisible();
   });
 
-  test("should manage repeating tasks via Available Tasks modal", async ({
+  test.only("should manage repeating tasks via Available Tasks modal", async ({
     page,
   }) => {
     await createRepeatingTask(page, repeatingTask);
@@ -154,16 +154,10 @@ test.describe("Repeating Tasks", () => {
     const modal = page.getByRole("dialog", { name: "Available Tasks" });
 
     // Switch to Repeating Tab
-    await modal.getByRole("tab", { name: "Repeating" }).click();
+    await modal.getByRole("button", { name: "Repeating Tasks" }).click();
 
     // Verify task is listed
     await expect(modal.getByText(repeatingTask.name)).toBeVisible();
-
-    // Verify "Add to day" is hidden (as per requirements/impl)
-    // Locator for add button within this task item
-    // Hard to scope without specific ID, but assuming standard item structure
-    // There should be NO "Add to day" button for this item.
-    // We can check general count or absence.
 
     // Click Edit
     await modal.getByRole("button", { name: "Edit task" }).click();
@@ -171,7 +165,7 @@ test.describe("Repeating Tasks", () => {
     await expect(editModal).toBeVisible();
 
     // Change frequency to 2 days
-    await editModal.getByRole("spinbutton").fill("2");
+    await editModal.getByRole("spinbutton", { name: "Frequency" }).fill("2");
     await editModal.getByRole("button", { name: "Update Task" }).click();
 
     // Verify update
@@ -204,28 +198,6 @@ test.describe("Repeating Tasks", () => {
     // Navigate to next day
     await page.getByRole("button", { name: "Next day" }).click();
 
-    // Open Add Task from specific zone (assuming first zone has "Add" button)
-    // We need to click "Add Task" button in a zone, NOT the global "Manage Tasks".
-    // ZoneSection has buttons.
-    // Locator strategy: Find first ZoneSection, click its add button.
-    // Locator strategy: Find first ZoneSection, click its add button.
-    // const zoneSection = page
-    //   .locator("section")
-    //   .filter({ hasText: /Zone/ })
-    //   .first();
-    // Or better, use "Add task to zone" aria label if it exists, roughly "Add task to [ZoneName]"?
-    // Checking ZoneSection.tsx for aria label or button text.
-    // It renders "Plus" icon button.
-
-    // Let's use flexible selector for the zone add button
-    // Zone header contains "Add task" button usually.
-    // Assuming the implementation has a button in the zone header.
-    // In previous steps we saw `onAddTask` passed to ZoneSection.
-    // Checking DayPlanner.tsx: `onAddTask={() => handleOpenModalForZone(zone.id)}`
-    // Inspecting ZoneSection code usage in imagination/memory or blindly trying.
-    // Let's rely on standard "Add" button inside the zone section.
-    // Since I can't see ZoneSection code right now, I'll try to target button with Plus icon inside the section.
-
     const firstZone = page
       .getByTestId("selected-tasks")
       .locator("> div")
@@ -247,6 +219,7 @@ test.describe("Repeating Tasks", () => {
       name: "Future Repeated Task",
     });
     await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "Close modal" }).click();
 
     // Should be visible on THIS future day
     await expect(
