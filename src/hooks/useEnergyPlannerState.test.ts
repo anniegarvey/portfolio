@@ -355,7 +355,7 @@ describe("useEnergyPlannerState", () => {
     });
 
     await act(async () => {
-      await result.current.addToPlan(taskId);
+      result.current.addToPlan(taskId);
     });
 
     // Task should be in day plan and not in available tasks

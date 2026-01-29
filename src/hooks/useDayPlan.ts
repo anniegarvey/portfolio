@@ -2,11 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import type { DayPlan, Task } from "@/lib/energy-planner/schema";
-import {
-  fetchOneOffTasks,
-  storeOneOffTasks,
-} from "@/lib/energy-planner/storage";
+import type { DayPlan, PlannedTask, Task } from "@/lib/energy-planner/schema";
 import {
   createEmptyDayPlan,
   defaultCapacity,
@@ -217,26 +213,11 @@ export function useDayPlan(
     [currentDate, toggleTaskCompletion],
   );
 
-  const addToPlan = useCallback(async (taskId: string, zoneId?: string) => {
-    // 1. Get task from one-off store
-    const oneOffTasks = await fetchOneOffTasks();
-    const taskIndex = oneOffTasks.findIndex((t: Task) => t.id === taskId);
-    if (taskIndex === -1) {
-      // Task might already be in the plan (race condition?) or doesn't exist
-      // Or it is a repeating task (handled elsewhere)
-      return;
-    }
-    const task = oneOffTasks[taskIndex];
-
-    // 2. Remove from one-off store
-    const newOneOffTasks = [...oneOffTasks];
-    newOneOffTasks.splice(taskIndex, 1);
-    await storeOneOffTasks(newOneOffTasks);
-
-    // 3. Add to day plan with optional zone assignment
+  // Add a task directly to the day plan (caller is responsible for managing task state)
+  const addTaskToDayPlan = useCallback((task: Task, zoneId?: string) => {
     storeDayPlan((prev) => {
-      // Avoid duplicates just in case
-      if (prev.tasks.some((t) => t.id === taskId)) return prev;
+      // Avoid duplicates
+      if (prev.tasks.some((t) => t.id === task.id)) return prev;
       return {
         ...prev,
         tasks: [...prev.tasks, { ...task, completed: false, zoneId }],
@@ -244,35 +225,24 @@ export function useDayPlan(
     });
   }, []);
 
-  const removeFromPlan = useCallback(async (taskId: string) => {
-    // We typically only remove from the *current* day plan in this hook's context
-    // But we need to handle the transaction: remove from day, add to one-off
+  // Remove a task from the current day plan and return it (caller handles task state)
+  const removeFromPlan = useCallback(
+    (taskId: string): PlannedTask | undefined => {
+      // Find the task in current state BEFORE updating
+      // This ensures we capture the task before the state update
+      const removedTask = dayPlan.tasks.find((t) => t.id === taskId);
 
-    // NOTE: We can't easily perform this transaction purely synchronously with storeDayPlan
-    // because we need to read/write one-off tasks.
-    // However, for UI responsiveness, we update local state immediately.
+      if (!removedTask) return undefined;
 
-    storeDayPlan((prev) => {
-      const taskToRemove = prev.tasks.find((t) => t.id === taskId);
-      if (!taskToRemove) return prev;
-
-      // Async side effect to update one-off tasks
-      // This is a bit risky if component unmounts, but typical for this simple app
-      (async () => {
-        const oneOffTasks = await fetchOneOffTasks();
-        // Check if already there
-        if (!oneOffTasks.some((t: Task) => t.id === taskId)) {
-          taskToRemove.completed = false;
-          await storeOneOffTasks([...oneOffTasks, taskToRemove]);
-        }
-      })();
-
-      return {
+      storeDayPlan((prev) => ({
         ...prev,
         tasks: prev.tasks.filter((t) => t.id !== taskId),
-      };
-    });
-  }, []);
+      }));
+
+      return removedTask;
+    },
+    [dayPlan.tasks],
+  );
 
   // Move a task from a past day to today
   const moveTaskToToday = useCallback(
@@ -328,36 +298,33 @@ export function useDayPlan(
     [currentDate],
   );
 
-  // Return a task to unplanned (remove from day plan entirely)
+  // Return a task to unplanned (remove from day plan, returns the task for caller to handle)
   const moveTaskToUnplanned = useCallback(
-    async (taskId: string, fromDate: string) => {
+    async (
+      taskId: string,
+      fromDate: string,
+    ): Promise<PlannedTask | undefined> => {
       if (fromDate === currentDate) {
-        removeFromPlan(taskId);
-      } else {
-        // Remove from other date's plan
-        const plan = await fetchDayPlanForDate(fromDate);
-        if (plan) {
-          const taskToRemove = plan.tasks.find((t) => t.id === taskId);
-          if (taskToRemove) {
-            // Add back to one-off
-            const oneOffTasks = await fetchOneOffTasks();
-            if (!oneOffTasks.some((t: Task) => t.id === taskId)) {
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              const { ...rawTask } = taskToRemove;
-              await storeOneOffTasks([...oneOffTasks, rawTask]);
-            }
+        return removeFromPlan(taskId);
+      }
 
-            // Save plan
-            const updatedTasks = plan.tasks.filter((t) => t.id !== taskId);
-            await saveDayPlanForDate(fromDate, {
-              ...plan,
-              tasks: updatedTasks,
-            });
-            // Trigger refresh of uncompleted tasks
-            storeDayPlanVersion((v) => v + 1);
-          }
+      // Remove from other date's plan
+      const plan = await fetchDayPlanForDate(fromDate);
+      if (plan) {
+        const taskToRemove = plan.tasks.find((t) => t.id === taskId);
+        if (taskToRemove) {
+          // Save plan without the task
+          const updatedTasks = plan.tasks.filter((t) => t.id !== taskId);
+          await saveDayPlanForDate(fromDate, {
+            ...plan,
+            tasks: updatedTasks,
+          });
+          // Trigger refresh of uncompleted tasks
+          storeDayPlanVersion((v) => v + 1);
+          return taskToRemove;
         }
       }
+      return undefined;
     },
     [currentDate, removeFromPlan],
   );
@@ -438,7 +405,7 @@ export function useDayPlan(
     goToNextDay,
     goToToday,
     setDailyCapacity,
-    addToPlan,
+    addTaskToDayPlan,
     removeFromPlan,
     toggleTaskCompletion,
     markTaskCompleteOnDate,

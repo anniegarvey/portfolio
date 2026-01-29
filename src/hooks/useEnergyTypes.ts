@@ -5,19 +5,19 @@ import type { EnergyTypeConfig } from "@/lib/energy-planner/schema";
 import { DEFAULT_ENERGY_TYPES } from "@/lib/energy-planner/schema";
 import {
   fetchEnergyTypes,
-  storeEnergyTypes as saveEnergyTypes,
+  storeEnergyTypes,
 } from "@/lib/energy-planner/storage";
 import { generateUniqueKey } from "./utils";
 
 export function useEnergyTypes() {
-  const [energyTypes, storeEnergyTypes] =
+  const [energyTypes, setEnergyTypes] =
     useState<EnergyTypeConfig[]>(DEFAULT_ENERGY_TYPES);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchEnergyTypes().then((stored) => {
       if (stored) {
-        storeEnergyTypes(stored);
+        setEnergyTypes(stored);
       }
       setIsLoading(false);
     });
@@ -25,7 +25,7 @@ export function useEnergyTypes() {
 
   useEffect(() => {
     if (!isLoading) {
-      saveEnergyTypes(energyTypes);
+      storeEnergyTypes(energyTypes);
     }
   }, [energyTypes, isLoading]);
 
@@ -38,17 +38,17 @@ export function useEnergyTypes() {
       id: generateUniqueKey(typeData.label, existingIds),
       isPreset: false,
     };
-    storeEnergyTypes((prev) => [...prev, newType]);
+    setEnergyTypes((prev) => [...prev, newType]);
   };
 
   const updateEnergyType = (updatedType: EnergyTypeConfig) => {
-    storeEnergyTypes((prev) =>
+    setEnergyTypes((prev) =>
       prev.map((t) => (t.id === updatedType.id ? updatedType : t)),
     );
   };
 
   const removeEnergyType = (typeId: string) => {
-    storeEnergyTypes((prev) => prev.filter((t) => t.id !== typeId));
+    setEnergyTypes((prev) => prev.filter((t) => t.id !== typeId));
   };
 
   return {

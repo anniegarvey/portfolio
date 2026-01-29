@@ -80,11 +80,9 @@ describe("useDayPlan", () => {
 
     // Add task to today
     const task1 = mockTask("task-1", "Task 1");
-    // Seed storage before adding.
+
     await act(async () => {
-      const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
-      await storeOneOffTasks([task1]);
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
 
     await act(async () => {
@@ -102,16 +100,14 @@ describe("useDayPlan", () => {
 
   it("adds a task to the plan", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
 
     expect(result.current.dayPlan.tasks).toHaveLength(1);
@@ -120,17 +116,15 @@ describe("useDayPlan", () => {
 
   it("does not duplicate task when added twice", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
+      result.current.addTaskToDayPlan(task1);
     });
 
     expect(result.current.dayPlan.tasks).toHaveLength(1);
@@ -138,20 +132,18 @@ describe("useDayPlan", () => {
 
   it("removes a task from the plan", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
 
     await act(async () => {
-      await result.current.removeFromPlan("task-1");
+      result.current.removeFromPlan("task-1");
     });
 
     expect(result.current.dayPlan.tasks).toHaveLength(0);
@@ -159,17 +151,15 @@ describe("useDayPlan", () => {
 
   it("toggles task completion on", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
-      await result.current.toggleTaskCompletion("task-1");
+      result.current.addTaskToDayPlan(task1);
+      result.current.toggleTaskCompletion("task-1");
     });
 
     expect(result.current.dayPlan.tasks[0].completed).toBe(true);
@@ -177,23 +167,21 @@ describe("useDayPlan", () => {
 
   it("toggles task completion off", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
-      await result.current.toggleTaskCompletion("task-1"); // on
+      result.current.addTaskToDayPlan(task1);
+      result.current.toggleTaskCompletion("task-1"); // on
     });
 
     expect(result.current.dayPlan.tasks[0].completed).toBe(true);
 
     await act(async () => {
-      await result.current.toggleTaskCompletion("task-1"); // off
+      result.current.toggleTaskCompletion("task-1"); // off
     });
 
     expect(result.current.dayPlan.tasks[0].completed).toBe(false);
@@ -201,19 +189,17 @@ describe("useDayPlan", () => {
 
   it("toggles completion for only the specified task", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     const task2 = mockTask("task-2", "Task 2");
-    await storeOneOffTasks([task1, task2]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
-      await result.current.addToPlan("task-2");
-      await result.current.toggleTaskCompletion("task-1");
+      result.current.addTaskToDayPlan(task1);
+      result.current.addTaskToDayPlan(task2);
+      result.current.toggleTaskCompletion("task-1");
     });
 
     const t1 = result.current.dayPlan.tasks.find((t) => t.id === "task-1");
@@ -227,16 +213,14 @@ describe("useDayPlan", () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
 
     await waitFor(async () => {
@@ -249,20 +233,18 @@ describe("useDayPlan", () => {
 
   it("reorders planned tasks", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
     const task2 = mockTask("task-2", "Task 2");
     const task3 = mockTask("task-3", "Task 3");
-    await storeOneOffTasks([task1, task2, task3]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
-      await result.current.addToPlan("task-2");
-      await result.current.addToPlan("task-3");
+      result.current.addTaskToDayPlan(task1);
+      result.current.addTaskToDayPlan(task2);
+      result.current.addTaskToDayPlan(task3);
     });
 
     expect(result.current.dayPlan.tasks.map((t) => t.id)).toEqual([
@@ -282,22 +264,20 @@ describe("useDayPlan", () => {
       "task-2",
     ]);
   });
+
   it("moves uncompleted task to next day", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const _today = new Date().toISOString().split("T")[0];
 
-    // Seed task
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
+    // Create task
     const task1 = mockTask("task-1", "Task 1");
-    // Ensure all required props (mockTask handles it)
-    await storeOneOffTasks([task1]);
 
     // Add to plan
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
     await act(async () => {
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
 
     // Go to next day
@@ -316,22 +296,22 @@ describe("useDayPlan", () => {
     });
   });
 
-  it("handles error when adding non-existent task", async () => {
+  it("ignores duplicate tasks when same task added multiple times", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const task1 = mockTask("task-1", "Task 1");
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
+    // Add same task multiple times rapidly
     await act(async () => {
-      await result.current.addToPlan("non-existent-id");
+      result.current.addTaskToDayPlan(task1);
+      result.current.addTaskToDayPlan(task1);
+      result.current.addTaskToDayPlan(task1);
     });
 
-    expect(result.current.dayPlan.tasks).toHaveLength(0);
-    expect(result.current.dayPlan.tasks).toHaveLength(0);
-    expect(consoleSpy).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
+    expect(result.current.dayPlan.tasks).toHaveLength(1);
   });
 
   it("marks a task from a past day as complete", async () => {
@@ -386,7 +366,7 @@ describe("useDayPlan", () => {
     expect(result.current.dayPlan.tasks[0].id).toBe("task-1");
   });
 
-  it("moves a task from a past day to unplanned (one-off)", async () => {
+  it("moves a task from a past day to unplanned (removes from day plan and returns task)", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
     const pastDate = "2023-01-01";
     const task1 = mockTask("task-1", "Past Task", false);
@@ -396,28 +376,25 @@ describe("useDayPlan", () => {
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
-    // Ensure one-off tasks are empty initially
-    const { storeOneOffTasks, fetchOneOffTasks } = await import(
-      "@/lib/energy-planner/storage"
-    );
-    await storeOneOffTasks([]);
-
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
+    let removedTask: unknown;
     await act(async () => {
-      await result.current.moveTaskToUnplanned("task-1", pastDate);
+      removedTask = await result.current.moveTaskToUnplanned(
+        "task-1",
+        pastDate,
+      );
     });
 
     // 1. Removed from past day
     const pastStored = await fetchDayPlan(pastDate);
     expect(pastStored?.tasks).toHaveLength(0);
 
-    // 2. Added to one-off
-    const oneOff = await fetchOneOffTasks();
-    expect(oneOff).toHaveLength(1);
-    expect(oneOff[0].id).toBe("task-1");
+    // 2. Returns the removed task (caller is responsible for adding to one-off)
+    expect(removedTask).toBeDefined();
+    expect((removedTask as { id: string }).id).toBe("task-1");
   });
 
   it("does not duplicate task when moving to today if already present", async () => {
@@ -426,19 +403,24 @@ describe("useDayPlan", () => {
     const task1 = mockTask("task-1", "Past Task", false);
 
     // Seed past day
-    await storeDayPlan(pastDate, {
-      date: pastDate,
-      tasks: [task1],
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    await act(async () => {
+      await storeDayPlan(pastDate, {
+        date: pastDate,
+        tasks: [task1],
+        dailyCapacity: { physical: 100, social: 100, executive: 100 },
+      });
     });
 
     // Seed today WITH the task already
     const { getTodayDateString } = await import("./utils");
     const today = getTodayDateString();
-    await storeDayPlan(today, {
-      date: today,
-      tasks: [task1], // Already here
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+
+    await act(async () => {
+      await storeDayPlan(today, {
+        date: today,
+        tasks: [task1], // Already here
+        dailyCapacity: { physical: 100, social: 100, executive: 100 },
+      });
     });
 
     await waitFor(() => {
@@ -475,12 +457,7 @@ describe("useDayPlan", () => {
 
   it("moves a task from current day to unplanned", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks, fetchOneOffTasks } = await import(
-      "@/lib/energy-planner/storage"
-    );
     const task1 = mockTask("task-1", "Task 1");
-    // Seed one off
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -488,11 +465,8 @@ describe("useDayPlan", () => {
 
     // Add to plan
     await act(async () => {
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
-
-    // Clear one off check
-    await storeOneOffTasks([]);
 
     await act(async () => {
       const today = result.current.currentDate;
@@ -500,23 +474,19 @@ describe("useDayPlan", () => {
     });
 
     expect(result.current.dayPlan.tasks).toHaveLength(0);
-    const oneOff = await fetchOneOffTasks();
-    expect(oneOff).toHaveLength(1);
-    expect(oneOff[0].id).toBe("task-1");
+    // Note: The hook now returns the removed task, caller is responsible for adding to one-off
   });
 
   it("assigns task to a zone", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
 
     // Default zone is undefined or handled by util/default
@@ -525,7 +495,6 @@ describe("useDayPlan", () => {
       result.current.assignTaskToZone("task-1", "evening");
     });
 
-    expect(result.current.dayPlan.tasks[0].zoneId).toBe("evening");
     expect(result.current.dayPlan.tasks[0].zoneId).toBe("evening");
   });
 
@@ -668,16 +637,14 @@ describe("useDayPlan", () => {
 
   it("marks a task as complete on the current day", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_TASKS));
-    const { storeOneOffTasks } = await import("@/lib/energy-planner/storage");
     const task1 = mockTask("task-1", "Task 1");
-    await storeOneOffTasks([task1]);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.addToPlan("task-1");
+      result.current.addTaskToDayPlan(task1);
     });
 
     const today = result.current.currentDate;

@@ -31,7 +31,7 @@ export function useEnergyPlannerState() {
     goToNextDay,
     goToToday,
     setDailyCapacity,
-    addToPlan: addToPlanBase,
+    addTaskToDayPlan,
     removeFromPlan: removeFromPlanBase,
     toggleTaskCompletion,
     markTaskCompleteOnDate,
@@ -88,75 +88,52 @@ export function useEnergyPlannerState() {
     [addTaskBase],
   );
 
-  // Wrap addToPlan to also remove from local tasks state
+  // Add task to day plan - finds task and coordinates state
   const addToPlan = useCallback(
-    async (taskId: string, zoneId?: string) => {
-      // Update storage and day plan first
-      await addToPlanBase(taskId, zoneId);
-      // Then remove from local state (ONLY if it's one-off)
-      // Check if it is a repeating task - we can check existence in repeatingTasks list
-      // Note: repeatingTasks is available in closure scope
-      if (!repeatingTasks.some((t) => t.id === taskId)) {
-        removeTaskFromAvailable(taskId);
+    (taskId: string, zoneId?: string) => {
+      // Find task in one-off tasks
+      const task = oneOffTasks.find((t) => t.id === taskId);
+      if (!task) {
+        // Not a one-off task - might be a repeating task (handled elsewhere)
+        return;
       }
+
+      // Add to day plan
+      addTaskToDayPlan(task, zoneId);
+      // Remove from available tasks
+      removeTaskFromAvailable(taskId);
     },
-    [addToPlanBase, removeTaskFromAvailable, repeatingTasks],
+    [oneOffTasks, addTaskToDayPlan, removeTaskFromAvailable],
   );
 
-  // Wrap removeFromPlan to also add back to local tasks state
+  // Remove task from day plan and return to available tasks
   const removeFromPlan = useCallback(
-    async (taskId: string) => {
-      // Find the task in the day plan before removing
-      const taskToRemove = dayPlan.tasks.find((t) => t.id === taskId);
-      // Update storage and day plan first
-      await removeFromPlanBase(taskId);
-      // Then add to local state
-      if (taskToRemove) {
+    (taskId: string) => {
+      // Remove from day plan (returns the removed task)
+      const removedTask = removeFromPlanBase(taskId);
+      // Add back to available tasks if found
+      if (removedTask) {
         // Strip 'completed' when moving back to available tasks
-        const { completed: _completed, ...rawTask } = taskToRemove;
+        const { completed: _completed, ...rawTask } = removedTask;
         addTaskToAvailable(rawTask as Task);
       }
     },
-    [dayPlan.tasks, addTaskToAvailable, removeFromPlanBase],
+    [addTaskToAvailable, removeFromPlanBase],
   );
 
-  // Wrap moveTaskToUnplanned to also add back to local tasks state
+  // Move task from day plan to available tasks
   const moveTaskToUnplanned = useCallback(
     async (taskId: string, fromDate: string) => {
-      // Get the task to add back to available tasks
-      let taskToAdd: Task | undefined;
-
-      if (fromDate === currentDate) {
-        // For current date, get from local day plan
-        const taskInPlan = dayPlan.tasks.find((t) => t.id === taskId);
-        if (taskInPlan) {
-          // Strip 'completed' when moving back to available tasks
-          const { completed: _completed, ...rawTask } = taskInPlan;
-          taskToAdd = rawTask as Task;
-        }
-      } else {
-        // For other dates, we need to get from storage
-        const { fetchDayPlanForDate } = await import("./utils");
-        const plan = await fetchDayPlanForDate(fromDate);
-        if (plan) {
-          const taskInPlan = plan.tasks.find((t) => t.id === taskId);
-          if (taskInPlan) {
-            // Strip 'completed' when moving back to available tasks
-            const { completed: _completed, ...rawTask } = taskInPlan;
-            taskToAdd = rawTask as Task;
-          }
-        }
-      }
-
-      // Update storage and day plan first
-      await moveTaskToUnplannedBase(taskId, fromDate);
-
-      // Then add to local state
-      if (taskToAdd) {
-        addTaskToAvailable(taskToAdd);
+      // Remove from day plan (returns the removed task)
+      const removedTask = await moveTaskToUnplannedBase(taskId, fromDate);
+      // Add back to available tasks if found
+      if (removedTask) {
+        // Strip 'completed' when moving back to available tasks
+        const { completed: _completed, ...rawTask } = removedTask;
+        addTaskToAvailable(rawTask as Task);
       }
     },
-    [currentDate, dayPlan.tasks, addTaskToAvailable, moveTaskToUnplannedBase],
+    [addTaskToAvailable, moveTaskToUnplannedBase],
   );
 
   const removeTask = useCallback(
