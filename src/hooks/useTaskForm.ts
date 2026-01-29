@@ -53,7 +53,11 @@ export function useTaskForm({
     };
 
     if (isRepeating) {
-      taskData.repeatConfig = { frequency, unit };
+      taskData.repeatConfig = {
+        ...(initialData?.repeatConfig || {}),
+        frequency,
+        unit,
+      };
     } else {
       taskData.repeatConfig = undefined;
     }

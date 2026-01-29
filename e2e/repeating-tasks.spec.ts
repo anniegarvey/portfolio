@@ -144,7 +144,7 @@ test.describe("Repeating Tasks", () => {
     ).toBeVisible();
   });
 
-  test.only("should manage repeating tasks via Available Tasks modal", async ({
+  test("should manage repeating tasks via Available Tasks modal", async ({
     page,
   }) => {
     await createRepeatingTask(page, repeatingTask);
