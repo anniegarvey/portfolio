@@ -3,15 +3,13 @@ import type React from "react";
 import { beforeEach, describe, expect, type Mock, test, vi } from "vitest";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Task } from "@/lib/energy-planner/schema";
-import {
-  exportEnergyPlannerData,
-  importEnergyPlannerData,
-} from "@/lib/energy-planner/utils";
 import { EnergyPlanner } from "./EnergyPlanner";
 
 // Mock dependencies
 vi.mock("@/lib/energy-planner/context");
-vi.mock("@/lib/energy-planner/utils");
+vi.mock("@/components/energy-planner/ImportExport", () => ({
+  ImportExport: () => <div data-testid="import-export">ImportExport</div>,
+}));
 vi.mock("@/components/energy-planner/DateSelector", () => ({
   DateSelector: () => <div data-testid="date-selector">Date Selector</div>,
 }));
@@ -121,18 +119,10 @@ describe("EnergyPlanner", () => {
     render(<EnergyPlanner />);
 
     expect(screen.getByText("Energy Planner")).toBeInTheDocument();
-    expect(screen.getByText("Export")).toBeInTheDocument();
-    expect(screen.getByText("Import")).toBeInTheDocument();
+    expect(screen.getByTestId("import-export")).toBeInTheDocument();
     expect(screen.getByTestId("date-selector")).toBeInTheDocument();
     expect(screen.getByTestId("energy-input")).toBeInTheDocument();
     expect(screen.getByTestId("day-planner")).toBeInTheDocument();
-  });
-
-  test("handle export click", () => {
-    render(<EnergyPlanner />);
-
-    fireEvent.click(screen.getByText("Export"));
-    expect(exportEnergyPlannerData).toHaveBeenCalled();
   });
 
   test("opens and closes task modal", () => {
@@ -150,70 +140,6 @@ describe("EnergyPlanner", () => {
     // Close it
     fireEvent.click(screen.getByTestId("close-task-form-btn"));
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-  });
-
-  test("handles file import success", async () => {
-    render(<EnergyPlanner />);
-
-    const file = new File(['{"tasks":[]}'], "data.json", {
-      type: "application/json",
-    });
-
-    const inputs = document.querySelectorAll('input[type="file"]');
-    const input = inputs[0] as HTMLInputElement;
-
-    fireEvent.change(input, { target: { files: [file] } });
-
-    await screen.findByText("Import");
-
-    expect(importEnergyPlannerData).toHaveBeenCalledWith(file);
-  });
-
-  test("handles file import error", async () => {
-    // Mock implementation to throw
-    (importEnergyPlannerData as unknown as Mock).mockRejectedValueOnce(
-      new Error("Invalid format"),
-    );
-    const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
-
-    render(<EnergyPlanner />);
-
-    const file = new File(["bad data"], "data.json", {
-      type: "application/json",
-    });
-    const inputs = document.querySelectorAll('input[type="file"]');
-    const input = inputs[0] as HTMLInputElement;
-
-    fireEvent.change(input, { target: { files: [file] } });
-
-    await screen.findByText("Import");
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(alertMock).toHaveBeenCalledWith("Invalid format");
-  });
-
-  test("handles file import unknown error", async () => {
-    (importEnergyPlannerData as unknown as Mock).mockRejectedValueOnce(
-      "Unknown error",
-    );
-    const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
-
-    render(<EnergyPlanner />);
-
-    const file = new File(["bad data"], "data.json", {
-      type: "application/json",
-    });
-    const inputs = document.querySelectorAll('input[type="file"]');
-    const input = inputs[0] as HTMLInputElement;
-
-    fireEvent.change(input, { target: { files: [file] } });
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(alertMock).toHaveBeenCalledWith(
-      "Failed to import data. Please check the file format.",
-    );
   });
 
   test("opens edit task modal", () => {
