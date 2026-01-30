@@ -322,6 +322,13 @@ test.describe("Energy Planner", () => {
         modal.getByRole("button", { name: "Edit Late Night" }),
       ).toBeVisible();
 
+      // Verify it is at the bottom of the list
+      const editButtons = modal.locator('button[aria-label^="Edit "]');
+      await expect(editButtons.last()).toHaveAttribute(
+        "aria-label",
+        "Edit Late Night",
+      );
+
       // Verify description preview
       await expect(modal.getByText("Quiet focused work")).toBeVisible();
 

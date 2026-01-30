@@ -43,11 +43,12 @@ describe("useZones", () => {
     });
 
     act(() => {
-      result.current.addZone({ name: "New Zone", order: 3 });
+      result.current.addZone({ name: "New Zone", order: 0 });
     });
 
     expect(result.current.zones).toHaveLength(4); // 3 defaults + 1 new
     expect(result.current.zones[3].name).toBe("New Zone");
+    expect(result.current.zones[3].order).toBe(3);
   });
 
   it("updates a zone", async () => {

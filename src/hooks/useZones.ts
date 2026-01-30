@@ -39,11 +39,18 @@ export function useZones() {
   }, [zones, isLoading]);
 
   const addZone = useCallback((zoneData: Omit<ZoneConfig, "id">) => {
-    const newZone: ZoneConfig = {
-      ...zoneData,
-      id: uuidv4(),
-    };
-    storeZonesState((prev) => [...prev, newZone]);
+    const id = uuidv4();
+    storeZonesState((prev) => {
+      const maxOrder =
+        prev.length > 0 ? Math.max(...prev.map((z) => z.order)) : -1;
+
+      const newZone: ZoneConfig = {
+        ...zoneData,
+        id,
+        order: maxOrder + 1,
+      };
+      return [...prev, newZone];
+    });
   }, []);
 
   const updateZone = useCallback((updatedZone: ZoneConfig) => {
