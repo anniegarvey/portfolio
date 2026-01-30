@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { v4 as uuidv4 } from "uuid";
 import type { DayPlan, PlannedTask, Task } from "@/lib/energy-planner/schema";
 import {
@@ -64,6 +65,12 @@ export function useDayPlan(
     tasks: [],
     dailyCapacity: defaultCapacity,
   });
+
+  // Use refs to always have access to the latest values in callbacks
+  const repeatingTasksRef = useRef(repeatingTasks);
+  repeatingTasksRef.current = repeatingTasks;
+  const onUpdateTaskRef = useRef(onUpdateTask);
+  onUpdateTaskRef.current = onUpdateTask;
 
   // Helper to check if a task is due on a given date
   const isTaskDueOnDate = useCallback((task: Task, date: string) => {
@@ -151,48 +158,79 @@ export function useDayPlan(
   }, [dayPlan, currentDate, isLoading]);
 
   const toggleTaskCompletion = useCallback(
-    (taskId: string) => {
-      storeDayPlan((prev) => {
-        const taskIndex = prev.tasks.findIndex((t) => t.id === taskId);
-        if (taskIndex === -1) return prev;
+    async (taskId: string) => {
+      // Get the current values from refs to avoid stale closures
+      const currentRepeatingTasks = repeatingTasksRef.current;
+      const currentOnUpdateTask = onUpdateTaskRef.current;
 
-        const task = prev.tasks[taskIndex];
-        const isProjected = task.isProjected;
+      // Use a mutable holder object to capture values from inside the setState callback
+      const holder: { update: Task | null; plan: DayPlan | null } = {
+        update: null,
+        plan: null,
+      };
 
-        let newTask = { ...task, completed: !task.completed };
+      // Use flushSync to ensure the callback runs synchronously
+      flushSync(() => {
+        storeDayPlan((prev) => {
+          const taskIndex = prev.tasks.findIndex((t) => t.id === taskId);
+          if (taskIndex === -1) return prev;
 
-        // Handle Virtual Task completion (Solidification)
-        if (isProjected && onUpdateTask) {
-          // 1. Make concrete
-          const concreteId = uuidv4();
-          // Remove isProjected flag
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { isProjected: _, ...params } = newTask;
-          newTask = { ...params, id: concreteId, completed: true }; // Assuming user clicked to complete
+          const task = prev.tasks[taskIndex];
+          let newTask = { ...task, completed: !task.completed };
 
-          // 2. Update Repeating Task Definition (Shift schedule)
-          const repeatingTask = repeatingTasks.find(
-            (rt) => rt.id === task.repeatingTaskId,
-          );
-          if (repeatingTask) {
-            const nextDate = calculateNextDueDate(
-              repeatingTask.repeatConfig?.nextDueDate,
-              repeatingTask.repeatConfig,
+          // Handle Virtual Task completion (Solidification)
+          if (task.isProjected && currentOnUpdateTask) {
+            // 1. Make concrete
+            const concreteId = uuidv4();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { isProjected: _, ...params } = newTask;
+            newTask = { ...params, id: concreteId, completed: true };
+
+            // 2. Gather info for repeating task update (will call after save)
+            const repeatingTask = currentRepeatingTasks.find(
+              (rt) => rt.id === task.repeatingTaskId,
             );
-            onUpdateTask({ ...repeatingTask, nextDueDate: nextDate } as Task);
+            if (repeatingTask?.repeatConfig) {
+              const nextDate = calculateNextDueDate(
+                repeatingTask.repeatConfig.nextDueDate,
+                repeatingTask.repeatConfig,
+              );
+              holder.update = {
+                ...repeatingTask,
+                repeatConfig: {
+                  ...repeatingTask.repeatConfig,
+                  nextDueDate: nextDate,
+                },
+              };
+            }
           }
-        }
 
-        const newTasks = [...prev.tasks];
-        newTasks[taskIndex] = newTask;
+          const newTasks = [...prev.tasks];
+          newTasks[taskIndex] = newTask;
 
-        return {
-          ...prev,
-          tasks: newTasks,
-        };
+          holder.plan = {
+            ...prev,
+            tasks: newTasks,
+          };
+
+          return holder.plan;
+        });
       });
+
+      // If we have a pending repeating task update, save first then call onUpdateTask
+      if (holder.update && currentOnUpdateTask && holder.plan) {
+        // Create local const to help TypeScript type narrowing
+        const planToSave: DayPlan = holder.plan;
+        // Save the updated state to storage
+        const tasksToSave = planToSave.tasks.filter((t) => !t.isProjected);
+        await saveDayPlanForDate(currentDate, {
+          ...planToSave,
+          tasks: tasksToSave,
+        });
+        currentOnUpdateTask(holder.update);
+      }
     },
-    [repeatingTasks, onUpdateTask, calculateNextDueDate],
+    [calculateNextDueDate, currentDate],
   );
 
   // Mark a task as complete on a specific date (for uncompleted tasks)

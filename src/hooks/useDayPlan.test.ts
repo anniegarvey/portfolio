@@ -587,21 +587,26 @@ describe("useDayPlan", () => {
       t.id.startsWith("virtual-"),
     );
     expect(projectedTask).toBeDefined();
+    expect(projectedTask?.repeatingTaskId).toBe("rep-2");
+    expect(projectedTask?.isProjected).toBe(true);
 
     // Toggle completion
     await act(async () => {
       // biome-ignore lint/style/noNonNullAssertion: Test will fail if this is null, detecting the issue
-      result.current.toggleTaskCompletion(projectedTask!.id);
+      await result.current.toggleTaskCompletion(projectedTask!.id);
     });
 
     // Verify it is now concrete and completed
-    const solidTask = result.current.dayPlan.tasks.find(
-      (t) => t.title === "Repeating Task 2",
-    );
-    expect(solidTask).toBeDefined();
-    expect(solidTask?.completed).toBe(true);
-    expect(solidTask?.isProjected).toBeUndefined();
-    // Should have updated the repeating definition
+    await waitFor(() => {
+      const task = result.current.dayPlan.tasks.find(
+        (t) => t.title === "Repeating Task 2",
+      );
+      expect(task).toBeDefined();
+      expect(task?.completed).toBe(true);
+      expect(task?.isProjected).toBeUndefined();
+    });
+
+    // Should have updated the repeating task definition with the next due date
     expect(mockOnUpdateTask).toHaveBeenCalled();
   });
 
