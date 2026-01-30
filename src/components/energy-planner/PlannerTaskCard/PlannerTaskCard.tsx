@@ -10,6 +10,7 @@ import {
   GripVertical,
   Pencil,
   RotateCw,
+  Trash2,
   X,
 } from "lucide-react";
 import { css, styled } from "next-yak";
@@ -24,6 +25,7 @@ interface PlannerTaskCardProps {
   onEdit: (task: Task) => void;
   onToggleCompletion?: (taskId: string) => void;
   onRemove?: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
   onAdd?: (taskId: string) => void;
   dragHandleProps?: {
     listeners: DraggableSyntheticListeners;
@@ -40,6 +42,7 @@ export function PlannerTaskCard({
   onEdit,
   onToggleCompletion,
   onRemove,
+  onDelete,
   onAdd,
   dragHandleProps,
 }: PlannerTaskCardProps) {
@@ -101,6 +104,17 @@ export function PlannerTaskCard({
         >
           <Pencil size={18} />
         </ActionButton>
+
+        {onDelete && (
+          <ActionButton
+            $remove
+            aria-label="Delete task"
+            onClick={() => onDelete(task.id)}
+            title="Delete task"
+          >
+            <Trash2 size={18} />
+          </ActionButton>
+        )}
 
         {selected && onRemove && !isPastDay && (
           <ActionButton

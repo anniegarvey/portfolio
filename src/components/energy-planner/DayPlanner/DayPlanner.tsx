@@ -39,6 +39,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     dayPlan,
     addToPlan,
     removeFromPlan,
+    removeTask,
     toggleTaskCompletion,
     checkExceedsCapacity,
     calculateEnergyUsage,
@@ -273,6 +274,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
           setIsModalOpen(false);
           setActiveZoneId(null);
         }}
+        onDeleteTask={removeTask}
         onEditTask={onEditTask}
         onOpenCreateTask={handleCreateTask}
         onReorderTasks={reorderTasks}

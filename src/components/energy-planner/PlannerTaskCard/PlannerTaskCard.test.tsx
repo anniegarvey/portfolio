@@ -291,4 +291,24 @@ describe("PlannerTaskCard", () => {
     const handle = screen.getByLabelText("Reorder task: Test Task");
     expect(handle).toBeInTheDocument();
   });
+
+  it("shows delete button and calls onDelete when clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    const mockOnDelete = vi.fn();
+    render(
+      <PlannerTaskCard
+        onDelete={mockOnDelete}
+        onEdit={mockOnEdit}
+        task={mockTask}
+      />,
+      { wrapper },
+    );
+
+    const deleteButton = screen.getByLabelText("Delete task");
+    expect(deleteButton).toBeInTheDocument();
+
+    await user.click(deleteButton);
+    expect(mockOnDelete).toHaveBeenCalledWith(mockTask.id);
+  });
 });

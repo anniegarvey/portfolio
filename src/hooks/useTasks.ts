@@ -95,9 +95,16 @@ export function useTasks() {
     }
   };
 
+  /* optimized remove task state */
   const removeTaskState = (taskId: string) => {
-    setOneOffTasksState((prev) => prev.filter((t) => t.id !== taskId));
-    setRepeatingTasksState((prev) => prev.filter((t) => t.id !== taskId));
+    setOneOffTasksState((prev) => {
+      const filtered = prev.filter((t) => t.id !== taskId);
+      return filtered.length !== prev.length ? filtered : prev;
+    });
+    setRepeatingTasksState((prev) => {
+      const filtered = prev.filter((t) => t.id !== taskId);
+      return filtered.length !== prev.length ? filtered : prev;
+    });
   };
 
   const reorderTasks = (newTasks: Task[]) => {

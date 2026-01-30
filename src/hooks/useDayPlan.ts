@@ -284,6 +284,14 @@ export function useDayPlan(
     [dayPlan.tasks],
   );
 
+  // Forcefully remove a task from day plan (no return value, no dependency on current state)
+  const deleteFromPlan = useCallback((taskId: string) => {
+    storeDayPlan((prev) => ({
+      ...prev,
+      tasks: prev.tasks.filter((t) => t.id !== taskId),
+    }));
+  }, []);
+
   // Move a task from a past day to today
   const moveTaskToToday = useCallback(
     async (taskId: string, fromDate: string) => {
@@ -453,5 +461,6 @@ export function useDayPlan(
     moveTaskToUnplanned,
     reorderPlannedTasks: reorderPlannedTasksWithIds,
     assignTaskToZone,
+    deleteFromPlan,
   };
 }

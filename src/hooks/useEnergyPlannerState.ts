@@ -39,6 +39,7 @@ export function useEnergyPlannerState() {
     moveTaskToUnplanned: moveTaskToUnplannedBase,
     reorderPlannedTasks,
     assignTaskToZone,
+    deleteFromPlan,
   } = useDayPlan(repeatingTasks, updateTask);
   const {
     energyTypes,
@@ -138,14 +139,12 @@ export function useEnergyPlannerState() {
 
   const removeTask = useCallback(
     async (taskId: string) => {
-      // If it's in the one-off list, remove it
-      if (oneOffTasks.find((t) => t.id === taskId)) {
-        removeTaskState(taskId);
-      }
       // If it's in the day plan, remove it (but don't add back to available)
-      await removeFromPlanBase(taskId);
+      deleteFromPlan(taskId);
+      // Remove from task lists (one-off and repeating)
+      removeTaskState(taskId);
     },
-    [oneOffTasks, removeTaskState, removeFromPlanBase],
+    [removeTaskState, deleteFromPlan],
   );
 
   const calculateEnergyUsage = useCallback((): EnergyCost => {
