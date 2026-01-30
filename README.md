@@ -32,14 +32,10 @@ E2E tests (Playwright):
 # Run all tests headlessly
 npx playwright test
 
-# Run in headed mode (visible browser)
-npx playwright test --headed
-
-# Run with UI mode for debugging
-npx playwright test --ui
-
 # View last test report
 npx playwright show-report
 ```
+
+Useful flags: `--ui`, `--debug`, `--headed`
 
 Possible hosting options: https://supabase.com/pricing, https://render.com/pricing or https://railway.com/pricing

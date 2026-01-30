@@ -4,10 +4,8 @@ globs: src/**/*.tsx
 ---
 
 - Use next-yak and existing global CSS variables from src/app/globals.css for styling
-- Don't target child tags within styled components if the same could have been achieved by making the child into a styled component itself
-- Use pixels in multiples of 4 for things that don't need to scale with text, like margin and padding of sections, and gaps. border-radius should be in pixels too, and doesn't have to be multiples of 4.
-- Make sure all UI changes follow all a11y best practices, especially using semantic HTML and ensuring sufficient contrast in both light and dark mode
+- Prefer more styled components over targeting descendant tags
+- Ensure all UI changes follow a11y best practices, using semantic HTML and ensuring sufficient contrast in light & dark mode
 - Keep React components small, with a single responsibility. Move any reusable components to the top level of src/components
-- Reuse components from src/components where appropriate
-- When building new UI patterns, use Radix, ShadCN or Reach components as a basis where possible, in priority order
-- When making significant UX changes, make sure they are covered in the /e2e playwright tests
+- Reuse components from src/components where appropriate, otherwise use Radix, ShadCN or Reach components as a basis where possible, in priority order
+- Cover all significant UX changes in /e2e tests
