@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
+} from "@/components/Select";
 import { useTaskForm } from "@/hooks/useTaskForm";
 import type { RepeatUnit, Task } from "@/lib/energy-planner/schema";
 import { EnergyCostFields } from "../EnergyCostFields";
