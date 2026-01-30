@@ -13,6 +13,7 @@ interface ModalProps {
   title?: string;
   description: string;
   showDescription?: boolean;
+  onOpenAutoFocus?: (event: Event) => void;
 }
 
 /* v8 ignore start */
@@ -26,6 +27,7 @@ export function Modal({
   title,
   description,
   showDescription,
+  onOpenAutoFocus,
 }: ModalProps) {
   const DescriptionWrapper = showDescription
     ? Description
@@ -41,6 +43,7 @@ export function Modal({
         <Overlay />
         <Content
           onInteractOutside={preventOutsideInteractions}
+          onOpenAutoFocus={onOpenAutoFocus}
           onPointerDownOutside={preventOutsideInteractions}
         >
           <Header>

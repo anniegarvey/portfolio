@@ -20,12 +20,14 @@ interface TaskFormProps {
     zoneId?: string;
   };
   onClose?: () => void;
+  focusRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function TaskForm({
   initialData,
   initialContext,
   onClose,
+  focusRef,
 }: TaskFormProps) {
   const {
     title,
@@ -53,6 +55,7 @@ export function TaskForm({
           id={`${formId}-title`}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g., Do Laundry"
+          ref={focusRef}
           required
           value={title}
         />
