@@ -6,7 +6,7 @@ import { useRef } from "react";
 import {
   exportEnergyPlannerData,
   importEnergyPlannerData,
-} from "@/lib/energy-planner/utils";
+} from "./ImportExport.utils";
 
 const handleFileImportError = (error: Error | unknown) => {
   alert(

@@ -1,0 +1,345 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  clearAll,
+  fetchDayPlan,
+  fetchEnergyTypes,
+  fetchOneOffTasks,
+  fetchRepeatingTasks,
+  fetchZones,
+  storeDayPlan,
+  storeEnergyTypes,
+  storeOneOffTasks,
+} from "@/lib/energy-planner/storage";
+import {
+  exportEnergyPlannerData,
+  importEnergyPlannerData,
+} from "./ImportExport.utils";
+
+describe("exportEnergyPlannerData", () => {
+  let _createElementSpy: ReturnType<typeof vi.spyOn>;
+  let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
+  let _revokeObjectURLSpy: ReturnType<typeof vi.spyOn>;
+  let mockLink: {
+    href: string;
+    download: string;
+    click: ReturnType<typeof vi.fn>;
+  };
+
+  async function setupExportMocks() {
+    await clearAll();
+    // Pre-populate storage
+    await storeOneOffTasks([
+      {
+        id: "1",
+        title: "Test",
+        createdAt: new Date(),
+        energyCost: { physical: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+        completed: false,
+      },
+    ]);
+    await storeEnergyTypes([
+      { id: "physical", label: "Physical", color: "#14b8a6", isPreset: true },
+    ]);
+
+    mockLink = { href: "", download: "", click: vi.fn() };
+    _createElementSpy = vi
+      .spyOn(document, "createElement")
+      .mockReturnValue(mockLink as unknown as HTMLElement);
+    vi.spyOn(document.body, "appendChild").mockReturnValue(
+      mockLink as unknown as Node,
+    );
+    vi.spyOn(document.body, "removeChild").mockReturnValue(
+      mockLink as unknown as Node,
+    );
+
+    createObjectURLSpy = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:mock-url");
+    _revokeObjectURLSpy = vi
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => {});
+  }
+
+  beforeEach(async () => {
+    await setupExportMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("exports the correct JSON content with version and data", async () => {
+    await exportEnergyPlannerData();
+
+    const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
+    const reader = new FileReader();
+    reader.readAsText(blobCall);
+
+    return new Promise<void>((resolve) => {
+      reader.onload = () => {
+        const exportedData = JSON.parse(reader.result as string);
+        expect(exportedData).toHaveProperty("version", "3.1.0");
+        expect(exportedData).toHaveProperty("exportDate");
+        expect(exportedData.data).toHaveProperty("oneOffTasks");
+        expect(exportedData.data).toHaveProperty("repeatingTasks");
+        expect(exportedData.data).toHaveProperty("energyTypes");
+        expect(exportedData.data).toHaveProperty("zones");
+        resolve();
+      };
+    });
+  });
+
+  it("exports day plans if present", async () => {
+    // Setup day plan
+    await storeDayPlan("2026-01-01", {
+      date: "2026-01-01",
+      tasks: [],
+      dailyCapacity: { physical: 100 },
+    });
+
+    await exportEnergyPlannerData();
+
+    const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
+    const reader = new FileReader();
+    reader.readAsText(blobCall);
+
+    return new Promise<void>((resolve) => {
+      reader.onload = () => {
+        const exportedData = JSON.parse(reader.result as string);
+        expect(exportedData.data.dayPlans).toHaveLength(1);
+        expect(exportedData.data.dayPlans[0].date).toBe("2026-01-01");
+        resolve();
+      };
+    });
+  });
+});
+
+describe("importEnergyPlannerData", () => {
+  let reloadSpy: ReturnType<typeof vi.fn>;
+
+  function setupImportMocks() {
+    reloadSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { reload: reloadSpy },
+      writable: true,
+    });
+  }
+
+  beforeEach(async () => {
+    await clearAll();
+    setupImportMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("imports valid JSON data and updates IndexedDB", async () => {
+    const validData = {
+      version: "3.1.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffTasks: [
+          {
+            id: "1",
+            title: "Imported Task",
+            createdAt: new Date().toISOString(),
+            energyCost: { physical: 10 },
+            factors: {
+              initiationDifficulty: 1,
+              terminationDifficulty: 1,
+              isRestorative: false,
+            },
+          },
+        ],
+        repeatingTasks: [
+          {
+            id: "2",
+            title: "Repeating Task",
+            createdAt: new Date().toISOString(),
+            energyCost: { physical: 10 },
+            factors: {
+              initiationDifficulty: 1,
+              terminationDifficulty: 1,
+              isRestorative: false,
+            },
+          },
+        ],
+        energyTypes: [
+          {
+            id: "physical",
+            label: "Physical",
+            color: "#14b8a6",
+            isPreset: true,
+          },
+        ],
+        zones: [{ id: "morning", name: "Morning", order: 0 }],
+        dayPlans: [
+          {
+            date: "2026-01-01",
+            plan: {
+              date: "2026-01-01",
+              tasks: [
+                {
+                  id: "1",
+                  title: "Imported Task",
+                  createdAt: new Date().toISOString(),
+                  energyCost: { physical: 10 },
+                  factors: {
+                    initiationDifficulty: 1,
+                    terminationDifficulty: 1,
+                    isRestorative: false,
+                  },
+                  completed: false,
+                },
+              ],
+              dailyCapacity: { physical: 75 },
+            },
+          },
+        ],
+      },
+    };
+
+    const fileContent = JSON.stringify(validData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    // Mock the text() method for vitest
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+
+    // Verify data was imported
+    const tasks = await fetchOneOffTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].title).toBe("Imported Task");
+
+    const repeatingTasks = await fetchRepeatingTasks();
+    expect(repeatingTasks).toHaveLength(1);
+    expect(repeatingTasks[0].title).toBe("Repeating Task");
+
+    const types = await fetchEnergyTypes();
+    expect(types).toHaveLength(1);
+
+    const zones = await fetchZones();
+    expect(zones).toHaveLength(1);
+    expect(zones?.[0].id).toBe("morning");
+
+    const dayPlan = await fetchDayPlan("2026-01-01");
+    expect(dayPlan?.tasks).toHaveLength(1);
+    expect(dayPlan?.tasks[0].id).toBe("1");
+
+    expect(reloadSpy).toHaveBeenCalled();
+  });
+});
+
+describe("importEnergyPlannerData - data handling", () => {
+  let reloadSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    await clearAll();
+    reloadSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { reload: reloadSpy },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("handles null values in all data fields", async () => {
+    const validData = {
+      version: "3.1.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffTasks: null,
+        repeatingTasks: null,
+        capacity: null,
+        energyTypes: null,
+        zones: null,
+        dayPlans: null,
+      },
+    };
+
+    const fileContent = JSON.stringify(validData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+    expect(reloadSpy).toHaveBeenCalled();
+  });
+
+  it("imports partial data when some fields are null", async () => {
+    const validData = {
+      version: "3.1.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffTasks: [
+          {
+            id: "1",
+            title: "Task",
+            createdAt: new Date().toISOString(),
+            energyCost: { physical: 10 },
+            factors: {
+              initiationDifficulty: 1,
+              terminationDifficulty: 1,
+              isRestorative: false,
+            },
+          },
+        ],
+        repeatingTasks: null,
+        capacity: null,
+        energyTypes: null,
+        zones: null,
+        dayPlans: null,
+      },
+    };
+
+    const fileContent = JSON.stringify(validData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+
+    const tasks = await fetchOneOffTasks();
+    expect(tasks).toHaveLength(1);
+    expect(reloadSpy).toHaveBeenCalled();
+  });
+
+  it("throws error for invalid file type", async () => {
+    const file = new File(["{}"], "backup.txt", {
+      type: "text/plain",
+    });
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid file type. Please select a JSON file.",
+    );
+  });
+
+  it("throws error for missing required fields", async () => {
+    const invalidData = {
+      // Missing version and data
+    };
+
+    const fileContent = JSON.stringify(invalidData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid file format. Missing required fields.",
+    );
+  });
+});

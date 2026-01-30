@@ -1,13 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, type Mock, test, vi } from "vitest";
+import { ImportExport } from ".";
 import {
   exportEnergyPlannerData,
   importEnergyPlannerData,
-} from "@/lib/energy-planner/utils";
-import { ImportExport } from ".";
+} from "./ImportExport.utils";
 
 // Mock dependencies
-vi.mock("@/lib/energy-planner/utils");
+vi.mock("./ImportExport.utils");
 
 describe("ImportExport", () => {
   beforeEach(() => {
@@ -18,6 +18,18 @@ describe("ImportExport", () => {
     render(<ImportExport />);
     expect(screen.getByText("Export")).toBeInTheDocument();
     expect(screen.getByText("Import")).toBeInTheDocument();
+  });
+
+  test("triggers file input click when Import button is clicked", () => {
+    render(<ImportExport />);
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const clickSpy = vi.spyOn(fileInput, "click");
+
+    fireEvent.click(screen.getByText("Import"));
+
+    expect(clickSpy).toHaveBeenCalled();
   });
 
   test("handle export click", () => {
