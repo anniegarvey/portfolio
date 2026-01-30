@@ -20,8 +20,10 @@ export function useTasks() {
     let cancelled = false;
     setIsLoading(true);
     (async () => {
-      const storedTasks = await fetchOneOffTasks();
-      const storedRepeatingTasks = await fetchRepeatingTasks();
+      const [storedTasks, storedRepeatingTasks] = await Promise.all([
+        fetchOneOffTasks(),
+        fetchRepeatingTasks(),
+      ]);
       if (cancelled) return;
       setOneOffTasksState(storedTasks);
       setRepeatingTasksState(storedRepeatingTasks);
