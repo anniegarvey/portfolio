@@ -73,6 +73,7 @@ export const RepeatConfigSchema = z.object({
   frequency: z.number().int().min(1),
   unit: RepeatUnitSchema,
   nextDueDate: z.string().optional(),
+  defaultZoneId: z.string().optional(), // Zone to auto-assign new projected instances
 });
 export type RepeatConfig = z.infer<typeof RepeatConfigSchema>;
 

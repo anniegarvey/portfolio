@@ -168,6 +168,12 @@ describe("importEnergyPlannerData", () => {
               terminationDifficulty: 1,
               isRestorative: false,
             },
+            repeatConfig: {
+              frequency: 1,
+              unit: "days",
+              nextDueDate: "2026-01-01",
+              defaultZoneId: "afternoon",
+            },
           },
         ],
         energyTypes: [
@@ -222,6 +228,8 @@ describe("importEnergyPlannerData", () => {
     const repeatingTasks = await fetchRepeatingTasks();
     expect(repeatingTasks).toHaveLength(1);
     expect(repeatingTasks[0].title).toBe("Repeating Task");
+    expect(repeatingTasks[0].repeatConfig?.defaultZoneId).toBe("afternoon");
+    expect(repeatingTasks[0].repeatConfig?.frequency).toBe(1);
 
     const types = await fetchEnergyTypes();
     expect(types).toHaveLength(1);

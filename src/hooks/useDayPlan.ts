@@ -121,6 +121,8 @@ export function useDayPlan(
           id: `virtual-${rt.id}-${currentDate}`,
           repeatingTaskId: rt.id,
           completed: false,
+          // Use the default zone from the repeat config if available
+          zoneId: rt.repeatConfig?.defaultZoneId,
           // Add a transient flag we can check at runtime (not in schema but handled in memory)
           isProjected: true,
         }));

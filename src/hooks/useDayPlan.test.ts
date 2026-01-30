@@ -539,6 +539,33 @@ describe("useDayPlan", () => {
     expect(solidTask?.zoneId).toBe("morning");
   });
 
+  it("projects repeating tasks with their default zone", async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const repeatingTask = {
+      ...mockTask("rep-zone", "Repeating with Zone"),
+      repeatConfig: {
+        frequency: 1,
+        unit: "days",
+        nextDueDate: today,
+        defaultZoneId: "afternoon",
+      },
+    } as const;
+    const stableList = [repeatingTask];
+
+    const { result } = renderHook(() => useDayPlan(stableList));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Verify the projected task has the zone from defaultZoneId
+    const projectedTask = result.current.dayPlan.tasks.find((t) =>
+      t.id.startsWith("virtual-"),
+    );
+    expect(projectedTask).toBeDefined();
+    expect(projectedTask?.zoneId).toBe("afternoon");
+  });
+
   it("solidifies a projected repeating task when completed", async () => {
     const today = new Date().toISOString().split("T")[0];
     const repeatingTask = {

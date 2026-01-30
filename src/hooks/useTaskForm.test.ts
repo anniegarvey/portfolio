@@ -28,7 +28,6 @@ describe("useTaskForm", () => {
   const mockAddTask = vi.fn().mockReturnValue({ id: "new-task-id" });
   const mockUpdateTask = vi.fn();
   const mockAddToPlan = vi.fn();
-  const mockAssignTaskToZone = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,7 +35,6 @@ describe("useTaskForm", () => {
       addTask: mockAddTask,
       updateTask: mockUpdateTask,
       addToPlan: mockAddToPlan,
-      assignTaskToZone: mockAssignTaskToZone,
       isLoading: false,
     });
   });
@@ -203,11 +201,10 @@ describe("useTaskForm", () => {
     });
 
     expect(mockAddTask).toHaveBeenCalled();
-    // Validate that we called assignTaskToZone with the expected virtual ID
-    expect(mockAssignTaskToZone).toHaveBeenCalledWith(
-      "virtual-new-task-id-2024-01-01",
-      "morning",
-    );
+    // Validate that addTask is called with defaultZoneId in the repeatConfig
+    const addTaskCall = mockAddTask.mock.calls[0][0];
+    expect(addTaskCall.repeatConfig.defaultZoneId).toBe("morning");
+    expect(addTaskCall.repeatConfig.nextDueDate).toBe("2024-01-01");
   });
 
   it("provides a unique formId", () => {

@@ -18,8 +18,7 @@ export function useTaskForm({
   initialContext,
   onClose,
 }: UseTaskFormProps) {
-  const { addTask, updateTask, addToPlan, assignTaskToZone, isLoading } =
-    useEnergyPlanner();
+  const { addTask, updateTask, addToPlan, isLoading } = useEnergyPlanner();
   const formId = useId();
   const [title, setTitle] = useState(initialData?.title || "");
   const [energyCost, setEnergyCost] = useState<EnergyCost>(
@@ -91,16 +90,11 @@ export function useTaskForm({
         repeatConfig: {
           ...baseData.repeatConfig,
           nextDueDate: initialContext.date,
+          // Store the zone so projected instances are auto-assigned to it
+          defaultZoneId: initialContext.zoneId,
         },
       };
-      const newRepeatingTask = addTask(dataWithDate);
-
-      // If we have a zoneId, we must implicitly assign the first instance to that zone
-      if (initialContext.zoneId) {
-        // We know useDayPlan projects instances with this deterministic ID format
-        const virtualId = `virtual-${newRepeatingTask.id}-${initialContext.date}`;
-        assignTaskToZone(virtualId, initialContext.zoneId);
-      }
+      addTask(dataWithDate);
       return;
     }
 
