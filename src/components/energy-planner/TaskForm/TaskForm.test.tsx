@@ -98,6 +98,11 @@ describe("TaskForm", () => {
       target: { value: "New Chore" },
     });
 
+    // Fill Description
+    fireEvent.change(screen.getByLabelText(/Description/i), {
+      target: { value: "My detailed description" },
+    });
+
     const physInput = screen.getByLabelText(/Physical/i);
     fireEvent.change(physInput, { target: { value: "50" } });
 
@@ -122,6 +127,7 @@ describe("TaskForm", () => {
         expect.arrayContaining([
           expect.objectContaining({
             title: "New Chore",
+            description: "My detailed description",
             energyCost: { physical: 50, social: 10, executive: 10 },
             factors: {
               initiationDifficulty: 8,
@@ -134,7 +140,7 @@ describe("TaskForm", () => {
     });
   });
 
-  it.skip("updates an existing task", async () => {
+  it("updates an existing task", async () => {
     const initialTask = {
       id: "123",
       createdAt: new Date(),
@@ -276,11 +282,16 @@ describe("TaskForm", () => {
       await screen.findByTestId("frequency-input", {}, { timeout: 3000 }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Days")[0]).toBeInTheDocument(); // Select value
+    expect(screen.getByLabelText("Next Due Date")).toBeInTheDocument();
 
     // Change frequency
     const freqInput = screen.getByTestId("frequency-input");
     fireEvent.change(freqInput, { target: { value: "3" } });
     expect((freqInput as HTMLInputElement).value).toBe("3");
+
+    // Change next due date
+    const dateInput = screen.getByLabelText("Next Due Date");
+    fireEvent.change(dateInput, { target: { value: "2024-03-01" } });
 
     // Verify submission includes repeat config
     fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
@@ -296,6 +307,7 @@ describe("TaskForm", () => {
             repeatConfig: expect.objectContaining({
               frequency: 3,
               unit: "days",
+              nextDueDate: "2024-03-01",
             }),
           }),
         ]),

@@ -32,6 +32,8 @@ export function TaskForm({
   const {
     title,
     setTitle,
+    description,
+    setDescription,
     energyCost,
     setEnergyCost,
     factors,
@@ -42,6 +44,8 @@ export function TaskForm({
     setFrequency,
     unit,
     setUnit,
+    nextDueDate,
+    setNextDueDate,
     handleSubmit,
     formId,
     isLoading,
@@ -58,6 +62,16 @@ export function TaskForm({
           ref={focusRef}
           required
           value={title}
+        />
+      </Field>
+
+      <Field>
+        <Label htmlFor={`${formId}-description`}>Description</Label>
+        <TextArea
+          id={`${formId}-description`}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Optional details..."
+          value={description}
         />
       </Field>
 
@@ -102,6 +116,28 @@ export function TaskForm({
               <SelectItem value="years">Years</SelectItem>
             </SelectContent>
           </Select>
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+          >
+            <Label
+              htmlFor={`${formId}-nextDueDate`}
+              style={{ fontSize: "0.8rem" }}
+            >
+              Next:
+            </Label>
+            <DateInput
+              aria-label="Next Due Date"
+              id={`${formId}-nextDueDate`}
+              onChange={(e) => setNextDueDate(e.target.value)}
+              type="date"
+              value={nextDueDate}
+            />
+          </div>
         </RepeatConfigRow>
       )}
 
@@ -126,6 +162,7 @@ const RepeatConfigRow = styled.div`
     align-items: center;
     gap: 0.5rem;
     padding-left: 1.5rem;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
 `;
 
 const FrequencyInput = styled.input`
@@ -136,6 +173,16 @@ const FrequencyInput = styled.input`
     border-radius: 6px;
     background: transparent;
     color: inherit;
+`;
+
+const DateInput = styled.input`
+    padding: 0.25rem 0.5rem;
+    height: 36px;
+    border: 1px solid var(--color-grey-300);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
 `;
 
 const Form = styled.form`
@@ -162,6 +209,17 @@ const TextInput = styled.input`
     border-radius: 0.25rem;
     background: transparent;
     color: inherit;
+`;
+
+const TextArea = styled.textarea`
+    padding: 0.5rem;
+    border: 1px solid var(--color-grey-300);
+    border-radius: 0.25rem;
+    background: transparent;
+    color: inherit;
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
 `;
 
 const Button = styled.button`

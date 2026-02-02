@@ -21,6 +21,9 @@ export function useTaskForm({
   const { addTask, updateTask, addToPlan, isLoading } = useEnergyPlanner();
   const formId = useId();
   const [title, setTitle] = useState(initialData?.title || "");
+  const [description, setDescription] = useState(
+    initialData?.description || "",
+  );
   const [energyCost, setEnergyCost] = useState<EnergyCost>(
     initialData?.energyCost || { physical: 10, social: 10, executive: 10 },
   );
@@ -40,6 +43,10 @@ export function useTaskForm({
   const [unit, setUnit] = useState<RepeatUnit>(
     initialData?.repeatConfig?.unit || "days",
   );
+  // Default to initial context date only if creating a new repeating task contextually
+  const [nextDueDate, setNextDueDate] = useState(
+    initialData?.repeatConfig?.nextDueDate || initialContext?.date || "",
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +54,7 @@ export function useTaskForm({
 
     const taskData: Partial<Task> = {
       title,
+      description,
       energyCost,
       factors,
     };
@@ -56,6 +64,7 @@ export function useTaskForm({
         ...(initialData?.repeatConfig || {}),
         frequency,
         unit,
+        nextDueDate: nextDueDate || undefined,
       };
     } else {
       taskData.repeatConfig = undefined;
@@ -75,26 +84,25 @@ export function useTaskForm({
   };
 
   const handleCreate = (taskData: Partial<Task>) => {
-    const baseData = { ...taskData, description: "" } as Omit<
-      Task,
-      "id" | "createdAt"
-    >;
+    const baseData = { ...taskData } as Omit<Task, "id" | "createdAt">;
 
-    // Check if we are creating a repeating task from a specific context
-    if (isRepeating && initialContext?.date) {
-      if (!(baseData.repeatConfig?.frequency && baseData.repeatConfig?.unit)) {
+    // Check if we are creating a repeating task
+    // We prioritize the explicit repeatConfig.nextDueDate if set (via the form state nextDueDate)
+    if (isRepeating && taskData.repeatConfig) {
+      const config = taskData.repeatConfig;
+      if (!(config.frequency && config.unit)) {
         throw new Error("Repeat config is required for repeating tasks");
       }
-      const dataWithDate = {
+
+      const dataWithConfig = {
         ...baseData,
         repeatConfig: {
-          ...baseData.repeatConfig,
-          nextDueDate: initialContext.date,
-          // Store the zone so projected instances are auto-assigned to it
-          defaultZoneId: initialContext.zoneId,
+          ...config,
+          nextDueDate: config.nextDueDate,
+          defaultZoneId: config.defaultZoneId || initialContext?.zoneId,
         },
       };
-      addTask(dataWithDate);
+      addTask(dataWithConfig);
       return;
     }
 
@@ -115,6 +123,7 @@ export function useTaskForm({
 
   const resetForm = () => {
     setTitle("");
+    setDescription("");
     setEnergyCost({ physical: 10, social: 10, executive: 10 });
     setFactors({
       initiationDifficulty: 5,
@@ -124,11 +133,14 @@ export function useTaskForm({
     setIsRepeating(false);
     setFrequency(1);
     setUnit("days");
+    setNextDueDate("");
   };
 
   return {
     title,
     setTitle,
+    description,
+    setDescription,
     energyCost,
     setEnergyCost,
     factors,
@@ -139,6 +151,8 @@ export function useTaskForm({
     setFrequency,
     unit,
     setUnit,
+    nextDueDate,
+    setNextDueDate,
     handleSubmit,
     formId,
     isLoading,
