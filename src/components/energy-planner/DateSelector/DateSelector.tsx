@@ -101,7 +101,7 @@ const TodayButton = styled.button`
 
 const TodayIndicator = styled.span`
   font-size: 0.75rem;
-  color: var(--color-teal-600);
+  color: light-dark(var(--color-teal-800), var(--color-teal-200));
   font-weight: 500;
   background-color: light-dark(var(--color-teal-100), var(--color-teal-900));
   padding: 2px 8px;

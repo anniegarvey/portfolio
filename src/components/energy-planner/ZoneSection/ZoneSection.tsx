@@ -159,7 +159,7 @@ const ZoneTaskList = styled.div`
 
 const EmptyZone = styled.div`
   text-align: center;
-  color: var(--color-grey-400);
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
   font-style: italic;
   font-size: 0.875rem;
   padding: 16px 0;

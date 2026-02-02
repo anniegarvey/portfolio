@@ -54,7 +54,7 @@ const SectionTitle = styled.div`
     font-size: 0.875rem;
     font-weight: bold;
     margin-top: 0.5rem;
-    color: var(--color-grey-500);
+    color: light-dark(var(--color-grey-700), var(--color-grey-300));
 `;
 
 const Field = styled.div`

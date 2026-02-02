@@ -128,11 +128,12 @@ const EnergyBadges = styled.div`
 
 const Badge = styled.span<{ $color: string }>`
   font-size: 0.7rem;
+  font-weight: 600;
   padding: 4px 8px;
   border-radius: 999px;
-  background-color: ${({ $color }) => `${$color}20`};
-  color: ${({ $color }) => $color};
-  border: 1px solid ${({ $color }) => `${$color}40`};
+  background-color: ${({ $color }) => `${$color}30`};
+  color: light-dark(var(--color-grey-800), var(--color-grey-100));
+  border: 1px solid ${({ $color }) => `${$color}50`};
 `;
 
 const Actions = styled.div`
@@ -143,7 +144,7 @@ const Actions = styled.div`
 
 const TaskDescription = styled.p`
     font-size: 0.8rem;
-    color: var(--color-grey-500);
+    color: light-dark(var(--color-grey-700), var(--color-grey-300));
     margin-bottom: 0.5rem;
     display: -webkit-box;
     -webkit-line-clamp: 3;

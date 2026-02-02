@@ -117,8 +117,8 @@ const FormGroup = styled.div`
 
 const Label = styled.label`
   font-size: 0.9rem;
-  font-weight: 500;
-  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+  font-weight: 600;
+  color: light-dark(var(--color-grey-800), var(--color-grey-200));
 `;
 
 const Input = styled.input`

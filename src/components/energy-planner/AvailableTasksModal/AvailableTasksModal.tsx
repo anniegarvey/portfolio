@@ -269,7 +269,9 @@ const Tab = styled.button<{ $active?: boolean }>`
     padding: 0.5rem 1rem;
     font-weight: 600;
     color: ${({ $active }) =>
-      $active ? "var(--color-primary-100)" : "var(--color-grey-500)"};
+      $active
+        ? "light-dark(var(--color-primary-700), var(--color-primary-100))"
+        : "light-dark(var(--color-grey-600), var(--color-grey-400))"};
     border-bottom: 2px solid ${({ $active }) =>
       $active ? "var(--color-primary-600)" : "transparent"};
     margin-bottom: -2px;
@@ -277,7 +279,7 @@ const Tab = styled.button<{ $active?: boolean }>`
     transition: all 0.2s;
 
     &:hover {
-        color: var(--color-primary-200);
+        color: light-dark(var(--color-primary-800), var(--color-primary-200));
     }
 `;
 
@@ -291,14 +293,16 @@ const ConfirmActions = styled.div`
 const Button = styled.button`
   padding: 8px 16px;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
   font-size: 0.9rem;
-  background-color: var(--color-grey-200);
-  color: var(--color-grey-800);
-  &:hover { background-color: var(--color-grey-300); }
+  background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
+  color: light-dark(var(--color-grey-900), var(--color-grey-100));
+  &:hover {
+    background-color: light-dark(var(--color-grey-300), var(--color-grey-600));
+  }
 `;
 
 const DangerButton = styled(Button)`

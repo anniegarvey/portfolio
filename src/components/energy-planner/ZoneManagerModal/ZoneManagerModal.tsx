@@ -241,7 +241,7 @@ function ZoneContentWithHandle({
 }) {
   return (
     <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
-      <DragHandle {...listeners} {...attributes}>
+      <DragHandle {...listeners} {...attributes} aria-label="Reorder zone">
         <GripVertical size={16} />
       </DragHandle>
       <div style={{ flex: 1 }}>{children}</div>
