@@ -16,6 +16,7 @@ import {
 import { css, styled } from "next-yak";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import type { PlannedTask, Task } from "../../../lib/energy-planner/schema";
+import { Button } from "../common";
 
 interface PlannerTaskCardProps {
   task: Task;
@@ -90,55 +91,64 @@ export function PlannerTaskCard({
       </TaskContent>
       <Actions>
         {selected && onToggleCompletion && !isPastDay && (
-          <ActionButton
-            $completed={completed}
+          <Button
             aria-label={completed ? "Mark as not done" : "Mark as done"}
+            intent={completed ? "teal" : "primary"}
             onClick={() => onToggleCompletion(task.id)}
+            size="icon"
             title={completed ? "Mark as not done" : "Mark as done"}
+            variant="ghost"
           >
             <Check size={18} />
-          </ActionButton>
+          </Button>
         )}
 
-        <ActionButton
+        <Button
           aria-label="Edit task"
           onClick={() => onEdit(task)}
+          size="icon"
           title="Edit task"
+          variant="ghost"
         >
           <Pencil size={18} />
-        </ActionButton>
+        </Button>
 
         {onDelete && (
-          <ActionButton
-            $remove
+          <Button
             aria-label="Delete task"
+            intent="danger"
             onClick={() => onDelete(task.id)}
+            size="icon"
             title="Delete task"
+            variant="ghost"
           >
             <Trash2 size={18} />
-          </ActionButton>
+          </Button>
         )}
 
         {selected && onRemove && !isPastDay && (
-          <ActionButton
-            $remove
+          <Button
             aria-label="Remove from day"
+            intent="danger"
             onClick={() => onRemove(task.id)}
+            size="icon"
             title="Remove from day"
-            // Start of Selection
+            variant="ghost"
           >
             <X size={18} />
-          </ActionButton>
+          </Button>
         )}
 
         {!selected && onAdd && !isPastDay && !task.repeatConfig && (
-          <ActionButton
+          <Button
             aria-label="Add to day"
             onClick={() => onAdd(task.id)}
+            size="icon"
             title="Add to day"
+            variant="ghost"
           >
             <CopyPlus size={18} />
-          </ActionButton>
+          </Button>
         )}
       </Actions>
     </Card>
@@ -267,24 +277,4 @@ const Badge = styled.span<{ $color: string }>`
 const Actions = styled.div`
   display: flex;
   gap: 4px;
-`;
-
-const ActionButton = styled.button<{ $remove?: boolean; $completed?: boolean }>`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: ${({ $remove, $completed }) => {
-    if ($remove) return "var(--color-rose-500)";
-    if ($completed) return "var(--color-teal-600)";
-    return "var(--color-primary-500)";
-  }};
-
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-
-  &:hover {
-    background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
-  }
 `;

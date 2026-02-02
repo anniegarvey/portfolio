@@ -3,6 +3,7 @@
 import { Download, Upload } from "lucide-react";
 import { styled } from "next-yak";
 import { useRef } from "react";
+import { Button } from "../common";
 import {
   exportEnergyPlannerData,
   importEnergyPlannerData,
@@ -42,14 +43,24 @@ export const ImportExport = () => {
 
   return (
     <ButtonGroup>
-      <ActionButton onClick={handleExport} title="Export data">
-        <Download size={18} />
+      <Button
+        intent="secondary"
+        leftIcon={<Download size={18} />}
+        onClick={handleExport}
+        title="Export data"
+        variant="outline"
+      >
         Export
-      </ActionButton>
-      <ActionButton onClick={handleImportClick} title="Import data">
-        <Upload size={18} />
+      </Button>
+      <Button
+        intent="secondary"
+        leftIcon={<Upload size={18} />}
+        onClick={handleImportClick}
+        title="Import data"
+        variant="outline"
+      >
         Import
-      </ActionButton>
+      </Button>
       <input
         accept=".json"
         onChange={handleImportFile}
@@ -65,23 +76,4 @@ const ButtonGroup = styled.div`
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
-`;
-
-const ActionButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: var(--color-neutral-200);
-  color: var(--color-neutral-900);
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 0.25rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-      background-color: var(--color-neutral-300);
-      border-color: var(--color-neutral-400);
-  }
 `;

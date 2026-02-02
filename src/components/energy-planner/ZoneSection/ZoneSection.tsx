@@ -12,6 +12,7 @@ import type {
   Task,
   ZoneConfig,
 } from "@/lib/energy-planner/schema";
+import { Button } from "../common";
 import { PlannerTaskCard } from "../PlannerTaskCard";
 import { SortableItem } from "../SortableItem";
 
@@ -49,13 +50,15 @@ export function ZoneSection({
             <ZoneDescription>{zone.description}</ZoneDescription>
           )}
         </HeaderContent>
-        <ManageButton
+        <Button
+          intent="secondary"
           onClick={onManageZones}
+          size="icon"
           title="Manage Zones"
-          type="button"
+          variant="outline"
         >
           <Settings size={16} />
-        </ManageButton>
+        </Button>
       </ZoneHeaderWrapper>
       <SortableContext
         id={zone.id}
@@ -82,14 +85,14 @@ export function ZoneSection({
           ))}
         </ZoneTaskList>
       </SortableContext>
-      <AddTaskButton
+      <Button
         aria-label={`Add task to ${zone.name}`}
+        leftIcon={<Plus size={16} />}
         onClick={onAddTask}
-        type="button"
+        variant="dashed"
       >
-        <Plus size={16} />
         Add Task
-      </AddTaskButton>
+      </Button>
     </ZoneContainer>
   );
 }
@@ -131,25 +134,6 @@ const ZoneHeaderWrapper = styled.div`
   border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-600));
 `;
 
-const ManageButton = styled.button`
-  background: transparent;
-  border: 1px solid light-dark(var(--color-grey-400), var(--color-grey-300));
-  color: light-dark(var(--color-grey-600), var(--color-grey-300));
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
-    color: light-dark(var(--color-grey-800), var(--color-grey-200));
-  }
-`;
-
 const ZoneTaskList = styled.div`
   display: flex;
   flex-direction: column;
@@ -163,26 +147,4 @@ const EmptyZone = styled.div`
   font-style: italic;
   font-size: 0.875rem;
   padding: 16px 0;
-`;
-
-const AddTaskButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px dashed light-dark(var(--color-grey-300), var(--color-grey-500));
-  border-radius: 6px;
-  background: transparent;
-  color: light-dark(var(--color-grey-600), var(--color-grey-300));
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: light-dark(var(--color-grey-100), var(--color-grey-700));
-    border-color: var(--color-primary-500);
-    color: var(--color-primary-600);
-  }
 `;

@@ -23,6 +23,7 @@ import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { PlannedTask, Task } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { AvailableTasksModal } from "../AvailableTasksModal";
+import { Button } from "../common";
 import { PlannerTaskCard } from "../PlannerTaskCard";
 import { UncompletedTaskCard } from "../UncompletedTaskCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
@@ -188,10 +189,12 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     <Container>
       <Header>
         <h2>Your Day Plan</h2>
-        <ManageTasksButton onClick={() => setIsModalOpen(true)} type="button">
-          <Plus size={24} />
+        <Button
+          leftIcon={<Plus size={24} />}
+          onClick={() => setIsModalOpen(true)}
+        >
           Manage Tasks
-        </ManageTasksButton>
+        </Button>
       </Header>
       {warning.exceeded && <Warning>{warning.message}</Warning>}
 
@@ -302,26 +305,6 @@ const Container = styled.section`
   display: flex;
   flex-direction: column;
   gap: 16px;
-`;
-
-const ManageTasksButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--color-primary-600);
-  color: white;
-  padding: 8px;
-  padding-right: 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: var(--color-primary-700);
-  }
 `;
 
 const Header = styled.div`

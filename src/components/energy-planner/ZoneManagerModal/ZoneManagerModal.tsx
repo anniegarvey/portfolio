@@ -24,6 +24,7 @@ import { styled } from "next-yak";
 import { useState } from "react";
 import type { ZoneConfig } from "@/lib/energy-planner/schema";
 import { Modal } from "../../Modal";
+import { Button } from "../common";
 import { ZoneFormModal } from "../ZoneFormModal";
 
 interface ZoneManagerModalProps {
@@ -109,25 +110,29 @@ export function ZoneManagerModal({
                       )}
                     </ZoneName>
                     <Actions>
-                      <IconButton
+                      <Button
                         aria-label={`Edit ${zone.name}`}
+                        intent="secondary"
                         onClick={() => startEditing(zone)}
-                        type="button"
+                        size="icon"
+                        variant="ghost"
                       >
                         <Pencil size={16} />
-                      </IconButton>
-                      <IconButton
+                      </Button>
+                      <Button
                         disabled={zones.length <= 1}
+                        intent="secondary"
                         onClick={() => setDeleteConfirmation(zone.id)}
+                        size="icon"
                         title={
                           zones.length <= 1
                             ? "Cannot remove last zone"
                             : `Remove ${zone.name}`
                         }
-                        type="button"
+                        variant="ghost"
                       >
                         <Trash2 size={16} />
-                      </IconButton>
+                      </Button>
                     </Actions>
                   </ZoneContent>
                 </SortableZoneItem>
@@ -136,9 +141,14 @@ export function ZoneManagerModal({
           </SortableContext>
         </DndContext>
 
-        <AddButton onClick={startAdding} type="button">
-          <Plus size={16} /> Add Zone
-        </AddButton>
+        <Button
+          fullWidth
+          leftIcon={<Plus size={16} />}
+          onClick={startAdding}
+          variant="dashed"
+        >
+          Add Zone
+        </Button>
       </Container>
 
       {deleteConfirmation && (
@@ -151,17 +161,18 @@ export function ZoneManagerModal({
         >
           <ConfirmationActions>
             <Button
+              intent="danger"
               onClick={() => {
                 onRemoveZone(deleteConfirmation);
                 setDeleteConfirmation(null);
               }}
-              style={{ backgroundColor: "var(--color-rose-600)" }}
             >
               Delete
             </Button>
             <Button
+              intent="secondary"
               onClick={() => setDeleteConfirmation(null)}
-              variant="secondary"
+              variant="outline"
             >
               Cancel
             </Button>
@@ -307,73 +318,4 @@ const ZoneDescriptionPreview = styled.span`
 const Actions = styled.div`
   display: flex;
   gap: 8px;
-`;
-
-const IconButton = styled.button`
-  background: transparent;
-  border: none;
-  color: light-dark(var(--color-grey-500), var(--color-grey-400));
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background-color: light-dark(var(--color-grey-100), var(--color-grey-700));
-    color: light-dark(var(--color-grey-900), var(--color-grey-100));
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const AddButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px;
-  border: 1px dashed var(--color-grey-300);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--color-grey-600);
-  width: 100%;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: var(--color-primary-500);
-    color: var(--color-primary-600);
-    background-color: var(--color-primary-50);
-  }
-`;
-
-const Button = styled.button<{ variant?: "primary" | "secondary" }>`
-  padding: 6px 16px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  font-size: 0.9rem;
-  border: none;
-  
-  ${(props) =>
-    props.variant === "secondary"
-      ? `
-    background-color: transparent;
-    color: light-dark(var(--color-grey-600), var(--color-grey-400));
-    border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-    &:hover { 
-      background-color: light-dark(var(--color-grey-50), var(--color-grey-800)); 
-      color: light-dark(var(--color-grey-800), var(--color-grey-200));
-    }
-  `
-      : `
-    background-color: var(--color-primary-600);
-    color: white;
-    &:hover { background-color: var(--color-primary-700); }
-  `}
 `;

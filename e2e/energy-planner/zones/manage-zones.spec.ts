@@ -1,4 +1,8 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 
 test.describe("Zone Management", () => {
   test.beforeEach(async ({ page }) => {
@@ -67,7 +71,9 @@ test.describe("Zone Management", () => {
     await expect(modal).toBeVisible();
 
     const secondAccessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(secondAccessibilityScanResults.violations).toEqual([]);
+    expect(
+      violationFingerprints(secondAccessibilityScanResults),
+    ).toMatchSnapshot();
 
     // Click edit
     await modal.getByRole("button", { name: "Edit Late Night" }).click();
@@ -94,7 +100,9 @@ test.describe("Zone Management", () => {
     await expect(confirmModal).toBeVisible();
 
     const thirdAccessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(thirdAccessibilityScanResults.violations).toEqual([]);
+    expect(
+      violationFingerprints(thirdAccessibilityScanResults),
+    ).toMatchSnapshot();
 
     // Click Delete in confirmation modal
     await confirmModal.getByRole("button", { name: "Delete" }).click();

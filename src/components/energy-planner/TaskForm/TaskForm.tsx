@@ -10,6 +10,7 @@ import {
 } from "@/components/Select";
 import { useTaskForm } from "@/hooks/useTaskForm";
 import type { RepeatUnit, Task } from "@/lib/energy-planner/schema";
+import { Button } from "../common";
 import { EnergyCostFields } from "../EnergyCostFields";
 import { TaskFactorFields } from "../TaskFactorFields";
 
@@ -141,8 +142,8 @@ export function TaskForm({
         </RepeatConfigRow>
       )}
 
-      <Button disabled={isLoading} type="submit">
-        {isLoading ? "Loading..." : initialData ? "Update Task" : "Add Task"}
+      <Button disabled={isLoading} isLoading={isLoading} type="submit">
+        {initialData ? "Update Task" : "Add Task"}
       </Button>
     </Form>
   );
@@ -220,19 +221,4 @@ const TextArea = styled.textarea`
     min-height: 80px;
     resize: vertical;
     font-family: inherit;
-`;
-
-const Button = styled.button`
-    background-color: var(--color-primary-600);
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.25rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 1rem;
-
-    &:hover {
-        background-color: var(--color-primary-700);
-    }
 `;

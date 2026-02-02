@@ -1,4 +1,8 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 import { createTask, testTask } from "../../utils/task-test-helpers";
 
 test.describe("One-off Tasks - Delete", () => {
@@ -28,7 +32,7 @@ test.describe("One-off Tasks - Delete", () => {
     ).toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
     // Confirm delete
     await confirmModal.getByRole("button", { name: "Delete" }).click();

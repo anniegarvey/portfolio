@@ -4,6 +4,7 @@ import { styled } from "next-yak";
 import { useEffect, useId, useState } from "react";
 import type { ZoneConfig } from "@/lib/energy-planner/schema";
 import { Modal } from "../../Modal";
+import { Button } from "../common";
 
 interface ZoneFormModalProps {
   isOpen: boolean;
@@ -91,7 +92,7 @@ export function ZoneFormModal({
         </FormGroup>
 
         <Actions>
-          <Button onClick={onClose} type="button" variant="secondary">
+          <Button intent="secondary" onClick={onClose} variant="outline">
             Cancel
           </Button>
           <Button type="submit">
@@ -158,31 +159,4 @@ const Actions = styled.div`
   justify-content: flex-end;
   gap: 12px;
   margin-top: 8px;
-`;
-
-const Button = styled.button<{ variant?: "primary" | "secondary" }>`
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  font-size: 0.95rem;
-  border: none;
-  transition: all 0.2s;
-  
-  ${(props) =>
-    props.variant === "secondary"
-      ? `
-    background-color: transparent;
-    color: light-dark(var(--color-grey-600), var(--color-grey-400));
-    border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-    &:hover { 
-      background-color: light-dark(var(--color-grey-50), var(--color-grey-800)); 
-      color: light-dark(var(--color-grey-800), var(--color-grey-200));
-    }
-  `
-      : `
-    background-color: var(--color-primary-600);
-    color: white;
-    &:hover { background-color: var(--color-primary-700); }
-  `}
 `;

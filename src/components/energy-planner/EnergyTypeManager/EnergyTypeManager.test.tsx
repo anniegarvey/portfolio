@@ -36,7 +36,7 @@ describe("EnergyTypeManagerModal", () => {
   it("opens add dialog when clicking add button", () => {
     render(<TestWrapper />);
 
-    const addButton = screen.getByText("+ Add Energy Type");
+    const addButton = screen.getByText("Add Energy Type");
     fireEvent.click(addButton);
 
     expect(
@@ -48,7 +48,7 @@ describe("EnergyTypeManagerModal", () => {
   it("allows adding a new energy type", async () => {
     render(<TestWrapper />);
 
-    fireEvent.click(screen.getByText("+ Add Energy Type"));
+    fireEvent.click(screen.getByText("Add Energy Type"));
 
     const labelInput = screen.getByLabelText("Label");
     fireEvent.change(labelInput, { target: { value: "Creative" } });
@@ -149,7 +149,7 @@ describe("EnergyTypeManagerModal", () => {
 
   it("uses preset suggestions", () => {
     render(<TestWrapper />);
-    fireEvent.click(screen.getByText("+ Add Energy Type"));
+    fireEvent.click(screen.getByText("Add Energy Type"));
 
     const preset = screen.getByText("Executive Functioning");
     fireEvent.click(preset);
@@ -161,7 +161,7 @@ describe("EnergyTypeManagerModal", () => {
     render(<TestWrapper />);
 
     // Open dialog
-    fireEvent.click(screen.getByText("+ Add Energy Type"));
+    fireEvent.click(screen.getByText("Add Energy Type"));
 
     // Find color input
     const colorInput = screen.getByLabelText("Color");
@@ -176,7 +176,7 @@ describe("EnergyTypeManagerModal", () => {
     render(<TestWrapper />);
 
     // Open add dialog
-    fireEvent.click(screen.getByText("+ Add Energy Type"));
+    fireEvent.click(screen.getByText("Add Energy Type"));
 
     // Click save without entering label
     const saveButton = screen.getByText("Add", { selector: "button" });

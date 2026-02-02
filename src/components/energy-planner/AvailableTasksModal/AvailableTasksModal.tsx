@@ -21,6 +21,7 @@ import { useState } from "react";
 import type { Task } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { Modal } from "../../Modal";
+import { Button } from "../common";
 import { PlannerTaskCard } from "../PlannerTaskCard";
 import { SortableItem } from "../SortableItem";
 
@@ -97,10 +98,9 @@ export function AvailableTasksModal({
       >
         <ModalContent>
           <ModalActions>
-            <CreateTaskButton onClick={onOpenCreateTask} type="button">
-              <Plus size={18} />
+            <Button leftIcon={<Plus size={18} />} onClick={onOpenCreateTask}>
               New Task
-            </CreateTaskButton>
+            </Button>
           </ModalActions>
 
           <TabList>
@@ -199,12 +199,16 @@ export function AvailableTasksModal({
           </p>
 
           <ConfirmActions>
-            <Button onClick={() => setTaskToDelete(null)} type="button">
+            <Button
+              intent="secondary"
+              onClick={() => setTaskToDelete(null)}
+              variant="outline"
+            >
               Cancel
             </Button>
-            <DangerButton onClick={confirmDelete} type="button">
+            <Button intent="danger" onClick={confirmDelete}>
               Delete
-            </DangerButton>
+            </Button>
           </ConfirmActions>
         </div>
       </Modal>
@@ -222,24 +226,6 @@ const ModalActions = styled.div`
   padding-bottom: 16px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--color-grey-200);
-`;
-
-const CreateTaskButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--color-primary-600);
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: var(--color-primary-700);
-  }
 `;
 
 const ModalEmptyState = styled.div`
@@ -288,27 +274,4 @@ const ConfirmActions = styled.div`
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
-`;
-
-const Button = styled.button`
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  font-size: 0.9rem;
-  background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
-  color: light-dark(var(--color-grey-900), var(--color-grey-100));
-  &:hover {
-    background-color: light-dark(var(--color-grey-300), var(--color-grey-600));
-  }
-`;
-
-const DangerButton = styled(Button)`
-  background-color: var(--color-rose-600);
-  color: white;
-  &:hover {
-    background-color: var(--color-rose-700);
-  }
 `;

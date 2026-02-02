@@ -5,6 +5,7 @@ import { styled } from "next-yak";
 import { formatDateForDisplay } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Task } from "@/lib/energy-planner/schema";
+import { Button } from "../common";
 
 interface UncompletedTaskCardProps {
   task: Task;
@@ -57,31 +58,33 @@ export function UncompletedTaskCard({
         </EnergyBadges>
       </TaskContent>
       <Actions>
-        <ActionButton
+        <Button
           aria-label="Mark as complete"
+          intent="teal"
+          leftIcon={<Check size={16} />}
           onClick={handleMarkComplete}
           title="Mark as complete"
         >
-          <Check size={16} />
-          <span>Complete</span>
-        </ActionButton>
-        <ActionButton
+          <ResponsiveSpan>Complete</ResponsiveSpan>
+        </Button>
+        <Button
           aria-label="Move to today"
+          intent="teal"
+          leftIcon={<ArrowRight size={16} />}
           onClick={handleMoveToToday}
           title="Move to today"
         >
-          <ArrowRight size={16} />
-          <span>Move to Today</span>
-        </ActionButton>
-        <ActionButton
-          $secondary
+          <ResponsiveSpan>Move to Today</ResponsiveSpan>
+        </Button>
+        <Button
           aria-label="Return to unplanned"
+          intent="secondary"
+          leftIcon={<Undo2 size={16} />}
           onClick={handleReturnToUnplanned}
           title="Return to unplanned"
         >
-          <Undo2 size={16} />
-          <span>Unplan</span>
-        </ActionButton>
+          <ResponsiveSpan>Unplan</ResponsiveSpan>
+        </Button>
       </Actions>
     </Card>
   );
@@ -154,42 +157,10 @@ const TaskDescription = styled.p`
     line-height: 1.4;
 `;
 
-const ActionButton = styled.button<{ $secondary?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  padding-right: 16px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s var(--ease);
+const ResponsiveSpan = styled.span`
+  display: none;
 
-  background-color: ${({ $secondary }) =>
-    $secondary
-      ? "light-dark(var(--color-grey-100), var(--color-grey-700))"
-      : "var(--color-teal-600)"};
-  color: ${({ $secondary }) =>
-    $secondary
-      ? "light-dark(var(--color-grey-700), var(--color-grey-200))"
-      : "white"};
-  border: 1px solid
-    ${({ $secondary }) =>
-      $secondary ? "var(--color-grey-300)" : "var(--color-teal-700)"};
-
-  &:hover {
-    background-color: ${({ $secondary }) =>
-      $secondary
-        ? "light-dark(var(--color-grey-200), var(--color-grey-600))"
-        : "var(--color-teal-700)"};
-  }
-
-  span {
-    display: none;
-
-    @media (min-width: 640px) {
-      display: inline;
-    }
+  @media (min-width: 640px) {
+    display: inline;
   }
 `;

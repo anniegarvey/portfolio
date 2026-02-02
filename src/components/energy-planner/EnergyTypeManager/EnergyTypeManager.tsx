@@ -1,10 +1,12 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useId, useState } from "react";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import { PRESET_ENERGY_TYPES } from "../../../lib/energy-planner/schema";
 import { Modal } from "../../Modal";
+import { Button } from "../common";
 
 function EnergyTypeDialog({
   isOpen,
@@ -56,14 +58,15 @@ function EnergyTypeDialog({
         <Label>Preset Suggestions</Label>
         <PresetGrid>
           {PRESET_ENERGY_TYPES.map((preset) => (
-            <PresetButton
+            <Button
+              fullWidth
               key={preset.label}
+              leftIcon={<ColorIndicator $color={preset.color} />}
               onClick={() => handlePresetClick(preset)}
-              type="button"
+              variant="outline"
             >
-              <ColorIndicator $color={preset.color} />
               {preset.label}
-            </PresetButton>
+            </Button>
           ))}
         </PresetGrid>
       </FormField>
@@ -82,12 +85,12 @@ function EnergyTypeDialog({
       </FormField>
 
       <DialogActions>
-        <CancelButton onClick={onClose} type="button">
+        <Button intent="secondary" onClick={onClose} variant="outline">
           Cancel
-        </CancelButton>
-        <SaveButton onClick={onSave} type="button">
+        </Button>
+        <Button intent="teal" onClick={onSave}>
           {editingType ? "Update" : "Add"}
-        </SaveButton>
+        </Button>
       </DialogActions>
     </Modal>
   );
@@ -164,9 +167,15 @@ function EnergyTypeManagerContent() {
 
   return (
     <>
-      <AddButton onClick={() => handleOpenDialog()}>
-        + Add Energy Type
-      </AddButton>
+      <Button
+        fullWidth
+        intent="teal"
+        leftIcon={<Plus size={16} />}
+        onClick={() => handleOpenDialog()}
+        style={{ marginBottom: "16px" }}
+      >
+        Add Energy Type
+      </Button>
 
       <TypeList>
         {energyTypes.map((type) => (
@@ -174,15 +183,20 @@ function EnergyTypeManagerContent() {
             <ColorIndicator $color={type.color} />
             <TypeLabel>{type.label}</TypeLabel>
             <Actions>
-              <ActionButton onClick={() => handleOpenDialog(type.id)}>
+              <Button
+                onClick={() => handleOpenDialog(type.id)}
+                size="sm"
+                variant="outline"
+              >
                 Edit
-              </ActionButton>
-              <ActionButton
+              </Button>
+              <Button
                 onClick={(e) => handleDeleteCallback(e, type.id)}
-                type="button"
+                size="sm"
+                variant="outline"
               >
                 Delete
-              </ActionButton>
+              </Button>
             </Actions>
           </TypeItem>
         ))}
@@ -207,12 +221,12 @@ function EnergyTypeManagerContent() {
         title="Delete Energy Type"
       >
         <DialogActions>
-          <CancelButton onClick={cancelDelete} type="button">
+          <Button intent="secondary" onClick={cancelDelete} variant="outline">
             Cancel
-          </CancelButton>
-          <DeleteConfirmButton onClick={confirmDelete} type="button">
+          </Button>
+          <Button intent="danger" onClick={confirmDelete}>
             Delete
-          </DeleteConfirmButton>
+          </Button>
         </DialogActions>
       </Modal>
     </>
@@ -240,22 +254,6 @@ export function EnergyTypeManagerModal({
     </Modal>
   );
 }
-
-const AddButton = styled.button`
-  background-color: var(--color-teal-500);
-  color: white;
-  border: none;
-  padding: 16px;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-weight: 500;
-  width: 100%;
-  margin-bottom: 16px;
-
-  &:hover {
-    background-color: var(--color-teal-600);
-  }
-`;
 
 const TypeList = styled.div`
   display: flex;
@@ -292,20 +290,6 @@ const Actions = styled.div`
   gap: 0.5rem;
 `;
 
-const ActionButton = styled.button`
-  background: transparent;
-  border: 1px solid var(--color-grey-300);
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: light-dark(var(--color-grey-700), var(--color-grey-300));
-
-  &:hover {
-    background-color: light-dark(var(--color-grey-100), var(--color-grey-600));
-  }
-`;
-
 const FormField = styled.div`
   margin-bottom: 1.5rem;
 `;
@@ -339,23 +323,6 @@ const PresetGrid = styled.div`
   gap: 0.5rem;
 `;
 
-const PresetButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  border: 1px solid var(--color-grey-300);
-  border-radius: 0.25rem;
-  background: light-dark(white, var(--color-grey-700));
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: light-dark(var(--color-grey-900), var(--color-grey-100));
-
-  &:hover {
-    background-color: light-dark(var(--color-grey-100), var(--color-grey-600));
-  }
-`;
-
 const ColorPickerWrapper = styled.div`
   display: flex;
   align-items: center;
@@ -381,45 +348,4 @@ const DialogActions = styled.div`
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 1.5rem;
-`;
-
-const CancelButton = styled.button`
-  background: transparent;
-  border: 1px solid var(--color-grey-300);
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  color: light-dark(var(--color-grey-700), var(--color-grey-300));
-
-  &:hover {
-    background-color: light-dark(var(--color-grey-100), var(--color-grey-600));
-  }
-`;
-
-const SaveButton = styled.button`
-  background-color: var(--color-teal-500);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-weight: 500;
-
-  &:hover {
-    background-color: var(--color-teal-600);
-  }
-`;
-
-const DeleteConfirmButton = styled.button`
-  background-color: var(--color-rose-500, #f43f5e);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-weight: 500;
-
-  &:hover {
-    background-color: var(--color-rose-600, #e11d48);
-  }
 `;

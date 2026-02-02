@@ -19,4 +19,28 @@ export const test = base.extend<AxeFixture>({
   },
 });
 
+type AxeResult = {
+  id: string;
+  nodes: {
+    target: unknown;
+  }[];
+};
+
+type AxeResults = {
+  violations: AxeResult[];
+};
+
+export function violationFingerprints(accessibilityScanResults: AxeResults) {
+  const violationFingerprints = accessibilityScanResults.violations?.map(
+    (violation: AxeResult) => ({
+      rule: violation.id,
+      // These are CSS selectors which uniquely identify each element with
+      // a violation of the rule in question.
+      targets: violation.nodes.map((node) => node.target),
+    }),
+  );
+
+  return JSON.stringify(violationFingerprints, null, 2);
+}
+
 export { expect } from "@playwright/test";
