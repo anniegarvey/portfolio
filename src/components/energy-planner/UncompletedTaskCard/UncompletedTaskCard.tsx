@@ -41,6 +41,9 @@ export function UncompletedTaskCard({
           <TaskTitle>{task.title}</TaskTitle>
           <FromDate>from {formatDateForDisplay(fromDate)}</FromDate>
         </TaskHeader>
+        {task.description && (
+          <TaskDescription>{task.description}</TaskDescription>
+        )}
         <EnergyBadges>
           {energyTypes.map((type) => {
             const value = task.energyCost[type.id] || 0;
@@ -136,6 +139,18 @@ const Actions = styled.div`
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+`;
+
+const TaskDescription = styled.p`
+    font-size: 0.8rem;
+    color: var(--color-grey-500);
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
 `;
 
 const ActionButton = styled.button<{ $secondary?: boolean }>`

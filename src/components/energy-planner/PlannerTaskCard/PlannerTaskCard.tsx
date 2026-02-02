@@ -73,6 +73,9 @@ export function PlannerTaskCard({
           )}
           <TaskTitle>{task.title}</TaskTitle>
         </TaskTitleRow>
+        {task.description && (
+          <TaskDescription>{task.description}</TaskDescription>
+        )}
         <EnergyBadges>
           {energyTypes.map((type) => {
             const value = task.energyCost[type.id] || 0;
@@ -226,6 +229,18 @@ const TaskTitleRow = styled.div`
 
 const TaskTitle = styled.div`
   font-weight: 500;
+`;
+
+const TaskDescription = styled.p`
+    font-size: 0.8rem;
+    color: var(--color-grey-500);
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
 `;
 
 const RepeatIconWrapper = styled.div`
