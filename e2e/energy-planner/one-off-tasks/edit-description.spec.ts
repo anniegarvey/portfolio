@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import {
   createTask,
   planTaskForToday,
@@ -12,6 +12,7 @@ test.describe("One-off Tasks - Edit Description", () => {
 
   test("should allow editing a task's description while in the day plan", async ({
     page,
+    makeAxeBuilder,
   }) => {
     await createTask(page, testTask);
     await planTaskForToday(page, testTask.name);
@@ -28,6 +29,9 @@ test.describe("One-off Tasks - Edit Description", () => {
     // Edit modal should open
     const editModal = page.getByRole("dialog", { name: "Edit Task" });
     await expect(editModal).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
 
     // Add a description
     const newDescription = "This is a detailed description of the task.";

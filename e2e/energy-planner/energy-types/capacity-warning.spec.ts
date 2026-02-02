@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import {
   createTask,
   planTaskForToday,
@@ -13,6 +13,7 @@ test.describe("Energy Types - Capacity Warning", () => {
 
   test("should show warning when energy capacity is exceeded", async ({
     page,
+    makeAxeBuilder,
   }) => {
     // 1. Create a task with high energy cost
     const highEnergyTask: TaskData = {
@@ -36,5 +37,8 @@ test.describe("Energy Types - Capacity Warning", () => {
         "Warning: You have exceeded your Physical energy capacity!",
       ),
     ).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 });

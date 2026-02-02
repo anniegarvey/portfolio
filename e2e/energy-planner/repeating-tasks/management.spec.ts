@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import { createTask, repeatingTask } from "../../utils/task-test-helpers";
 
 test.describe("Repeating Tasks - Management", () => {
@@ -8,6 +8,7 @@ test.describe("Repeating Tasks - Management", () => {
 
   test("should manage repeating tasks via Available Tasks modal", async ({
     page,
+    makeAxeBuilder,
   }) => {
     await createTask(page, repeatingTask);
 
@@ -17,6 +18,9 @@ test.describe("Repeating Tasks - Management", () => {
 
     // Switch to Repeating Tab
     await modal.getByRole("button", { name: "Repeating Tasks" }).click();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
 
     // Verify task is listed
     await expect(modal.getByText(repeatingTask.name)).toBeVisible();

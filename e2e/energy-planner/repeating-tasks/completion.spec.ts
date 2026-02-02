@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import { createTask, repeatingTask } from "../../utils/task-test-helpers";
 
 test.describe("Repeating Tasks - Completion", () => {
@@ -8,6 +8,7 @@ test.describe("Repeating Tasks - Completion", () => {
 
   test("should instantiate task when completed and update schedule", async ({
     page,
+    makeAxeBuilder,
   }) => {
     await createTask(page, repeatingTask);
 
@@ -55,5 +56,8 @@ test.describe("Repeating Tasks - Completion", () => {
         name: "Mark as done",
       }),
     ).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 });

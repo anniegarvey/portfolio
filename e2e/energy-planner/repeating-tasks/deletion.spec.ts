@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import { createTask, repeatingTask } from "../../utils/task-test-helpers";
 
 test.describe("Repeating Tasks - Deletion", () => {
@@ -6,7 +6,10 @@ test.describe("Repeating Tasks - Deletion", () => {
     await page.goto("/energy-planner");
   });
 
-  test("should allow deleting a repeating task", async ({ page }) => {
+  test("should allow deleting a repeating task", async ({
+    page,
+    makeAxeBuilder,
+  }) => {
     await createTask(page, repeatingTask);
 
     // Open Manage Tasks
@@ -26,6 +29,9 @@ test.describe("Repeating Tasks - Deletion", () => {
     await expect(
       confirmModal.getByText("Are you sure you want to delete"),
     ).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
 
     // Confirm delete
     await confirmModal.getByRole("button", { name: "Delete" }).click();

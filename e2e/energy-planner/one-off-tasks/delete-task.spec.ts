@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import { createTask, testTask } from "../../utils/task-test-helpers";
 
 test.describe("One-off Tasks - Delete", () => {
@@ -6,7 +6,10 @@ test.describe("One-off Tasks - Delete", () => {
     await page.goto("/energy-planner");
   });
 
-  test("should allow deleting a one-off task", async ({ page }) => {
+  test("should allow deleting a one-off task", async ({
+    page,
+    makeAxeBuilder,
+  }) => {
     await createTask(page, testTask);
 
     // One-off tasks are in "Available Tasks" modal
@@ -23,6 +26,9 @@ test.describe("One-off Tasks - Delete", () => {
     await expect(
       confirmModal.getByText("Are you sure you want to delete"),
     ).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
 
     // Confirm delete
     await confirmModal.getByRole("button", { name: "Delete" }).click();

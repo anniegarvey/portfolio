@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import {
   createTask,
   planTaskForToday,
@@ -10,7 +10,10 @@ test.describe("One-off Tasks - Complete", () => {
     await page.goto("/energy-planner");
   });
 
-  test("should allow marking a task as complete", async ({ page }) => {
+  test("should allow marking a task as complete", async ({
+    page,
+    makeAxeBuilder,
+  }) => {
     await createTask(page, testTask);
     await planTaskForToday(page, testTask.name);
 
@@ -27,5 +30,8 @@ test.describe("One-off Tasks - Complete", () => {
         exact: true,
       }),
     ).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 });

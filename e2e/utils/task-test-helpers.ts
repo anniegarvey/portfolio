@@ -1,3 +1,4 @@
+import type AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page } from "@playwright/test";
 
 export interface TaskData {
@@ -80,7 +81,11 @@ export async function verifyTaskEnergyBadges(
   await expect(container.getByText(`${task.executive} E`)).toBeVisible();
 }
 
-export async function createTask(page: Page, task: TaskData) {
+export async function createTask(
+  page: Page,
+  task: TaskData,
+  makeAxeBuilder?: () => AxeBuilder,
+) {
   await page.getByRole("button", { name: "Manage Tasks" }).click();
   const availableModal = page.getByRole("dialog", { name: "Available Tasks" });
   await expect(availableModal).toBeVisible();
@@ -90,6 +95,12 @@ export async function createTask(page: Page, task: TaskData) {
   await expect(createModal).toBeVisible();
 
   await fillTaskForm(createModal, task);
+
+  if (makeAxeBuilder) {
+    const firstAccessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(firstAccessibilityScanResults.violations).toEqual([]);
+  }
+
   await page.getByRole("button", { name: "Add Task" }).click();
   await expect(createModal).not.toBeVisible();
 

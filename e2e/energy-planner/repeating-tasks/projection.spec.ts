@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import { createTask, repeatingTask } from "../../utils/task-test-helpers";
 
 test.describe("Repeating Tasks - Future Projection", () => {
@@ -6,7 +6,10 @@ test.describe("Repeating Tasks - Future Projection", () => {
     await page.goto("/energy-planner");
   });
 
-  test("should project repeating task on future dates", async ({ page }) => {
+  test("should project repeating task on future dates", async ({
+    page,
+    makeAxeBuilder,
+  }) => {
     await createTask(page, repeatingTask);
 
     // Check Today
@@ -21,5 +24,8 @@ test.describe("Repeating Tasks - Future Projection", () => {
     await expect(
       page.getByTestId("selected-tasks").getByText(repeatingTask.name),
     ).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 });

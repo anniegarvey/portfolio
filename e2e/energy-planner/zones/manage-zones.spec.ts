@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 
 test.describe("Zone Management", () => {
   test.beforeEach(async ({ page }) => {
@@ -7,6 +7,7 @@ test.describe("Zone Management", () => {
 
   test("should allow adding, renaming, and removing zones", async ({
     page,
+    makeAxeBuilder,
   }) => {
     const manageButton = page
       .getByRole("button", { name: "Manage Zones" })
@@ -23,6 +24,9 @@ test.describe("Zone Management", () => {
 
     const addModal = page.getByRole("dialog", { name: "Add New Zone" });
     await expect(addModal).toBeVisible();
+
+    const firstAccessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(firstAccessibilityScanResults.violations).toEqual([]);
 
     // Fill input
     await addModal.getByPlaceholder("e.g., Morning Focus").fill("Late Night");
@@ -62,6 +66,9 @@ test.describe("Zone Management", () => {
     await manageButton.click();
     await expect(modal).toBeVisible();
 
+    const secondAccessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(secondAccessibilityScanResults.violations).toEqual([]);
+
     // Click edit
     await modal.getByRole("button", { name: "Edit Late Night" }).click();
 
@@ -85,6 +92,9 @@ test.describe("Zone Management", () => {
     // Expect confirmation modal
     const confirmModal = page.getByRole("dialog", { name: "Delete Zone?" });
     await expect(confirmModal).toBeVisible();
+
+    const thirdAccessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(thirdAccessibilityScanResults.violations).toEqual([]);
 
     // Click Delete in confirmation modal
     await confirmModal.getByRole("button", { name: "Delete" }).click();

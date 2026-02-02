@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import {
   createTask,
   planTaskForToday,
@@ -29,11 +29,17 @@ test.describe("Uncompleted Tasks Workflow", () => {
       .click();
   });
 
-  test("should show uncompleted tasks from previous days", async ({ page }) => {
+  test("should show uncompleted tasks from previous days", async ({
+    page,
+    makeAxeBuilder,
+  }) => {
     // Verify uncompleted section is visible
     await expect(page.getByText("Uncompleted Tasks (1)")).toBeVisible();
     const uncompletedSection = page.getByTestId("uncompleted-tasks");
     await expect(uncompletedSection.getByText(testTask.name)).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test("should mark uncompleted task as complete", async ({ page }) => {

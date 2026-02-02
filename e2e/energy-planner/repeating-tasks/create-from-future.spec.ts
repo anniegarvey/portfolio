@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../utils/accessibility-test";
 import { fillTaskForm, repeatingTask } from "../../utils/task-test-helpers";
 
 test.describe("Repeating Tasks - Create From Future", () => {
@@ -8,6 +8,7 @@ test.describe("Repeating Tasks - Create From Future", () => {
 
   test("should start repeating task on selected date when created from future date", async ({
     page,
+    makeAxeBuilder,
   }) => {
     // Navigate to next day
     await page.getByRole("button", { name: "Next day" }).click();
@@ -39,6 +40,9 @@ test.describe("Repeating Tasks - Create From Future", () => {
     await expect(
       page.getByTestId("selected-tasks").getByText("Future Repeated Task"),
     ).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
 
     // Verify it is NOT on Today
     await page.getByRole("button", { name: "Previous day" }).click();
