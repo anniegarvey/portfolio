@@ -15,7 +15,7 @@ export function useEnergyPlannerState() {
     repeatingTasks,
     isLoading: tasksLoading,
     addTask: addTaskBase,
-    updateTask,
+    updateTask: updateTaskBase,
     removeTaskState,
     reorderTasks,
     addTaskToAvailable,
@@ -40,7 +40,8 @@ export function useEnergyPlannerState() {
     reorderPlannedTasks,
     assignTaskToZone,
     deleteFromPlan,
-  } = useDayPlan(repeatingTasks, updateTask);
+    updatePlannedTask,
+  } = useDayPlan(repeatingTasks, updateTaskBase);
   const {
     energyTypes,
     isLoading: typesLoading,
@@ -172,6 +173,17 @@ export function useEnergyPlannerState() {
     return { exceeded: false };
   }, [calculateEnergyUsage, energyTypes, dayPlan.dailyCapacity]);
 
+  // Wrap updateTask to handle both stores
+  const handleUpdateTask = useCallback(
+    (task: Task) => {
+      // Update in master lists
+      updateTaskBase(task);
+      // Update in day plan (if present)
+      updatePlannedTask(task);
+    },
+    [updateTaskBase, updatePlannedTask],
+  );
+
   const isLoading =
     tasksLoading || dayPlanLoading || typesLoading || zonesLoading;
 
@@ -179,7 +191,7 @@ export function useEnergyPlannerState() {
     oneOffTasks,
     isLoading,
     addTask,
-    updateTask,
+    updateTask: handleUpdateTask,
     removeTask,
     dailyCapacity: dayPlan.dailyCapacity,
     setDailyCapacity,

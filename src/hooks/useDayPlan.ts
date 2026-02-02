@@ -72,6 +72,12 @@ export function useDayPlan(
   const onUpdateTaskRef = useRef(onUpdateTask);
   onUpdateTaskRef.current = onUpdateTask;
 
+  // Refs for state access inside effects without triggering re-runs
+  const dayPlanRef = useRef(dayPlan);
+  dayPlanRef.current = dayPlan;
+  const isLoadingRef = useRef(isLoading);
+  isLoadingRef.current = isLoading;
+
   // Helper to check if a task is due on a given date
   const isTaskDueOnDate = useCallback((task: Task, date: string) => {
     return checkIsTaskDue(task, date);
@@ -105,10 +111,23 @@ export function useDayPlan(
     setIsLoading(true);
 
     (async () => {
-      const stored = await fetchDayPlanForDate(currentDate);
+      let basePlan: DayPlan | null = null;
+
+      // Optimization: If staying on same day AND not initial load, use current state
+      // This preserves unsaved edits that haven't been persisted to storage yet
+      if (!isLoadingRef.current && currentDate === dayPlanRef.current.date) {
+        basePlan = {
+          ...dayPlanRef.current,
+          tasks: dayPlanRef.current.tasks.filter((t) => !t.isProjected),
+        };
+      }
+
+      if (!basePlan) {
+        basePlan = await fetchDayPlanForDate(currentDate);
+      }
+
       if (cancelled) return;
 
-      let basePlan = stored;
       if (!basePlan) {
         basePlan = createEmptyDayPlan(currentDate);
       }
@@ -443,6 +462,27 @@ export function useDayPlan(
     });
   }, []);
 
+  const updatePlannedTask = useCallback((updatedTask: Task) => {
+    storeDayPlan((prev) => {
+      const taskIndex = prev.tasks.findIndex((t) => t.id === updatedTask.id);
+      if (taskIndex === -1) return prev;
+
+      const existingTask = prev.tasks[taskIndex];
+      const newTask = {
+        ...existingTask,
+        ...updatedTask,
+      };
+
+      const newTasks = [...prev.tasks];
+      newTasks[taskIndex] = newTask;
+
+      return {
+        ...prev,
+        tasks: newTasks,
+      };
+    });
+  }, []);
+
   return {
     currentDate,
     dayPlan,
@@ -462,5 +502,6 @@ export function useDayPlan(
     reorderPlannedTasks: reorderPlannedTasksWithIds,
     assignTaskToZone,
     deleteFromPlan,
+    updatePlannedTask,
   };
 }

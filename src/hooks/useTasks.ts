@@ -89,9 +89,11 @@ export function useTasks() {
         prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
       );
       // Check if it WAS a repeating task
-      setRepeatingTasksState((prev) =>
-        prev.filter((t) => t.id !== updatedTask.id),
-      );
+      // Check if it WAS a repeating task
+      setRepeatingTasksState((prev) => {
+        const filtered = prev.filter((t) => t.id !== updatedTask.id);
+        return filtered.length !== prev.length ? filtered : prev;
+      });
     }
   };
 
