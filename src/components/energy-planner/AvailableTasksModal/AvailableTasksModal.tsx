@@ -202,9 +202,9 @@ export function AvailableTasksModal({
             <Button onClick={() => setTaskToDelete(null)} type="button">
               Cancel
             </Button>
-            <Button $variant="danger" onClick={confirmDelete} type="button">
+            <DangerButton onClick={confirmDelete} type="button">
               Delete
-            </Button>
+            </DangerButton>
           </ConfirmActions>
         </div>
       </Modal>
@@ -288,7 +288,7 @@ const ConfirmActions = styled.div`
   margin-top: 24px;
 `;
 
-const Button = styled.button<{ $variant?: "primary" | "danger" }>`
+const Button = styled.button`
   padding: 8px 16px;
   border-radius: 6px;
   font-weight: 500;
@@ -296,18 +296,15 @@ const Button = styled.button<{ $variant?: "primary" | "danger" }>`
   transition: all 0.2s;
   border: none;
   font-size: 0.9rem;
-  
-  ${({ $variant }) => {
-    if ($variant === "danger")
-      return `
-      background-color: var(--color-rose-600);
-      color: white;
-      &:hover { background-color: var(--color-rose-700); }
-    `;
-    return `
-      background-color: var(--color-grey-200);
-      color: var(--color-grey-800);
-      &:hover { background-color: var(--color-grey-300); }
-    `;
-  }}
+  background-color: var(--color-grey-200);
+  color: var(--color-grey-800);
+  &:hover { background-color: var(--color-grey-300); }
+`;
+
+const DangerButton = styled(Button)`
+  background-color: var(--color-rose-600);
+  color: white;
+  &:hover {
+    background-color: var(--color-rose-700);
+  }
 `;
