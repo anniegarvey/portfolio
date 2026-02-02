@@ -232,4 +232,39 @@ test.describe("Repeating Tasks", () => {
       page.getByTestId("selected-tasks").getByText("Future Repeated Task"),
     ).not.toBeVisible();
   });
+
+  test("should allow deleting a repeating task", async ({ page }) => {
+    await createRepeatingTask(page, repeatingTask);
+
+    // Open Manage Tasks
+    await page.getByRole("button", { name: "Manage Tasks" }).click();
+    const modal = page.getByRole("dialog", { name: "Available Tasks" });
+    await expect(modal).toBeVisible();
+
+    // Switch to Repeating Tasks tab
+    await modal.getByRole("button", { name: "Repeating Tasks" }).click();
+
+    // Find and click delete
+    await modal.getByLabel("Delete task").click();
+
+    // Verify confirmation modal
+    const confirmModal = page.getByRole("dialog", { name: "Delete Task?" });
+    await expect(confirmModal).toBeVisible();
+    await expect(
+      confirmModal.getByText("Are you sure you want to delete"),
+    ).toBeVisible();
+
+    // Confirm delete
+    await confirmModal.getByRole("button", { name: "Delete" }).click();
+    await expect(confirmModal).not.toBeVisible();
+
+    // Verify removed from list
+    await expect(modal.getByText(repeatingTask.name)).not.toBeVisible();
+
+    // Close modal and verify removed from day plan (since it was projected)
+    await page.getByRole("button", { name: "Close modal" }).click();
+    await expect(
+      page.getByTestId("selected-tasks").getByText(repeatingTask.name),
+    ).not.toBeVisible();
+  });
 });
