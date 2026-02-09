@@ -108,7 +108,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     if (activeZoneId) {
       addToPlan(taskId, activeZoneId);
     } else {
-      addToPlan(taskId, zones[0]?.id);
+      addToPlan(taskId);
     }
     setIsModalOpen(false);
     setActiveZoneId(null);

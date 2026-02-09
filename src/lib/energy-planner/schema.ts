@@ -86,6 +86,7 @@ export const TaskSchema = z.object({
   createdAt: z.date(),
   repeatConfig: RepeatConfigSchema.optional(),
   completed: z.boolean().default(false),
+  defaultZoneId: z.string().optional(),
 });
 export type Task = z.infer<typeof TaskSchema>;
 

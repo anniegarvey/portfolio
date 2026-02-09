@@ -50,6 +50,9 @@ export function TaskForm({
     handleSubmit,
     formId,
     isLoading,
+    zones,
+    defaultZoneId,
+    setDefaultZoneId,
   } = useTaskForm({ initialData, initialContext, onClose });
 
   return (
@@ -79,6 +82,28 @@ export function TaskForm({
       <EnergyCostFields energyCost={energyCost} onChange={setEnergyCost} />
 
       <TaskFactorFields factors={factors} onChange={setFactors} />
+
+      <Field>
+        <Label htmlFor={`${formId}-defaultZoneId`}>Default Zone</Label>
+        <Select
+          onValueChange={(val) =>
+            setDefaultZoneId(val === "none" ? undefined : val)
+          }
+          value={defaultZoneId || "none"}
+        >
+          <SelectTrigger id={`${formId}-defaultZoneId`}>
+            <SelectValue placeholder="Select a default zone..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">None</SelectItem>
+            {zones.map((zone) => (
+              <SelectItem key={zone.id} value={zone.id}>
+                {zone.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
 
       <Field>
         <CheckboxLabel>

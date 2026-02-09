@@ -18,7 +18,8 @@ export function useTaskForm({
   initialContext,
   onClose,
 }: UseTaskFormProps) {
-  const { addTask, updateTask, addToPlan, isLoading } = useEnergyPlanner();
+  const { addTask, updateTask, addToPlan, isLoading, zones } =
+    useEnergyPlanner();
   const formId = useId();
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(
@@ -33,6 +34,11 @@ export function useTaskForm({
       terminationDifficulty: 0,
       isRestorative: false,
     },
+  );
+  const [defaultZoneId, setDefaultZoneId] = useState(
+    initialData?.defaultZoneId ||
+      initialData?.repeatConfig?.defaultZoneId ||
+      undefined,
   );
 
   // Repeating Task State
@@ -57,6 +63,7 @@ export function useTaskForm({
       description,
       energyCost,
       factors,
+      defaultZoneId,
     };
 
     if (isRepeating) {
@@ -65,6 +72,7 @@ export function useTaskForm({
         frequency,
         unit,
         nextDueDate: nextDueDate || undefined,
+        defaultZoneId: defaultZoneId || undefined,
       };
     } else {
       taskData.repeatConfig = undefined;
@@ -99,7 +107,8 @@ export function useTaskForm({
         repeatConfig: {
           ...config,
           nextDueDate: config.nextDueDate,
-          defaultZoneId: config.defaultZoneId || initialContext?.zoneId,
+          defaultZoneId:
+            config.defaultZoneId || defaultZoneId || initialContext?.zoneId,
         },
       };
       addTask(dataWithConfig);
@@ -115,9 +124,9 @@ export function useTaskForm({
       newTask &&
       !isRepeating &&
       initialContext?.date &&
-      initialContext?.zoneId
+      (initialContext?.zoneId || newTask.defaultZoneId)
     ) {
-      addToPlan(newTask.id, initialContext.zoneId);
+      addToPlan(newTask.id, initialContext?.zoneId || newTask.defaultZoneId);
     }
   };
 
@@ -134,6 +143,7 @@ export function useTaskForm({
     setFrequency(1);
     setUnit("days");
     setNextDueDate("");
+    setDefaultZoneId(undefined);
   };
 
   return {
@@ -156,5 +166,8 @@ export function useTaskForm({
     handleSubmit,
     formId,
     isLoading,
+    zones,
+    defaultZoneId,
+    setDefaultZoneId,
   };
 }

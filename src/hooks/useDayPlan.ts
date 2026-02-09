@@ -279,7 +279,10 @@ export function useDayPlan(
       if (prev.tasks.some((t) => t.id === task.id)) return prev;
       return {
         ...prev,
-        tasks: [...prev.tasks, { ...task, completed: false, zoneId }],
+        tasks: [
+          ...prev.tasks,
+          { ...task, completed: false, zoneId: zoneId || task.defaultZoneId },
+        ],
       };
     });
   }, []);
