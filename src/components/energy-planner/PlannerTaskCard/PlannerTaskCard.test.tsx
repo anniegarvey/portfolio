@@ -311,4 +311,25 @@ describe("PlannerTaskCard", () => {
     await user.click(deleteButton);
     expect(mockOnDelete).toHaveBeenCalledWith(mockTask.id);
   });
+
+  it("does not show remove button for repeating tasks", () => {
+    const mockOnEdit = vi.fn();
+    const mockOnRemove = vi.fn();
+    const repeatingTask: Task = {
+      ...mockTask,
+      repeatConfig: { frequency: 1, unit: "days" },
+    };
+
+    render(
+      <PlannerTaskCard
+        onEdit={mockOnEdit}
+        onRemove={mockOnRemove}
+        selected
+        task={repeatingTask}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
+  });
 });

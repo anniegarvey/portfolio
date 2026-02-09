@@ -126,7 +126,7 @@ export function PlannerTaskCard({
           </Button>
         )}
 
-        {selected && onRemove && !isPastDay && (
+        {selected && onRemove && !isPastDay && !task.repeatConfig && (
           <Button
             aria-label="Remove from day"
             intent="danger"
