@@ -38,4 +38,9 @@ npx playwright show-report
 
 Useful flags: `--ui`, `--debug`, `--headed`
 
-Possible hosting options: https://supabase.com/pricing, https://render.com/pricing or https://railway.com/pricing
+## Hosting
+
+[Render](https://dashboard.render.com/web/srv-d60d317gi27c73c7ohm0/events)
+
+[Deployed site](https://portfolio-g818.onrender.com/energy-planner)
+
