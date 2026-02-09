@@ -35,7 +35,9 @@ export function EnergyCostFields({
                 })
               }
               type="number"
-              value={energyCost[type.id] || 0}
+              value={
+                (energyCost[type.id] || 0) === 0 ? "" : energyCost[type.id]
+              }
             />
           </Field>
         ))}

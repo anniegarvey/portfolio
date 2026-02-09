@@ -128,7 +128,7 @@ describe("TaskForm", () => {
           expect.objectContaining({
             title: "New Chore",
             description: "My detailed description",
-            energyCost: { physical: 50, social: 10, executive: 10 },
+            energyCost: { physical: 50, social: 0, executive: 0 },
             factors: {
               initiationDifficulty: 8,
               terminationDifficulty: 3,
@@ -293,6 +293,11 @@ describe("TaskForm", () => {
     const dateInput = screen.getByLabelText("Next Due Date");
     fireEvent.change(dateInput, { target: { value: "2024-03-01" } });
 
+    // Change unit
+    const unitTrigger = screen.getByLabelText("Repeat Unit");
+    fireEvent.click(unitTrigger);
+    fireEvent.click(screen.getByRole("option", { name: "Weeks" }));
+
     // Verify submission includes repeat config
     fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
       target: { value: "Repeater" },
@@ -306,7 +311,7 @@ describe("TaskForm", () => {
             title: "Repeater",
             repeatConfig: expect.objectContaining({
               frequency: 3,
-              unit: "days",
+              unit: "weeks",
               nextDueDate: "2024-03-01",
             }),
           }),

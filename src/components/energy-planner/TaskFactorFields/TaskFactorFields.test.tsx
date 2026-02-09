@@ -14,9 +14,9 @@ describe("TaskFactorFields", () => {
     render(<TaskFactorFields factors={factors} onChange={mockOnChange} />);
 
     expect(
-      screen.getByLabelText("Start Difficulty (1-10)"),
+      screen.getByLabelText("Start Difficulty (0-10)"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Stop Difficulty (1-10)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Stop Difficulty (0-10)")).toBeInTheDocument();
     expect(screen.getByLabelText("Restorative?")).toBeInTheDocument();
   });
 
@@ -30,9 +30,23 @@ describe("TaskFactorFields", () => {
 
     render(<TaskFactorFields factors={factors} onChange={mockOnChange} />);
 
-    expect(screen.getByLabelText("Start Difficulty (1-10)")).toHaveValue(7);
-    expect(screen.getByLabelText("Stop Difficulty (1-10)")).toHaveValue(3);
+    expect(screen.getByLabelText("Start Difficulty (0-10)")).toHaveValue(7);
+    expect(screen.getByLabelText("Stop Difficulty (0-10)")).toHaveValue(3);
     expect(screen.getByLabelText("Restorative?")).toBeChecked();
+  });
+
+  it("displays empty inputs when values are 0", () => {
+    const mockOnChange = vi.fn();
+    const factors = {
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
+      isRestorative: false,
+    };
+
+    render(<TaskFactorFields factors={factors} onChange={mockOnChange} />);
+
+    expect(screen.getByLabelText("Start Difficulty (0-10)")).toHaveValue(null);
+    expect(screen.getByLabelText("Stop Difficulty (0-10)")).toHaveValue(null);
   });
 
   it("calls onChange when initiation difficulty is updated", () => {
@@ -45,7 +59,7 @@ describe("TaskFactorFields", () => {
 
     render(<TaskFactorFields factors={factors} onChange={mockOnChange} />);
 
-    const input = screen.getByLabelText("Start Difficulty (1-10)");
+    const input = screen.getByLabelText("Start Difficulty (0-10)");
     fireEvent.change(input, { target: { value: "8" } });
 
     expect(mockOnChange).toHaveBeenCalledWith({
@@ -65,7 +79,7 @@ describe("TaskFactorFields", () => {
 
     render(<TaskFactorFields factors={factors} onChange={mockOnChange} />);
 
-    const input = screen.getByLabelText("Stop Difficulty (1-10)");
+    const input = screen.getByLabelText("Stop Difficulty (0-10)");
     fireEvent.change(input, { target: { value: "9" } });
 
     expect(mockOnChange).toHaveBeenCalledWith({

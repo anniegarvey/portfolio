@@ -44,13 +44,13 @@ describe("useTaskForm", () => {
 
     expect(result.current.title).toBe("");
     expect(result.current.energyCost).toEqual({
-      physical: 10,
-      social: 10,
-      executive: 10,
+      physical: 0,
+      social: 0,
+      executive: 0,
     });
     expect(result.current.factors).toEqual({
-      initiationDifficulty: 5,
-      terminationDifficulty: 5,
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
       isRestorative: false,
     });
   });
@@ -153,13 +153,13 @@ describe("useTaskForm", () => {
     expect(mockAddTask).toHaveBeenCalled();
     expect(result.current.title).toBe("");
     expect(result.current.energyCost).toEqual({
-      physical: 10,
-      social: 10,
-      executive: 10,
+      physical: 0,
+      social: 0,
+      executive: 0,
     });
     expect(result.current.factors).toEqual({
-      initiationDifficulty: 5,
-      terminationDifficulty: 5,
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
       isRestorative: false,
     });
   });

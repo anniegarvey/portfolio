@@ -25,12 +25,12 @@ export function useTaskForm({
     initialData?.description || "",
   );
   const [energyCost, setEnergyCost] = useState<EnergyCost>(
-    initialData?.energyCost || { physical: 10, social: 10, executive: 10 },
+    initialData?.energyCost || { physical: 0, social: 0, executive: 0 },
   );
   const [factors, setFactors] = useState(
     initialData?.factors || {
-      initiationDifficulty: 5,
-      terminationDifficulty: 5,
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
       isRestorative: false,
     },
   );
@@ -124,10 +124,10 @@ export function useTaskForm({
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setEnergyCost({ physical: 10, social: 10, executive: 10 });
+    setEnergyCost({ physical: 0, social: 0, executive: 0 });
     setFactors({
-      initiationDifficulty: 5,
-      terminationDifficulty: 5,
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
       isRestorative: false,
     });
     setIsRepeating(false);

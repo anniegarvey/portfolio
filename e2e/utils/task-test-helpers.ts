@@ -44,8 +44,8 @@ export async function fillTaskForm(modal: Locator, task: TaskData) {
   await modal.getByLabel("Physical").fill(task.physical);
   await modal.getByLabel("Social").fill(task.social);
   await modal.getByLabel("Executive").fill(task.executive);
-  await modal.getByLabel("Start Difficulty (1-10)").fill(task.startDifficulty);
-  await modal.getByLabel("Stop Difficulty (1-10)").fill(task.stopDifficulty);
+  await modal.getByLabel("Start Difficulty (0-10)").fill(task.startDifficulty);
+  await modal.getByLabel("Stop Difficulty (0-10)").fill(task.stopDifficulty);
 
   if (task.isRestorative) {
     await modal.getByLabel("Restorative?").check();

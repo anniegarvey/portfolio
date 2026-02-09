@@ -57,13 +57,22 @@ describe("TaskFactorSchema", () => {
     }
   });
 
-  it("rejects difficulty < 1 or > 10", () => {
+  it("rejects difficulty < 0 or > 10", () => {
     const result = TaskFactorSchema.safeParse({
-      initiationDifficulty: 0,
+      initiationDifficulty: -1,
       terminationDifficulty: 11,
       isRestorative: false,
     });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts difficulty 0", () => {
+    const result = TaskFactorSchema.safeParse({
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
+      isRestorative: false,
+    });
+    expect(result.success).toBe(true);
   });
 });
 

@@ -65,10 +65,10 @@ describe("EnergyCostFields", () => {
       { wrapper },
     );
 
-    // Should default to 0 for missing ones
+    // Should default to 0 for missing ones, which renders as empty string
     const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
-    expect(inputs[1].value).toBe("0");
-    expect(inputs[2].value).toBe("0");
+    expect(inputs[1].value).toBe("");
+    expect(inputs[2].value).toBe("");
   });
 
   it("calls onChange when social energy is updated", () => {

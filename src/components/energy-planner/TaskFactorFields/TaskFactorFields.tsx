@@ -16,11 +16,11 @@ export function TaskFactorFields({ factors, onChange }: TaskFactorFieldsProps) {
       <SectionTitle>Task Factors</SectionTitle>
       <Grid>
         <Field>
-          <Label htmlFor={`${idPrefix}-start`}>Start Difficulty (1-10)</Label>
+          <Label htmlFor={`${idPrefix}-start`}>Start Difficulty (0-10)</Label>
           <NumberInput
             id={`${idPrefix}-start`}
             max="10"
-            min="1"
+            min="0"
             onChange={(e) =>
               onChange({
                 ...factors,
@@ -28,15 +28,19 @@ export function TaskFactorFields({ factors, onChange }: TaskFactorFieldsProps) {
               })
             }
             type="number"
-            value={factors.initiationDifficulty}
+            value={
+              factors.initiationDifficulty === 0
+                ? ""
+                : factors.initiationDifficulty
+            }
           />
         </Field>
         <Field>
-          <Label htmlFor={`${idPrefix}-stop`}>Stop Difficulty (1-10)</Label>
+          <Label htmlFor={`${idPrefix}-stop`}>Stop Difficulty (0-10)</Label>
           <NumberInput
             id={`${idPrefix}-stop`}
             max="10"
-            min="1"
+            min="0"
             onChange={(e) =>
               onChange({
                 ...factors,
@@ -44,7 +48,11 @@ export function TaskFactorFields({ factors, onChange }: TaskFactorFieldsProps) {
               })
             }
             type="number"
-            value={factors.terminationDifficulty}
+            value={
+              factors.terminationDifficulty === 0
+                ? ""
+                : factors.terminationDifficulty
+            }
           />
         </Field>
         <Field>

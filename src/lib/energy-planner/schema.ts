@@ -50,14 +50,14 @@ export type EnergyCost = z.infer<typeof EnergyCostSchema>;
 export const TaskFactorSchema = z.object({
   initiationDifficulty: z
     .number()
-    .min(1)
+    .min(0)
     .max(10)
-    .describe("How hard it is to start (1-10)"),
+    .describe("How hard it is to start (0-10)"),
   terminationDifficulty: z
     .number()
-    .min(1)
+    .min(0)
     .max(10)
-    .describe("How hard it is to stop (1-10)"),
+    .describe("How hard it is to stop (0-10)"),
   isRestorative: z
     .boolean()
     .default(false)
