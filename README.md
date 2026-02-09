@@ -38,6 +38,9 @@ npx playwright show-report
 
 Useful flags: `--ui`, `--debug`, `--headed`
 
+Mutation tests (Stryker, moved out of agent instructions for now because it kept crashing Antigravity):
+- After any source code or unit test changes, check unit test quality using mutation tests `pnpm stryker run`, passing the changed file paths in the `--mutate` option, eg `--mutate "src/**/*.js", "a.js"`. At least 80% of mutants should be killed.
+
 ## Hosting
 
 [Render](https://dashboard.render.com/web/srv-d60d317gi27c73c7ohm0/events)
