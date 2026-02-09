@@ -50,12 +50,11 @@ test.describe("Repeating Tasks - Completion", () => {
       })
       .first();
     await expect(tomorrowTask).toBeVisible();
-    // Verify tomorrow's task is NOT completed
     await expect(
       tomorrowTask.getByRole("button", {
         name: "Mark as done",
       }),
-    ).toBeVisible();
+    ).not.toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(accessibilityScanResults.violations).toEqual([]);

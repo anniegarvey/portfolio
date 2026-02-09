@@ -20,6 +20,7 @@ interface ZoneSectionProps {
   zone: ZoneConfig;
   tasks: PlannedTask[];
   isPastDay: boolean;
+  isFutureDay: boolean;
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
   onRemove: (taskId: string) => void;
@@ -31,6 +32,7 @@ export function ZoneSection({
   zone,
   tasks,
   isPastDay,
+  isFutureDay,
   onAddTask,
   onEditTask,
   onRemove,
@@ -73,6 +75,7 @@ export function ZoneSection({
                 <PlannerTaskCard
                   completed={task.completed}
                   dragHandleProps={dragHandleProps}
+                  isFutureDay={isFutureDay}
                   isPastDay={isPastDay}
                   onEdit={onEditTask}
                   onRemove={onRemove}

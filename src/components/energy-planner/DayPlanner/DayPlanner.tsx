@@ -238,6 +238,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
           <ZonesContainer data-testid="selected-tasks">
             {zones.map((zone) => (
               <ZoneSection
+                isFutureDay={currentDate > getTodayDateString()}
                 isPastDay={currentDate < getTodayDateString()}
                 key={zone.id}
                 onAddTask={() => handleOpenModalForZone(zone.id)}
@@ -259,6 +260,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
                   attributes: {} as DraggableAttributes,
                   ref: () => {},
                 }}
+                isFutureDay={currentDate > getTodayDateString()}
                 isPastDay={!viewingToday}
                 onEdit={onEditTask}
                 selected

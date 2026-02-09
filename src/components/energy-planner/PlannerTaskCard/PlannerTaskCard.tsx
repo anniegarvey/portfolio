@@ -23,6 +23,7 @@ interface PlannerTaskCardProps {
   selected?: boolean;
   completed?: boolean;
   isPastDay?: boolean;
+  isFutureDay?: boolean;
   onEdit: (task: Task) => void;
   onToggleCompletion?: (taskId: string) => void;
   onRemove?: (taskId: string) => void;
@@ -40,6 +41,7 @@ export function PlannerTaskCard({
   selected,
   completed,
   isPastDay,
+  isFutureDay,
   onEdit,
   onToggleCompletion,
   onRemove,
@@ -90,7 +92,7 @@ export function PlannerTaskCard({
         </EnergyBadges>
       </TaskContent>
       <Actions>
-        {selected && onToggleCompletion && !isPastDay && (
+        {selected && onToggleCompletion && !isPastDay && !isFutureDay && (
           <Button
             aria-label={completed ? "Mark as not done" : "Mark as done"}
             intent={completed ? "teal" : "primary"}

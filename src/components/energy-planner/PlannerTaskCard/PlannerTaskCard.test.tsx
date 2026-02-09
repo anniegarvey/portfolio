@@ -332,4 +332,21 @@ describe("PlannerTaskCard", () => {
 
     expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
   });
+
+  it("does not show completion toggle when isFutureDay is true", () => {
+    const mockOnEdit = vi.fn();
+    const mockOnToggleCompletion = vi.fn();
+    render(
+      <PlannerTaskCard
+        isFutureDay
+        onEdit={mockOnEdit}
+        onToggleCompletion={mockOnToggleCompletion}
+        selected
+        task={mockTask}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
+  });
 });
