@@ -206,10 +206,14 @@ const getIntentVariables = (intent: string): React.CSSProperties => {
       bgHover: "var(--color-primary-800)",
       text: "white",
       border: "var(--color-primary-700)",
-      ghostText: "var(--color-primary-700)",
-      ghostHoverBg: "var(--color-primary-50)",
-      outlineText: "var(--color-primary-700)",
-      outlineHoverText: "var(--color-primary-700)",
+      ghostText:
+        "light-dark(var(--color-primary-700), var(--color-primary-400))",
+      ghostHoverBg:
+        "light-dark(var(--color-primary-50), var(--color-primary-900))",
+      outlineText:
+        "light-dark(var(--color-primary-700), var(--color-primary-400))",
+      outlineHoverText:
+        "light-dark(var(--color-primary-700), var(--color-primary-400))",
     },
     secondary: {
       bg: "light-dark(var(--color-grey-200), var(--color-grey-700))",
