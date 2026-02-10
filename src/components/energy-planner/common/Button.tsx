@@ -122,9 +122,9 @@ const StyledButton = styled.button<{
         `;
       case "icon":
         return css`
-          padding: 6px;
-          min-width: 32px;
-          height: 32px;
+          padding: 8px;
+          min-width: 40px;
+          height: 40px;
         `;
       default:
         return css`

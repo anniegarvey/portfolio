@@ -3,6 +3,9 @@
     "rule": "color-contrast",
     "targets": [
       [
+        "#radix-_R_cv5esnelbH1_"
+      ],
+      [
         ".ZoneManagerModal_Item_QX66XU:nth-child(1) > div > div:nth-child(2) > .ZoneManagerModal_ZoneContent_QX66XU > .ZoneManagerModal_ZoneName_QX66XU"
       ],
       [
@@ -16,9 +19,6 @@
       ],
       [
         ".ZoneManagerModal_ZoneDescriptionPreview_QX66XU"
-      ],
-      [
-        ".Button_StyledButton__\\$fullWidth_zHCk49"
       ]
     ]
   }

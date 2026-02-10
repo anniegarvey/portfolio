@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/Select";
 import { useTaskForm } from "@/hooks/useTaskForm";
+import { QUERIES } from "@/lib/constants";
 import type { RepeatUnit, Task } from "@/lib/energy-planner/schema";
 import { Button } from "../common";
 import { EnergyCostFields } from "../EnergyCostFields";
@@ -118,52 +119,48 @@ export function TaskForm({
 
       {isRepeating && (
         <RepeatConfigRow>
-          <div>Every</div>
-          <FrequencyInput
-            aria-label="Frequency"
-            data-testid="frequency-input"
-            max={31}
-            min={1}
-            onChange={(e) => setFrequency(parseInt(e.target.value, 10) || 1)}
-            type="number"
-            value={frequency}
-          />
-          <Select
-            onValueChange={(val: RepeatUnit) => setUnit(val)}
-            value={unit}
-          >
-            <SelectTrigger aria-label="Repeat Unit">
-              <SelectValue placeholder="Unit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="days">Days</SelectItem>
-              <SelectItem value="weeks">Weeks</SelectItem>
-              <SelectItem value="months">Months</SelectItem>
-              <SelectItem value="years">Years</SelectItem>
-            </SelectContent>
-          </Select>
-          <div
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
+          <RepeatFrequency>
+            <div>Every</div>
+            <FrequencyInput
+              aria-label="Frequency"
+              data-testid="frequency-input"
+              max={31}
+              min={1}
+              onChange={(e) => setFrequency(parseInt(e.target.value, 10) || 1)}
+              type="number"
+              value={frequency}
+            />
+            <Select
+              onValueChange={(val: RepeatUnit) => setUnit(val)}
+              value={unit}
+            >
+              <SelectTrigger aria-label="Repeat Unit">
+                <SelectValue placeholder="Unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="days">Days</SelectItem>
+                <SelectItem value="weeks">Weeks</SelectItem>
+                <SelectItem value="months">Months</SelectItem>
+                <SelectItem value="years">Years</SelectItem>
+              </SelectContent>
+            </Select>
+          </RepeatFrequency>
+          <RepeatNextDate>
             <Label
               htmlFor={`${formId}-nextDueDate`}
               style={{ fontSize: "0.8rem" }}
             >
               Next:
             </Label>
-            <DateInput
+            <FrequencyInput
               aria-label="Next Due Date"
               id={`${formId}-nextDueDate`}
               onChange={(e) => setNextDueDate(e.target.value)}
+              style={{ width: "auto" }}
               type="date"
               value={nextDueDate}
             />
-          </div>
+          </RepeatNextDate>
         </RepeatConfigRow>
       )}
 
@@ -187,8 +184,31 @@ const RepeatConfigRow = styled.div`
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding-left: 1.5rem;
-    flex-wrap: wrap; /* Allow wrapping on small screens */
+    padding-left: 0;
+    flex-wrap: wrap;
+
+    @media (${QUERIES.PHONE_UP}) {
+        padding-left: 1.5rem;
+        gap: 0.75rem;
+    }
+`;
+
+const RepeatFrequency = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const RepeatNextDate = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+
+  @media (${QUERIES.PHONE_UP}) {
+    margin-left: auto;
+  }
 `;
 
 const FrequencyInput = styled.input`
@@ -199,16 +219,6 @@ const FrequencyInput = styled.input`
     border-radius: 6px;
     background: transparent;
     color: inherit;
-`;
-
-const DateInput = styled.input`
-    padding: 0.25rem 0.5rem;
-    height: 36px;
-    border: 1px solid var(--color-grey-300);
-    border-radius: 6px;
-    background: transparent;
-    color: inherit;
-    font-family: inherit;
 `;
 
 const Form = styled.form`

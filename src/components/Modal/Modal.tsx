@@ -5,6 +5,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { X } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import type { ReactNode } from "react";
+import { QUERIES } from "@/lib/constants";
 
 interface ModalProps {
   isOpen: boolean;
@@ -120,14 +121,19 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--color-grey-200);
+
+  @media (${QUERIES.PHABLET_UP}) {
+    padding: 1rem 1.5rem;
+  }
 `;
 
 const Title = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
+  line-height: 1.2;
 `;
 
 const CloseButton = styled.button`
@@ -135,9 +141,9 @@ const CloseButton = styled.button`
   border: none;
   cursor: pointer;
   color: var(--color-grey-500);
-  padding: 0.25rem;
+  padding: 0.5rem; // Larger tap target
   border-radius: 0.25rem;
-  margin-right: -0.5rem;
+  margin-right: -0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -149,6 +155,10 @@ const CloseButton = styled.button`
 `;
 
 const Body = styled.div`
-  padding: 1.5rem;
+  padding: 1rem;
   overflow-y: auto;
+
+  @media (${QUERIES.PHABLET_UP}) {
+    padding: 1.5rem;
+  }
 `;

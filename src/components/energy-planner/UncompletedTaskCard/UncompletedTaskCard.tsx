@@ -3,6 +3,7 @@
 import { ArrowRight, Check, Undo2 } from "lucide-react";
 import { styled } from "next-yak";
 import { formatDateForDisplay } from "@/hooks/utils";
+import { QUERIES } from "@/lib/constants";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Task } from "@/lib/energy-planner/schema";
 import { Button } from "../common";
@@ -106,10 +107,17 @@ const TaskContent = styled.div`
 
 const TaskHeader = styled.div`
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+
+  @media (${QUERIES.PHABLET_UP}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
 `;
 
 const TaskTitle = styled.span`
@@ -120,7 +128,6 @@ const TaskTitle = styled.span`
 const FromDate = styled.span`
   font-size: 0.75rem;
   color: light-dark(var(--color-orange-700), var(--color-orange-300));
-  white-space: nowrap;
 `;
 
 const EnergyBadges = styled.div`
@@ -160,7 +167,7 @@ const TaskDescription = styled.p`
 const ResponsiveSpan = styled.span`
   display: none;
 
-  @media (min-width: 640px) {
+  @media (${QUERIES.PHABLET_UP}) {
     display: inline;
   }
 `;

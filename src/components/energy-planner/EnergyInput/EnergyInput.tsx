@@ -4,6 +4,7 @@ import { Pencil, Settings } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
 import { formatDateForDisplay, isToday } from "@/hooks/utils";
+import { QUERIES } from "@/lib/constants";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import { EnergyTypeManagerModal } from "../EnergyTypeManager";
 
@@ -91,15 +92,19 @@ export function EnergyInput() {
 
 const Container = styled.div`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-700));
-  padding: 24px;
+  padding: 16px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+  @media (${QUERIES.PHABLET_UP}) {
+    padding: 24px;
+  }
 `;
 
 const Header = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
@@ -109,14 +114,15 @@ const SettingsButton = styled.button`
   --color: light-dark(var(--color-grey-700), var(--color-grey-300));
   background: transparent;
   border: 1px solid var(--color);
-  padding: 8px;
+  padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
   color: var(--color);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 0.875rem;
   transition: all 0.15s ease;
 
   &:hover {
@@ -127,32 +133,41 @@ const SettingsButton = styled.button`
 
 const Grid = styled.div`
   display: grid;
-  gap: 24px;
-  margin-top: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+
+  @media (${QUERIES.PHABLET_UP}) {
+    gap: 24px;
+    margin-top: 16px;
+  }
 `;
 
 const InputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px;
 `;
 
 const Label = styled.label`
   text-transform: capitalize;
   font-weight: 500;
+  font-size: 0.95rem;
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
 `;
 
 const Value = styled.span`
   font-size: 0.875rem;
   text-align: right;
+  font-weight: 600;
   color: light-dark(var(--color-grey-700), var(--color-grey-300));
 `;
 
 const Input = styled.input<{ $energyColor: string }>`
   width: 100%;
   accent-color: ${({ $energyColor }) => $energyColor};
+  grid-column: 1 / span 2;
 `;
 
 const ButtonGroup = styled.div`

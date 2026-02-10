@@ -19,9 +19,10 @@ import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
 import { getTodayDateString, isToday } from "@/hooks/utils";
-import { useEnergyPlanner } from "@/lib/energy-planner/context";
-import type { PlannedTask, Task } from "@/lib/energy-planner/schema";
+import { QUERIES } from "@/lib/constants";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
+import { useEnergyPlanner } from "../../../lib/energy-planner/context";
+import type { PlannedTask, Task } from "../../../lib/energy-planner/schema";
 import { AvailableTasksModal } from "../AvailableTasksModal";
 import { Button } from "../common";
 import { PlannerTaskCard } from "../PlannerTaskCard";
@@ -357,11 +358,18 @@ const ColumnHeader = styled.div`
   font-weight: 600;
   color: light-dark(var(--color-grey-600), var(--color-grey-300));
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  padding-left: 28px;
-  padding-right: 32px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0 12px;
+
+  @media (${QUERIES.PHABLET_UP}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-inline: 0.5rem;
+  }
 `;
 
 const UsageSummary = styled.span`

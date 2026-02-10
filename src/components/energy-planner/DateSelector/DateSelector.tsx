@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { styled } from "next-yak";
 import { formatDateForDisplay } from "@/hooks/utils";
+import { QUERIES } from "@/lib/constants";
 import { Button } from "../common";
 
 interface DateSelectorProps {
@@ -57,7 +58,11 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 8px;
+
+  @media (${QUERIES.PHONE_UP}) {
+    gap: 16px;
+  }
 `;
 
 const DateDisplay = styled.div`
@@ -65,13 +70,20 @@ const DateDisplay = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  min-width: 200px;
+  flex: 1;
+  min-width: 0; // Allow shrinking
+  text-align: center;
 `;
 
 const CurrentDate = styled.span`
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: light-dark(var(--color-grey-800), var(--color-grey-100));
+  line-height: 1.2;
+
+  @media (${QUERIES.PHABLET_UP}) {
+    font-size: 1.1rem;
+  }
 `;
 
 const TodayIndicator = styled.span`

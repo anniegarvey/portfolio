@@ -73,8 +73,8 @@ export function TaskFactorFields({ factors, onChange }: TaskFactorFieldsProps) {
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.75rem;
 `;
 
 const SectionTitle = styled.div`
