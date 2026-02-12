@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  ActivityFactorSchema,
+  ActivitySchema,
   DayPlanSchema,
   EnergyCostSchema,
-  TaskFactorSchema,
-  TaskSchema,
 } from "./schema";
 
 describe("EnergyCostSchema", () => {
@@ -35,9 +35,9 @@ describe("EnergyCostSchema", () => {
   });
 });
 
-describe("TaskFactorSchema", () => {
+describe("ActivityFactorSchema", () => {
   it("validates correct logic", () => {
-    const result = TaskFactorSchema.safeParse({
+    const result = ActivityFactorSchema.safeParse({
       initiationDifficulty: 5,
       terminationDifficulty: 5,
       isRestorative: true,
@@ -46,7 +46,7 @@ describe("TaskFactorSchema", () => {
   });
 
   it("defaults isRestorative to false", () => {
-    const result = TaskFactorSchema.safeParse({
+    const result = ActivityFactorSchema.safeParse({
       initiationDifficulty: 5,
       terminationDifficulty: 5,
       // isRestorative omitted
@@ -58,7 +58,7 @@ describe("TaskFactorSchema", () => {
   });
 
   it("rejects difficulty < 0 or > 10", () => {
-    const result = TaskFactorSchema.safeParse({
+    const result = ActivityFactorSchema.safeParse({
       initiationDifficulty: -1,
       terminationDifficulty: 11,
       isRestorative: false,
@@ -67,7 +67,7 @@ describe("TaskFactorSchema", () => {
   });
 
   it("accepts difficulty 0", () => {
-    const result = TaskFactorSchema.safeParse({
+    const result = ActivityFactorSchema.safeParse({
       initiationDifficulty: 0,
       terminationDifficulty: 0,
       isRestorative: false,
@@ -76,9 +76,9 @@ describe("TaskFactorSchema", () => {
   });
 });
 
-describe("TaskSchema", () => {
+describe("ActivitySchema", () => {
   it("requires title", () => {
-    const result = TaskSchema.safeParse({
+    const result = ActivitySchema.safeParse({
       id: "00000000-0000-0000-0000-000000000000",
       createdAt: new Date(),
       energyCost: { physical: 10, social: 10, executive: 10 },
@@ -93,7 +93,7 @@ describe("TaskSchema", () => {
   });
 
   it("requires non-empty title", () => {
-    const result = TaskSchema.safeParse({
+    const result = ActivitySchema.safeParse({
       id: "00000000-0000-0000-0000-000000000000",
       title: "",
       createdAt: new Date(),
@@ -110,11 +110,11 @@ describe("TaskSchema", () => {
     }
   });
 
-  it("accepts valid task with long title", () => {
-    const result = TaskSchema.safeParse({
+  it("accepts valid activity with long title", () => {
+    const result = ActivitySchema.safeParse({
       id: "00000000-0000-0000-0000-000000000000",
       title:
-        "A very long task title that is definitely longer than 1 character",
+        "A very long activity title that is definitely longer than 1 character",
       createdAt: new Date(),
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
@@ -128,15 +128,15 @@ describe("TaskSchema", () => {
 });
 
 describe("DayPlanSchema", () => {
-  it("defaults tasks to empty array if omitted (though it's required usually, let's check schema definition)", () => {
+  it("defaults activities to empty array if omitted (though it's required usually, let's check schema definition)", () => {
     const result = DayPlanSchema.safeParse({
       date: "2023-01-01",
-      tasks: [],
+      activities: [],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.tasks).toEqual([]);
+      expect(result.data.activities).toEqual([]);
     }
   });
 });

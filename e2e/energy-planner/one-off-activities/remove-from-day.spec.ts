@@ -1,0 +1,33 @@
+import { expect, test } from "../../utils/accessibility-test";
+import {
+  createActivity,
+  planActivityForToday,
+  testActivity,
+} from "../../utils/activity-test-helpers";
+
+test.describe("One-off Activities - Remove from Day", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/energy-planner");
+  });
+
+  test("should allow removing an activity from the day plan", async ({
+    page,
+  }) => {
+    await createActivity(page, testActivity);
+    await planActivityForToday(page, testActivity.name);
+
+    await expect(page.getByText("Selected Activities (1)")).toBeVisible();
+
+    // Remove activity from day
+    const selectedActivities = page.getByTestId("selected-activities");
+    await selectedActivities
+      .getByRole("button", { name: "Remove from day", exact: true })
+      .click();
+
+    // Activity count should decrease
+    await expect(page.getByText("Selected Activities (0)")).toBeVisible();
+    await expect(
+      page.getByText("No activities in this zone").first(),
+    ).toBeVisible();
+  });
+});

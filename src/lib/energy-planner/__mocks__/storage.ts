@@ -1,20 +1,22 @@
 import { vi } from "vitest";
-import type { Task, ZoneConfig } from "@/lib/energy-planner/schema";
+import type { Activity, ZoneConfig } from "@/lib/energy-planner/schema";
 
-let mockTasks: Task[] = [];
-let mockRepeatingTasks: Task[] = [];
+let mockActivities: Activity[] = [];
+let mockRepeatingActivities: Activity[] = [];
 let mockCapacity = { physical: 100, social: 100, executive: 100 };
 let mockDayPlans: Record<string, unknown> = {};
 
-export const fetchOneOffTasks = vi.fn(async () => [...mockTasks]);
-export const storeOneOffTasks = vi.fn((tasks) => {
-  mockTasks = [...tasks];
+export const fetchOneOffActivities = vi.fn(async () => [...mockActivities]);
+export const storeOneOffActivities = vi.fn((activities) => {
+  mockActivities = [...activities];
   return Promise.resolve();
 });
 
-export const fetchRepeatingTasks = vi.fn(async () => [...mockRepeatingTasks]);
-export const storeRepeatingTasks = vi.fn((tasks) => {
-  mockRepeatingTasks = [...tasks];
+export const fetchRepeatingActivities = vi.fn(async () => [
+  ...mockRepeatingActivities,
+]);
+export const storeRepeatingActivities = vi.fn((activities) => {
+  mockRepeatingActivities = [...activities];
   return Promise.resolve();
 });
 
@@ -55,8 +57,8 @@ export const fetchEnergyTypes = vi.fn(async () => [
 export const storeEnergyTypes = vi.fn(() => Promise.resolve());
 
 export const clearAll = vi.fn(async () => {
-  mockTasks = [];
-  mockRepeatingTasks = [];
+  mockActivities = [];
+  mockRepeatingActivities = [];
   mockDayPlans = {};
   mockCapacity = { physical: 100, social: 100, executive: 100 };
 });
@@ -71,8 +73,8 @@ export const storeZones = vi.fn((zones) => {
 });
 
 export const __reset = () => {
-  mockTasks = [];
-  mockRepeatingTasks = [];
+  mockActivities = [];
+  mockRepeatingActivities = [];
   mockCapacity = { physical: 100, social: 100, executive: 100 };
   mockDayPlans = {};
   mockZones = [];

@@ -8,33 +8,33 @@ import {
 import { Plus, Settings } from "lucide-react";
 import { styled } from "next-yak";
 import type {
-  PlannedTask,
-  Task,
+  Activity,
+  PlannedActivity,
   ZoneConfig,
 } from "@/lib/energy-planner/schema";
 import { Button } from "../common";
-import { PlannerTaskCard } from "../PlannerTaskCard";
+import { PlannerActivityCard } from "../PlannerActivityCard";
 import { SortableItem } from "../SortableItem";
 
 interface ZoneSectionProps {
   zone: ZoneConfig;
-  tasks: PlannedTask[];
+  activities: PlannedActivity[];
   isPastDay: boolean;
   isFutureDay: boolean;
-  onAddTask: () => void;
-  onEditTask: (task: Task) => void;
-  onRemove: (taskId: string) => void;
-  onToggleCompletion: (taskId: string) => void;
+  onAddActivity: () => void;
+  onEditActivity: (activity: Activity) => void;
+  onRemove: (activityId: string) => void;
+  onToggleCompletion: (activityId: string) => void;
   onManageZones: () => void;
 }
 
 export function ZoneSection({
   zone,
-  tasks,
+  activities,
   isPastDay,
   isFutureDay,
-  onAddTask,
-  onEditTask,
+  onAddActivity,
+  onEditActivity,
   onRemove,
   onToggleCompletion,
   onManageZones,
@@ -64,37 +64,39 @@ export function ZoneSection({
       </ZoneHeaderWrapper>
       <SortableContext
         id={zone.id}
-        items={tasks.map((t) => t.id)}
+        items={activities.map((a) => a.id)}
         strategy={verticalListSortingStrategy}
       >
-        <ZoneTaskList data-testid={`zone-tasks-${zone.id}`}>
-          {tasks.length === 0 && <EmptyZone>No tasks in this zone</EmptyZone>}
-          {tasks.map((task) => (
-            <SortableItem id={task.id} key={task.id}>
+        <ZoneActivityList data-testid={`zone-activities-${zone.id}`}>
+          {activities.length === 0 && (
+            <EmptyZone>No activities in this zone</EmptyZone>
+          )}
+          {activities.map((activity) => (
+            <SortableItem id={activity.id} key={activity.id}>
               {({ dragHandleProps }) => (
-                <PlannerTaskCard
-                  completed={task.completed}
+                <PlannerActivityCard
+                  activity={activity}
+                  completed={activity.completed}
                   dragHandleProps={dragHandleProps}
                   isFutureDay={isFutureDay}
                   isPastDay={isPastDay}
-                  onEdit={onEditTask}
+                  onEdit={onEditActivity}
                   onRemove={onRemove}
                   onToggleCompletion={onToggleCompletion}
                   selected
-                  task={task}
                 />
               )}
             </SortableItem>
           ))}
-        </ZoneTaskList>
+        </ZoneActivityList>
       </SortableContext>
       <Button
-        aria-label={`Add task to ${zone.name}`}
+        aria-label={`Add activity to ${zone.name}`}
         leftIcon={<Plus size={16} />}
-        onClick={onAddTask}
+        onClick={onAddActivity}
         variant="dashed"
       >
-        Add Task
+        Add Activity
       </Button>
     </ZoneContainer>
   );
@@ -137,7 +139,7 @@ const ZoneHeaderWrapper = styled.div`
   border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-600));
 `;
 
-const ZoneTaskList = styled.div`
+const ZoneActivityList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;

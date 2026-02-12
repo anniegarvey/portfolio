@@ -1,8 +1,8 @@
 import type {
+  Activity,
   DayPlan,
   EnergyCost,
   EnergyTypeConfig,
-  Task,
 } from "@/lib/energy-planner/schema";
 import { DEFAULT_ENERGY_TYPES } from "@/lib/energy-planner/schema";
 import {
@@ -58,7 +58,7 @@ export async function saveDayPlanForDate(
 export function createEmptyDayPlan(date: string): DayPlan {
   return {
     date,
-    tasks: [],
+    activities: [],
     dailyCapacity: defaultCapacity,
   };
 }
@@ -71,26 +71,26 @@ export async function getAllStoredDates(): Promise<string[]> {
 }
 
 /**
- * Find uncompleted tasks from previous days
- * Returns tasks that were planned but not completed on days before today
+ * Find uncompleted activities from previous days
+ * Returns activities that were planned but not completed on days before today
  */
-export async function getUncompletedTasks(
+export async function getUncompletedActivities(
   today: string,
-): Promise<{ task: Task; fromDate: string }[]> {
-  const uncompleted: { task: Task; fromDate: string }[] = [];
+): Promise<{ activity: Activity; fromDate: string }[]> {
+  const uncompleted: { activity: Activity; fromDate: string }[] = [];
   const storedDates = await getAllStoredDates();
 
   for (const date of storedDates) {
     if (date >= today) continue; // Skip today and future dates
 
     const dayPlan = await fetchDayPlanForDate(date);
-    if (!dayPlan?.tasks) continue;
+    if (!dayPlan?.activities) continue;
 
-    for (const task of dayPlan.tasks) {
-      if (!task.completed) {
+    for (const activity of dayPlan.activities) {
+      if (!activity.completed) {
         // Check if already added (though physically distinct copies)
         // We probably want to show instances from previous days
-        uncompleted.push({ task, fromDate: date });
+        uncompleted.push({ activity, fromDate: date });
       }
     }
   }

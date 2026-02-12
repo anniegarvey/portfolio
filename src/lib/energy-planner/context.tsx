@@ -3,19 +3,19 @@
 import { createContext, type ReactNode, useContext } from "react";
 import { useEnergyPlannerState } from "@/hooks/useEnergyPlannerState";
 import type {
+  Activity,
   DayPlan,
   EnergyCost,
   EnergyTypeConfig,
-  Task,
   ZoneConfig,
 } from "./schema";
 
 interface EnergyPlannerContextType {
-  oneOffTasks: Task[];
-  repeatingTasks: Task[];
-  addTask: (task: Omit<Task, "id" | "createdAt">) => Task;
-  updateTask: (task: Task) => void;
-  removeTask: (taskId: string) => void;
+  oneOffActivities: Activity[];
+  repeatingActivities: Activity[];
+  addActivity: (activity: Omit<Activity, "id" | "createdAt">) => Activity;
+  updateActivity: (activity: Activity) => void;
+  removeActivity: (activityId: string) => void;
   dailyCapacity: EnergyCost;
   setDailyCapacity: (capacity: EnergyCost) => void;
   currentDate: string;
@@ -24,29 +24,29 @@ interface EnergyPlannerContextType {
   goToPreviousDay: () => void;
   goToNextDay: () => void;
   goToToday: () => void;
-  addToPlan: (taskId: string, zoneId?: string) => void;
-  removeFromPlan: (taskId: string) => void;
-  toggleTaskCompletion: (taskId: string) => void;
-  markTaskCompleteOnDate: (taskId: string, date: string) => void;
-  moveTaskToToday: (taskId: string, fromDate: string) => void;
-  moveTaskToUnplanned: (taskId: string, fromDate: string) => void;
+  addToPlan: (activityId: string, zoneId?: string) => void;
+  removeFromPlan: (activityId: string) => void;
+  toggleActivityCompletion: (activityId: string) => void;
+  markActivityCompleteOnDate: (activityId: string, date: string) => void;
+  moveActivityToToday: (activityId: string, fromDate: string) => void;
+  moveActivityToUnplanned: (activityId: string, fromDate: string) => void;
   calculateEnergyUsage: () => EnergyCost;
   checkExceedsCapacity: () => { exceeded: boolean; message?: string };
-  uncompletedTasks: { task: Task; fromDate: string }[];
-  availableTasks: Task[];
+  uncompletedActivities: { activity: Activity; fromDate: string }[];
+  availableActivities: Activity[];
   isLoading: boolean;
   energyTypes: EnergyTypeConfig[];
   addEnergyType: (typeData: Omit<EnergyTypeConfig, "id" | "isPreset">) => void;
   updateEnergyType: (updatedType: EnergyTypeConfig) => void;
   removeEnergyType: (typeId: string) => void;
-  reorderPlannedTasks: (itemIds: string[]) => void;
-  reorderTasks: (newTasks: Task[]) => void;
+  reorderPlannedActivities: (itemIds: string[]) => void;
+  reorderActivities: (newActivities: Activity[]) => void;
   zones: ZoneConfig[];
   addZone: (zone: Omit<ZoneConfig, "id">) => void;
   updateZone: (zone: ZoneConfig) => void;
   removeZone: (zoneId: string) => void;
   reorderZones: (zones: ZoneConfig[]) => void;
-  assignTaskToZone: (taskId: string, zoneId: string) => void;
+  assignActivityToZone: (activityId: string, zoneId: string) => void;
 }
 
 const EnergyPlannerContext = createContext<

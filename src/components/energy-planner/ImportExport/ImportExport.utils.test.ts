@@ -3,12 +3,12 @@ import {
   clearAll,
   fetchDayPlan,
   fetchEnergyTypes,
-  fetchOneOffTasks,
-  fetchRepeatingTasks,
+  fetchOneOffActivities,
+  fetchRepeatingActivities,
   fetchZones,
   storeDayPlan,
   storeEnergyTypes,
-  storeOneOffTasks,
+  storeOneOffActivities,
 } from "@/lib/energy-planner/storage";
 import {
   exportEnergyPlannerData,
@@ -28,7 +28,7 @@ describe("exportEnergyPlannerData", () => {
   async function setupExportMocks() {
     await clearAll();
     // Pre-populate storage
-    await storeOneOffTasks([
+    await storeOneOffActivities([
       {
         id: "1",
         title: "Test",
@@ -83,10 +83,10 @@ describe("exportEnergyPlannerData", () => {
     return new Promise<void>((resolve) => {
       reader.onload = () => {
         const exportedData = JSON.parse(reader.result as string);
-        expect(exportedData).toHaveProperty("version", "3.1.0");
+        expect(exportedData).toHaveProperty("version", "4.0.0");
         expect(exportedData).toHaveProperty("exportDate");
-        expect(exportedData.data).toHaveProperty("oneOffTasks");
-        expect(exportedData.data).toHaveProperty("repeatingTasks");
+        expect(exportedData.data).toHaveProperty("oneOffActivities");
+        expect(exportedData.data).toHaveProperty("repeatingActivities");
         expect(exportedData.data).toHaveProperty("energyTypes");
         expect(exportedData.data).toHaveProperty("zones");
         resolve();
@@ -98,7 +98,7 @@ describe("exportEnergyPlannerData", () => {
     // Setup day plan
     await storeDayPlan("2026-01-01", {
       date: "2026-01-01",
-      tasks: [],
+      activities: [],
       dailyCapacity: { physical: 100 },
     });
 
@@ -141,13 +141,13 @@ describe("importEnergyPlannerData", () => {
 
   it("imports valid JSON data and updates IndexedDB", async () => {
     const validData = {
-      version: "3.1.0",
+      version: "4.0.0",
       exportDate: new Date().toISOString(),
       data: {
-        oneOffTasks: [
+        oneOffActivities: [
           {
             id: "1",
-            title: "Imported Task",
+            title: "Imported Activity",
             createdAt: new Date().toISOString(),
             energyCost: { physical: 10 },
             factors: {
@@ -157,10 +157,10 @@ describe("importEnergyPlannerData", () => {
             },
           },
         ],
-        repeatingTasks: [
+        repeatingActivities: [
           {
             id: "2",
-            title: "Repeating Task",
+            title: "Repeating Activity",
             createdAt: new Date().toISOString(),
             energyCost: { physical: 10 },
             factors: {
@@ -190,10 +190,10 @@ describe("importEnergyPlannerData", () => {
             date: "2026-01-01",
             plan: {
               date: "2026-01-01",
-              tasks: [
+              activities: [
                 {
                   id: "1",
-                  title: "Imported Task",
+                  title: "Imported Activity",
                   createdAt: new Date().toISOString(),
                   energyCost: { physical: 10 },
                   factors: {
@@ -221,15 +221,17 @@ describe("importEnergyPlannerData", () => {
     await importEnergyPlannerData(file);
 
     // Verify data was imported
-    const tasks = await fetchOneOffTasks();
-    expect(tasks).toHaveLength(1);
-    expect(tasks[0].title).toBe("Imported Task");
+    const activities = await fetchOneOffActivities();
+    expect(activities).toHaveLength(1);
+    expect(activities[0].title).toBe("Imported Activity");
 
-    const repeatingTasks = await fetchRepeatingTasks();
-    expect(repeatingTasks).toHaveLength(1);
-    expect(repeatingTasks[0].title).toBe("Repeating Task");
-    expect(repeatingTasks[0].repeatConfig?.defaultZoneId).toBe("afternoon");
-    expect(repeatingTasks[0].repeatConfig?.frequency).toBe(1);
+    const repeatingActivities = await fetchRepeatingActivities();
+    expect(repeatingActivities).toHaveLength(1);
+    expect(repeatingActivities[0].title).toBe("Repeating Activity");
+    expect(repeatingActivities[0].repeatConfig?.defaultZoneId).toBe(
+      "afternoon",
+    );
+    expect(repeatingActivities[0].repeatConfig?.frequency).toBe(1);
 
     const types = await fetchEnergyTypes();
     expect(types).toHaveLength(1);
@@ -239,8 +241,8 @@ describe("importEnergyPlannerData", () => {
     expect(zones?.[0].id).toBe("morning");
 
     const dayPlan = await fetchDayPlan("2026-01-01");
-    expect(dayPlan?.tasks).toHaveLength(1);
-    expect(dayPlan?.tasks[0].id).toBe("1");
+    expect(dayPlan?.activities).toHaveLength(1);
+    expect(dayPlan?.activities[0].id).toBe("1");
 
     expect(reloadSpy).toHaveBeenCalled();
   });
@@ -264,11 +266,11 @@ describe("importEnergyPlannerData - data handling", () => {
 
   it("handles null values in all data fields", async () => {
     const validData = {
-      version: "3.1.0",
+      version: "4.0.0",
       exportDate: new Date().toISOString(),
       data: {
-        oneOffTasks: null,
-        repeatingTasks: null,
+        oneOffActivities: null,
+        repeatingActivities: null,
         capacity: null,
         energyTypes: null,
         zones: null,
@@ -288,13 +290,13 @@ describe("importEnergyPlannerData - data handling", () => {
 
   it("imports partial data when some fields are null", async () => {
     const validData = {
-      version: "3.1.0",
+      version: "4.0.0",
       exportDate: new Date().toISOString(),
       data: {
-        oneOffTasks: [
+        oneOffActivities: [
           {
             id: "1",
-            title: "Task",
+            title: "Activity",
             createdAt: new Date().toISOString(),
             energyCost: { physical: 10 },
             factors: {
@@ -304,7 +306,7 @@ describe("importEnergyPlannerData - data handling", () => {
             },
           },
         ],
-        repeatingTasks: null,
+        repeatingActivities: null,
         capacity: null,
         energyTypes: null,
         zones: null,
@@ -320,8 +322,8 @@ describe("importEnergyPlannerData - data handling", () => {
 
     await importEnergyPlannerData(file);
 
-    const tasks = await fetchOneOffTasks();
-    expect(tasks).toHaveLength(1);
+    const activities = await fetchOneOffActivities();
+    expect(activities).toHaveLength(1);
     expect(reloadSpy).toHaveBeenCalled();
   });
 

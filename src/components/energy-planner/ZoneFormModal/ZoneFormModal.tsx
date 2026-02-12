@@ -61,7 +61,7 @@ export function ZoneFormModal({
       description={
         editingZone
           ? "Update the details of your energy zone."
-          : "Create a new energy zone to organize your tasks."
+          : "Create a new energy zone to organize your activities."
       }
       isOpen={isOpen}
       onClose={onClose}
@@ -85,7 +85,7 @@ export function ZoneFormModal({
           <TextArea
             id={descriptionId}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What kind of tasks happen here?"
+            placeholder="What kind of activities happen here?"
             rows={3}
             value={description}
           />

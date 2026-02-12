@@ -22,37 +22,43 @@ import { getTodayDateString, isToday } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
-import type { PlannedTask, Task } from "../../../lib/energy-planner/schema";
-import { AvailableTasksModal } from "../AvailableTasksModal";
+import type {
+  Activity,
+  PlannedActivity,
+} from "../../../lib/energy-planner/schema";
+import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { Button } from "../common";
-import { PlannerTaskCard } from "../PlannerTaskCard";
-import { UncompletedTaskCard } from "../UncompletedTaskCard";
+import { PlannerActivityCard } from "../PlannerActivityCard";
+import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
 import { ZoneSection } from "../ZoneSection";
 
 interface DayPlannerProps {
-  onEditTask: (task: Task) => void;
-  onOpenCreateTask: (context?: { date: string; zoneId?: string }) => void;
+  onEditActivity: (activity: Activity) => void;
+  onOpenCreateActivity: (context?: { date: string; zoneId?: string }) => void;
 }
 
-export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
+export function DayPlanner({
+  onEditActivity,
+  onOpenCreateActivity,
+}: DayPlannerProps) {
   const {
     currentDate,
     dayPlan,
     addToPlan,
     removeFromPlan,
-    removeTask,
-    toggleTaskCompletion,
+    removeActivity,
+    toggleActivityCompletion,
     checkExceedsCapacity,
     calculateEnergyUsage,
     energyTypes,
-    uncompletedTasks,
-    availableTasks,
-    repeatingTasks,
-    reorderPlannedTasks,
-    reorderTasks,
+    uncompletedActivities,
+    availableActivities,
+    repeatingActivities,
+    reorderPlannedActivities,
+    reorderActivities,
     zones,
-    assignTaskToZone,
+    assignActivityToZone,
     addZone,
     updateZone,
     removeZone,
@@ -62,7 +68,9 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isZoneManagerOpen, setIsZoneManagerOpen] = useState(false);
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
-  const [activeTask, setActiveTask] = useState<PlannedTask | null>(null);
+  const [activeActivity, setActiveActivity] = useState<PlannedActivity | null>(
+    null,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -78,38 +86,38 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
   const usage = calculateEnergyUsage();
   const warning = checkExceedsCapacity();
   const viewingToday = isToday(currentDate);
-  const viewedUncompletedTasks = viewingToday ? uncompletedTasks : [];
+  const viewedUncompletedActivities = viewingToday ? uncompletedActivities : [];
 
-  const selectedTasks = dayPlan.tasks ?? [];
+  const selectedActivities = dayPlan.activities ?? [];
 
-  // Group tasks by zone
-  const tasksByZone = useMemo(() => {
-    const grouped = new Map<string, PlannedTask[]>();
+  // Group activities by zone
+  const activitiesByZone = useMemo(() => {
+    const grouped = new Map<string, PlannedActivity[]>();
 
     // Initialize all zones with empty arrays
     for (const zone of zones) {
       grouped.set(zone.id, []);
     }
 
-    // Assign tasks to their zones
-    for (const task of selectedTasks) {
-      const zoneId = task.zoneId ?? zones[0]?.id;
+    // Assign activities to their zones
+    for (const activity of selectedActivities) {
+      const zoneId = activity.zoneId ?? zones[0]?.id;
       if (zoneId && grouped.has(zoneId)) {
-        grouped.get(zoneId)?.push(task);
+        grouped.get(zoneId)?.push(activity);
       } else if (zones[0]) {
         // Fallback to first zone if zone doesn't exist
-        grouped.get(zones[0].id)?.push(task);
+        grouped.get(zones[0].id)?.push(activity);
       }
     }
 
     return grouped;
-  }, [selectedTasks, zones]);
+  }, [selectedActivities, zones]);
 
-  const handleAddToPlanForZone = (taskId: string) => {
+  const handleAddToPlanForZone = (activityId: string) => {
     if (activeZoneId) {
-      addToPlan(taskId, activeZoneId);
+      addToPlan(activityId, activeZoneId);
     } else {
-      addToPlan(taskId);
+      addToPlan(activityId);
     }
     setIsModalOpen(false);
     setActiveZoneId(null);
@@ -122,16 +130,16 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
 
   const handleDragStart = (event: DragOverEvent) => {
     const { active } = event;
-    const task = selectedTasks.find((t) => t.id === active.id);
-    if (task) {
-      setActiveTask(task);
+    const activity = selectedActivities.find((a) => a.id === active.id);
+    if (activity) {
+      setActiveActivity(activity);
     }
   };
 
-  const findZoneForTask = (taskId: string): string | null => {
+  const findZoneForActivity = (activityId: string): string | null => {
     for (const zone of zones) {
-      const zoneTasks = tasksByZone.get(zone.id) ?? [];
-      if (zoneTasks.some((t) => t.id === taskId)) {
+      const zoneActivities = activitiesByZone.get(zone.id) ?? [];
+      if (zoneActivities.some((a) => a.id === activityId)) {
         return zone.id;
       }
     }
@@ -144,32 +152,36 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     if (targetZone) {
       return targetZone.id;
     }
-    // Check if dropping on a task within a zone
-    return findZoneForTask(overId);
+    // Check if dropping on a activity within a zone
+    return findZoneForActivity(overId);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveTask(null);
+    setActiveActivity(null);
 
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const sourceZoneId = findZoneForTask(activeId);
+    const sourceZoneId = findZoneForActivity(activeId);
     const targetZoneId = getTargetZoneId(overId);
 
-    // Move task to new zone if zones differ
+    // Move activity to new zone if zones differ
     if (targetZoneId && sourceZoneId !== targetZoneId) {
-      assignTaskToZone(activeId, targetZoneId);
+      assignActivityToZone(activeId, targetZoneId);
     }
 
     // Handle reordering
     if (activeId !== overId) {
-      const newItems = getReorderedItems(selectedTasks, event, (t) => t.id);
+      const newItems = getReorderedItems(
+        selectedActivities,
+        event,
+        (a) => a.id,
+      );
       if (newItems) {
-        reorderPlannedTasks(newItems.map((t) => t.id));
+        reorderPlannedActivities(newItems.map((a) => a.id));
       }
     }
   };
@@ -178,9 +190,9 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
     setIsZoneManagerOpen(true);
   };
 
-  const handleCreateTask = () => {
+  const handleCreateActivity = () => {
     // Pass current context (date and active zone)
-    onOpenCreateTask({
+    onOpenCreateActivity({
       date: currentDate,
       zoneId: activeZoneId || undefined,
     });
@@ -194,22 +206,22 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
           leftIcon={<Plus size={24} />}
           onClick={() => setIsModalOpen(true)}
         >
-          Manage Tasks
+          Manage Activities
         </Button>
       </Header>
       {warning.exceeded && <Warning>{warning.message}</Warning>}
 
-      {viewedUncompletedTasks.length > 0 && (
-        <UncompletedSection data-testid="uncompleted-tasks">
+      {viewedUncompletedActivities.length > 0 && (
+        <UncompletedSection data-testid="uncompleted-activities">
           <UncompletedHeader>
-            Uncompleted Tasks ({viewedUncompletedTasks.length})
+            Uncompleted Activities ({viewedUncompletedActivities.length})
           </UncompletedHeader>
           <UncompletedList>
-            {viewedUncompletedTasks.map(({ task, fromDate }) => (
-              <UncompletedTaskCard
+            {viewedUncompletedActivities.map(({ activity, fromDate }) => (
+              <UncompletedActivityCard
+                activity={activity}
                 fromDate={fromDate}
-                key={`${task.id}-${fromDate}`}
-                task={task}
+                key={`${activity.id}-${fromDate}`}
               />
             ))}
           </UncompletedList>
@@ -218,7 +230,7 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
 
       <SelectedSection>
         <ColumnHeader>
-          <h3>Selected Tasks ({selectedTasks.length})</h3>
+          <h3>Selected Activities ({selectedActivities.length})</h3>
           <UsageSummary>
             Usage:{" "}
             {energyTypes.map((type) => (
@@ -236,26 +248,27 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
           onDragStart={handleDragStart}
           sensors={sensors}
         >
-          <ZonesContainer data-testid="selected-tasks">
+          <ZonesContainer data-testid="selected-activities">
             {zones.map((zone) => (
               <ZoneSection
+                activities={activitiesByZone.get(zone.id) ?? []}
                 isFutureDay={currentDate > getTodayDateString()}
                 isPastDay={currentDate < getTodayDateString()}
                 key={zone.id}
-                onAddTask={() => handleOpenModalForZone(zone.id)}
-                onEditTask={onEditTask}
+                onAddActivity={() => handleOpenModalForZone(zone.id)}
+                onEditActivity={onEditActivity}
                 onManageZones={handleManageZones}
                 onRemove={removeFromPlan}
-                onToggleCompletion={toggleTaskCompletion}
-                tasks={tasksByZone.get(zone.id) ?? []}
+                onToggleCompletion={toggleActivityCompletion}
                 zone={zone}
               />
             ))}
           </ZonesContainer>
           <DragOverlay>
-            {activeTask ? (
-              <PlannerTaskCard
-                completed={activeTask.completed}
+            {activeActivity ? (
+              <PlannerActivityCard
+                activity={activeActivity}
+                completed={activeActivity.completed}
                 dragHandleProps={{
                   listeners: {} as DraggableSyntheticListeners,
                   attributes: {} as DraggableAttributes,
@@ -263,28 +276,27 @@ export function DayPlanner({ onEditTask, onOpenCreateTask }: DayPlannerProps) {
                 }}
                 isFutureDay={currentDate > getTodayDateString()}
                 isPastDay={!viewingToday}
-                onEdit={onEditTask}
+                onEdit={onEditActivity}
                 selected
-                task={activeTask}
               />
             ) : null}
           </DragOverlay>
         </DndContext>
       </SelectedSection>
 
-      <AvailableTasksModal
-        availableTasks={availableTasks}
+      <AvailableActivitiesModal
+        availableActivities={availableActivities}
         isOpen={isModalOpen}
-        onAddTask={handleAddToPlanForZone}
+        onAddActivity={handleAddToPlanForZone}
         onClose={() => {
           setIsModalOpen(false);
           setActiveZoneId(null);
         }}
-        onDeleteTask={removeTask}
-        onEditTask={onEditTask}
-        onOpenCreateTask={handleCreateTask}
-        onReorderTasks={reorderTasks}
-        repeatingTasks={repeatingTasks}
+        onDeleteActivity={removeActivity}
+        onEditActivity={onEditActivity}
+        onOpenCreateActivity={handleCreateActivity}
+        onReorderActivities={reorderActivities}
+        repeatingActivities={repeatingActivities}
       />
 
       <ZoneManagerModal

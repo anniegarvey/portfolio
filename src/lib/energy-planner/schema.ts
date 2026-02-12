@@ -47,7 +47,7 @@ export const EnergyCostSchema = z.record(z.string(), EnergyLevelSchema);
 
 export type EnergyCost = z.infer<typeof EnergyCostSchema>;
 
-export const TaskFactorSchema = z.object({
+export const ActivityFactorSchema = z.object({
   initiationDifficulty: z
     .number()
     .min(0)
@@ -61,10 +61,10 @@ export const TaskFactorSchema = z.object({
   isRestorative: z
     .boolean()
     .default(false)
-    .describe("Does this task restore energy?"),
+    .describe("Does this activity restore energy?"),
 });
 
-export type TaskFactor = z.infer<typeof TaskFactorSchema>;
+export type ActivityFactor = z.infer<typeof ActivityFactorSchema>;
 
 export const RepeatUnitSchema = z.enum(["days", "weeks", "months", "years"]);
 export type RepeatUnit = z.infer<typeof RepeatUnitSchema>;
@@ -77,30 +77,30 @@ export const RepeatConfigSchema = z.object({
 });
 export type RepeatConfig = z.infer<typeof RepeatConfigSchema>;
 
-export const TaskSchema = z.object({
+export const ActivitySchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   energyCost: EnergyCostSchema,
-  factors: TaskFactorSchema,
+  factors: ActivityFactorSchema,
   createdAt: z.date(),
   repeatConfig: RepeatConfigSchema.optional(),
   completed: z.boolean().default(false),
   defaultZoneId: z.string().optional(),
 });
-export type Task = z.infer<typeof TaskSchema>;
+export type Activity = z.infer<typeof ActivitySchema>;
 
-export const PlannedTaskSchema = TaskSchema.extend({
+export const PlannedActivitySchema = ActivitySchema.extend({
   completed: z.boolean().default(false),
   zoneId: z.string().optional(),
-  repeatingTaskId: z.string().optional(), // Link back to the definition
+  repeatingActivityId: z.string().optional(), // Link back to the definition
   isProjected: z.boolean().optional(), // Transient flag for virtual instances
 });
-export type PlannedTask = z.infer<typeof PlannedTaskSchema>;
+export type PlannedActivity = z.infer<typeof PlannedActivitySchema>;
 
 export const DayPlanSchema = z.object({
   date: z.string(), // ISO date string YYYY-MM-DD
-  tasks: z.array(PlannedTaskSchema).default([]),
+  activities: z.array(PlannedActivitySchema).default([]),
   dailyCapacity: EnergyCostSchema,
 });
 

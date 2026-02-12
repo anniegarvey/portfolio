@@ -1,20 +1,20 @@
 import type {
+  Activity,
   DayPlan,
   EnergyTypeConfig,
-  Task,
   ZoneConfig,
 } from "@/lib/energy-planner/schema";
 import {
   fetchAllDayPlanDates,
   fetchDayPlan,
   fetchEnergyTypes,
-  fetchOneOffTasks,
-  fetchRepeatingTasks,
+  fetchOneOffActivities,
+  fetchRepeatingActivities,
   fetchZones,
   storeDayPlan,
   storeEnergyTypes,
-  storeOneOffTasks,
-  storeRepeatingTasks,
+  storeOneOffActivities,
+  storeRepeatingActivities,
   storeZones,
 } from "@/lib/energy-planner/storage";
 
@@ -22,15 +22,15 @@ export interface EnergyPlannerExportData {
   version: string;
   exportDate: string;
   data: {
-    oneOffTasks: Task[] | null;
-    repeatingTasks: Task[] | null;
+    oneOffActivities: Activity[] | null;
+    repeatingActivities: Activity[] | null;
     energyTypes: EnergyTypeConfig[] | null;
     zones: ZoneConfig[] | null;
     dayPlans: { date: string; plan: DayPlan }[] | null;
   };
 }
 
-const EXPORT_VERSION = "3.1.0"; // Incremented for added support for zones and repeating tasks
+const EXPORT_VERSION = "4.0.0"; // Incremented due to Task -> Activity terminology shift
 
 /**
  * Exports all energy planner data from IndexedDB to a JSON file
@@ -50,8 +50,8 @@ export async function exportEnergyPlannerData(): Promise<void> {
     version: EXPORT_VERSION,
     exportDate: new Date().toISOString(),
     data: {
-      oneOffTasks: await fetchOneOffTasks(),
-      repeatingTasks: await fetchRepeatingTasks(),
+      oneOffActivities: await fetchOneOffActivities(),
+      repeatingActivities: await fetchRepeatingActivities(),
       energyTypes: (await fetchEnergyTypes()) ?? null,
       zones: (await fetchZones()) ?? null,
       dayPlans: dayPlans.length > 0 ? dayPlans : null,
@@ -90,11 +90,11 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
   }
 
   // Import the data
-  if (data.data.oneOffTasks) {
-    await storeOneOffTasks(data.data.oneOffTasks);
+  if (data.data.oneOffActivities) {
+    await storeOneOffActivities(data.data.oneOffActivities);
   }
-  if (data.data.repeatingTasks) {
-    await storeRepeatingTasks(data.data.repeatingTasks);
+  if (data.data.repeatingActivities) {
+    await storeRepeatingActivities(data.data.repeatingActivities);
   }
   if (data.data.energyTypes) {
     await storeEnergyTypes(data.data.energyTypes);

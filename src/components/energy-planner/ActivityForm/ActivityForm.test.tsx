@@ -1,0 +1,323 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
+import type { Activity } from "../../../lib/energy-planner/schema";
+import {
+  clearAll,
+  fetchOneOffActivities,
+  fetchRepeatingActivities,
+  storeOneOffActivities,
+  storeRepeatingActivities,
+} from "../../../lib/energy-planner/storage";
+import { ActivityForm } from ".";
+
+// Explicitly type the mock implementations to avoid 'any'
+vi.mock("../../../lib/energy-planner/storage", () => {
+  let mockOneOffActivities: Activity[] = [];
+  let mockRepeatingActivities: Activity[] = [];
+
+  return {
+    clearAll: vi.fn().mockImplementation(async () => {
+      mockOneOffActivities = [];
+      mockRepeatingActivities = [];
+    }),
+    fetchOneOffActivities: vi.fn().mockImplementation(async () => {
+      return mockOneOffActivities;
+    }),
+    storeOneOffActivities: vi.fn().mockImplementation(async (activities) => {
+      mockOneOffActivities = activities;
+    }),
+    fetchRepeatingActivities: vi
+      .fn()
+      .mockImplementation(async () => mockRepeatingActivities),
+    storeRepeatingActivities: vi.fn().mockImplementation(async (activities) => {
+      mockRepeatingActivities = activities;
+    }),
+    fetchEnergyTypes: vi.fn().mockResolvedValue([
+      { id: "physical", label: "Physical", color: "red" },
+      { id: "social", label: "Social", color: "blue" },
+      { id: "executive", label: "Executive", color: "green" },
+    ]),
+    storeEnergyTypes: vi.fn().mockResolvedValue(undefined),
+    fetchZones: vi.fn().mockResolvedValue([]),
+    storeZones: vi.fn().mockResolvedValue(undefined),
+    fetchDayPlan: vi.fn().mockResolvedValue(null),
+    storeDayPlan: vi.fn().mockResolvedValue(undefined),
+    deleteDayPlan: vi.fn().mockResolvedValue(undefined),
+    fetchAllDayPlanDates: vi.fn().mockResolvedValue([]),
+  };
+});
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+);
+
+// Helper to type mocks
+import type { Mock } from "vitest";
+
+const mockstoreOneOffActivities = storeOneOffActivities as unknown as Mock;
+const mockstoreRepeatingActivities =
+  storeRepeatingActivities as unknown as Mock;
+
+describe("ActivityForm", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    (fetchOneOffActivities as unknown as Mock).mockResolvedValue([]);
+    (fetchRepeatingActivities as unknown as Mock).mockResolvedValue([]);
+    (storeRepeatingActivities as unknown as Mock).mockResolvedValue(undefined);
+    await clearAll();
+  });
+
+  it("renders empty form for new activity", async () => {
+    render(<ActivityForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Do Laundry/i)).toBeDefined();
+    });
+    expect(screen.getByText("Add Activity")).toBeDefined();
+  });
+
+  it("adds a new activity with factors and energy costs", async () => {
+    const onClose = vi.fn();
+    render(<ActivityForm onClose={onClose} />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Do Laundry/i)).toBeDefined();
+    });
+
+    // Wait for button to be ready
+    await waitFor(() => {
+      const button = screen.getByRole("button", {
+        name: /Add Activity/i,
+      }) as HTMLButtonElement;
+      expect(button).toBeDefined();
+      expect(button.disabled).toBe(false);
+    });
+
+    // Fill Title
+    fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
+      target: { value: "New Chore" },
+    });
+
+    // Fill Description
+    fireEvent.change(screen.getByLabelText(/Description/i), {
+      target: { value: "My detailed description" },
+    });
+
+    const physInput = screen.getByLabelText(/Physical/i);
+    fireEvent.change(physInput, { target: { value: "50" } });
+
+    // Fill Factors
+    fireEvent.change(screen.getByLabelText(/Start Difficulty/i), {
+      target: { value: "8" },
+    });
+    fireEvent.change(screen.getByLabelText(/Stop Difficulty/i), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByLabelText(/Restorative/i)); // Toggle checkbox
+
+    // Submit
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    // Verify onClose called
+    expect(onClose).toHaveBeenCalled();
+
+    // Verify storage
+    await waitFor(() => {
+      expect(mockstoreOneOffActivities).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: "New Chore",
+            description: "My detailed description",
+            energyCost: { physical: 50, social: 0, executive: 0 },
+            factors: {
+              initiationDifficulty: 8,
+              terminationDifficulty: 3,
+              isRestorative: true,
+            },
+          }),
+        ]),
+      );
+    });
+  });
+
+  it("updates an existing activity", async () => {
+    const initialActivity = {
+      id: "123",
+      createdAt: new Date(),
+      title: "Existing Activity",
+      description: "",
+      energyCost: { physical: 20, social: 0, executive: 0 },
+      factors: {
+        initiationDifficulty: 1,
+        terminationDifficulty: 1,
+        isRestorative: false,
+      },
+      completed: false,
+    };
+
+    // Initialize mock state
+    (fetchOneOffActivities as unknown as Mock).mockImplementation(async () => [
+      initialActivity,
+    ]);
+
+    const onClose = vi.fn();
+    render(<ActivityForm initialData={initialActivity} onClose={onClose} />, {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Existing Activity")).toBeDefined();
+    });
+
+    // Wait for button to be ready (not loading)
+    await waitFor(() => {
+      const button = screen.getByRole("button", {
+        name: /Update Activity/i,
+      }) as HTMLButtonElement;
+      expect(button).toBeDefined();
+      expect(button.disabled).toBe(false);
+    });
+
+    // Change title
+    fireEvent.change(screen.getByDisplayValue("Existing Activity"), {
+      target: { value: "Updated Activity" },
+    });
+
+    // Submit
+    fireEvent.click(screen.getByRole("button", { name: /Update Activity/i }));
+
+    expect(onClose).toHaveBeenCalled();
+
+    // Verify storage
+    await waitFor(() => {
+      // console.log("Calls:", mockstoreOneOffActivities.mock.calls);
+      expect(mockstoreOneOffActivities).toHaveBeenCalled();
+      const lastCall =
+        mockstoreOneOffActivities.mock.calls[
+          mockstoreOneOffActivities.mock.calls.length - 1
+        ];
+      expect(lastCall[0]).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "123",
+            title: "Updated Activity",
+          }),
+        ]),
+      );
+    });
+  }, 5000);
+
+  it("resets form after submission if onClose is not provided", async () => {
+    render(<ActivityForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Do Laundry/i)).toBeDefined();
+    });
+
+    // Wait for button ready
+    await waitFor(() => {
+      const button = screen.getByRole("button", {
+        name: /Add Activity/i,
+      }) as HTMLButtonElement;
+      expect(button).toBeDefined();
+      expect(button.disabled).toBe(false);
+    });
+
+    const titleInput = screen.getByPlaceholderText(
+      /Do Laundry/i,
+    ) as HTMLInputElement;
+    fireEvent.change(titleInput, { target: { value: "Another Activity" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    await waitFor(() => {
+      expect(titleInput.value).toBe("");
+    });
+
+    await waitFor(() => {
+      expect(mockstoreOneOffActivities).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: "Another Activity",
+          }),
+        ]),
+      );
+    });
+  });
+
+  it("validates inputs", async () => {
+    const onClose = vi.fn();
+    render(<ActivityForm onClose={onClose} />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("Add Activity")).toBeDefined();
+    });
+
+    // Wait for button ready
+    await waitFor(() => {
+      const button = screen.getByRole("button", {
+        name: /Add Activity/i,
+      }) as HTMLButtonElement;
+      expect(button).toBeDefined();
+      expect(button.disabled).toBe(false);
+    });
+
+    // Clear mocks to ignore initial load calls
+    vi.clearAllMocks();
+
+    // Submit without title
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockstoreOneOffActivities).not.toHaveBeenCalled();
+  });
+
+  it("toggles repeating activity options", async () => {
+    render(<ActivityForm />, { wrapper });
+
+    const checkbox = screen.getByLabelText(/Repeat this activity/i);
+    fireEvent.click(checkbox);
+
+    expect(
+      await screen.findByTestId("frequency-input", {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Days")[0]).toBeInTheDocument(); // Select value
+    expect(screen.getByLabelText("Next Due Date")).toBeInTheDocument();
+
+    // Change frequency
+    const freqInput = screen.getByTestId("frequency-input");
+    fireEvent.change(freqInput, { target: { value: "3" } });
+    expect((freqInput as HTMLInputElement).value).toBe("3");
+
+    // Change next due date
+    const dateInput = screen.getByLabelText("Next Due Date");
+    fireEvent.change(dateInput, { target: { value: "2024-03-01" } });
+
+    // Change unit
+    const unitTrigger = screen.getByLabelText("Repeat Unit");
+    fireEvent.click(unitTrigger);
+    fireEvent.click(screen.getByRole("option", { name: "Weeks" }));
+
+    // Verify submission includes repeat config
+    fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
+      target: { value: "Repeater" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    await waitFor(() => {
+      expect(mockstoreRepeatingActivities).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: "Repeater",
+            repeatConfig: expect.objectContaining({
+              frequency: 3,
+              unit: "weeks",
+              nextDueDate: "2024-03-01",
+            }),
+          }),
+        ]),
+      );
+    });
+  });
+});

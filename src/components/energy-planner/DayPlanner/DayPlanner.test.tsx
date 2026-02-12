@@ -5,7 +5,7 @@ import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
 import {
   clearAll,
   storeDayPlan,
-  storeOneOffTasks,
+  storeOneOffActivities,
 } from "../../../lib/energy-planner/storage";
 import { DayPlanner } from ".";
 
@@ -43,7 +43,7 @@ describe("DayPlanner", () => {
             data-testid={`trigger-drag-start-${id || "default"}`}
             onClick={(e) => {
               const target = e.currentTarget;
-              const activeId = target.getAttribute("data-active") || "t1";
+              const activeId = target.getAttribute("data-active") || "a1";
               if (onDragStart) {
                 onDragStart({
                   active: { id: activeId },
@@ -58,8 +58,8 @@ describe("DayPlanner", () => {
             data-testid={`trigger-drag-${id || "default"}`}
             onClick={(e) => {
               const target = e.currentTarget;
-              const activeId = target.getAttribute("data-active") || "t1";
-              const overId = target.getAttribute("data-over") || "t2";
+              const activeId = target.getAttribute("data-active") || "a1";
+              const overId = target.getAttribute("data-over") || "a2";
               const activeData = target.getAttribute("data-active-data");
 
               onDragEnd({
@@ -86,13 +86,13 @@ describe("DayPlanner", () => {
   });
 
   it("renders the day planner with header", async () => {
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
@@ -100,34 +100,34 @@ describe("DayPlanner", () => {
     await waitFor(() => {
       expect(screen.getByText("Your Day Plan")).toBeInTheDocument();
     });
-    expect(screen.getByText(/Selected Tasks/)).toBeInTheDocument();
+    expect(screen.getByText(/Selected Activities/)).toBeInTheDocument();
   });
 
-  it("displays selected tasks count with zero", async () => {
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+  it("displays selected activities count with zero", async () => {
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Selected Tasks \(0\)/)).toBeInTheDocument();
+      expect(screen.getByText(/Selected Activities \(0\)/)).toBeInTheDocument();
     });
   });
 
   it("displays energy usage summary with zeros", async () => {
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
@@ -138,72 +138,72 @@ describe("DayPlanner", () => {
     });
   });
 
-  it("shows empty state message when no tasks selected", async () => {
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+  it("shows empty state message when no activities selected", async () => {
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getAllByText("No tasks in this zone")).toHaveLength(3); // 3 default zones
+      expect(screen.getAllByText("No activities in this zone")).toHaveLength(3); // 3 default zones
     });
   });
 
-  it("shows 'Manage Tasks' button", async () => {
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+  it("shows 'Manage Activities' button", async () => {
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Manage Tasks")).toBeInTheDocument();
+      expect(screen.getByText("Manage Activities")).toBeInTheDocument();
     });
   });
 
-  it("opens modal when 'Manage Tasks' button is clicked", async () => {
+  it("opens modal when 'Manage Activities' button is clicked", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Manage Tasks")).toBeInTheDocument();
+      expect(screen.getByText("Manage Activities")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText("Manage Tasks"));
+    await user.click(screen.getByText("Manage Activities"));
 
     expect(
-      screen.getByRole("heading", { name: "Available Tasks" }),
+      screen.getByRole("heading", { name: "Available Activities" }),
     ).toBeInTheDocument();
   });
 
   it("verifies header structure is correct", async () => {
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
@@ -213,7 +213,7 @@ describe("DayPlanner", () => {
     });
 
     const header = screen.getByText("Your Day Plan");
-    // Warning should not be present when no tasks
+    // Warning should not be present when no activities
     const headerParent = header.parentElement;
     expect(headerParent?.querySelector('[class*="Warning"]')).toBeNull();
   });
@@ -224,13 +224,13 @@ describe("DayPlanner with populated data", () => {
     await clearAll();
   });
 
-  it("renders selected tasks and warning when capacity exceeded", async () => {
-    const mockOnEditTask = vi.fn();
+  it("renders selected activities and warning when capacity exceeded", async () => {
+    const mockOnEditActivity = vi.fn();
     const today = new Date().toISOString().split("T")[0];
 
-    const task1 = {
-      id: "t1",
-      title: "Available Task",
+    const activity1 = {
+      id: "a1",
+      title: "Available Activity",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -240,9 +240,9 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
       completed: false,
     };
-    const task2 = {
-      id: "t2",
-      title: "Selected Task",
+    const activity2 = {
+      id: "a2",
+      title: "Selected Activity",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -253,19 +253,19 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffTasks([task1, task2]);
+    await storeOneOffActivities([activity1, activity2]);
     await storeDayPlan(today, {
       date: today,
-      tasks: [{ ...task2, completed: true }],
+      activities: [{ ...activity2, completed: true }],
       dailyCapacity: { physical: 5, social: 5, executive: 5 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
@@ -274,16 +274,16 @@ describe("DayPlanner with populated data", () => {
       expect(screen.getByText(/Warning:/)).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Selected Task")).toBeInTheDocument();
+    expect(screen.getByText("Selected Activity")).toBeInTheDocument();
   });
 
-  it("renders multiple selected tasks in sortable list", async () => {
-    const mockOnEditTask = vi.fn();
+  it("renders multiple selected activities in sortable list", async () => {
+    const mockOnEditActivity = vi.fn();
     const today = new Date().toISOString().split("T")[0];
 
-    const task1 = {
-      id: "t1",
-      title: "First Task",
+    const activity1 = {
+      id: "a1",
+      title: "First Activity",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -293,9 +293,9 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
       completed: false,
     };
-    const task2 = {
-      id: "t2",
-      title: "Second Task",
+    const activity2 = {
+      id: "a2",
+      title: "Second Activity",
       energyCost: { physical: 5, social: 5, executive: 5 },
       factors: {
         initiationDifficulty: 3,
@@ -306,37 +306,37 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffTasks([task1, task2]); // Changed from setTasks
+    await storeOneOffActivities([activity1, activity2]);
     await storeDayPlan(today, {
       date: today,
-      tasks: [task1, task2],
+      activities: [activity1, activity2],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("First Task")).toBeInTheDocument();
+      expect(screen.getByText("First Activity")).toBeInTheDocument();
     });
-    expect(screen.getByText("Second Task")).toBeInTheDocument();
-    expect(screen.getByText(/Selected Tasks \(2\)/)).toBeInTheDocument();
+    expect(screen.getByText("Second Activity")).toBeInTheDocument();
+    expect(screen.getByText(/Selected Activities \(2\)/)).toBeInTheDocument();
   });
 
-  it("adds task from modal and closes modal", async () => {
+  it("adds activity from modal and closes modal", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
 
-    const task1 = {
-      id: "t1",
-      title: "Available Task",
+    const activity1 = {
+      id: "a1",
+      title: "Available Activity",
       energyCost: { physical: 5, social: 5, executive: 5 },
       factors: {
         initiationDifficulty: 5,
@@ -347,47 +347,47 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffTasks([task1]); // Changed from setTasks
+    await storeOneOffActivities([activity1]);
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Manage Tasks")).toBeInTheDocument();
+      expect(screen.getByText("Manage Activities")).toBeInTheDocument();
     });
 
     // Open modal
-    await user.click(screen.getByText("Manage Tasks"));
+    await user.click(screen.getByText("Manage Activities"));
     expect(
-      screen.getByRole("heading", { name: "Available Tasks" }),
+      screen.getByRole("heading", { name: "Available Activities" }),
     ).toBeInTheDocument();
 
-    // Wait for the task to appear in the modal (async state update)
+    // Wait for the activity to appear in the modal (async state update)
     await waitFor(() => {
-      expect(screen.getByText("Available Task")).toBeInTheDocument();
+      expect(screen.getByText("Available Activity")).toBeInTheDocument();
     });
 
     // Click Add to day button
     await user.click(screen.getByLabelText("Add to day"));
 
-    // Modal should close - Available Tasks title should be gone
+    // Modal should close - Available Activities title should be gone
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 
-  it("displays uncompleted tasks from previous days", async () => {
-    const mockOnEditTask = vi.fn();
+  it("displays uncompleted activities from previous days", async () => {
+    const mockOnEditActivity = vi.fn();
 
-    const task1 = {
-      id: "t1",
+    const activity1 = {
+      id: "a1",
       title: "Uncompleted From Yesterday",
       energyCost: { physical: 5, social: 5, executive: 5 },
       factors: {
@@ -396,34 +396,34 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false, // Added missing property
+      completed: false,
     };
 
-    await storeOneOffTasks([task1]);
+    await storeOneOffActivities([activity1]);
 
-    // Set up yesterday's plan with uncompleted task
+    // Set up yesterday's plan with uncompleted activity
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split("T")[0];
 
     await storeDayPlan(yesterdayStr, {
       date: yesterdayStr,
-      tasks: [task1],
+      activities: [activity1],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Uncompleted Tasks/)).toBeInTheDocument();
+      expect(screen.getByText(/Uncompleted Activities/)).toBeInTheDocument();
     });
 
     expect(screen.getByText("Uncompleted From Yesterday")).toBeInTheDocument();
@@ -431,26 +431,26 @@ describe("DayPlanner with populated data", () => {
 
   it("closes modal when close button is clicked", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Manage Tasks")).toBeInTheDocument();
+      expect(screen.getByText("Manage Activities")).toBeInTheDocument();
     });
 
     // Open modal
-    await user.click(screen.getByText("Manage Tasks"));
+    await user.click(screen.getByText("Manage Activities"));
     expect(
-      screen.getByRole("heading", { name: "Available Tasks" }),
+      screen.getByRole("heading", { name: "Available Activities" }),
     ).toBeInTheDocument();
 
     // Close via close button
@@ -462,13 +462,13 @@ describe("DayPlanner with populated data", () => {
     });
   });
 
-  it("reorders available tasks via drag and drop", async () => {
+  it("reorders available activities via drag and drop", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
 
-    const task1 = {
-      id: "t1",
-      title: "Task 1",
+    const activity1 = {
+      id: "a1",
+      title: "Activity 1",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -478,9 +478,9 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
       completed: false,
     };
-    const task2 = {
-      id: "t2",
-      title: "Task 2",
+    const activity2 = {
+      id: "a2",
+      title: "Activity 2",
       energyCost: { physical: 5, social: 5, executive: 5 },
       factors: {
         initiationDifficulty: 3,
@@ -491,23 +491,23 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffTasks([task1, task2]);
+    await storeOneOffActivities([activity1, activity2]);
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
-    // Open modal to see available tasks DndContext
-    await user.click(screen.getByText("Manage Tasks"));
+    // Open modal to see available activities DndContext
+    await user.click(screen.getByText("Manage Activities"));
 
     await waitFor(() => {
-      expect(screen.getByText("Task 1")).toBeInTheDocument();
+      expect(screen.getByText("Activity 1")).toBeInTheDocument();
     });
 
     const buttons = screen.getAllByText("Drag");
@@ -518,14 +518,14 @@ describe("DayPlanner with populated data", () => {
     await user.click(buttons[1]);
   });
 
-  it("reorders selected tasks via drag and drop", async () => {
+  it("reorders selected activities via drag and drop", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
     const today = new Date().toISOString().split("T")[0];
 
-    const task1 = {
-      id: "t1",
-      title: "Task 1",
+    const activity1 = {
+      id: "a1",
+      title: "Activity 1",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -535,9 +535,9 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
       completed: false,
     };
-    const task2 = {
-      id: "t2",
-      title: "Task 2",
+    const activity2 = {
+      id: "a2",
+      title: "Activity 2",
       energyCost: { physical: 5, social: 5, executive: 5 },
       factors: {
         initiationDifficulty: 3,
@@ -550,22 +550,22 @@ describe("DayPlanner with populated data", () => {
 
     await storeDayPlan(today, {
       date: today,
-      tasks: [task1, task2],
+      activities: [activity1, activity2],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Task 1")).toBeInTheDocument();
+      expect(screen.getByText("Activity 1")).toBeInTheDocument();
     });
 
     const buttons = screen.getAllByText("Drag");
@@ -578,14 +578,14 @@ describe("DayPlanner with populated data", () => {
     // Handler called.
   });
 
-  it("reorders selected tasks across zones", async () => {
+  it("reorders selected activities across zones", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
     const today = new Date().toISOString().split("T")[0];
 
-    const task1 = {
-      id: "t1",
-      title: "Task 1",
+    const activity1 = {
+      id: "a1",
+      title: "Activity 1",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -596,9 +596,9 @@ describe("DayPlanner with populated data", () => {
       completed: false,
       zoneId: "morning",
     };
-    const task2 = {
-      id: "t2",
-      title: "Task 2",
+    const activity2 = {
+      id: "a2",
+      title: "Activity 2",
       energyCost: { physical: 5, social: 5, executive: 5 },
       factors: {
         initiationDifficulty: 3,
@@ -612,29 +612,29 @@ describe("DayPlanner with populated data", () => {
 
     await storeDayPlan(today, {
       date: today,
-      tasks: [task1, task2],
+      activities: [activity1, activity2],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Task 1")).toBeInTheDocument();
-      expect(screen.getByText("Task 2")).toBeInTheDocument();
+      expect(screen.getByText("Activity 1")).toBeInTheDocument();
+      expect(screen.getByText("Activity 2")).toBeInTheDocument();
     });
 
-    // Simulate dragging T1 (morning) to T2 (afternoon)
+    // Simulate dragging A1 (morning) to A2 (afternoon)
     const dragBtn = screen.getByTestId("trigger-drag-default");
-    dragBtn.setAttribute("data-active", "t1");
-    dragBtn.setAttribute("data-over", "t2");
+    dragBtn.setAttribute("data-active", "a1");
+    dragBtn.setAttribute("data-over", "a2");
 
     await user.click(dragBtn);
 
@@ -644,20 +644,20 @@ describe("DayPlanner with populated data", () => {
         "../../../lib/energy-planner/storage"
       );
       const plan = await fetchDayPlan(today);
-      const t1 = plan?.tasks?.find((t) => t.id === "t1");
-      expect(t1?.zoneId).toBe("afternoon");
+      const a1 = plan?.activities?.find((a) => a.id === "a1");
+      expect(a1?.zoneId).toBe("afternoon");
     });
   });
 
-  it("handles adding task to specific zone", async () => {
+  it("handles adding activity to specific zone", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
 
-    // Setup available task
-    const task1 = {
-      id: "t1",
-      title: "Available Task",
+    // Setup available activity
+    const activity1 = {
+      id: "a1",
+      title: "Available Activity",
       energyCost: { physical: 5, social: 5, executive: 5 },
       factors: {
         initiationDifficulty: 5,
@@ -667,58 +667,58 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
       completed: false,
     };
-    await storeOneOffTasks([task1]);
+    await storeOneOffActivities([activity1]);
 
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Manage Tasks")).toBeInTheDocument();
+      expect(screen.getByText("Manage Activities")).toBeInTheDocument();
     });
 
-    // Find "Add Task" button for a specific zone (Afternoon is index 1)
-    const addButtons = screen.getAllByText("Add Task");
+    // Find "Add Activity" button for a specific zone (Afternoon is index 1)
+    const addButtons = screen.getAllByText("Add Activity");
     expect(addButtons).toHaveLength(3);
 
     await user.click(addButtons[1]);
 
     // Modal opens
     expect(
-      screen.getByRole("heading", { name: "Available Tasks" }),
+      screen.getByRole("heading", { name: "Available Activities" }),
     ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText("Available Task")).toBeInTheDocument();
+      expect(screen.getByText("Available Activity")).toBeInTheDocument();
     });
 
     await user.click(screen.getByLabelText("Add to day"));
 
-    // Verify task added to Afternoon zone
+    // Verify activity added to Afternoon zone
     const today = new Date().toISOString().split("T")[0];
     await waitFor(async () => {
       const { fetchDayPlan } = await import(
         "../../../lib/energy-planner/storage"
       );
       const plan = await fetchDayPlan(today);
-      const t1 = plan?.tasks?.find((t) => t.id === "t1");
-      expect(t1?.zoneId).toBe("afternoon");
+      const a1 = plan?.activities?.find((a) => a.id === "a1");
+      expect(a1?.zoneId).toBe("afternoon");
     });
   });
 
-  it("moves task to a zone container", async () => {
+  it("moves activity to a zone container", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
     const today = new Date().toISOString().split("T")[0];
 
-    const task1 = {
-      id: "t1",
-      title: "Task 1",
+    const activity1 = {
+      id: "a1",
+      title: "Activity 1",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -732,27 +732,27 @@ describe("DayPlanner with populated data", () => {
 
     await storeDayPlan(today, {
       date: today,
-      tasks: [task1],
+      activities: [activity1],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Task 1")).toBeInTheDocument();
+      expect(screen.getByText("Activity 1")).toBeInTheDocument();
     });
 
-    // Simulate dragging T1 (morning) to Afternoon Zone container
+    // Simulate dragging A1 (morning) to Afternoon Zone container
     const dragBtn = screen.getByTestId("trigger-drag-default");
-    dragBtn.setAttribute("data-active", "t1");
+    dragBtn.setAttribute("data-active", "a1");
     // Assuming afternoon zone id is "afternoon"
     dragBtn.setAttribute("data-over", "afternoon");
 
@@ -763,18 +763,18 @@ describe("DayPlanner with populated data", () => {
         "../../../lib/energy-planner/storage"
       );
       const plan = await fetchDayPlan(today);
-      const t1 = plan?.tasks?.find((t) => t.id === "t1");
-      expect(t1?.zoneId).toBe("afternoon");
+      const a1 = plan?.activities?.find((a) => a.id === "a1");
+      expect(a1?.zoneId).toBe("afternoon");
     });
   });
 
   it("handles fallback to first zone when zoneId is invalid", async () => {
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
     const today = new Date().toISOString().split("T")[0];
 
-    const task1 = {
-      id: "t1",
-      title: "Task with Invalid Zone",
+    const activity1 = {
+      id: "a1",
+      title: "Activity with Invalid Zone",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -788,39 +788,41 @@ describe("DayPlanner with populated data", () => {
 
     await storeDayPlan(today, {
       date: today,
-      tasks: [task1],
+      activities: [activity1],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Task with Invalid Zone")).toBeInTheDocument();
+      expect(
+        screen.getByText("Activity with Invalid Zone"),
+      ).toBeInTheDocument();
     });
 
     // Should default to first zone (Morning)
     const morningZone = screen.getByTestId("zone-morning");
-    expect(morningZone).toHaveTextContent("Task with Invalid Zone");
+    expect(morningZone).toHaveTextContent("Activity with Invalid Zone");
   });
 
   it("opens zone manager when manager button is clicked", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
 
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
@@ -837,14 +839,14 @@ describe("DayPlanner with populated data", () => {
     ).toBeInTheDocument();
   });
 
-  it("activates task active state on drag start", async () => {
+  it("activates activity active state on drag start", async () => {
     const user = userEvent.setup();
-    const mockOnEditTask = vi.fn();
+    const mockOnEditActivity = vi.fn();
     const today = new Date().toISOString().split("T")[0];
 
-    const task1 = {
-      id: "t1",
-      title: "Task 1",
+    const activity1 = {
+      id: "a1",
+      title: "Activity 1",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 5,
@@ -858,33 +860,33 @@ describe("DayPlanner with populated data", () => {
 
     await storeDayPlan(today, {
       date: today,
-      tasks: [task1],
+      activities: [activity1],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
-    const mockOnOpenCreateTask = vi.fn();
+    const mockOnOpenCreateActivity = vi.fn();
     render(
       <EnergyPlannerProvider>
         <DayPlanner
-          onEditTask={mockOnEditTask}
-          onOpenCreateTask={mockOnOpenCreateTask}
+          onEditActivity={mockOnEditActivity}
+          onOpenCreateActivity={mockOnOpenCreateActivity}
         />
       </EnergyPlannerProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Task 1")).toBeInTheDocument();
+      expect(screen.getByText("Activity 1")).toBeInTheDocument();
     });
 
     // Start drag
     const startDragBtn = screen.getByTestId("trigger-drag-start-default");
-    startDragBtn.setAttribute("data-active", "t1");
+    startDragBtn.setAttribute("data-active", "a1");
     await user.click(startDragBtn);
 
-    // activeTask should be set, and DragOverlay should render it
+    // activeActivity should be set, and DragOverlay should render it
     await waitFor(() => {
       const overlay = screen.getByTestId("drag-overlay");
-      expect(overlay).toHaveTextContent("Task 1");
+      expect(overlay).toHaveTextContent("Activity 1");
     });
   });
 });

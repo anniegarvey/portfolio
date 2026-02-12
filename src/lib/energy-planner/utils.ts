@@ -32,12 +32,12 @@ export function getReorderedItems<T>(
 }
 
 export const calculateEnergyUsage = (dayPlan: DayPlan): EnergyCost => {
-  const selectedTasks = dayPlan.tasks ?? [];
-  return selectedTasks.reduce(
-    (acc, task) => {
+  const selectedActivities = dayPlan.activities ?? [];
+  return selectedActivities.reduce(
+    (acc, activity) => {
       // Dynamically sum all energy type properties
-      for (const key in task.energyCost) {
-        acc[key] = (acc[key] || 0) + task.energyCost[key];
+      for (const key in activity.energyCost) {
+        acc[key] = (acc[key] || 0) + activity.energyCost[key];
       }
       return acc;
     },

@@ -12,7 +12,7 @@ import {
   getNextDay,
   getPreviousDay,
   getTodayDateString,
-  getUncompletedTasks,
+  getUncompletedActivities,
   isToday,
   saveDayPlanForDate,
   slugify,
@@ -77,10 +77,10 @@ describe("hooks/utils", () => {
     it("saves and retrieves day plan", async () => {
       const plan = {
         date: "2026-01-14",
-        tasks: [
+        activities: [
           {
-            id: "task-1",
-            title: "Task 1",
+            id: "activity-1",
+            title: "Activity 1",
             createdAt: new Date(),
             energyCost: { physical: 10, social: 10, executive: 10 },
             factors: {
@@ -99,8 +99,8 @@ describe("hooks/utils", () => {
       // JSON serialization converts Date to string, so we need to match loosely or adjust expectations
       // Using basic structural match
       expect(retrieved?.date).toBe(plan.date);
-      expect(retrieved?.tasks).toHaveLength(1);
-      expect(retrieved?.tasks[0].id).toBe("task-1");
+      expect(retrieved?.activities).toHaveLength(1);
+      expect(retrieved?.activities[0].id).toBe("activity-1");
     });
 
     it("returns null for non-existent date", async () => {
@@ -113,7 +113,7 @@ describe("hooks/utils", () => {
     it("creates empty day plan with specified date", async () => {
       const plan = await createEmptyDayPlan("2026-01-15");
       expect(plan.date).toBe("2026-01-15");
-      expect(plan.tasks).toEqual([]);
+      expect(plan.activities).toEqual([]);
     });
   });
 
@@ -169,23 +169,19 @@ describe("hooks/utils", () => {
     });
   });
 
-  describe("getUncompletedTasks", () => {
-    // getUncompletedTasks no longer takes a tasks list argument in the new implementation (it checks DayPlan)
-    // Wait, let's check utils.ts signature: export async function getUncompletedTasks(today: string): Promise<{ task: Task; fromDate: string }[]>
-    // It does NOT take `tasks` array anymore.
-
+  describe("getUncompletedActivities", () => {
     it("returns empty array when no dates stored", async () => {
-      const result = await getUncompletedTasks("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14");
       expect(result).toEqual([]);
     });
 
-    it("returns uncompleted tasks from previous days", async () => {
+    it("returns uncompleted activities from previous days", async () => {
       await saveDayPlanForDate("2026-01-13", {
         date: "2026-01-13",
-        tasks: [
+        activities: [
           {
-            id: "task-1",
-            title: "Task 1",
+            id: "activity-1",
+            title: "Activity 1",
             energyCost: { physical: 10, social: 10, executive: 10 },
             factors: {
               initiationDifficulty: 5,
@@ -199,19 +195,19 @@ describe("hooks/utils", () => {
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedTasks("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14");
       expect(result).toHaveLength(1);
-      expect(result[0].task.id).toBe("task-1");
+      expect(result[0].activity.id).toBe("activity-1");
       expect(result[0].fromDate).toBe("2026-01-13");
     });
 
-    it("excludes completed tasks", async () => {
+    it("excludes completed activities", async () => {
       await saveDayPlanForDate("2026-01-13", {
         date: "2026-01-13",
-        tasks: [
+        activities: [
           {
-            id: "task-1",
-            title: "Task 1",
+            id: "activity-1",
+            title: "Activity 1",
             energyCost: { physical: 10 },
             factors: {
               initiationDifficulty: 1,
@@ -222,8 +218,8 @@ describe("hooks/utils", () => {
             completed: true,
           },
           {
-            id: "task-2",
-            title: "Task 2",
+            id: "activity-2",
+            title: "Activity 2",
             energyCost: { physical: 10 },
             factors: {
               initiationDifficulty: 1,
@@ -237,18 +233,18 @@ describe("hooks/utils", () => {
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedTasks("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14");
       expect(result).toHaveLength(1);
-      expect(result[0].task.id).toBe("task-2");
+      expect(result[0].activity.id).toBe("activity-2");
     });
 
     it("skips future dates", async () => {
       await saveDayPlanForDate("2026-01-15", {
         date: "2026-01-15",
-        tasks: [
+        activities: [
           {
-            id: "task-1",
-            title: "Task 1",
+            id: "activity-1",
+            title: "Activity 1",
             energyCost: { physical: 10 },
             factors: {
               initiationDifficulty: 1,
@@ -262,44 +258,17 @@ describe("hooks/utils", () => {
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedTasks("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14");
       expect(result).toHaveLength(0);
     });
 
-    // deduplication test: if same task ID is in multiple days, it returns multiple instances?
-    // The implementation iterates dates. So yes.
-    // The test expected: "Should only appear once, from the earlier date" ?
-    // Let's see the previous test: "Did it expect de-dupe?".
-    // "deduplicates tasks from multiple days" -> "expect(result).toHaveLength(1); expect(result[0].fromDate).toBe("2026-01-12");"
-    // The previous implementation might have had dedupe logic.
-    // The current implementation in utils.ts lines 85-98:
-    // It pushes to `uncompleted`. It checks `// Check if already added...`.
-    // Wait, line 93 logic says: `// Check if already added (though physically distinct copies)`.
-    // But then just `uncompleted.push`. It does NOT check if already added.
-    // So the test expectation might fail if I don't implement dedupe.
-    // If I want to match previous behavior, I should probably dedupe by task ID.
-    // Ideally user wants to see it referenced from the earliest date? Or most recent?
-    // Let's assume for now we want all instances, OR I should verify if I changed usage.
-    // I'll skip the dedupe test update for a moment or adjust expectation to allow duplicates if acceptable,
-    // but the test name implies dedupe is desired.
-    // Let's assume I should update the test to expect what the current code does, or update code.
-    // Current code: `uncompleted.push`. No dedupe.
-    // So I will update the test to expect all instances or remove the test if dedupe is not handled anymore.
-    // Actually, showing the same task uncompleted on multiple past days is redundant.
-    // I should probably dedup in `utils.ts` if I haven't. Use a Set of IDs.
-    // But for now I'll just update the test to match the code (no dedupe).
-    // Or, actually, let's keep the test as "deduplicates" and see if it fails.
-    // The comment in `utils.ts` (lines 93-94) implies it *should* check.
-    // But the code doesn't.
-    // I'll update the test to reflect "tasks from multiple days appear".
-
-    it("returns tasks from multiple past days", async () => {
+    it("returns activities from multiple past days", async () => {
       await saveDayPlanForDate("2026-01-12", {
         date: "2026-01-12",
-        tasks: [
+        activities: [
           {
-            id: "task-1",
-            title: "T1",
+            id: "activity-1",
+            title: "A1",
             energyCost: { physical: 10, social: 10, executive: 10 },
             factors: {
               initiationDifficulty: 1,
@@ -314,10 +283,10 @@ describe("hooks/utils", () => {
       });
       await saveDayPlanForDate("2026-01-13", {
         date: "2026-01-13",
-        tasks: [
+        activities: [
           {
-            id: "task-1",
-            title: "T1",
+            id: "activity-1",
+            title: "A1",
             energyCost: { physical: 10, social: 10, executive: 10 },
             factors: {
               initiationDifficulty: 1,
@@ -331,14 +300,8 @@ describe("hooks/utils", () => {
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedTasks("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14");
       expect(result.length).toBeGreaterThanOrEqual(2);
-    });
-
-    it("ignores tasks not in the task list", async () => {
-      // This test is irrelevant now as we don't cross reference a master task list
-      // We trust the day plan.
-      // So we can remove this test.
     });
   });
 

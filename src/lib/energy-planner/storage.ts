@@ -1,10 +1,10 @@
 import { clear, createStore, del, get, keys, set } from "idb-keyval";
 import type {
+  Activity,
   DayPlan,
   EnergyCost,
   EnergyTypeConfig,
-  PlannedTask,
-  Task,
+  PlannedActivity,
   ZoneConfig,
 } from "./schema";
 
@@ -16,8 +16,8 @@ const store = createStore("energy-planner-db", "data");
 
 // Storage keys
 const KEYS = {
-  oneOffTasks: "one-off-tasks",
-  repeatingTasks: "repeating-tasks",
+  oneOffActivities: "one-off-activities",
+  repeatingActivities: "repeating-activities",
   types: "types",
   zones: "zones",
 } as const;
@@ -25,33 +25,37 @@ const KEYS = {
 /**
  * Storage-optimized DayPlan that omits redundant fields:
  * - date: derived from the storage key
- * - tasks: omitted entirely if empty
+ * - activities: omitted entirely if empty
  */
 export interface StoredDayPlan {
-  tasks?: PlannedTask[];
+  activities?: PlannedActivity[];
   dailyCapacity: EnergyCost;
 }
 
-// === One-Off Tasks ===
+// === One-Off Activities ===
 
-export async function fetchOneOffTasks(): Promise<Task[]> {
-  const tasks = await get<Task[]>(KEYS.oneOffTasks, store);
-  return tasks ?? [];
+export async function fetchOneOffActivities(): Promise<Activity[]> {
+  const activities = await get<Activity[]>(KEYS.oneOffActivities, store);
+  return activities ?? [];
 }
 
-export async function storeOneOffTasks(tasks: Task[]): Promise<void> {
-  await set(KEYS.oneOffTasks, tasks, store);
+export async function storeOneOffActivities(
+  activities: Activity[],
+): Promise<void> {
+  await set(KEYS.oneOffActivities, activities, store);
 }
 
-// === Repeating Tasks ===
+// === Repeating Activities ===
 
-export async function fetchRepeatingTasks(): Promise<Task[]> {
-  const tasks = await get<Task[]>(KEYS.repeatingTasks, store);
-  return tasks ?? [];
+export async function fetchRepeatingActivities(): Promise<Activity[]> {
+  const activities = await get<Activity[]>(KEYS.repeatingActivities, store);
+  return activities ?? [];
 }
 
-export async function storeRepeatingTasks(tasks: Task[]): Promise<void> {
-  await set(KEYS.repeatingTasks, tasks, store);
+export async function storeRepeatingActivities(
+  activities: Activity[],
+): Promise<void> {
+  await set(KEYS.repeatingActivities, activities, store);
 }
 
 // === Energy Types ===
@@ -92,9 +96,9 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
     dailyCapacity: plan.dailyCapacity,
   };
 
-  // Only include tasks if there are any
-  if (plan.tasks && plan.tasks.length > 0) {
-    stored.tasks = plan.tasks;
+  // Only include activities if there are any
+  if (plan.activities && plan.activities.length > 0) {
+    stored.activities = plan.activities;
   }
 
   return stored;
@@ -106,7 +110,7 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
 function fromStoredDayPlan(date: string, stored: StoredDayPlan): DayPlan {
   return {
     date,
-    tasks: stored.tasks ?? [],
+    activities: stored.activities ?? [],
     dailyCapacity: stored.dailyCapacity,
   };
 }

@@ -153,7 +153,7 @@ export function ZoneManagerModal({
 
       {deleteConfirmation && (
         <Modal
-          description="This action cannot be undone. Any tasks in this zone will be moved to the default zone."
+          description="This action cannot be undone. Any activities in this zone will be moved to the default zone."
           isOpen={true}
           onClose={() => setDeleteConfirmation(null)}
           showDescription={true}

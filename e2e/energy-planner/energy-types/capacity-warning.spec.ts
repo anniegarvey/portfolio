@@ -1,10 +1,10 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
-  createTask,
-  planTaskForToday,
-  type TaskData,
-  testTask,
-} from "../../utils/task-test-helpers";
+  type ActivityData,
+  createActivity,
+  planActivityForToday,
+  testActivity,
+} from "../../utils/activity-test-helpers";
 
 test.describe("Energy Types - Capacity Warning", () => {
   test.beforeEach(async ({ page }) => {
@@ -15,21 +15,21 @@ test.describe("Energy Types - Capacity Warning", () => {
     page,
     makeAxeBuilder,
   }) => {
-    // 1. Create a task with high energy cost
-    const highEnergyTask: TaskData = {
-      ...testTask,
-      name: "High Energy Task",
+    // 1. Create an activity with high energy cost
+    const highEnergyActivity: ActivityData = {
+      ...testActivity,
+      name: "High Energy Activity",
       physical: "20",
     };
-    await createTask(page, highEnergyTask);
+    await createActivity(page, highEnergyActivity);
 
-    // 2. Set daily capacity lower than task cost
+    // 2. Set daily capacity lower than activity cost
     // The physical slider is the first one
     const physicalSlider = page.getByLabel("Physical").first();
     await physicalSlider.fill("10");
 
-    // 3. Plan the task for today
-    await planTaskForToday(page, highEnergyTask.name);
+    // 3. Plan the activity for today
+    await planActivityForToday(page, highEnergyActivity.name);
 
     // 4. Verify warning appears
     await expect(

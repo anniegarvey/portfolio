@@ -2,7 +2,7 @@
 
 import { styled } from "next-yak";
 import { useState } from "react";
-import { CreateTask } from "@/components/energy-planner/CreateTask";
+import { CreateActivity } from "@/components/energy-planner/CreateActivity";
 import { DateSelector } from "@/components/energy-planner/DateSelector";
 import { DayPlanner } from "@/components/energy-planner/DayPlanner";
 import { EnergyInput } from "@/components/energy-planner/EnergyInput";
@@ -11,14 +11,16 @@ import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
-import type { Task } from "@/lib/energy-planner/schema";
+import type { Activity } from "@/lib/energy-planner/schema";
 
 export function EnergyPlanner() {
   const { currentDate, goToPreviousDay, goToNextDay, goToToday } =
     useEnergyPlanner();
 
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | undefined>(
+    undefined,
+  );
 
   const [creationContext, setCreationContext] = useState<
     { date: string; zoneId?: string } | undefined
@@ -27,20 +29,20 @@ export function EnergyPlanner() {
   const viewingToday = isToday(currentDate);
 
   const handleOpenCreate = (context?: { date: string; zoneId?: string }) => {
-    setEditingTask(undefined);
+    setEditingActivity(undefined);
     setCreationContext(context);
-    setIsTaskModalOpen(true);
+    setIsActivityModalOpen(true);
   };
 
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivity(activity);
     setCreationContext(undefined); // Editing doesn't use creation context (yet)
-    setIsTaskModalOpen(true);
+    setIsActivityModalOpen(true);
   };
 
-  const handleCloseTaskModal = () => {
-    setIsTaskModalOpen(false);
-    setEditingTask(undefined);
+  const handleCloseActivityModal = () => {
+    setIsActivityModalOpen(false);
+    setEditingActivity(undefined);
     setCreationContext(undefined);
   };
 
@@ -68,15 +70,15 @@ export function EnergyPlanner() {
         <EnergyInput />
 
         <DayPlanner
-          onEditTask={handleEditTask}
-          onOpenCreateTask={handleOpenCreate}
+          onEditActivity={handleEditActivity}
+          onOpenCreateActivity={handleOpenCreate}
         />
 
-        <CreateTask
+        <CreateActivity
           creationContext={creationContext}
-          editingTask={editingTask}
-          isOpen={isTaskModalOpen}
-          onClose={handleCloseTaskModal}
+          editingActivity={editingActivity}
+          isOpen={isActivityModalOpen}
+          onClose={handleCloseActivityModal}
         />
       </Layout>
     </MaxWidthWrapper>

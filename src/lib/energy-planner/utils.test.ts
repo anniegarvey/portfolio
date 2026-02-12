@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { DayPlan, Task } from "./schema";
+import type { Activity, DayPlan } from "./schema";
 import { calculateEnergyUsage, getReorderedItems } from "./utils";
 
-const mockTasks: Task[] = [
+const mockActivities: Activity[] = [
   {
-    id: "task-1",
-    title: "Task 1",
+    id: "activity-1",
+    title: "Activity 1",
     createdAt: new Date(),
     energyCost: { physical: 10, social: 20, executive: 5 },
     factors: {
@@ -16,8 +16,8 @@ const mockTasks: Task[] = [
     completed: false,
   },
   {
-    id: "task-2",
-    title: "Task 2",
+    id: "activity-2",
+    title: "Activity 2",
     createdAt: new Date(),
     energyCost: { physical: 5, social: 0, executive: 15 },
     factors: {
@@ -28,8 +28,8 @@ const mockTasks: Task[] = [
     completed: false,
   },
   {
-    id: "task-3",
-    title: "Task 3",
+    id: "activity-3",
+    title: "Activity 3",
     createdAt: new Date(),
     energyCost: { physical: 50, social: 50, executive: 50 },
     factors: {
@@ -42,12 +42,12 @@ const mockTasks: Task[] = [
 ];
 
 describe("calculateEnergyUsage", () => {
-  it("calculates energy usage for selected tasks correctly", () => {
+  it("calculates energy usage for selected activities correctly", () => {
     const dayPlan: DayPlan = {
       date: "2023-01-01",
-      tasks: [
-        { ...mockTasks[0], completed: false },
-        { ...mockTasks[1], completed: false },
+      activities: [
+        { ...mockActivities[0], completed: false },
+        { ...mockActivities[1], completed: false },
       ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     };
@@ -61,10 +61,10 @@ describe("calculateEnergyUsage", () => {
     });
   });
 
-  it("returns zero usage when no tasks are selected", () => {
+  it("returns zero usage when no activities are selected", () => {
     const dayPlan: DayPlan = {
       date: "2023-01-01",
-      tasks: [],
+      activities: [],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     };
 

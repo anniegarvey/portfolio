@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, type Mock, test, vi } from "vitest";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
-import type { Task } from "@/lib/energy-planner/schema";
+import type { Activity } from "@/lib/energy-planner/schema";
 import { EnergyPlanner } from ".";
 
 // Mock dependencies
@@ -15,27 +15,27 @@ vi.mock("@/components/energy-planner/DateSelector", () => ({
 }));
 vi.mock("@/components/energy-planner/DayPlanner", () => ({
   DayPlanner: ({
-    onOpenCreateTask,
-    onEditTask,
+    onOpenCreateActivity,
+    onEditActivity,
   }: {
-    onOpenCreateTask: () => void;
-    onEditTask: (task: Task) => void;
+    onOpenCreateActivity: () => void;
+    onEditActivity: (activity: Activity) => void;
   }) => (
     <div data-testid="day-planner">
       Day Planner
       <button
-        data-testid="new-task-btn"
-        onClick={onOpenCreateTask}
+        data-testid="new-activity-btn"
+        onClick={onOpenCreateActivity}
         type="button"
       >
-        New Task
+        New Activity
       </button>
       <button
-        data-testid="edit-task-btn"
+        data-testid="edit-activity-btn"
         onClick={() =>
-          onEditTask({
+          onEditActivity({
             id: "1",
-            title: "Test Task",
+            title: "Test Activity",
             energyCost: {},
             createdAt: new Date(),
             factors: {
@@ -48,7 +48,7 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
         }
         type="button"
       >
-        Edit Task
+        Edit Activity
       </button>
     </div>
   ),
@@ -56,31 +56,40 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
 vi.mock("@/components/energy-planner/EnergyInput", () => ({
   EnergyInput: () => <div data-testid="energy-input">Energy Input</div>,
 }));
-vi.mock("@/components/energy-planner/TaskForm", () => ({
-  TaskForm: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="task-form">
-      Task Form
-      <button data-testid="close-task-form-btn" onClick={onClose} type="button">
+vi.mock("@/components/energy-planner/ActivityForm", () => ({
+  ActivityForm: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="activity-form">
+      Activity Form
+      <button
+        data-testid="close-activity-form-btn"
+        onClick={onClose}
+        type="button"
+      >
         Close Form
       </button>
     </div>
   ),
 }));
-// Mock Modal to just render children if open
-vi.mock("@/components/Modal", () => ({
-  Modal: ({
+vi.mock("@/components/energy-planner/CreateActivity", () => ({
+  CreateActivity: ({
     isOpen,
-    children,
-    title,
+    onClose,
+    editingActivity,
   }: {
     isOpen: boolean;
-    children: React.ReactNode;
-    title: string;
+    onClose: () => void;
+    editingActivity?: Activity;
   }) =>
     isOpen ? (
       <div data-testid="modal">
-        <h1>{title}</h1>
-        {children}
+        <h1>{editingActivity ? "Edit Activity" : "Create New Activity"}</h1>
+        <button
+          data-testid="close-activity-modal-btn"
+          onClick={onClose}
+          type="button"
+        >
+          Close Modal
+        </button>
       </div>
     ) : null,
 }));
@@ -125,32 +134,32 @@ describe("EnergyPlanner", () => {
     expect(screen.getByTestId("day-planner")).toBeInTheDocument();
   });
 
-  test("opens and closes task modal", () => {
+  test("opens and closes activity modal", () => {
     render(<EnergyPlanner />);
 
     // Initial state: modal closed (not in document or empty)
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
 
-    // Trigger open via DayPlanner mock (it has a New Task button)
-    fireEvent.click(screen.getByTestId("new-task-btn"));
+    // Trigger open via DayPlanner mock (it has a New Activity button)
+    fireEvent.click(screen.getByTestId("new-activity-btn"));
 
     expect(screen.getByTestId("modal")).toBeInTheDocument();
-    expect(screen.getByText("Create New Task")).toBeInTheDocument();
+    expect(screen.getByText("Create New Activity")).toBeInTheDocument();
 
     // Close it
-    fireEvent.click(screen.getByTestId("close-task-form-btn"));
+    fireEvent.click(screen.getByTestId("close-activity-modal-btn"));
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
   });
 
-  test("opens edit task modal", () => {
+  test("opens edit activity modal", () => {
     render(<EnergyPlanner />);
 
     // Click edit button from our enhanced mock
-    fireEvent.click(screen.getByTestId("edit-task-btn"));
+    fireEvent.click(screen.getByTestId("edit-activity-btn"));
 
     expect(screen.getByTestId("modal")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Edit Task" }),
+      screen.getByRole("heading", { name: "Edit Activity" }),
     ).toBeInTheDocument();
   });
 });

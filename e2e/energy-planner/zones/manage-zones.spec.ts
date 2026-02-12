@@ -35,7 +35,7 @@ test.describe("Zone Management", () => {
     // Fill input
     await addModal.getByPlaceholder("e.g., Morning Focus").fill("Late Night");
     await addModal
-      .getByPlaceholder("What kind of tasks happen here?")
+      .getByPlaceholder("What kind of activities happen here?")
       .fill("Quiet focused work");
 
     // Click Create

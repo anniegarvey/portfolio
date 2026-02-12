@@ -12,9 +12,9 @@ describe("useEnergyPlannerState", () => {
     (storageMock as unknown as { __reset: () => void }).__reset();
   });
 
-  it("initializes with empty tasks", () => {
+  it("initializes with empty activities", () => {
     const { result } = renderHook(() => useEnergyPlannerState());
-    expect(result.current.oneOffTasks).toEqual([]);
+    expect(result.current.oneOffActivities).toEqual([]);
   });
 
   it("initializes with default daily capacity", () => {
@@ -27,12 +27,12 @@ describe("useEnergyPlannerState", () => {
     });
   });
 
-  it("adds a new task", () => {
+  it("adds a new activity", () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     act(() => {
-      result.current.addTask({
-        title: "Test Task",
+      result.current.addActivity({
+        title: "Test Activity",
         description: "",
         energyCost: { physical: 10, social: 20, executive: 5 },
         factors: {
@@ -44,15 +44,15 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    expect(result.current.oneOffTasks).toHaveLength(1);
-    expect(result.current.oneOffTasks[0].title).toBe("Test Task");
+    expect(result.current.oneOffActivities).toHaveLength(1);
+    expect(result.current.oneOffActivities[0].title).toBe("Test Activity");
   });
 
-  it("updates an existing task", () => {
+  it("updates an existing activity", () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     act(() => {
-      result.current.addTask({
+      result.current.addActivity({
         title: "Original Title",
         description: "",
         energyCost: { physical: 10, social: 20, executive: 5 },
@@ -65,20 +65,20 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    const taskId = result.current.oneOffTasks[0].id;
+    const activityId = result.current.oneOffActivities[0].id;
 
     act(() => {
-      result.current.updateTask({
-        ...result.current.oneOffTasks[0],
+      result.current.updateActivity({
+        ...result.current.oneOffActivities[0],
         title: "Updated Title",
       });
     });
 
-    expect(result.current.oneOffTasks[0].title).toBe("Updated Title");
-    expect(result.current.oneOffTasks[0].id).toBe(taskId);
+    expect(result.current.oneOffActivities[0].title).toBe("Updated Title");
+    expect(result.current.oneOffActivities[0].id).toBe(activityId);
   });
 
-  it("removes a task and removes it from day plan", async () => {
+  it("removes an activity and removes it from day plan", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     await waitFor(() => {
@@ -86,8 +86,8 @@ describe("useEnergyPlannerState", () => {
     });
 
     act(() => {
-      result.current.addTask({
-        title: "Test Task",
+      result.current.addActivity({
+        title: "Test Activity",
         description: "",
         energyCost: { physical: 10, social: 20, executive: 5 },
         factors: {
@@ -99,30 +99,30 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    const taskId = result.current.oneOffTasks[0].id;
+    const activityId = result.current.oneOffActivities[0].id;
 
     // Wait for persistence
     await waitFor(async () => {
-      const stored = await storageMock.fetchOneOffTasks();
+      const stored = await storageMock.fetchOneOffActivities();
       expect(stored).toHaveLength(1);
     });
 
     await act(async () => {
-      await result.current.addToPlan(taskId);
+      await result.current.addToPlan(activityId);
     });
 
-    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
-      true,
-    );
+    expect(
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(true);
 
     await act(async () => {
-      await result.current.removeTask(taskId);
+      await result.current.removeActivity(activityId);
     });
 
-    expect(result.current.oneOffTasks).toHaveLength(0);
-    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
-      false,
-    );
+    expect(result.current.oneOffActivities).toHaveLength(0);
+    expect(
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(false);
   });
 
   it("updates daily capacity", () => {
@@ -143,7 +143,7 @@ describe("useEnergyPlannerState", () => {
     });
   });
 
-  it("adds task to day plan", async () => {
+  it("adds activity to day plan", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     await waitFor(() => {
@@ -151,8 +151,8 @@ describe("useEnergyPlannerState", () => {
     });
 
     act(() => {
-      result.current.addTask({
-        title: "Test Task",
+      result.current.addActivity({
+        title: "Test Activity",
         description: "",
         energyCost: { physical: 10, social: 20, executive: 5 },
         factors: {
@@ -164,111 +164,113 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    const taskId = result.current.oneOffTasks[0].id;
+    const activityId = result.current.oneOffActivities[0].id;
 
     // Wait for persistence
     await waitFor(async () => {
-      const stored = await storageMock.fetchOneOffTasks();
+      const stored = await storageMock.fetchOneOffActivities();
       expect(stored).toHaveLength(1);
     });
 
     await act(async () => {
-      await result.current.addToPlan(taskId);
-    });
-
-    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
-      true,
-    );
-  });
-
-  it("removes task from day plan", async () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    act(() => {
-      result.current.addTask({
-        title: "Test Task",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-        completed: false,
-      });
-    });
-
-    const taskId = result.current.oneOffTasks[0].id;
-
-    // Wait for persistence
-    await waitFor(async () => {
-      const stored = await storageMock.fetchOneOffTasks();
-      expect(stored).toHaveLength(1);
-    });
-
-    await act(async () => {
-      await result.current.addToPlan(taskId);
-    });
-
-    await act(async () => {
-      await result.current.removeFromPlan(taskId);
-    });
-
-    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
-      false,
-    );
-  }, 5000);
-
-  it("toggles task completion", async () => {
-    const { result } = renderHook(() => useEnergyPlannerState());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    act(() => {
-      result.current.addTask({
-        title: "Test Task",
-        description: "",
-        energyCost: { physical: 10, social: 20, executive: 5 },
-        factors: {
-          initiationDifficulty: 1,
-          terminationDifficulty: 1,
-          isRestorative: false,
-        },
-        completed: false,
-      });
-    });
-
-    const taskId = result.current.oneOffTasks[0].id;
-
-    await waitFor(async () => {
-      const stored = await storageMock.fetchOneOffTasks();
-      expect(stored).toHaveLength(1);
-    });
-
-    await act(async () => {
-      await result.current.addToPlan(taskId);
-    });
-
-    await act(async () => {
-      result.current.toggleTaskCompletion(taskId);
+      await result.current.addToPlan(activityId);
     });
 
     expect(
-      result.current.dayPlan.tasks.find((t) => t.id === taskId)?.completed,
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(true);
+  });
+
+  it("removes activity from day plan", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.addActivity({
+        title: "Test Activity",
+        description: "",
+        energyCost: { physical: 10, social: 20, executive: 5 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+        completed: false,
+      });
+    });
+
+    const activityId = result.current.oneOffActivities[0].id;
+
+    // Wait for persistence
+    await waitFor(async () => {
+      const stored = await storageMock.fetchOneOffActivities();
+      expect(stored).toHaveLength(1);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan(activityId);
+    });
+
+    await act(async () => {
+      await result.current.removeFromPlan(activityId);
+    });
+
+    expect(
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(false);
+  }, 5000);
+
+  it("toggles activity completion", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.addActivity({
+        title: "Test Activity",
+        description: "",
+        energyCost: { physical: 10, social: 20, executive: 5 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+        completed: false,
+      });
+    });
+
+    const activityId = result.current.oneOffActivities[0].id;
+
+    await waitFor(async () => {
+      const stored = await storageMock.fetchOneOffActivities();
+      expect(stored).toHaveLength(1);
+    });
+
+    await act(async () => {
+      await result.current.addToPlan(activityId);
+    });
+
+    await act(async () => {
+      result.current.toggleActivityCompletion(activityId);
+    });
+
+    expect(
+      result.current.dayPlan.activities.find((a) => a.id === activityId)
+        ?.completed,
     ).toBe(true);
 
     await act(async () => {
-      result.current.toggleTaskCompletion(taskId);
+      result.current.toggleActivityCompletion(activityId);
     });
 
     expect(
-      result.current.dayPlan.tasks.find((t) => t.id === taskId)?.completed,
+      result.current.dayPlan.activities.find((a) => a.id === activityId)
+        ?.completed,
     ).toBe(false);
   }, 5000);
 
@@ -287,8 +289,8 @@ describe("useEnergyPlannerState", () => {
         executive: 5,
       });
 
-      result.current.addTask({
-        title: "Heavy Task",
+      result.current.addActivity({
+        title: "Heavy Activity",
         description: "",
         energyCost: { physical: 10, social: 10, executive: 10 },
         factors: {
@@ -300,15 +302,15 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    const taskId = result.current.oneOffTasks[0].id;
+    const activityId = result.current.oneOffActivities[0].id;
 
     await waitFor(async () => {
-      const stored = await storageMock.fetchOneOffTasks();
+      const stored = await storageMock.fetchOneOffActivities();
       expect(stored).toHaveLength(1);
     });
 
     await act(async () => {
-      await result.current.addToPlan(taskId);
+      await result.current.addToPlan(activityId);
     });
 
     const usage = result.current.calculateEnergyUsage();
@@ -325,17 +327,17 @@ describe("useEnergyPlannerState", () => {
     expect(warning.message).toContain("Executive");
   });
 
-  it("should move task back to available when unplanned from current day", async () => {
+  it("should move activity back to available when unplanned from current day", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Create and plan a task
+    // Create and plan an activity
     act(() => {
-      result.current.addTask({
-        title: "Test Task",
+      result.current.addActivity({
+        title: "Test Activity",
         description: "",
         energyCost: { physical: 10, social: 20, executive: 5 },
         factors: {
@@ -347,57 +349,57 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    const taskId = result.current.oneOffTasks[0].id;
+    const activityId = result.current.oneOffActivities[0].id;
 
     await waitFor(async () => {
-      const stored = await storageMock.fetchOneOffTasks();
+      const stored = await storageMock.fetchOneOffActivities();
       expect(stored).toHaveLength(1);
     });
 
     await act(async () => {
-      result.current.addToPlan(taskId);
+      result.current.addToPlan(activityId);
     });
 
-    // Task should be in day plan and not in available tasks
-    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
-      true,
-    );
-    expect(result.current.availableTasks.some((t) => t.id === taskId)).toBe(
-      false,
-    );
+    // Activity should be in day plan and not in available activities
+    expect(
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(true);
+    expect(
+      result.current.availableActivities.some((a) => a.id === activityId),
+    ).toBe(false);
 
-    // Unplan the task
+    // Unplan the activity
     await act(async () => {
-      await result.current.moveTaskToUnplanned(
-        taskId,
+      await result.current.moveActivityToUnplanned(
+        activityId,
         result.current.currentDate,
       );
     });
 
-    // Task should be back in available tasks and not in day plan
+    // Activity should be back in available activities and not in day plan
     await waitFor(() => {
-      expect(result.current.availableTasks.some((t) => t.id === taskId)).toBe(
-        true,
-      );
+      expect(
+        result.current.availableActivities.some((a) => a.id === activityId),
+      ).toBe(true);
     });
-    expect(result.current.dayPlan.tasks.some((t) => t.id === taskId)).toBe(
-      false,
-    );
+    expect(
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(false);
   }, 10000);
 
-  it("should move task back to available when unplanned from PAST day", async () => {
+  it("should move activity back to available when unplanned from PAST day", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Setup a task on a past day directly in storage
+    // Setup an activity on a past day directly in storage
     const pastDate = "2025-01-01";
-    const taskId = "past-task-id";
-    const pastTask = {
-      id: taskId,
-      title: "Past Task",
+    const activityId = "past-activity-id";
+    const pastActivity = {
+      id: activityId,
+      title: "Past Activity",
       energyCost: { physical: 10, social: 10, executive: 10 },
       factors: {
         initiationDifficulty: 1,
@@ -410,37 +412,37 @@ describe("useEnergyPlannerState", () => {
 
     await storageMock.storeDayPlan(pastDate, {
       date: pastDate,
-      tasks: [pastTask],
+      activities: [pastActivity],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
-    // Initially task is not in available tasks
-    expect(result.current.oneOffTasks).toHaveLength(0);
+    // Initially activity is not in available activities
+    expect(result.current.oneOffActivities).toHaveLength(0);
 
-    // Unplan the task from the past date
+    // Unplan the activity from the past date
     await act(async () => {
-      await result.current.moveTaskToUnplanned(taskId, pastDate);
+      await result.current.moveActivityToUnplanned(activityId, pastDate);
     });
 
-    // Task should be back in available tasks
+    // Activity should be back in available activities
     await waitFor(() => {
-      expect(result.current.availableTasks.some((t) => t.id === taskId)).toBe(
-        true,
-      );
+      expect(
+        result.current.availableActivities.some((a) => a.id === activityId),
+      ).toBe(true);
     });
   });
 
-  it("removes available task directly from state", async () => {
+  it("removes available activity directly from state", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Add a task (goes to available tasks)
+    // Add an activity (goes to available activities)
     act(() => {
-      result.current.addTask({
-        title: "Available Task",
+      result.current.addActivity({
+        title: "Available Activity",
         description: "",
         energyCost: { physical: 10, social: 10, executive: 10 },
         factors: {
@@ -452,27 +454,27 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    const taskId = result.current.oneOffTasks[0].id;
-    expect(result.current.oneOffTasks).toHaveLength(1);
+    const activityId = result.current.oneOffActivities[0].id;
+    expect(result.current.oneOffActivities).toHaveLength(1);
 
-    // Remove the task
+    // Remove the activity
     await act(async () => {
-      await result.current.removeTask(taskId);
+      await result.current.removeActivity(activityId);
     });
 
-    expect(result.current.oneOffTasks).toHaveLength(0);
+    expect(result.current.oneOffActivities).toHaveLength(0);
   });
 
-  it("handles moving unplanned task from date with no plan gracefully", async () => {
+  it("handles moving unplanned activity from date with no plan gracefully", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     // Call with a date that has no plan in storage
     await act(async () => {
-      await result.current.moveTaskToUnplanned("2099-01-01", "2099-01-01");
+      await result.current.moveActivityToUnplanned("2099-01-01", "2099-01-01");
     });
 
-    // Should not crash, and should not add anything to available tasks
-    expect(result.current.oneOffTasks).toHaveLength(0);
+    // Should not crash, and should not add anything to available activities
+    expect(result.current.oneOffActivities).toHaveLength(0);
   });
 
   it("checks capacity returns exceeded: false when within limits", async () => {
@@ -483,10 +485,10 @@ describe("useEnergyPlannerState", () => {
     });
 
     // Default capacity is 50,50,50.
-    // Add a small task
+    // Add a small activity
     act(() => {
-      result.current.addTask({
-        title: "Small Task",
+      result.current.addActivity({
+        title: "Small Activity",
         description: "",
         energyCost: { physical: 10, social: 10, executive: 10 },
         factors: {
@@ -498,9 +500,9 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    const taskId = result.current.oneOffTasks[0].id;
+    const activityId = result.current.oneOffActivities[0].id;
     await act(async () => {
-      await result.current.addToPlan(taskId);
+      await result.current.addToPlan(activityId);
     });
 
     const status = result.current.checkExceedsCapacity();

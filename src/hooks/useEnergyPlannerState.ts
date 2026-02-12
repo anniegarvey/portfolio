@@ -1,26 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { EnergyCost, Task } from "@/lib/energy-planner/schema";
+import type { Activity, EnergyCost } from "@/lib/energy-planner/schema";
 import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
+import { useActivities } from "./useActivities";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
-import { useTasks } from "./useTasks";
 import { useZones } from "./useZones";
-import { getUncompletedTasks } from "./utils";
+import { getUncompletedActivities } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
-    oneOffTasks,
-    repeatingTasks,
-    isLoading: tasksLoading,
-    addTask: addTaskBase,
-    updateTask: updateTaskBase,
-    removeTaskState,
-    reorderTasks,
-    addTaskToAvailable,
-    removeTaskFromAvailable,
-  } = useTasks();
+    oneOffActivities,
+    repeatingActivities,
+    isLoading: activitiesLoading,
+    addActivity: addActivityBase,
+    updateActivity: updateActivityBase,
+    removeActivityState,
+    reorderActivities,
+    addActivityToAvailable,
+    removeActivityFromAvailable,
+  } = useActivities();
   const {
     currentDate,
     dayPlan,
@@ -31,17 +31,17 @@ export function useEnergyPlannerState() {
     goToNextDay,
     goToToday,
     setDailyCapacity,
-    addTaskToDayPlan,
+    addActivityToDayPlan,
     removeFromPlan: removeFromPlanBase,
-    toggleTaskCompletion,
-    markTaskCompleteOnDate,
-    moveTaskToToday,
-    moveTaskToUnplanned: moveTaskToUnplannedBase,
-    reorderPlannedTasks,
-    assignTaskToZone,
+    toggleActivityCompletion,
+    markActivityCompleteOnDate,
+    moveActivityToToday,
+    moveActivityToUnplanned: moveActivityToUnplannedBase,
+    reorderPlannedActivities,
+    assignActivityToZone,
     deleteFromPlan,
-    updatePlannedTask,
-  } = useDayPlan(repeatingTasks, updateTaskBase);
+    updatePlannedActivity,
+  } = useDayPlan(repeatingActivities, updateActivityBase);
   const {
     energyTypes,
     isLoading: typesLoading,
@@ -59,93 +59,96 @@ export function useEnergyPlannerState() {
   } = useZones();
 
   // State for async-computed values
-  const [uncompletedTasks, setUncompletedTasks] = useState<
-    { task: Task; fromDate: string }[]
+  const [uncompletedActivities, setUncompletedActivities] = useState<
+    { activity: Activity; fromDate: string }[]
   >([]);
 
-  const availableTasks = oneOffTasks;
+  const availableActivities = oneOffActivities;
 
-  // Load uncompleted tasks from previous days
-  // Re-run when dayPlanVersion changes (after uncompleted task actions)
+  // Load uncompleted activities from previous days
+  // Re-run when dayPlanVersion changes (after uncompleted activity actions)
   // biome-ignore lint/correctness/useExhaustiveDependencies: dayPlanVersion intentionally triggers re-fetch after storage changes
   useEffect(() => {
-    if (tasksLoading) return;
+    if (activitiesLoading) return;
 
     (async () => {
-      const uncompleted = await getUncompletedTasks(currentDate);
-      setUncompletedTasks(uncompleted);
+      const uncompleted = await getUncompletedActivities(currentDate);
+      setUncompletedActivities(uncompleted);
     })();
-  }, [tasksLoading, currentDate, dayPlanVersion]);
+  }, [activitiesLoading, currentDate, dayPlanVersion]);
 
-  const addTask = useCallback(
-    (taskData: Omit<Task, "id" | "createdAt">) => {
-      const newTask = addTaskBase(taskData);
+  const addActivity = useCallback(
+    (activityData: Omit<Activity, "id" | "createdAt">) => {
+      const newActivity = addActivityBase(activityData);
 
       // If it's repeating, the projection logic in useDayPlan will handle showing it
-      // based on the nextDueDate (which defaults to today for new tasks).
+      // based on the nextDueDate (which defaults to today for new activities).
       // So no need to manually add to plan.
 
-      return newTask;
+      return newActivity;
     },
-    [addTaskBase],
+    [addActivityBase],
   );
 
-  // Add task to day plan - finds task and coordinates state
+  // Add activity to day plan - finds activity and coordinates state
   const addToPlan = useCallback(
-    (taskId: string, zoneId?: string) => {
-      // Find task in one-off tasks
-      const task = oneOffTasks.find((t) => t.id === taskId);
-      if (!task) {
-        // Not a one-off task - might be a repeating task (handled elsewhere)
+    (activityId: string, zoneId?: string) => {
+      // Find activity in one-off activities
+      const activity = oneOffActivities.find((a) => a.id === activityId);
+      if (!activity) {
+        // Not a one-off activity - might be a repeating activity (handled elsewhere)
         return;
       }
 
       // Add to day plan
-      addTaskToDayPlan(task, zoneId);
-      // Remove from available tasks
-      removeTaskFromAvailable(taskId);
+      addActivityToDayPlan(activity, zoneId);
+      // Remove from available activities
+      removeActivityFromAvailable(activityId);
     },
-    [oneOffTasks, addTaskToDayPlan, removeTaskFromAvailable],
+    [oneOffActivities, addActivityToDayPlan, removeActivityFromAvailable],
   );
 
-  // Remove task from day plan and return to available tasks
+  // Remove activity from day plan and return to available activities
   const removeFromPlan = useCallback(
-    (taskId: string) => {
-      // Remove from day plan (returns the removed task)
-      const removedTask = removeFromPlanBase(taskId);
-      // Add back to available tasks if found
-      if (removedTask) {
-        // Strip 'completed' when moving back to available tasks
-        const { completed: _completed, ...rawTask } = removedTask;
-        addTaskToAvailable(rawTask as Task);
+    (activityId: string) => {
+      // Remove from day plan (returns the removed activity)
+      const removedActivity = removeFromPlanBase(activityId);
+      // Add back to available activities if found
+      if (removedActivity) {
+        // Strip 'completed' when moving back to available activities
+        const { completed: _completed, ...rawActivity } = removedActivity;
+        addActivityToAvailable(rawActivity as Activity);
       }
     },
-    [addTaskToAvailable, removeFromPlanBase],
+    [addActivityToAvailable, removeFromPlanBase],
   );
 
-  // Move task from day plan to available tasks
-  const moveTaskToUnplanned = useCallback(
-    async (taskId: string, fromDate: string) => {
-      // Remove from day plan (returns the removed task)
-      const removedTask = await moveTaskToUnplannedBase(taskId, fromDate);
-      // Add back to available tasks if found
-      if (removedTask) {
-        // Strip 'completed' when moving back to available tasks
-        const { completed: _completed, ...rawTask } = removedTask;
-        addTaskToAvailable(rawTask as Task);
+  // Move activity from day plan to available activities
+  const moveActivityToUnplanned = useCallback(
+    async (activityId: string, fromDate: string) => {
+      // Remove from day plan (returns the removed activity)
+      const removedActivity = await moveActivityToUnplannedBase(
+        activityId,
+        fromDate,
+      );
+      // Add back to available activities if found
+      if (removedActivity) {
+        // Strip 'completed' when moving back to available activities
+        const { completed: _completed, ...rawActivity } = removedActivity;
+        addActivityToAvailable(rawActivity as Activity);
       }
     },
-    [addTaskToAvailable, moveTaskToUnplannedBase],
+    [addActivityToAvailable, moveActivityToUnplannedBase],
   );
 
-  const removeTask = useCallback(
-    async (taskId: string) => {
+  const removeActivity = useCallback(
+    async (activityId: string) => {
       // If it's in the day plan, remove it (but don't add back to available)
-      deleteFromPlan(taskId);
-      // Remove from task lists (one-off and repeating)
-      removeTaskState(taskId);
+      deleteFromPlan(activityId);
+      // Remove from activity lists (one-off and repeating)
+      removeActivityState(activityId);
     },
-    [removeTaskState, deleteFromPlan],
+    [removeActivityState, deleteFromPlan],
   );
 
   const calculateEnergyUsage = useCallback((): EnergyCost => {
@@ -173,26 +176,26 @@ export function useEnergyPlannerState() {
     return { exceeded: false };
   }, [calculateEnergyUsage, energyTypes, dayPlan.dailyCapacity]);
 
-  // Wrap updateTask to handle both stores
-  const handleUpdateTask = useCallback(
-    (task: Task) => {
+  // Wrap updateActivity to handle both stores
+  const handleUpdateActivity = useCallback(
+    (activity: Activity) => {
       // Update in master lists
-      updateTaskBase(task);
+      updateActivityBase(activity);
       // Update in day plan (if present)
-      updatePlannedTask(task);
+      updatePlannedActivity(activity);
     },
-    [updateTaskBase, updatePlannedTask],
+    [updateActivityBase, updatePlannedActivity],
   );
 
   const isLoading =
-    tasksLoading || dayPlanLoading || typesLoading || zonesLoading;
+    activitiesLoading || dayPlanLoading || typesLoading || zonesLoading;
 
   return {
-    oneOffTasks,
+    oneOffActivities,
     isLoading,
-    addTask,
-    updateTask: handleUpdateTask,
-    removeTask,
+    addActivity,
+    updateActivity: handleUpdateActivity,
+    removeActivity,
     dailyCapacity: dayPlan.dailyCapacity,
     setDailyCapacity,
     currentDate,
@@ -203,26 +206,26 @@ export function useEnergyPlannerState() {
     goToToday,
     addToPlan,
     removeFromPlan,
-    toggleTaskCompletion,
-    markTaskCompleteOnDate,
-    moveTaskToToday,
-    moveTaskToUnplanned,
+    toggleActivityCompletion,
+    markActivityCompleteOnDate,
+    moveActivityToToday,
+    moveActivityToUnplanned,
     calculateEnergyUsage,
     checkExceedsCapacity,
-    uncompletedTasks,
-    availableTasks,
-    repeatingTasks,
+    uncompletedActivities,
+    availableActivities,
+    repeatingActivities,
     energyTypes,
     addEnergyType,
     updateEnergyType,
     removeEnergyType,
-    reorderPlannedTasks,
-    reorderTasks,
+    reorderPlannedActivities,
+    reorderActivities,
     zones,
     addZone,
     updateZone,
     removeZone,
     reorderZones,
-    assignTaskToZone,
+    assignActivityToZone,
   };
 }

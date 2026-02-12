@@ -42,7 +42,7 @@ describe("ImportExport", () => {
   test("handles file import success", async () => {
     render(<ImportExport />);
 
-    const file = new File(['{"tasks":[]}'], "data.json", {
+    const file = new File(['{"activities":[]}'], "data.json", {
       type: "application/json",
     });
 
