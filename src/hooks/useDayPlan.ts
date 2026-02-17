@@ -13,6 +13,7 @@ import {
   defaultCapacity,
   fetchDayPlanForDate,
   getNextDay,
+  getOriginalActivityId,
   getPreviousDay,
   getTodayDateString,
   saveDayPlanForDate,
@@ -527,6 +528,11 @@ export function useDayPlan(
       const newActivity = {
         ...existingActivity,
         ...updatedActivity,
+        // If it's now repeating, ensure it's linked correctly
+        repeatingActivityId: updatedActivity.repeatConfig
+          ? getOriginalActivityId(updatedActivity.id)
+          : undefined,
+        isProjected: false, // Solidify upon update
       };
 
       const newActivities = [...prev.activities];

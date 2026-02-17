@@ -36,7 +36,7 @@ export function EnergyPlanner() {
 
   const handleEditActivity = (activity: Activity) => {
     setEditingActivity(activity);
-    setCreationContext(undefined); // Editing doesn't use creation context (yet)
+    setCreationContext({ date: currentDate }); // Provide date context even for editing
     setIsActivityModalOpen(true);
   };
 

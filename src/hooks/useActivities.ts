@@ -74,29 +74,44 @@ export function useActivities() {
     return newActivity;
   };
 
+  /* optimized update activity */
   const updateActivity = (updatedActivity: Activity) => {
     if (updatedActivity.repeatConfig) {
       // Updating a repeating activity
-      setRepeatingActivitiesState((prev) =>
-        prev.map((a) =>
-          a.id === updatedActivity.id ? (updatedActivity as Activity) : a,
-        ),
-      );
-      // Also check if it WAS a one-off activity (migration case?)
-      // For now, assume IDs don't collide, but good to be safe.
+      setRepeatingActivitiesState((prev) => {
+        const index = prev.findIndex((a) => a.id === updatedActivity.id);
+        if (index !== -1) {
+          // Already was repeating, just update
+          return prev.map((a) =>
+            a.id === updatedActivity.id ? (updatedActivity as Activity) : a,
+          );
+        }
+        // Was one-off, now repeating - add to repeating list
+        return [...prev, updatedActivity];
+      });
+
+      // Remove from one-off if it was there
       setOneOffActivitiesState((prev) =>
         prev.filter((a) => a.id !== updatedActivity.id),
       );
     } else {
       // Updating a one-off activity
-      setOneOffActivitiesState((prev) =>
-        prev.map((a) => (a.id === updatedActivity.id ? updatedActivity : a)),
-      );
-      // Check if it WAS a repeating activity
-      setRepeatingActivitiesState((prev) => {
-        const filtered = prev.filter((a) => a.id !== updatedActivity.id);
-        return filtered.length !== prev.length ? filtered : prev;
+      setOneOffActivitiesState((prev) => {
+        const index = prev.findIndex((a) => a.id === updatedActivity.id);
+        if (index !== -1) {
+          // Already was one-off, just update
+          return prev.map((a) =>
+            a.id === updatedActivity.id ? updatedActivity : a,
+          );
+        }
+        // Was repeating, now one-off - add to one-off list
+        return [...prev, updatedActivity];
       });
+
+      // Remove from repeating if it was there
+      setRepeatingActivitiesState((prev) =>
+        prev.filter((a) => a.id !== updatedActivity.id),
+      );
     }
   };
 

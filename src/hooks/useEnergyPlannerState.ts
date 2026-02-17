@@ -7,7 +7,7 @@ import { useActivities } from "./useActivities";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useZones } from "./useZones";
-import { getUncompletedActivities } from "./utils";
+import { getOriginalActivityId, getUncompletedActivities } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
@@ -179,9 +179,11 @@ export function useEnergyPlannerState() {
   // Wrap updateActivity to handle both stores
   const handleUpdateActivity = useCallback(
     (activity: Activity) => {
+      const originalId = getOriginalActivityId(activity.id);
+
       // Update in master lists
-      updateActivityBase(activity);
-      // Update in day plan (if present)
+      updateActivityBase({ ...activity, id: originalId });
+      // Update in day plan (keep virtual ID if it's a virtual activity)
       updatePlannedActivity(activity);
     },
     [updateActivityBase, updatePlannedActivity],

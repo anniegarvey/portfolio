@@ -168,3 +168,16 @@ export function generateUniqueKey(
 
   return `${baseKey}-${suffix}`;
 }
+
+/**
+ * Extracts the original activity ID from a virtual projected activity ID.
+ * Projected IDs follow the format: virtual-{originalId}-{date}
+ */
+export function getOriginalActivityId(id: string): string {
+  if (!id.startsWith("virtual-")) {
+    return id;
+  }
+  const parts = id.split("-");
+  // Remove "virtual" (first part) and "YYYY-MM-DD" (last 3 parts)
+  return parts.slice(1, -3).join("-");
+}
