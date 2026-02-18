@@ -102,6 +102,7 @@ export const DayPlanSchema = z.object({
   date: z.string(), // ISO date string YYYY-MM-DD
   activities: z.array(PlannedActivitySchema).default([]),
   dailyCapacity: EnergyCostSchema,
+  activityOrder: z.array(z.string()).optional(), // Persisted order including virtual activity IDs
 });
 
 export type DayPlan = z.infer<typeof DayPlanSchema>;

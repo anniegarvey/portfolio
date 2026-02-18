@@ -57,6 +57,7 @@ export function DayPlanner({
     repeatingActivities,
     reorderPlannedActivities,
     reorderActivities,
+    reorderRepeatingActivities,
     zones,
     assignActivityToZone,
     addZone,
@@ -296,6 +297,7 @@ export function DayPlanner({
         onEditActivity={onEditActivity}
         onOpenCreateActivity={handleCreateActivity}
         onReorderActivities={reorderActivities}
+        onReorderRepeatingActivities={reorderRepeatingActivities}
         repeatingActivities={repeatingActivities}
       />
 

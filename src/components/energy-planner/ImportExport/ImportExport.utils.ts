@@ -30,7 +30,7 @@ export interface EnergyPlannerExportData {
   };
 }
 
-const EXPORT_VERSION = "4.0.0"; // Incremented due to Task -> Activity terminology shift
+const EXPORT_VERSION = "5.0.0"; // Added activityOrder to day plans for ordering persistence
 
 /**
  * Exports all energy planner data from IndexedDB to a JSON file

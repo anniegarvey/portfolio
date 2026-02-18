@@ -18,6 +18,7 @@ export function useEnergyPlannerState() {
     updateActivity: updateActivityBase,
     removeActivityState,
     reorderActivities,
+    reorderRepeatingActivities,
     addActivityToAvailable,
     removeActivityFromAvailable,
   } = useActivities();
@@ -238,6 +239,7 @@ export function useEnergyPlannerState() {
     removeEnergyType,
     reorderPlannedActivities,
     reorderActivities,
+    reorderRepeatingActivities,
     zones,
     addZone,
     updateZone,

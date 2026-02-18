@@ -41,6 +41,7 @@ interface EnergyPlannerContextType {
   removeEnergyType: (typeId: string) => void;
   reorderPlannedActivities: (itemIds: string[]) => void;
   reorderActivities: (newActivities: Activity[]) => void;
+  reorderRepeatingActivities: (newActivities: Activity[]) => void;
   zones: ZoneConfig[];
   addZone: (zone: Omit<ZoneConfig, "id">) => void;
   updateZone: (zone: ZoneConfig) => void;

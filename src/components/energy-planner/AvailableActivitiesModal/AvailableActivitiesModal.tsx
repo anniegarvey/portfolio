@@ -34,6 +34,7 @@ interface AvailableActivitiesModalProps {
   onEditActivity: (activity: Activity) => void;
   onAddActivity: (activityId: string) => void;
   onReorderActivities: (activities: Activity[]) => void;
+  onReorderRepeatingActivities: (activities: Activity[]) => void;
   onDeleteActivity: (activityId: string) => void;
 }
 
@@ -46,6 +47,7 @@ export function AvailableActivitiesModal({
   onEditActivity,
   onAddActivity,
   onReorderActivities,
+  onReorderRepeatingActivities,
   onDeleteActivity,
 }: AvailableActivitiesModalProps) {
   const [activeTab, setActiveTab] = useState<"one-off" | "repeating">(
@@ -71,6 +73,14 @@ export function AvailableActivitiesModal({
 
     if (newItems) {
       onReorderActivities(newItems);
+    }
+  };
+
+  const handleRepeatingDragEnd = (event: DragEndEvent) => {
+    const newItems = getReorderedItems(repeatingActivities, event, (a) => a.id);
+
+    if (newItems) {
+      onReorderRepeatingActivities(newItems);
     }
   };
 
@@ -161,24 +171,39 @@ export function AvailableActivitiesModal({
           )}
 
           {activeTab === "repeating" && (
-            <ModalActivityList>
-              {repeatingActivities.length === 0 ? (
-                <ModalEmptyState>
-                  No repeating activities configured.
-                </ModalEmptyState>
-              ) : (
-                repeatingActivities.map((activity) => (
-                  <PlannerActivityCard
-                    activity={activity}
-                    // No drag handle for repeating activities list (for now)
-                    // No onAdd (automatically planned)
-                    key={activity.id}
-                    onDelete={requestDelete}
-                    onEdit={onEditActivity}
-                  />
-                ))
-              )}
-            </ModalActivityList>
+            <DndContext
+              collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis]}
+              onDragEnd={handleRepeatingDragEnd}
+              sensors={sensors}
+            >
+              <SortableContext
+                items={repeatingActivities.map((a) => a.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ModalActivityList>
+                  {repeatingActivities.length === 0 ? (
+                    <ModalEmptyState>
+                      No repeating activities configured.
+                    </ModalEmptyState>
+                  ) : (
+                    repeatingActivities.map((activity) => (
+                      <SortableItem id={activity.id} key={activity.id}>
+                        {({ dragHandleProps }) => (
+                          <PlannerActivityCard
+                            activity={activity}
+                            dragHandleProps={dragHandleProps}
+                            key={activity.id}
+                            onDelete={requestDelete}
+                            onEdit={onEditActivity}
+                          />
+                        )}
+                      </SortableItem>
+                    ))
+                  )}
+                </ModalActivityList>
+              </SortableContext>
+            </DndContext>
           )}
         </ModalContent>
       </Modal>

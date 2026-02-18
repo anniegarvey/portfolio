@@ -131,6 +131,10 @@ export function useActivities() {
     setOneOffActivitiesState(newActivities);
   };
 
+  const reorderRepeatingActivities = (newActivities: Activity[]) => {
+    setRepeatingActivitiesState(newActivities);
+  };
+
   // Add activity back to available activities (used when unplanning a activity)
   const addActivityToAvailable = (activity: Activity) => {
     // If it has repeat config, it goes to repeating activities
@@ -164,6 +168,7 @@ export function useActivities() {
     updateActivity,
     removeActivityState,
     reorderActivities,
+    reorderRepeatingActivities,
     addActivityToAvailable,
     removeActivityFromAvailable,
   };

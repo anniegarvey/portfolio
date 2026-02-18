@@ -56,6 +56,38 @@ function checkIsActivityDue(activity: Activity, date: string): boolean {
   return false;
 }
 
+/**
+ * Merge activities into a persisted order.
+ * Activities in storedOrder are placed first in their stored positions,
+ * then any new activities (not in storedOrder) are appended.
+ */
+function mergeActivitiesWithOrder<T extends { id: string }>(
+  activities: T[],
+  storedOrder: string[] | undefined,
+): T[] {
+  if (!storedOrder || storedOrder.length === 0) {
+    return activities;
+  }
+
+  const activityMap = new Map(activities.map((a) => [a.id, a]));
+  const ordered: T[] = [];
+
+  for (const id of storedOrder) {
+    const activity = activityMap.get(id);
+    if (activity) {
+      ordered.push(activity);
+      activityMap.delete(id);
+    }
+  }
+
+  // Append any activities not in the stored order (newly added)
+  for (const activity of activityMap.values()) {
+    ordered.push(activity);
+  }
+
+  return ordered;
+}
+
 export function useDayPlan(
   repeatingActivities: Activity[] = [],
   onUpdateActivity?: (activity: Activity) => void,
@@ -163,10 +195,19 @@ export function useDayPlan(
           isProjected: true,
         }));
 
+      // Merge stored and projected activities using persisted activityOrder
+      const allActivities = [...basePlan.activities, ...projectedActivities];
+      const storedOrder = basePlan.activityOrder;
+      const orderedActivities = mergeActivitiesWithOrder(
+        allActivities,
+        storedOrder,
+      );
+
       storeDayPlan({
         date: basePlan.date,
         dailyCapacity: basePlan.dailyCapacity,
-        activities: [...basePlan.activities, ...projectedActivities],
+        activities: orderedActivities,
+        activityOrder: storedOrder,
       });
 
       setIsLoading(false);
@@ -182,10 +223,13 @@ export function useDayPlan(
     if (!isLoading) {
       // Filter out projected activities before saving!
       const activitiesToSave = dayPlan.activities.filter((a) => !a.isProjected);
+      // Persist the full ordering (including virtual IDs) so we can restore positions on reload
+      const activityOrder = dayPlan.activities.map((a) => a.id);
       // We pass the filtered activities to save
       saveDayPlanForDate(currentDate, {
         ...dayPlan,
         activities: activitiesToSave,
+        activityOrder,
       });
     }
   }, [dayPlan, currentDate, isLoading]);
@@ -243,9 +287,15 @@ export function useDayPlan(
           const newActivities = [...prev.activities];
           newActivities[activityIndex] = newActivity;
 
+          // Update activityOrder to reflect the new ID (solidification changes virtual → concrete)
+          const newActivityOrder = prev.activityOrder?.map((id) =>
+            id === activityId ? newActivity.id : id,
+          );
+
           holder.plan = {
             ...prev,
             activities: newActivities,
+            activityOrder: newActivityOrder,
           };
 
           return holder.plan;
@@ -260,9 +310,11 @@ export function useDayPlan(
         const activitiesToSave = planToSave.activities.filter(
           (a) => !a.isProjected,
         );
+        const activityOrder = planToSave.activities.map((a) => a.id);
         await saveDayPlanForDate(currentDate, {
           ...planToSave,
           activities: activitiesToSave,
+          activityOrder,
         });
         currentOnUpdateActivity(holder.update);
       }

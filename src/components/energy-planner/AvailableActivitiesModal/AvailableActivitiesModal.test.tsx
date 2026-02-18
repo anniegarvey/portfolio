@@ -32,6 +32,7 @@ describe("AvailableActivitiesModal", () => {
     onEditActivity: vi.fn(),
     onAddActivity: vi.fn(),
     onReorderActivities: vi.fn(),
+    onReorderRepeatingActivities: vi.fn(),
     onDeleteActivity: vi.fn(),
   };
 

@@ -60,6 +60,7 @@ export function createEmptyDayPlan(date: string): DayPlan {
     date,
     activities: [],
     dailyCapacity: defaultCapacity,
+    activityOrder: undefined,
   };
 }
 

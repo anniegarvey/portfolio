@@ -30,6 +30,7 @@ const KEYS = {
 export interface StoredDayPlan {
   activities?: PlannedActivity[];
   dailyCapacity: EnergyCost;
+  activityOrder?: string[]; // Persisted order including virtual activity IDs
 }
 
 // === One-Off Activities ===
@@ -101,6 +102,11 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
     stored.activities = plan.activities;
   }
 
+  // Persist activity ordering (includes virtual IDs for projected activities)
+  if (plan.activityOrder && plan.activityOrder.length > 0) {
+    stored.activityOrder = plan.activityOrder;
+  }
+
   return stored;
 }
 
@@ -112,6 +118,7 @@ function fromStoredDayPlan(date: string, stored: StoredDayPlan): DayPlan {
     date,
     activities: stored.activities ?? [],
     dailyCapacity: stored.dailyCapacity,
+    activityOrder: stored.activityOrder,
   };
 }
 

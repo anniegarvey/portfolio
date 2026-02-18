@@ -83,7 +83,7 @@ describe("exportEnergyPlannerData", () => {
     return new Promise<void>((resolve) => {
       reader.onload = () => {
         const exportedData = JSON.parse(reader.result as string);
-        expect(exportedData).toHaveProperty("version", "4.0.0");
+        expect(exportedData).toHaveProperty("version", "5.0.0");
         expect(exportedData).toHaveProperty("exportDate");
         expect(exportedData.data).toHaveProperty("oneOffActivities");
         expect(exportedData.data).toHaveProperty("repeatingActivities");
