@@ -203,7 +203,7 @@ export function DayPlanner({
   return (
     <Container>
       <Header>
-        <h2>Your Day Plan</h2>
+        <h2>Your Day Plan ({selectedActivities.length})</h2>
         <Button
           leftIcon={<Plus size={24} />}
           onClick={() => setIsModalOpen(true)}
@@ -232,7 +232,6 @@ export function DayPlanner({
 
       <SelectedSection>
         <ColumnHeader>
-          <h3>Selected Activities ({selectedActivities.length})</h3>
           <UsageSummary>
             Usage:{" "}
             {energyTypes.map((type) => (

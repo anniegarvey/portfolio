@@ -98,9 +98,8 @@ describe("DayPlanner", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Your Day Plan")).toBeInTheDocument();
+      expect(screen.getByText(/Your Day Plan/)).toBeInTheDocument();
     });
-    expect(screen.getByText(/Selected Activities/)).toBeInTheDocument();
   });
 
   it("displays selected activities count with zero", async () => {
@@ -116,7 +115,7 @@ describe("DayPlanner", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Selected Activities \(0\)/)).toBeInTheDocument();
+      expect(screen.getByText(/Your Day Plan \(0\)/)).toBeInTheDocument();
     });
   });
 
@@ -209,10 +208,10 @@ describe("DayPlanner", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Your Day Plan")).toBeInTheDocument();
+      expect(screen.getByText(/Your Day Plan/)).toBeInTheDocument();
     });
 
-    const header = screen.getByText("Your Day Plan");
+    const header = screen.getByText(/Your Day Plan/);
     // Warning should not be present when no activities
     const headerParent = header.parentElement;
     expect(headerParent?.querySelector('[class*="Warning"]')).toBeNull();
@@ -327,7 +326,7 @@ describe("DayPlanner with populated data", () => {
       expect(screen.getByText("First Activity")).toBeInTheDocument();
     });
     expect(screen.getByText("Second Activity")).toBeInTheDocument();
-    expect(screen.getByText(/Selected Activities \(2\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Your Day Plan \(2\)/)).toBeInTheDocument();
   });
 
   it("adds activity from modal and closes modal", async () => {

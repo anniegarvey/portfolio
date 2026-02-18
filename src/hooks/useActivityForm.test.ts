@@ -211,6 +211,39 @@ describe("useActivityForm", () => {
     expect(addActivityCall.repeatConfig.nextDueDate).toBe("2024-01-01");
   });
 
+  it("pre-selects defaultZoneId from context if it exists", () => {
+    const { result } = renderHook(() =>
+      useActivityForm({
+        initialContext: { date: "2024-01-01", zoneId: "morning" },
+      }),
+    );
+
+    expect(result.current.defaultZoneId).toBe("morning");
+  });
+
+  it("resets defaultZoneId to initial context zoneId", () => {
+    const { result } = renderHook(() =>
+      useActivityForm({
+        initialContext: { date: "2024-01-01", zoneId: "afternoon" },
+      }),
+    );
+
+    act(() => {
+      result.current.setTitle("Test"); // Need title to submit
+      result.current.setDefaultZoneId("evening");
+    });
+    expect(result.current.defaultZoneId).toBe("evening");
+
+    act(() => {
+      result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as unknown as React.FormEvent);
+    });
+
+    // handleSubmit calls resetForm if no onClose is provided
+    expect(result.current.defaultZoneId).toBe("afternoon");
+  });
+
   it("provides a unique formId", () => {
     const { result } = renderHook(() => useActivityForm({}));
 

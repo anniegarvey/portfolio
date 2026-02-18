@@ -320,4 +320,36 @@ describe("ActivityForm", () => {
       );
     });
   });
+
+  it("includes contextual default zone in submission", async () => {
+    const onClose = vi.fn();
+    render(
+      <ActivityForm
+        initialContext={{ date: "2024-01-01", zoneId: "morning" }}
+        onClose={onClose}
+      />,
+      { wrapper },
+    );
+
+    // Wait for the activity name input to be present to ensure initial load is done
+    await screen.findByPlaceholderText(/Do Laundry/i);
+
+    fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
+      target: { value: "Contextual Activity" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    // Verify storage includes the defaultZoneId from context
+    await waitFor(() => {
+      expect(mockstoreOneOffActivities).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: "Contextual Activity",
+            defaultZoneId: "morning",
+          }),
+        ]),
+      );
+    });
+  });
 });

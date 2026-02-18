@@ -42,6 +42,7 @@ export function useActivityForm({
   const [defaultZoneId, setDefaultZoneId] = useState(
     initialData?.defaultZoneId ||
       initialData?.repeatConfig?.defaultZoneId ||
+      initialContext?.zoneId ||
       undefined,
   );
 
@@ -150,7 +151,7 @@ export function useActivityForm({
     setFrequency(1);
     setUnit("days");
     setNextDueDate("");
-    setDefaultZoneId(undefined);
+    setDefaultZoneId(initialContext?.zoneId);
   };
 
   return {
