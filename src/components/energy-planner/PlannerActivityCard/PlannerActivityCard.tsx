@@ -12,6 +12,7 @@ import {
   GripVertical,
   RotateCw,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { css, styled } from "next-yak";
 import { getNextDay } from "../../../hooks/utils";
@@ -115,13 +116,13 @@ export function PlannerActivityCard({
         {selected && onToggleCompletion && !isPastDay && !isFutureDay && (
           <Button
             aria-label={completed ? "Mark as not done" : "Mark as done"}
-            intent={completed ? "teal" : "primary"}
+            intent={completed ? "danger" : "teal"}
             onClick={() => onToggleCompletion(activity.id)}
             size="icon"
             title={completed ? "Mark as not done" : "Mark as done"}
             variant="ghost"
           >
-            <Check size={18} />
+            {completed ? <Undo2 size={18} /> : <Check size={18} />}
           </Button>
         )}
 
