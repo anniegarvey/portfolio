@@ -3,6 +3,7 @@ trigger: glob
 globs: src/**/*.tsx
 ---
 
+- Use Pencil to mock up designs and ask for approval before implementing new UI
 - Use next-yak and existing global CSS variables from src/app/globals.css for styling
 - Prefer more styled components over targeting descendant tags
 - Ensure all UI changes follow a11y best practices, using semantic HTML and ensuring sufficient contrast in light & dark mode

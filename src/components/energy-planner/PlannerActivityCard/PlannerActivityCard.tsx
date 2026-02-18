@@ -88,11 +88,6 @@ export function PlannerActivityCard({
       )}
       <ActivityContent $completed={completed}>
         <ActivityTitleRow>
-          {activity.repeatConfig && (
-            <RepeatIconWrapper title="Repeating Activity">
-              <RotateCw size={14} />
-            </RepeatIconWrapper>
-          )}
           <ActivityTitle onClick={() => onEdit(activity)}>
             {activity.title}
           </ActivityTitle>
@@ -110,6 +105,12 @@ export function PlannerActivityCard({
               </Badge>
             );
           })}
+          {activity.repeatConfig && selected && (
+            <RepeatBadge title="Repeating Activity">
+              <RotateCw size={12} />
+              <span>Repeat</span>
+            </RepeatBadge>
+          )}
         </EnergyBadges>
       </ActivityContent>
       <Actions>
@@ -234,6 +235,7 @@ const Card = styled.article<{
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  color: light-dark(var(--color-grey-900), var(--color-grey-100));
   transition: transform 0.1s;
 
   ${({ $isProjected }) =>
@@ -319,10 +321,29 @@ const ActivityDescription = styled.p`
     line-height: 1.4;
 `;
 
-const RepeatIconWrapper = styled.div`
-    color: var(--color-grey-500);
+const RepeatBadge = styled.div`
     display: flex;
     align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
+    color: light-dark(var(--color-grey-700), var(--color-grey-200));
+    border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+
+    svg {
+        flex-shrink: 0;
+    }
+
+    /* Hide text on very small screens if needed, but for now keep it */
+    @media (max-width: 340px) {
+        span {
+            display: none;
+        }
+        padding: 4px;
+    }
 `;
 
 const EnergyBadges = styled.div`
