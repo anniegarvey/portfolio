@@ -183,10 +183,25 @@ export function useEnergyPlannerState() {
 
       // Update in master lists
       updateActivityBase({ ...activity, id: originalId });
-      // Update in day plan (keep virtual ID if it's a virtual activity)
-      updatePlannedActivity(activity);
+
+      // For projected (virtual) repeating activity instances that remain
+      // repeating, delete from the day plan so that the re-projection logic
+      // can decide whether to show it based on the updated nextDueDate.
+      // Without this, updatePlannedActivity would solidify the virtual
+      // instance (isProjected: false), preventing re-projection from
+      // removing it when the nextDueDate changes.
+      //
+      // If the activity is being converted to non-repeating (repeatConfig
+      // removed), we still want to solidify it via updatePlannedActivity
+      // so it persists in the day plan as a concrete one-off activity.
+      if (activity.id.startsWith("virtual-") && activity.repeatConfig) {
+        deleteFromPlan(activity.id);
+      } else {
+        // Update in day plan for concrete or converting-to-one-off activities
+        updatePlannedActivity(activity);
+      }
     },
-    [updateActivityBase, updatePlannedActivity],
+    [updateActivityBase, updatePlannedActivity, deleteFromPlan],
   );
 
   const isLoading =

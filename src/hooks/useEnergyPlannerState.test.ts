@@ -508,4 +508,97 @@ describe("useEnergyPlannerState", () => {
     const status = result.current.checkExceedsCapacity();
     expect(status.exceeded).toBe(false);
   });
+  it("removes projected repeating activity from today when nextDueDate is changed to a future date", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const today = result.current.currentDate;
+
+    // Create a repeating activity starting today
+    act(() => {
+      result.current.addActivity({
+        title: "Daily Standup",
+        description: "",
+        energyCost: { physical: 5, social: 10, executive: 5 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+        completed: false,
+        repeatConfig: {
+          frequency: 1,
+          unit: "days",
+          nextDueDate: today,
+        },
+      });
+    });
+
+    // The repeating activity should be projected on today's plan
+    await waitFor(() => {
+      const projected = result.current.dayPlan.activities.find(
+        (a) => a.title === "Daily Standup",
+      );
+      expect(projected).toBeDefined();
+    });
+
+    const projectedActivity = result.current.dayPlan.activities.find(
+      (a) => a.title === "Daily Standup",
+    );
+    expect(projectedActivity).toBeDefined();
+    // biome-ignore lint/style/noNonNullAssertion: Test will fail if this is null, detecting the issue
+    expect(projectedActivity!.id).toMatch(/^virtual-/);
+
+    // Now edit the activity to change nextDueDate to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+
+    act(() => {
+      result.current.updateActivity({
+        // biome-ignore lint/style/noNonNullAssertion: Test will fail if this is null, detecting the issue
+        ...projectedActivity!,
+        repeatConfig: {
+          frequency: 1,
+          unit: "days",
+          // biome-ignore lint/style/noNonNullAssertion: Test will fail if this is null, detecting the issue
+          ...projectedActivity!.repeatConfig,
+          nextDueDate: tomorrowStr,
+        },
+      });
+    });
+
+    // The activity should no longer appear in today's plan
+    await waitFor(() => {
+      const remaining = result.current.dayPlan.activities.find(
+        (a) => a.title === "Daily Standup",
+      );
+      expect(remaining).toBeUndefined();
+    });
+
+    // The repeating activity should have the updated nextDueDate
+    const updatedRepeating = result.current.repeatingActivities.find(
+      (a) => a.title === "Daily Standup",
+    );
+    expect(updatedRepeating).toBeDefined();
+    expect(updatedRepeating?.repeatConfig?.nextDueDate).toBe(tomorrowStr);
+
+    // Navigate to tomorrow and verify the activity appears there
+    await act(async () => {
+      result.current.navigateToDate(tomorrowStr);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.currentDate).toBe(tomorrowStr);
+    });
+
+    const tomorrowActivity = result.current.dayPlan.activities.find(
+      (a) => a.title === "Daily Standup",
+    );
+    expect(tomorrowActivity).toBeDefined();
+  }, 10000);
 });
