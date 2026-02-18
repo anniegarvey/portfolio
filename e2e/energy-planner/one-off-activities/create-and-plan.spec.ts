@@ -18,7 +18,7 @@ test.describe("One-off Activities - Create and Plan", () => {
     await createActivity(page, testActivity, makeAxeBuilder);
     await planActivityForToday(page, testActivity.name);
 
-    await expect(page.getByText("Selected Activities (1)")).toBeVisible();
+    await expect(page.getByText("Your Day Plan (1)")).toBeVisible();
     const selectedActivities = page.getByTestId("selected-activities");
     await expect(selectedActivities.getByText(testActivity.name)).toBeVisible();
     await verifyActivityEnergyBadges(selectedActivities, testActivity);

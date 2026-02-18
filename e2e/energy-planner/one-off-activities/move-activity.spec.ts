@@ -14,7 +14,7 @@ test.describe("One-off Activities - Move Activity", () => {
     await createActivity(page, testActivity);
     await planActivityForToday(page, testActivity.name);
 
-    await expect(page.getByText("Selected Activities (1)")).toBeVisible();
+    await expect(page.getByText("Your Day Plan (1)")).toBeVisible();
 
     // Verify it is in today's plan
     const selectedActivities = page.getByTestId("selected-activities");
@@ -28,7 +28,7 @@ test.describe("One-off Activities - Move Activity", () => {
     await page.getByText("Tomorrow", { exact: true }).click();
 
     // Activity count should decrease
-    await expect(page.getByText("Selected Activities (0)")).toBeVisible();
+    await expect(page.getByText("Your Day Plan (0)")).toBeVisible();
     await expect(
       page.getByText("No activities in this zone").first(),
     ).toBeVisible();
@@ -37,7 +37,7 @@ test.describe("One-off Activities - Move Activity", () => {
     await page.getByLabel("Next Day").click();
 
     // Verify activity is present on tomorrow
-    await expect(page.getByText("Selected Activities (1)")).toBeVisible();
+    await expect(page.getByText("Your Day Plan (1)")).toBeVisible();
     await expect(
       page.getByTestId("selected-activities").getByText(testActivity.name),
     ).toBeVisible();
@@ -50,6 +50,6 @@ test.describe("One-off Activities - Move Activity", () => {
 
     await page.getByText("Return to unplanned").click();
 
-    await expect(page.getByText("Selected Activities (0)")).toBeVisible();
+    await expect(page.getByText("Your Day Plan (0)")).toBeVisible();
   });
 });
