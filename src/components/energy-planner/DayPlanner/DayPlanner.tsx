@@ -322,7 +322,7 @@ const Container = styled.section`
   flex-direction: column;
   gap: 16px;
   margin-inline: -32px;
-  padding-inline: 32px;
+  padding-inline: 16px;
   border-radius: 0;
 
   @media (${QUERIES.PHABLET_UP}) {
