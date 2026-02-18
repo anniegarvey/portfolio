@@ -42,6 +42,8 @@ export function useEnergyPlannerState() {
     assignActivityToZone,
     deleteFromPlan,
     updatePlannedActivity,
+    moveActivityToDate,
+    skipActivity,
   } = useDayPlan(repeatingActivities, updateActivityBase);
   const {
     energyTypes,
@@ -228,6 +230,7 @@ export function useEnergyPlannerState() {
     markActivityCompleteOnDate,
     moveActivityToToday,
     moveActivityToUnplanned,
+    moveActivityToDate,
     calculateEnergyUsage,
     checkExceedsCapacity,
     uncompletedActivities,
@@ -246,5 +249,6 @@ export function useEnergyPlannerState() {
     removeZone,
     reorderZones,
     assignActivityToZone,
+    skipActivity,
   };
 }

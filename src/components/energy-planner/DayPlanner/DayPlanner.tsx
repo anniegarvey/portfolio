@@ -64,6 +64,7 @@ export function DayPlanner({
     updateZone,
     removeZone,
     reorderZones,
+    moveActivityToDate,
   } = useEnergyPlanner();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -259,6 +260,7 @@ export function DayPlanner({
                 onAddActivity={() => handleOpenModalForZone(zone.id)}
                 onEditActivity={onEditActivity}
                 onManageZones={handleManageZones}
+                onMove={moveActivityToDate}
                 onRemove={removeFromPlan}
                 onToggleCompletion={toggleActivityCompletion}
                 zone={zone}
@@ -278,6 +280,7 @@ export function DayPlanner({
                 isFutureDay={currentDate > getTodayDateString()}
                 isPastDay={!viewingToday}
                 onEdit={onEditActivity}
+                onMove={moveActivityToDate}
                 selected
               />
             ) : null}

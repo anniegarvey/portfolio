@@ -77,7 +77,7 @@ describe("PlannerActivityCard", () => {
     expect(mockOnAdd).toHaveBeenCalledWith("activity-1");
   });
 
-  it("shows remove button when selected", async () => {
+  it("shows move button when selected, allowing return to unplanned", async () => {
     const user = userEvent.setup();
     const mockOnEdit = vi.fn();
     const mockOnRemove = vi.fn();
@@ -91,10 +91,17 @@ describe("PlannerActivityCard", () => {
       { wrapper },
     );
 
-    const removeButton = screen.getByLabelText("Remove from day");
-    expect(removeButton).toBeInTheDocument();
+    const moveButton = screen.getByLabelText("Move activity");
+    expect(moveButton).toBeInTheDocument();
 
-    await user.click(removeButton);
+    await user.click(moveButton);
+
+    expect(screen.getByText("Tomorrow")).toBeInTheDocument();
+
+    const returnButton = screen.getByText("Return to unplanned");
+    expect(returnButton).toBeInTheDocument();
+
+    await user.click(returnButton);
     expect(mockOnRemove).toHaveBeenCalledWith("activity-1");
   });
 
@@ -152,7 +159,7 @@ describe("PlannerActivityCard", () => {
     expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
   });
 
-  it("does not show remove button when not selected", () => {
+  it("does not show move button when not selected", () => {
     const mockOnEdit = vi.fn();
     render(
       <PlannerActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
@@ -161,7 +168,7 @@ describe("PlannerActivityCard", () => {
       },
     );
 
-    expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Move activity")).not.toBeInTheDocument();
   });
 
   it("does not show completion toggle when not selected", () => {
@@ -222,7 +229,7 @@ describe("PlannerActivityCard", () => {
     );
 
     expect(screen.getByTitle("Mark as done")).toBeInTheDocument();
-    expect(screen.getByTitle("Remove from day")).toBeInTheDocument();
+    expect(screen.getByTitle("Move activity")).toBeInTheDocument();
   });
 
   it("toggles completion button when clicked on completed activity", async () => {
@@ -298,7 +305,7 @@ describe("PlannerActivityCard", () => {
       },
     );
 
-    expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Move activity")).toBeInTheDocument();
     expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
   });
 
@@ -361,9 +368,11 @@ describe("PlannerActivityCard", () => {
     expect(mockOnDelete).toHaveBeenCalledWith(mockActivity.id);
   });
 
-  it("does not show remove button for repeating activities", () => {
+  it("shows move button for repeating activities, but without return option", async () => {
+    const user = userEvent.setup();
     const mockOnEdit = vi.fn();
     const mockOnRemove = vi.fn();
+    const mockOnMove = vi.fn();
     const repeatingActivity: Activity = {
       ...mockActivity,
       repeatConfig: { frequency: 1, unit: "days" },
@@ -373,13 +382,20 @@ describe("PlannerActivityCard", () => {
       <PlannerActivityCard
         activity={repeatingActivity}
         onEdit={mockOnEdit}
+        onMove={mockOnMove}
         onRemove={mockOnRemove}
         selected
       />,
       { wrapper },
     );
 
-    expect(screen.queryByLabelText("Remove from day")).not.toBeInTheDocument();
+    const moveButton = screen.getByLabelText("Move activity");
+    expect(moveButton).toBeInTheDocument();
+
+    await user.click(moveButton);
+
+    expect(screen.getByText("Tomorrow")).toBeInTheDocument();
+    expect(screen.queryByText("Return to unplanned")).not.toBeInTheDocument();
   });
 
   it("does not show completion toggle when isFutureDay is true", () => {
@@ -397,5 +413,26 @@ describe("PlannerActivityCard", () => {
     );
 
     expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
+  });
+
+  it("calls onMove when Tomorrow is clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    const mockOnMove = vi.fn();
+    render(
+      <PlannerActivityCard
+        activity={mockActivity}
+        onEdit={mockOnEdit}
+        onMove={mockOnMove}
+        selected
+      />,
+      { wrapper },
+    );
+
+    await user.click(screen.getByLabelText("Move activity"));
+    await user.click(screen.getByText("Tomorrow"));
+
+    // Expect second argument to be a date string (just checking it's called with id)
+    expect(mockOnMove).toHaveBeenCalledWith("activity-1", expect.any(String));
   });
 });

@@ -496,6 +496,86 @@ export function useDayPlan(
     [currentDate, removeFromPlan],
   );
 
+  // Move a activity to a specific future date
+  const moveActivityToDate = useCallback(
+    async (activityId: string, targetDate: string) => {
+      // 1. Remove from current day plan (returns the removed activity)
+      // This handles state update for current view
+      const removedActivity = removeFromPlan(activityId);
+
+      if (!removedActivity) return;
+
+      // 2. Add to target date plan
+      const targetPlan =
+        (await fetchDayPlanForDate(targetDate)) ||
+        (await createEmptyDayPlan(targetDate));
+
+      // Check if already exists in target plan
+      // Note: Since we are generating a new ID, we check by name or just assume we add it?
+      // But let's check if the *exact same* ID exists just in case, though we are changing ID.
+      // Better to check if we already have this activity moved? No, user allows duplicates.
+
+      // Strip 'completed' status and repeating config when moving to future
+      // effectively converting it to a one-off instance
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const {
+        completed,
+        repeatConfig,
+        repeatingActivityId,
+        isProjected,
+        ...activityData
+      } = removedActivity;
+
+      // Create a clean new concrete activity
+      const activityToAdd = {
+        ...activityData,
+        id: uuidv4(),
+        completed: false,
+        isProjected: false,
+      } as PlannedActivity;
+
+      await saveDayPlanForDate(targetDate, {
+        ...targetPlan,
+        activities: [...targetPlan.activities, activityToAdd],
+      });
+    },
+    [removeFromPlan],
+  );
+
+  const skipActivity = useCallback(
+    (activityId: string) => {
+      const activity = dayPlan.activities.find((a) => a.id === activityId);
+      if (!activity) return;
+
+      const originalId =
+        activity.repeatingActivityId || getOriginalActivityId(activityId);
+      const repeatingActivity = repeatingActivitiesRef.current.find(
+        (ra) => ra.id === originalId,
+      );
+
+      if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
+        // Remove the current instance immediately so it doesn't persist until re-projection
+        deleteFromPlan(activityId);
+
+        const nextDate = calculateNextDueDate(
+          repeatingActivity.repeatConfig.nextDueDate,
+          repeatingActivity.repeatConfig,
+        );
+
+        if (nextDate) {
+          onUpdateActivityRef.current({
+            ...repeatingActivity,
+            repeatConfig: {
+              ...repeatingActivity.repeatConfig,
+              nextDueDate: nextDate,
+            },
+          });
+        }
+      }
+    },
+    [calculateNextDueDate, dayPlan.activities, deleteFromPlan],
+  );
+
   const reorderPlannedActivitiesWithIds = useCallback((itemIds: string[]) => {
     storeDayPlan((prev) => {
       const activityMap = new Map(
@@ -613,9 +693,11 @@ export function useDayPlan(
     markActivityCompleteOnDate,
     moveActivityToToday,
     moveActivityToUnplanned,
+    moveActivityToDate,
     reorderPlannedActivities: reorderPlannedActivitiesWithIds,
     assignActivityToZone,
     deleteFromPlan,
     updatePlannedActivity,
+    skipActivity,
   };
 }

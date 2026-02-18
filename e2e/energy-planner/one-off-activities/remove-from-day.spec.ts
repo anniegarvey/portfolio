@@ -21,8 +21,9 @@ test.describe("One-off Activities - Remove from Day", () => {
     // Remove activity from day
     const selectedActivities = page.getByTestId("selected-activities");
     await selectedActivities
-      .getByRole("button", { name: "Remove from day", exact: true })
+      .getByRole("button", { name: "Move activity", exact: true })
       .click();
+    await page.getByText("Return to unplanned").click();
 
     // Activity count should decrease
     await expect(page.getByText("Selected Activities (0)")).toBeVisible();

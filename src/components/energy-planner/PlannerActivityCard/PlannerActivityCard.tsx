@@ -4,15 +4,17 @@ import type {
   DraggableAttributes,
   DraggableSyntheticListeners,
 } from "@dnd-kit/core";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
+  ArrowRight,
   Check,
   CopyPlus,
   GripVertical,
   RotateCw,
   Trash2,
-  X,
 } from "lucide-react";
 import { css, styled } from "next-yak";
+import { getNextDay } from "../../../hooks/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import type {
   Activity,
@@ -29,6 +31,7 @@ interface PlannerActivityCardProps {
   onEdit: (activity: Activity) => void;
   onToggleCompletion?: (activityId: string) => void;
   onRemove?: (activityId: string) => void;
+  onMove?: (activityId: string, date: string) => void;
   onDelete?: (activityId: string) => void;
   onAdd?: (activityId: string) => void;
   dragHandleProps?: {
@@ -47,11 +50,24 @@ export function PlannerActivityCard({
   onEdit,
   onToggleCompletion,
   onRemove,
+  onMove,
   onDelete,
   onAdd,
   dragHandleProps,
 }: PlannerActivityCardProps) {
-  const { energyTypes } = useEnergyPlanner();
+  const {
+    energyTypes,
+    currentDate,
+    moveActivityToDate,
+    removeFromPlan,
+    skipActivity,
+  } = useEnergyPlanner();
+
+  const tomorrow = getNextDay(currentDate);
+  const dayAfter = getNextDay(tomorrow);
+
+  const handleMove = onMove || moveActivityToDate;
+  const handleRemove = onRemove || removeFromPlan;
 
   return (
     <Card
@@ -122,17 +138,50 @@ export function PlannerActivityCard({
           </Button>
         )}
 
-        {selected && onRemove && !isPastDay && !activity.repeatConfig && (
-          <Button
-            aria-label="Remove from day"
-            intent="danger"
-            onClick={() => onRemove(activity.id)}
-            size="icon"
-            title="Remove from day"
-            variant="ghost"
-          >
-            <X size={18} />
-          </Button>
+        {selected && !completed && !isPastDay && (
+          <DropdownMenuPrimitive.Root modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                aria-label="Move activity"
+                size="icon"
+                title="Move activity"
+                variant="ghost"
+              >
+                <ArrowRight size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuPortal>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => handleMove?.(activity.id, tomorrow)}
+                >
+                  Tomorrow
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleMove?.(activity.id, dayAfter)}
+                >
+                  Day after tomorrow
+                </DropdownMenuItem>
+                {activity.repeatConfig && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => skipActivity(activity.id)}>
+                      Skip this time
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {handleRemove && !activity.repeatConfig && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleRemove(activity.id)}>
+                      Return to unplanned
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenuPortal>
+          </DropdownMenuPrimitive.Root>
         )}
 
         {!selected && onAdd && !isPastDay && !activity.repeatConfig && (
@@ -293,4 +342,48 @@ const Badge = styled.span<{ $color: string }>`
 const Actions = styled.div`
   display: flex;
   gap: 4px;
+`;
+
+// Dropdown Styles
+const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
+const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
+
+const DropdownMenuContent = styled(DropdownMenuPrimitive.Content)`
+  min-width: 180px;
+  background-color: light-dark(white, var(--color-grey-800));
+  border-radius: 6px;
+  padding: 5px;
+  box-shadow: 0px 10px 38px -10px rgba(22, 23, 24, 0.35), 
+              0px 10px 20px -15px rgba(22, 23, 24, 0.2);
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  z-index: 50;
+  animation-duration: 400ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+`;
+
+const DropdownMenuItem = styled(DropdownMenuPrimitive.Item)`
+  font-size: 0.875rem;
+  line-height: 1;
+  color: light-dark(var(--color-grey-900), var(--color-grey-100));
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  position: relative;
+  user-select: none;
+  outline: none;
+  cursor: pointer;
+
+  &[data-highlighted] {
+    background-color: var(--color-primary-600);
+    color: white;
+  }
+`;
+
+const DropdownMenuSeparator = styled(DropdownMenuPrimitive.Separator)`
+  height: 1px;
+  background-color: var(--color-grey-200);
+  margin: 5px;
 `;

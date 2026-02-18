@@ -30,6 +30,7 @@ interface EnergyPlannerContextType {
   markActivityCompleteOnDate: (activityId: string, date: string) => void;
   moveActivityToToday: (activityId: string, fromDate: string) => void;
   moveActivityToUnplanned: (activityId: string, fromDate: string) => void;
+  moveActivityToDate: (activityId: string, targetDate: string) => void;
   calculateEnergyUsage: () => EnergyCost;
   checkExceedsCapacity: () => { exceeded: boolean; message?: string };
   uncompletedActivities: { activity: Activity; fromDate: string }[];
@@ -48,6 +49,7 @@ interface EnergyPlannerContextType {
   removeZone: (zoneId: string) => void;
   reorderZones: (zones: ZoneConfig[]) => void;
   assignActivityToZone: (activityId: string, zoneId: string) => void;
+  skipActivity: (activityId: string) => void;
 }
 
 const EnergyPlannerContext = createContext<

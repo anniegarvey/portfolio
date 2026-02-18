@@ -601,4 +601,73 @@ describe("useEnergyPlannerState", () => {
     );
     expect(tomorrowActivity).toBeDefined();
   }, 10000);
+
+  it("moves activity to a specific date", async () => {
+    const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Create and plan an activity
+    act(() => {
+      result.current.addActivity({
+        title: "To Be Moved",
+        description: "",
+        energyCost: { physical: 10, social: 10, executive: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+        completed: false,
+      });
+    });
+
+    const activityId = result.current.oneOffActivities[0].id;
+
+    await act(async () => {
+      await result.current.addToPlan(activityId);
+    });
+
+    // Verify it's in today's plan
+    expect(
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(true);
+
+    // Calculate tomorrow's date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+    // Move to tomorrow
+    await act(async () => {
+      await result.current.moveActivityToDate(activityId, tomorrowStr);
+    });
+
+    // Verify removed from today
+    expect(
+      result.current.dayPlan.activities.some((a) => a.id === activityId),
+    ).toBe(false);
+
+    // Navigate to tomorrow and verify it's there
+    await act(async () => {
+      result.current.navigateToDate(tomorrowStr);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.currentDate).toBe(tomorrowStr);
+    });
+
+    // Wait for the new date's plan to load and check for the activity
+    await waitFor(() => {
+      const movedActivity = result.current.dayPlan.activities.find(
+        (a) => a.title === "To Be Moved",
+      );
+      expect(movedActivity).toBeDefined();
+      // ID should be different
+      expect(movedActivity?.id).not.toBe(activityId);
+    });
+  });
 });

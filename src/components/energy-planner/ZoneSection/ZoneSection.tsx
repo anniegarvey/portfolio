@@ -24,6 +24,7 @@ interface ZoneSectionProps {
   onAddActivity: () => void;
   onEditActivity: (activity: Activity) => void;
   onRemove: (activityId: string) => void;
+  onMove: (activityId: string, date: string) => void;
   onToggleCompletion: (activityId: string) => void;
   onManageZones: () => void;
 }
@@ -36,6 +37,7 @@ export function ZoneSection({
   onAddActivity,
   onEditActivity,
   onRemove,
+  onMove,
   onToggleCompletion,
   onManageZones,
 }: ZoneSectionProps) {
@@ -81,6 +83,7 @@ export function ZoneSection({
                   isFutureDay={isFutureDay}
                   isPastDay={isPastDay}
                   onEdit={onEditActivity}
+                  onMove={onMove}
                   onRemove={onRemove}
                   onToggleCompletion={onToggleCompletion}
                   selected
