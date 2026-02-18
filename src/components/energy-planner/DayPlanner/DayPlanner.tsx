@@ -315,11 +315,19 @@ export function DayPlanner({
 const Container = styled.section`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-700));
   padding: 24px;
-  border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-inline: -32px;
+  padding-inline: 32px;
+  border-radius: 0;
+
+  @media (${QUERIES.PHABLET_UP}) {
+    margin-inline: 0;
+    padding-inline: 24px;
+    border-radius: 8px;
+  }
 `;
 
 const Header = styled.div`
