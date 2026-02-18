@@ -26,7 +26,7 @@ test.describe("Activity Conversion", () => {
     const activityCard = page
       .getByRole("article")
       .filter({ hasText: activityName });
-    await activityCard.getByRole("button", { name: "Edit activity" }).click();
+    await activityCard.getByText(activityName).click();
 
     // 3. Convert to repeating
     const editModal = page.getByRole("dialog", { name: "Edit Activity" });
@@ -76,7 +76,7 @@ test.describe("Activity Conversion", () => {
     const activityCard = page
       .getByRole("article")
       .filter({ hasText: activityName });
-    await activityCard.getByRole("button", { name: "Edit activity" }).click();
+    await activityCard.getByText(activityName).click();
 
     // 3. Convert to one-off
     const editModal = page.getByRole("dialog", { name: "Edit Activity" });

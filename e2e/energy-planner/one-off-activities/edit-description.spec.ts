@@ -22,9 +22,11 @@ test.describe("One-off Activities - Edit Description", () => {
     await expect(selectedActivities.getByText(testActivity.name)).toBeVisible();
 
     // Click edit on the planned activity
-    await selectedActivities
-      .getByRole("button", { name: "Edit activity", exact: true })
-      .click();
+    // Click edit on the planned activity (title is now clickable)
+    const card = selectedActivities
+      .getByRole("article")
+      .filter({ hasText: testActivity.name });
+    await card.getByText(testActivity.name).click();
 
     // Edit modal should open
     const editModal = page.getByRole("dialog", { name: "Edit Activity" });

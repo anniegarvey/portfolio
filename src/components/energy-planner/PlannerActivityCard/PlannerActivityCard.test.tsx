@@ -42,7 +42,7 @@ describe("PlannerActivityCard", () => {
     expect(screen.getByText("5 E")).toBeInTheDocument();
   });
 
-  it("calls onEdit when edit button is clicked", async () => {
+  it("calls onEdit when title is clicked", async () => {
     const user = userEvent.setup();
     const mockOnEdit = vi.fn();
     render(
@@ -52,7 +52,8 @@ describe("PlannerActivityCard", () => {
       },
     );
 
-    await user.click(screen.getByLabelText("Edit activity"));
+    // Click on the title text
+    await user.click(screen.getByText("Test Activity"));
     expect(mockOnEdit).toHaveBeenCalledWith(mockActivity);
   });
 
@@ -202,7 +203,6 @@ describe("PlannerActivityCard", () => {
       { wrapper },
     );
 
-    expect(screen.getByTitle("Edit activity")).toBeInTheDocument();
     expect(screen.getByTitle("Add to day")).toBeInTheDocument();
   });
 

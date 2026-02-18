@@ -29,7 +29,7 @@ test.describe("Repeating Activities - Management", () => {
     await expect(modal.getByText(repeatingActivity.name)).toBeVisible();
 
     // Click Edit
-    await modal.getByRole("button", { name: "Edit activity" }).click();
+    await modal.getByText(repeatingActivity.name).click();
     const editModal = page.getByRole("dialog", { name: "Edit Activity" });
     await expect(editModal).toBeVisible();
 

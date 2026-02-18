@@ -8,7 +8,6 @@ import {
   Check,
   CopyPlus,
   GripVertical,
-  Pencil,
   RotateCw,
   Trash2,
   X,
@@ -77,7 +76,9 @@ export function PlannerActivityCard({
               <RotateCw size={14} />
             </RepeatIconWrapper>
           )}
-          <ActivityTitle>{activity.title}</ActivityTitle>
+          <ActivityTitle onClick={() => onEdit(activity)}>
+            {activity.title}
+          </ActivityTitle>
         </ActivityTitleRow>
         {activity.description && (
           <ActivityDescription>{activity.description}</ActivityDescription>
@@ -107,16 +108,6 @@ export function PlannerActivityCard({
             <Check size={18} />
           </Button>
         )}
-
-        <Button
-          aria-label="Edit activity"
-          onClick={() => onEdit(activity)}
-          size="icon"
-          title="Edit activity"
-          variant="ghost"
-        >
-          <Pencil size={18} />
-        </Button>
 
         {onDelete && (
           <Button
@@ -242,8 +233,28 @@ const ActivityTitleRow = styled.div`
     margin-bottom: 0.25rem;
 `;
 
-const ActivityTitle = styled.div`
+const ActivityTitle = styled.button`
   font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+
+  &:hover {
+    color: var(--color-primary-600);
+    text-decoration: underline; 
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 `;
 
 const ActivityDescription = styled.p`
