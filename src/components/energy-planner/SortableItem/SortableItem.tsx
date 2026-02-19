@@ -56,5 +56,5 @@ export function SortableItem({ id, children, disabled }: SortableItemProps) {
 }
 
 const Item = styled.div`
-  touch-action: none;
+  /* touch-action: none; removed to allow scrolling on mobile when not dragging via handle */
 `;
