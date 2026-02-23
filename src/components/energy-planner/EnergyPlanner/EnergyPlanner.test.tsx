@@ -17,12 +17,21 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
   DayPlanner: ({
     onOpenCreateActivity,
     onEditActivity,
+    onOpenCapacityModal,
   }: {
     onOpenCreateActivity: () => void;
     onEditActivity: (activity: Activity) => void;
+    onOpenCapacityModal: () => void;
   }) => (
     <div data-testid="day-planner">
       Day Planner
+      <button
+        data-testid="open-capacity-btn"
+        onClick={onOpenCapacityModal}
+        type="button"
+      >
+        Open Capacity
+      </button>
       <button
         data-testid="new-activity-btn"
         onClick={onOpenCreateActivity}
@@ -53,8 +62,26 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/energy-planner/EnergyInput", () => ({
-  EnergyInput: () => <div data-testid="energy-input">Energy Input</div>,
+vi.mock("@/components/energy-planner/EnergyCapacityModal", () => ({
+  EnergyCapacityModal: ({
+    isOpen,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="energy-capacity-modal">
+        Capacity Modal
+        <button
+          data-testid="close-capacity-btn"
+          onClick={onClose}
+          type="button"
+        >
+          Close
+        </button>
+      </div>
+    ) : null,
 }));
 vi.mock("@/components/energy-planner/ActivityForm", () => ({
   ActivityForm: ({ onClose }: { onClose: () => void }) => (
@@ -117,7 +144,8 @@ describe("EnergyPlanner", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useEnergyPlanner as unknown as Mock).mockReturnValue({
-      currentDate: new Date(),
+      currentDate: new Date().toISOString().split("T")[0],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
       goToToday: mockGoToToday,
       goToNextDay: mockGoToNextDay,
       goToPreviousDay: mockGoToPreviousDay,
@@ -129,9 +157,41 @@ describe("EnergyPlanner", () => {
 
     expect(screen.getByText("Energy Planner")).toBeInTheDocument();
     expect(screen.getByTestId("import-export")).toBeInTheDocument();
-    expect(screen.getByTestId("date-selector")).toBeInTheDocument();
-    expect(screen.getByTestId("energy-input")).toBeInTheDocument();
     expect(screen.getByTestId("day-planner")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("energy-capacity-modal"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("auto-opens capacity modal if viewing today and no capacity set", () => {
+    sessionStorage.clear();
+    // Override standard mock to return no capacity
+    (useEnergyPlanner as unknown as Mock).mockReturnValue({
+      currentDate: new Date().toISOString().split("T")[0], // Today
+      dailyCapacity: { physical: 0, social: 0, executive: 0 },
+      goToToday: mockGoToToday,
+      goToNextDay: mockGoToNextDay,
+      goToPreviousDay: mockGoToPreviousDay,
+    });
+
+    render(<EnergyPlanner />);
+
+    // If it auto opens, modal should be in the document
+    expect(screen.getByTestId("energy-capacity-modal")).toBeInTheDocument();
+  });
+
+  test("opens and closes capacity modal manually", () => {
+    render(<EnergyPlanner />);
+
+    // Trigger open via DayPlanner mock
+    fireEvent.click(screen.getByTestId("open-capacity-btn"));
+    expect(screen.getByTestId("energy-capacity-modal")).toBeInTheDocument();
+
+    // Close it
+    fireEvent.click(screen.getByTestId("close-capacity-btn"));
+    expect(
+      screen.queryByTestId("energy-capacity-modal"),
+    ).not.toBeInTheDocument();
   });
 
   test("opens and closes activity modal", () => {

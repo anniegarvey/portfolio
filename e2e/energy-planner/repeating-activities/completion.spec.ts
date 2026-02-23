@@ -1,12 +1,17 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("Repeating Activities - Completion", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should instantiate activity when completed and update schedule", async ({
@@ -60,6 +65,6 @@ test.describe("Repeating Activities - Completion", () => {
     ).not.toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
   });
 });

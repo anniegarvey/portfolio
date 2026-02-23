@@ -1,12 +1,13 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
   fillActivityForm,
+  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("Repeating Activities - Default Zone", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should create a repeating activity with default zone and project it correctly", async ({

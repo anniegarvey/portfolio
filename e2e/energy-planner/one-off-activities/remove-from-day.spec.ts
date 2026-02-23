@@ -1,13 +1,14 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   planActivityForToday,
   testActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("One-off Activities - Remove from Day", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow removing an activity from the day plan", async ({

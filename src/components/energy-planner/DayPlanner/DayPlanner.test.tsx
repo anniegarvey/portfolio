@@ -132,8 +132,7 @@ describe("DayPlanner", () => {
     );
 
     await waitFor(() => {
-      const summary = screen.getByText(/Usage:/);
-      expect(summary.textContent).toMatch(/P:0\s*S:0\s*E:0/);
+      expect(screen.getByText("Energy Usage vs Capacity")).toBeInTheDocument();
     });
   });
 

@@ -33,8 +33,8 @@ describe("hooks/utils", () => {
       const capacity = getDefaultCapacity(energyTypes);
 
       expect(capacity).toEqual({
-        physical: 50,
-        social: 50,
+        physical: 0,
+        social: 0,
       });
     });
 
@@ -52,7 +52,7 @@ describe("hooks/utils", () => {
       const capacity = getDefaultCapacity(energyTypes);
 
       expect(capacity).toEqual({
-        custom: 50,
+        custom: 0,
       });
     });
   });
@@ -60,9 +60,9 @@ describe("hooks/utils", () => {
   describe("defaultCapacity", () => {
     it("is defined with default energy types", () => {
       expect(defaultCapacity).toBeDefined();
-      expect(defaultCapacity.physical).toBe(50);
-      expect(defaultCapacity.social).toBe(50);
-      expect(defaultCapacity.executive).toBe(50);
+      expect(defaultCapacity.physical).toBe(0);
+      expect(defaultCapacity.social).toBe(0);
+      expect(defaultCapacity.executive).toBe(0);
     });
   });
 

@@ -21,9 +21,9 @@ describe("useEnergyPlannerState", () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     expect(result.current.dailyCapacity).toEqual({
-      physical: 50,
-      social: 50,
-      executive: 50,
+      physical: 0,
+      social: 0,
+      executive: 0,
     });
   });
 
@@ -322,7 +322,7 @@ describe("useEnergyPlannerState", () => {
 
     const warning = result.current.checkExceedsCapacity();
     expect(warning.exceeded).toBe(true);
-    expect(warning.message).toContain("Physical");
+    expect(warning.message).toContain("Physical, Social, Executive");
     expect(warning.message).toContain("Social");
     expect(warning.message).toContain("Executive");
   });
@@ -484,7 +484,15 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Default capacity is 50,50,50.
+    // Establish a high capacity explicitly
+    act(() => {
+      result.current.setDailyCapacity({
+        physical: 50,
+        social: 50,
+        executive: 50,
+      });
+    });
+
     // Add a small activity
     act(() => {
       result.current.addActivity({

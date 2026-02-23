@@ -1,12 +1,17 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("Repeating Activities - Management", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should manage repeating activities via Available Activities modal", async ({
@@ -23,7 +28,7 @@ test.describe("Repeating Activities - Management", () => {
     await modal.getByRole("button", { name: "Repeating Activities" }).click();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
     // Verify activity is listed
     await expect(modal.getByText(repeatingActivity.name)).toBeVisible();

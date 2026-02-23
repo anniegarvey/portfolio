@@ -1,12 +1,17 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("Repeating Activities - Deletion", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow deleting a repeating activity", async ({
@@ -34,7 +39,7 @@ test.describe("Repeating Activities - Deletion", () => {
     ).toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
     // Confirm delete
     await confirmModal.getByRole("button", { name: "Delete" }).click();

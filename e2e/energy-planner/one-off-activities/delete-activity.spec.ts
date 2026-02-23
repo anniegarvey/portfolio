@@ -5,12 +5,13 @@ import {
 } from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   testActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("One-off Activities - Delete", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow deleting a one-off activity", async ({

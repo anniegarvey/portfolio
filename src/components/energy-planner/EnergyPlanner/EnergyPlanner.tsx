@@ -1,11 +1,10 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreateActivity } from "@/components/energy-planner/CreateActivity";
-import { DateSelector } from "@/components/energy-planner/DateSelector";
 import { DayPlanner } from "@/components/energy-planner/DayPlanner";
-import { EnergyInput } from "@/components/energy-planner/EnergyInput";
+import { EnergyCapacityModal } from "@/components/energy-planner/EnergyCapacityModal";
 import { ImportExport } from "@/components/energy-planner/ImportExport";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
@@ -13,9 +12,10 @@ import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
 
+const CAPACITY_MODAL_SHOWN_KEY = "energy-planner-capacity-modal-shown";
+
 export function EnergyPlanner() {
-  const { currentDate, goToPreviousDay, goToNextDay, goToToday } =
-    useEnergyPlanner();
+  const { currentDate, dailyCapacity, isLoading } = useEnergyPlanner();
 
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | undefined>(
@@ -26,7 +26,25 @@ export function EnergyPlanner() {
     { date: string; zoneId?: string } | undefined
   >(undefined);
 
+  const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
+
   const viewingToday = isToday(currentDate);
+
+  // Auto-open capacity modal only once per session if visiting today with no capacities set.
+  // We use sessionStorage so retains the "shown" flag while the user navigates around
+  // but resets if they close the tab/window.
+  useEffect(() => {
+    if (isLoading || !viewingToday) return;
+
+    const alreadyShown = sessionStorage.getItem(CAPACITY_MODAL_SHOWN_KEY);
+    if (alreadyShown) return;
+
+    const hasCapacities = Object.values(dailyCapacity).some((val) => val > 0);
+    if (!hasCapacities) {
+      setIsCapacityModalOpen(true);
+      sessionStorage.setItem(CAPACITY_MODAL_SHOWN_KEY, "1");
+    }
+  }, [viewingToday, dailyCapacity, isLoading]);
 
   const handleOpenCreate = (context?: { date: string; zoneId?: string }) => {
     setEditingActivity(undefined);
@@ -59,18 +77,10 @@ export function EnergyPlanner() {
       </p>
 
       <Layout>
-        <DateSelector
-          currentDate={currentDate}
-          onGoToToday={goToToday}
-          onNextDay={goToNextDay}
-          onPreviousDay={goToPreviousDay}
-          viewingToday={viewingToday}
-        />
-
-        <EnergyInput />
-
+        {/* DateSelector is now a property passed down or rendered inside DayPlanner per design */}
         <DayPlanner
           onEditActivity={handleEditActivity}
+          onOpenCapacityModal={() => setIsCapacityModalOpen(true)}
           onOpenCreateActivity={handleOpenCreate}
         />
 
@@ -79,6 +89,14 @@ export function EnergyPlanner() {
           editingActivity={editingActivity}
           isOpen={isActivityModalOpen}
           onClose={handleCloseActivityModal}
+        />
+
+        <EnergyCapacityModal
+          isOpen={isCapacityModalOpen}
+          onClose={() => {
+            sessionStorage.setItem(CAPACITY_MODAL_SHOWN_KEY, "1");
+            setIsCapacityModalOpen(false);
+          }}
         />
       </Layout>
     </MaxWidthWrapper>

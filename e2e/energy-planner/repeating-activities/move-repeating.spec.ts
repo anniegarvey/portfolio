@@ -1,12 +1,13 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("Repeating Activities - Moving", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should reschedule a repeating activity when moved to a future date", async ({

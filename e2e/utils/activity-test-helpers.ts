@@ -15,6 +15,37 @@ export interface ActivityData {
   };
 }
 
+export async function goToEnergyPlanner(
+  page: Page,
+  {
+    physical = "49",
+    social = "50",
+    executive = "51",
+  }: { physical?: string; social?: string; executive?: string },
+) {
+  await page.goto("/energy-planner");
+  const modal = page.getByRole("dialog", { name: "Daily Energy Capacity" });
+
+  // Wait a short moment for the modal to potentially appear
+  try {
+    await modal.waitFor({ state: "visible", timeout: 2000 });
+
+    const physicalSlider = page.getByRole("slider", { name: "Physical" });
+    await physicalSlider.fill(physical);
+
+    const socialSlider = page.getByRole("slider", { name: "Social" });
+    await socialSlider.fill(social);
+
+    const executiveSlider = page.getByRole("slider", { name: "Executive" });
+    await executiveSlider.fill(executive);
+
+    await page.getByRole("button", { name: "Save" }).click();
+    await modal.waitFor({ state: "hidden", timeout: 2000 });
+  } catch {
+    // Modal didn't appear, that's fine
+  }
+}
+
 export const testActivity: ActivityData = {
   name: "Morning Exercise",
   physical: "30",

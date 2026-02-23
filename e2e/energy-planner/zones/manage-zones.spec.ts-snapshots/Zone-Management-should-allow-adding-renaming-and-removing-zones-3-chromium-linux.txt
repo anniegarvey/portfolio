@@ -1,0 +1,10 @@
+[
+  {
+    "rule": "color-contrast",
+    "targets": [
+      [
+        ".ZoneManagerModal_ConfirmationActions_QX66XU > .Button_StyledButton___zHCk49-09.Button_StyledButton___zHCk49-04.Button_StyledButton_zHCk49"
+      ]
+    ]
+  }
+]

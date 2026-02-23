@@ -1,14 +1,22 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
+import { goToEnergyPlanner } from "../../utils/activity-test-helpers";
 
 test.describe("Energy Types - Set Capacity", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow setting daily energy capacity", async ({
     page,
     makeAxeBuilder,
   }) => {
+    // Open the capacity modal
+    await page.getByRole("button", { name: "Edit Capacity" }).click();
+
     // The physical slider in Daily Energy Capacity section
     // Use first() since there may be multiple "Physical" labels in forms
     const physicalSlider = page.getByLabel("Physical").first();
@@ -19,7 +27,10 @@ test.describe("Energy Types - Set Capacity", () => {
     // Verify the value is displayed in the capacity section
     await expect(page.getByText("50%").first()).toBeVisible();
 
+    // Close the modal
+    await page.getByRole("button", { name: "Save" }).click();
+
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
   });
 });

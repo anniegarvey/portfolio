@@ -30,13 +30,13 @@ pnpm test
 E2E tests (Playwright):
 ```bash
 # Run all tests headlessly
-npx playwright test
+pnpm playwright test
 
 # View last test report
-npx playwright show-report
+pnpm playwright show-report
 ```
 
-Useful flags: `--ui`, `--debug`, `--headed`
+Useful flags: `--ui`, `--debug`, `--headed`, `--update-snapshots`
 
 Mutation tests (Stryker, moved out of agent instructions for now because it kept crashing Antigravity):
 - After any source code or unit test changes, check unit test quality using mutation tests `pnpm stryker run`, passing the changed file paths in the `--mutate` option, eg `--mutate "src/**/*.js", "a.js"`. At least 80% of mutants should be killed.

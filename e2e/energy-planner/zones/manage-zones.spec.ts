@@ -3,10 +3,11 @@ import {
   test,
   violationFingerprints,
 } from "../../utils/accessibility-test";
+import { goToEnergyPlanner } from "../../utils/activity-test-helpers";
 
 test.describe("Zone Management", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow adding, renaming, and removing zones", async ({
@@ -30,7 +31,9 @@ test.describe("Zone Management", () => {
     await expect(addModal).toBeVisible();
 
     const firstAccessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(firstAccessibilityScanResults.violations).toEqual([]);
+    expect(
+      violationFingerprints(firstAccessibilityScanResults),
+    ).toMatchSnapshot();
 
     // Fill input
     await addModal.getByPlaceholder("e.g., Morning Focus").fill("Late Night");

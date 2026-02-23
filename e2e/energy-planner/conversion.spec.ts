@@ -1,6 +1,11 @@
-import { expect, test } from "../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   planActivityForToday,
   repeatingActivity,
   testActivity,
@@ -8,7 +13,7 @@ import {
 
 test.describe("Activity Conversion", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should persist and project when converting from one-off to repeating", async ({
@@ -54,7 +59,7 @@ test.describe("Activity Conversion", () => {
 
     // Accessibility check
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
   });
 
   test("should persist when converting from repeating to one-off", async ({

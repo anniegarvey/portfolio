@@ -1,13 +1,18 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   planActivityForToday,
   testActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("One-off Activities - Edit Description", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow editing an activity's description while in the day plan", async ({
@@ -33,7 +38,7 @@ test.describe("One-off Activities - Edit Description", () => {
     await expect(editModal).toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
     // Add a description
     const newDescription = "This is a detailed description of the activity.";

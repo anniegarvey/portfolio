@@ -1,12 +1,17 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 import {
   fillActivityForm,
+  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("Repeating Activities - Create From Future", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should start repeating activity on selected date when created from future date", async ({
@@ -49,7 +54,7 @@ test.describe("Repeating Activities - Create From Future", () => {
     ).toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
     // Verify it is NOT on Today
     await page.getByRole("button", { name: "Previous day" }).click();

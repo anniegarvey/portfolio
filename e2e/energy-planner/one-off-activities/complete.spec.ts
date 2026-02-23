@@ -1,13 +1,14 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   planActivityForToday,
   testActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("One-off Activities - Complete", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow marking an activity as complete", async ({

@@ -1,12 +1,13 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
   fillActivityForm,
+  goToEnergyPlanner,
   testActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("One-off Activities - Default Zone", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should use default zone when adding to plan", async ({ page }) => {

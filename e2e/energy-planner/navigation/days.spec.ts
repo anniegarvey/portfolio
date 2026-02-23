@@ -1,8 +1,9 @@
 import { expect, test } from "../../utils/accessibility-test";
+import { goToEnergyPlanner } from "../../utils/activity-test-helpers";
 
 test.describe("Navigation - Days", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow navigating between days", async ({

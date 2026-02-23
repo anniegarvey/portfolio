@@ -18,7 +18,7 @@ export function getDefaultCapacity(
   energyTypes: EnergyTypeConfig[],
 ): EnergyCost {
   return energyTypes.reduce((acc, type) => {
-    acc[type.id] = 50;
+    acc[type.id] = 0;
     return acc;
   }, {} as EnergyCost);
 }

@@ -134,6 +134,7 @@ const Title = styled.h2`
   font-weight: 600;
   margin: 0;
   line-height: 1.2;
+  color: light-dark(var(--color-grey-900), var(--color-grey-50));
 `;
 
 const CloseButton = styled.button`

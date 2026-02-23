@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
 import { getTodayDateString, isToday } from "@/hooks/utils";
@@ -28,6 +28,7 @@ import type {
 } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { Button } from "../common";
+import { DateSelector } from "../DateSelector";
 import { PlannerActivityCard } from "../PlannerActivityCard";
 import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
@@ -36,14 +37,19 @@ import { ZoneSection } from "../ZoneSection";
 interface DayPlannerProps {
   onEditActivity: (activity: Activity) => void;
   onOpenCreateActivity: (context?: { date: string; zoneId?: string }) => void;
+  onOpenCapacityModal?: () => void;
 }
 
 export function DayPlanner({
   onEditActivity,
   onOpenCreateActivity,
+  onOpenCapacityModal,
 }: DayPlannerProps) {
   const {
     currentDate,
+    goToToday: onGoToToday,
+    goToNextDay: onNextDay,
+    goToPreviousDay: onPreviousDay,
     dayPlan,
     addToPlan,
     removeFromPlan,
@@ -65,6 +71,7 @@ export function DayPlanner({
     removeZone,
     reorderZones,
     moveActivityToDate,
+    dailyCapacity,
   } = useEnergyPlanner();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -202,15 +209,68 @@ export function DayPlanner({
 
   return (
     <Container>
+      <DateSelectorRow>
+        <DateSelector
+          currentDate={currentDate}
+          onGoToToday={onGoToToday}
+          onNextDay={onNextDay}
+          onPreviousDay={onPreviousDay}
+          viewingToday={viewingToday}
+        />
+      </DateSelectorRow>
+
       <Header>
         <h2>Your Day Plan ({selectedActivities.length})</h2>
-        <Button
-          leftIcon={<Plus size={24} />}
-          onClick={() => setIsModalOpen(true)}
-        >
-          Manage Activities
-        </Button>
+        <ButtonGroup>
+          <Button
+            intent="secondary"
+            leftIcon={<Pencil size={14} />}
+            onClick={onOpenCapacityModal}
+            variant="outline"
+          >
+            Edit Capacity
+          </Button>
+          <Button
+            leftIcon={<Plus size={16} />}
+            onClick={() => setIsModalOpen(true)}
+          >
+            Manage Activities
+          </Button>
+        </ButtonGroup>
       </Header>
+
+      <UsageSection>
+        <UsageHeader>Energy Usage vs Capacity</UsageHeader>
+        <UsageGrid>
+          {energyTypes.map((type) => {
+            const used = usage[type.id] || 0;
+            const cap = dailyCapacity[type.id] || 0;
+            const isOver = used > cap && cap > 0;
+            // Both bars are expressed as % of 100 (max scale)
+            const usagePercent = Math.min(used, 100);
+            const capacityPercent = Math.min(cap, 100);
+
+            return (
+              <UsageRow key={type.id}>
+                <UsageLabel>{type.label}</UsageLabel>
+                <Track>
+                  {/* Capacity bar — subtler, behind usage */}
+                  <CapacityFill
+                    $color={type.color}
+                    $percent={capacityPercent}
+                  />
+                  {/* Usage bar — solid, on top */}
+                  <Fill $color={type.color} $percent={usagePercent} />
+                </Track>
+                <UsageText $isOver={isOver}>
+                  {used} / {cap}
+                </UsageText>
+              </UsageRow>
+            );
+          })}
+        </UsageGrid>
+      </UsageSection>
+
       {warning.exceeded && <Warning>{warning.message}</Warning>}
 
       {viewedUncompletedActivities.length > 0 && (
@@ -231,17 +291,6 @@ export function DayPlanner({
       )}
 
       <SelectedSection>
-        <ColumnHeader>
-          <UsageSummary>
-            Usage:{" "}
-            {energyTypes.map((type) => (
-              <span key={type.id}>
-                {type.label.charAt(0)}:{usage[type.id] || 0}{" "}
-              </span>
-            ))}
-          </UsageSummary>
-        </ColumnHeader>
-
         <DndContext
           collisionDetection={rectIntersection}
           modifiers={[restrictToVerticalAxis]}
@@ -316,10 +365,100 @@ export function DayPlanner({
   );
 }
 
+const DateSelectorRow = styled.div`
+  margin-bottom: 8px;
+`;
+
+const UsageSection = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+  isolation: isolate;
+`;
+
+const UsageHeader = styled.h3`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+`;
+
+const UsageGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const UsageRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const UsageLabel = styled.div`
+  width: 80px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: light-dark(var(--color-grey-600), var(--color-grey-300));
+`;
+
+const Track = styled.div`
+  flex: 1;
+  height: 14px;
+  background-color: light-dark(var(--color-grey-200), var(--color-grey-800));
+  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
+  border-radius: 7px;
+  position: relative;
+  overflow: hidden;
+`;
+
+const Fill = styled.div<{ $color: string; $percent: number }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: ${({ $percent }) => $percent}%;
+  background-color: ${({ $color }) => $color};
+  border-radius: 7px;
+  transition: width 0.3s ease;
+  z-index: 2;
+`;
+
+const CapacityFill = styled.div<{ $color: string; $percent: number }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: ${({ $percent }) => $percent}%;
+  /* Diagonal stripes clearly distinguish capacity ceiling from solid usage */
+  background-image: repeating-linear-gradient(
+    -45deg,
+    ${({ $color }) => $color} 0px,
+    ${({ $color }) => $color} 3px,
+    transparent 3px,
+    transparent 8px
+  );
+  opacity: 0.55;
+  border-radius: 7px;
+  transition: width 0.3s ease;
+  z-index: 1;
+`;
+
+const UsageText = styled.div<{ $isOver: boolean }>`
+  width: 60px;
+  text-align: right;
+  font-size: 0.8125rem;
+  font-weight: ${({ $isOver }) => ($isOver ? "700" : "500")};
+  color: ${({ $isOver }) =>
+    $isOver
+      ? "light-dark(var(--color-orange-700), var(--color-orange-400))"
+      : "light-dark(var(--color-grey-700), var(--color-grey-300))"};
+`;
+
 const Container = styled.section`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-700));
+  border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -331,6 +470,7 @@ const Container = styled.section`
     margin-inline: 0;
     padding-inline: 24px;
     border-radius: 8px;
+    border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   }
 `;
 
@@ -340,11 +480,22 @@ const Header = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
+  margin-bottom: 8px;
+
+  h2 {
+    color: light-dark(var(--color-grey-900), var(--color-grey-50));
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 `;
 
 const Warning = styled.div`
-  background-color: var(--color-orange-100);
-  color: var(--color-orange-900);
+  background-color: light-dark(var(--color-orange-50), oklch(25% 0.05 50));
+  color: light-dark(var(--color-orange-900), var(--color-orange-50));
   padding: 8px 16px;
   border-radius: 4px;
   font-weight: 500;
@@ -376,27 +527,6 @@ const SelectedSection = styled.section`
   display: flex;
   flex-direction: column;
   gap: 16px;
-`;
-
-const ColumnHeader = styled.div`
-  font-weight: 600;
-  color: light-dark(var(--color-grey-600), var(--color-grey-300));
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0 12px;
-
-  @media (${QUERIES.PHABLET_UP}) {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding-inline: 0.5rem;
-  }
-`;
-
-const UsageSummary = styled.span`
 `;
 
 const ZonesContainer = styled.div`

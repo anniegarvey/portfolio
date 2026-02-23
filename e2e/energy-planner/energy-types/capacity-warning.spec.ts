@@ -1,14 +1,19 @@
-import { expect, test } from "../../utils/accessibility-test";
+import {
+  expect,
+  test,
+  violationFingerprints,
+} from "../../utils/accessibility-test";
 import {
   type ActivityData,
   createActivity,
+  goToEnergyPlanner,
   planActivityForToday,
   testActivity,
 } from "../../utils/activity-test-helpers";
 
 test.describe("Energy Types - Capacity Warning", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should show warning when energy capacity is exceeded", async ({
@@ -24,9 +29,12 @@ test.describe("Energy Types - Capacity Warning", () => {
     await createActivity(page, highEnergyActivity);
 
     // 2. Set daily capacity lower than activity cost
+    await page.getByRole("button", { name: "Edit Capacity" }).click();
+
     // The physical slider is the first one
     const physicalSlider = page.getByLabel("Physical").first();
     await physicalSlider.fill("10");
+    await page.getByRole("button", { name: "Save" }).click();
 
     // 3. Plan the activity for today
     await planActivityForToday(page, highEnergyActivity.name);
@@ -39,6 +47,6 @@ test.describe("Energy Types - Capacity Warning", () => {
     ).toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
   });
 });

@@ -1,6 +1,7 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
   createActivity,
+  goToEnergyPlanner,
   planActivityForToday,
   testActivity,
   verifyActivityEnergyBadges,
@@ -8,7 +9,7 @@ import {
 
 test.describe("One-off Activities - Create and Plan", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/energy-planner");
+    await goToEnergyPlanner(page, {});
   });
 
   test("should allow creating an activity and planning it for today", async ({
