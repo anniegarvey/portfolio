@@ -94,7 +94,9 @@ export function PlannerActivityCard({
           </ActivityTitle>
         </ActivityTitleRow>
         {activity.description && (
-          <ActivityDescription>{activity.description}</ActivityDescription>
+          <ActivityDescription onClick={() => onEdit(activity)}>
+            {activity.description}
+          </ActivityDescription>
         )}
         <EnergyBadges>
           {energyTypes.map((type) => {
@@ -242,9 +244,9 @@ const Card = styled.article<{
   ${({ $isProjected }) =>
     $isProjected &&
     css`
-        background-color: light-dark(var(--color-blue-50), var(--color-blue-950));
-        border-style: dashed;
-        border-color: var(--color-blue-300);
+      background-color: light-dark(var(--color-blue-50), var(--color-blue-950));
+      border-style: dashed;
+      border-color: var(--color-blue-300);
     `}
 
   ${({ $selected }) =>
@@ -280,10 +282,10 @@ const ActivityContent = styled.div<{ $completed?: boolean }>`
 `;
 
 const ActivityTitleRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0.25rem;
 `;
 
 const ActivityTitle = styled.button`
@@ -299,7 +301,6 @@ const ActivityTitle = styled.button`
   color: inherit;
 
   &:hover {
-    color: var(--color-primary-600);
     text-decoration: underline; 
   }
 
@@ -310,16 +311,30 @@ const ActivityTitle = styled.button`
   }
 `;
 
-const ActivityDescription = styled.p`
-    font-size: 0.8rem;
-    color: var(--color-grey-500);
-    margin-bottom: 0.5rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.4;
+const ActivityDescription = styled.button`
+  font-size: 0.8rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: light-dark(var(--color-grey-500), var(--color-grey-400));
+  margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+
+  &:hover {
+    text-decoration: underline; 
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 `;
 
 const RepeatBadge = styled.div`
