@@ -5,6 +5,7 @@ import type {
   DraggableSyntheticListeners,
 } from "@dnd-kit/core";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
   ArrowRight,
   Check,
@@ -108,7 +109,7 @@ export function PlannerActivityCard({
           {activity.repeatConfig && selected && (
             <RepeatBadge title="Repeating Activity">
               <RotateCw size={12} />
-              <span>Repeat</span>
+              <VisuallyHidden>Repeat</VisuallyHidden>
             </RepeatBadge>
           )}
         </EnergyBadges>
@@ -327,7 +328,7 @@ const RepeatBadge = styled.div`
     gap: 4px;
     font-size: 0.7rem;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 6px;
     border-radius: 999px;
     background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
     color: light-dark(var(--color-grey-700), var(--color-grey-200));
@@ -335,14 +336,6 @@ const RepeatBadge = styled.div`
 
     svg {
         flex-shrink: 0;
-    }
-
-    /* Hide text on very small screens if needed, but for now keep it */
-    @media (max-width: 340px) {
-        span {
-            display: none;
-        }
-        padding: 4px;
     }
 `;
 
