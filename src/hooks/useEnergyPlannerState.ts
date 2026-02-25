@@ -95,9 +95,11 @@ export function useEnergyPlannerState() {
 
   // Add activity to day plan - finds activity and coordinates state
   const addToPlan = useCallback(
-    (activityId: string, zoneId?: string) => {
-      // Find activity in one-off activities
-      const activity = oneOffActivities.find((a) => a.id === activityId);
+    (activityId: string, zoneId?: string, knownActivity?: Activity) => {
+      // Prefer the passed-in activity object to avoid stale-closure issues
+      // when addToPlan is called immediately after addActivity (before re-render).
+      const activity =
+        knownActivity ?? oneOffActivities.find((a) => a.id === activityId);
       if (!activity) {
         // Not a one-off activity - might be a repeating activity (handled elsewhere)
         return;

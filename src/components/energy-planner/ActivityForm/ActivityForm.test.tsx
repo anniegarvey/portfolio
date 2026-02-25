@@ -340,15 +340,22 @@ describe("ActivityForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
 
-    // Verify storage includes the defaultZoneId from context
+    // The activity is immediately planned when there is a zone context,
+    // so it ends up in the day plan rather than the available activities pool.
+    const { storeDayPlan } = await import(
+      "../../../lib/energy-planner/storage"
+    );
     await waitFor(() => {
-      expect(mockstoreOneOffActivities).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            title: "Contextual Activity",
-            defaultZoneId: "morning",
-          }),
-        ]),
+      expect(storeDayPlan).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          activities: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Contextual Activity",
+              zoneId: "morning",
+            }),
+          ]),
+        }),
       );
     });
   });

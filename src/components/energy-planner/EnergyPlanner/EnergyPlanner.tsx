@@ -25,6 +25,9 @@ export function EnergyPlanner() {
   const [creationContext, setCreationContext] = useState<
     { date: string; zoneId?: string } | undefined
   >(undefined);
+  const [onActivityCreated, setOnActivityCreated] = useState<
+    (() => void) | undefined
+  >(undefined);
 
   const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
 
@@ -46,9 +49,14 @@ export function EnergyPlanner() {
     }
   }, [viewingToday, dailyCapacity, isLoading]);
 
-  const handleOpenCreate = (context?: { date: string; zoneId?: string }) => {
+  const handleOpenCreate = (
+    context?: { date: string; zoneId?: string },
+    onCreated?: () => void,
+  ) => {
     setEditingActivity(undefined);
     setCreationContext(context);
+    // Use a function wrapper to avoid useState treating it as an updater fn
+    setOnActivityCreated(onCreated ? () => onCreated : undefined);
     setIsActivityModalOpen(true);
   };
 
@@ -62,6 +70,7 @@ export function EnergyPlanner() {
     setIsActivityModalOpen(false);
     setEditingActivity(undefined);
     setCreationContext(undefined);
+    setOnActivityCreated(undefined);
   };
 
   return (
@@ -89,6 +98,7 @@ export function EnergyPlanner() {
           editingActivity={editingActivity}
           isOpen={isActivityModalOpen}
           onClose={handleCloseActivityModal}
+          onCreated={onActivityCreated}
         />
 
         <EnergyCapacityModal

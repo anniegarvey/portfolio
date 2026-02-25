@@ -15,12 +15,15 @@ interface UseActivityFormProps {
     zoneId?: string; // The zone we clicked "Add Activity" from
   };
   onClose?: () => void;
+  // Called after a new one-off activity is successfully created with context
+  onCreated?: () => void;
 }
 
 export function useActivityForm({
   initialData,
   initialContext,
   onClose,
+  onCreated,
 }: UseActivityFormProps) {
   const { addActivity, updateActivity, addToPlan, isLoading, zones } =
     useEnergyPlanner();
@@ -134,7 +137,9 @@ export function useActivityForm({
       addToPlan(
         newActivity.id,
         initialContext?.zoneId || newActivity.defaultZoneId,
+        newActivity,
       );
+      onCreated?.();
     }
   };
 

@@ -12,6 +12,8 @@ interface CreateActivityProps {
   editingActivity?: Activity;
   // Context for creating a new activity (e.g. pre-filled date/zone)
   creationContext?: { date: string; zoneId?: string };
+  // Called after a new one-off activity is successfully created with context
+  onCreated?: () => void;
 }
 
 export function CreateActivity({
@@ -19,6 +21,7 @@ export function CreateActivity({
   onClose,
   editingActivity,
   creationContext,
+  onCreated,
 }: CreateActivityProps) {
   const focusRef = useRef<HTMLInputElement>(null);
 
@@ -39,6 +42,7 @@ export function CreateActivity({
         initialContext={creationContext}
         initialData={editingActivity}
         onClose={onClose}
+        onCreated={onCreated}
       />
     </Modal>
   );

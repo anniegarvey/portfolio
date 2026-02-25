@@ -24,7 +24,11 @@ interface EnergyPlannerContextType {
   goToPreviousDay: () => void;
   goToNextDay: () => void;
   goToToday: () => void;
-  addToPlan: (activityId: string, zoneId?: string) => void;
+  addToPlan: (
+    activityId: string,
+    zoneId?: string,
+    knownActivity?: Activity,
+  ) => void;
   removeFromPlan: (activityId: string) => void;
   toggleActivityCompletion: (activityId: string) => void;
   markActivityCompleteOnDate: (activityId: string, date: string) => void;

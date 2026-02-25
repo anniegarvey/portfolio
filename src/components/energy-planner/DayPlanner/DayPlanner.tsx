@@ -36,7 +36,10 @@ import { ZoneSection } from "../ZoneSection";
 
 interface DayPlannerProps {
   onEditActivity: (activity: Activity) => void;
-  onOpenCreateActivity: (context?: { date: string; zoneId?: string }) => void;
+  onOpenCreateActivity: (
+    context?: { date: string; zoneId?: string },
+    onCreated?: () => void,
+  ) => void;
   onOpenCapacityModal?: () => void;
 }
 
@@ -200,11 +203,20 @@ export function DayPlanner({
   };
 
   const handleCreateActivity = () => {
-    // Pass current context (date and active zone)
-    onOpenCreateActivity({
-      date: currentDate,
-      zoneId: activeZoneId || undefined,
-    });
+    // Pass current context (date and active zone). If creating with a zone
+    // context, also close this modal so the user immediately sees the new activity.
+    const closeThisModal =
+      activeZoneId != null
+        ? () => {
+            setIsModalOpen(false);
+            setActiveZoneId(null);
+          }
+        : undefined;
+
+    onOpenCreateActivity(
+      { date: currentDate, zoneId: activeZoneId || undefined },
+      closeThisModal,
+    );
   };
 
   return (

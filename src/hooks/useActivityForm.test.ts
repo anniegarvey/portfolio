@@ -250,4 +250,84 @@ describe("useActivityForm", () => {
     expect(result.current.formId).toBeDefined();
     expect(typeof result.current.formId).toBe("string");
   });
+
+  it("calls onCreated after planning a one-off activity with date and zone context", () => {
+    const mockOnClose = vi.fn();
+    const mockOnCreated = vi.fn();
+    const { result } = renderHook(() =>
+      useActivityForm({
+        initialContext: { date: "2024-01-01", zoneId: "morning" },
+        onClose: mockOnClose,
+        onCreated: mockOnCreated,
+      }),
+    );
+
+    act(() => {
+      result.current.setTitle("Planned Activity");
+    });
+
+    act(() => {
+      result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as unknown as React.FormEvent);
+    });
+
+    expect(mockAddToPlan).toHaveBeenCalledWith(
+      "new-activity-id",
+      "morning",
+      expect.objectContaining({ id: "new-activity-id" }),
+    );
+    expect(mockOnCreated).toHaveBeenCalledTimes(1);
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it("does not call onCreated when creating a repeating activity", () => {
+    const mockOnCreated = vi.fn();
+    const { result } = renderHook(() =>
+      useActivityForm({
+        initialContext: { date: "2024-01-01", zoneId: "morning" },
+        onCreated: mockOnCreated,
+      }),
+    );
+
+    act(() => {
+      result.current.setTitle("Repeating Activity");
+      result.current.setIsRepeating(true);
+    });
+
+    act(() => {
+      result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as unknown as React.FormEvent);
+    });
+
+    expect(mockAddActivity).toHaveBeenCalled();
+    expect(mockAddToPlan).not.toHaveBeenCalled();
+    expect(mockOnCreated).not.toHaveBeenCalled();
+  });
+
+  it("does not call onCreated when creating a one-off activity without zone context", () => {
+    const mockOnCreated = vi.fn();
+    const { result } = renderHook(() =>
+      useActivityForm({
+        // Date only — no zoneId, so activity should not be auto-planned
+        initialContext: { date: "2024-01-01" },
+        onCreated: mockOnCreated,
+      }),
+    );
+
+    act(() => {
+      result.current.setTitle("Unplanned Activity");
+    });
+
+    act(() => {
+      result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as unknown as React.FormEvent);
+    });
+
+    expect(mockAddActivity).toHaveBeenCalled();
+    expect(mockAddToPlan).not.toHaveBeenCalled();
+    expect(mockOnCreated).not.toHaveBeenCalled();
+  });
 });

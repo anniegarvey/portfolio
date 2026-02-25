@@ -22,6 +22,8 @@ interface ActivityFormProps {
     zoneId?: string;
   };
   onClose?: () => void;
+  // Called after a new one-off activity is successfully created with context
+  onCreated?: () => void;
   focusRef?: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -29,6 +31,7 @@ export function ActivityForm({
   initialData,
   initialContext,
   onClose,
+  onCreated,
   focusRef,
 }: ActivityFormProps) {
   const {
@@ -54,7 +57,7 @@ export function ActivityForm({
     zones,
     defaultZoneId,
     setDefaultZoneId,
-  } = useActivityForm({ initialData, initialContext, onClose });
+  } = useActivityForm({ initialData, initialContext, onClose, onCreated });
 
   return (
     <Form onSubmit={handleSubmit}>
