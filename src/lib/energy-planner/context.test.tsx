@@ -4,15 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as storageMock from "@/lib/energy-planner/storage";
 import { EnergyPlannerProvider, useEnergyPlanner } from "./context";
 
-// Manual mock
 vi.mock("@/lib/energy-planner/storage");
 
-// Wrapper for the provider
 const wrapper = ({ children }: { children: ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
 );
 
-// Main suite
 describe("EnergyPlannerContext", () => {
   beforeEach(async () => {
     // biome-ignore lint/suspicious/noExplicitAny: wrapper for mock reset
@@ -22,7 +19,6 @@ describe("EnergyPlannerContext", () => {
 
   describe("Activity Management", () => {
     it("throws error when used outside provider", () => {
-      // Suppress console.error for this test as React logs the error
       const consoleSpy = vi
         .spyOn(console, "error")
         .mockImplementation(() => {});
@@ -47,7 +43,6 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
-          completed: false,
         });
       });
 
@@ -71,15 +66,13 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
-          completed: false,
         });
       });
 
       const activity = result.current.oneOffActivities[0];
 
-      // Add to plan first
       await waitFor(async () => {
-        const stored = await storageMock.fetchOneOffActivities();
+        const stored = await storageMock.fetchActivities();
         expect(stored).toHaveLength(1);
       });
 
@@ -88,18 +81,20 @@ describe("EnergyPlannerContext", () => {
       });
 
       expect(
-        result.current.dayPlan.activities.some((a) => a.id === activity.id),
+        result.current.dayPlan.plannedInstances.some(
+          (i) => i.sourceActivityId === activity.id,
+        ),
       ).toBe(true);
 
-      // Remove activity
       await act(async () => {
-        // Remove activity
         await result.current.removeActivity(activity.id);
       });
 
       expect(result.current.oneOffActivities).toHaveLength(0);
       expect(
-        result.current.dayPlan.activities.some((a) => a.id === activity.id),
+        result.current.dayPlan.plannedInstances.some(
+          (i) => i.sourceActivityId === activity.id,
+        ),
       ).toBe(false);
     }, 5000);
   });
@@ -112,7 +107,6 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Add activity
       act(() => {
         result.current.addActivity({
           title: "Heavy Activity",
@@ -123,15 +117,13 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
-          completed: false,
         });
       });
 
       const activity = result.current.oneOffActivities[0];
 
-      // Add to plan
       await waitFor(async () => {
-        const stored = await storageMock.fetchOneOffActivities();
+        const stored = await storageMock.fetchActivities();
         expect(stored).toHaveLength(1);
       });
 
@@ -140,12 +132,11 @@ describe("EnergyPlannerContext", () => {
       });
 
       expect(
-        result.current.dayPlan.activities.some((a) => a.id === activity.id),
+        result.current.dayPlan.plannedInstances.some(
+          (i) => i.sourceActivityId === activity.id,
+        ),
       ).toBe(true);
 
-      // Note: calculateEnergyUsage usually takes (dayPlan?, activities?) or reads from state.
-      // Based on hook impl, it likely reads current state if no args, OR expects args.
-      // Let's assume it reads current state or we pass the activities.
       const usage = result.current.calculateEnergyUsage();
       expect(usage.physical).toBe(50);
     }, 5000);
@@ -159,7 +150,6 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Set capacity low
       act(() => {
         result.current.setDailyCapacity({
           physical: 20,
@@ -168,7 +158,6 @@ describe("EnergyPlannerContext", () => {
         });
       });
 
-      // Add heavy activity
       act(() => {
         result.current.addActivity({
           title: "Too Heavy",
@@ -179,14 +168,13 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
-          completed: false,
         });
       });
 
       const activity = result.current.oneOffActivities[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.fetchOneOffActivities();
+        const stored = await storageMock.fetchActivities();
         expect(stored).toHaveLength(1);
       });
 
@@ -194,8 +182,6 @@ describe("EnergyPlannerContext", () => {
         await result.current.addToPlan(activity.id);
       });
 
-      // Recalculate usage and check capacity
-      // calculateEnergyUsage and checkExceedsCapacity use internal state
       const check = result.current.checkExceedsCapacity();
 
       expect(check.exceeded).toBe(true);
@@ -225,14 +211,13 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 1,
             isRestorative: false,
           },
-          completed: false,
         });
       });
 
       const activity = result.current.oneOffActivities[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.fetchOneOffActivities();
+        const stored = await storageMock.fetchActivities();
         expect(stored).toHaveLength(1);
       });
 
@@ -240,7 +225,6 @@ describe("EnergyPlannerContext", () => {
         await result.current.addToPlan(activity.id);
       });
 
-      // calculateEnergyUsage and checkExceedsCapacity use internal state
       const check = result.current.checkExceedsCapacity();
 
       expect(check.exceeded).toBe(false);
@@ -252,6 +236,7 @@ describe("EnergyPlannerContext", () => {
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
+
       act(() => {
         result.current.addActivity({
           title: "Activity",
@@ -261,23 +246,22 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 1,
             isRestorative: false,
           },
-          completed: false,
         });
       });
       const activity = result.current.oneOffActivities[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.fetchOneOffActivities();
+        const stored = await storageMock.fetchActivities();
         expect(stored).toHaveLength(1);
       });
 
       await act(async () => {
         await result.current.addToPlan(activity.id);
-        await result.current.addToPlan(activity.id); // Add twice
+        await result.current.addToPlan(activity.id);
       });
 
-      const count = result.current.dayPlan.activities.filter(
-        (a) => a.id === activity.id,
+      const count = result.current.dayPlan.plannedInstances.filter(
+        (i) => i.sourceActivityId === activity.id,
       ).length;
       expect(count).toBe(1);
     }, 5000);
@@ -300,14 +284,13 @@ describe("EnergyPlannerContext", () => {
             terminationDifficulty: 5,
             isRestorative: false,
           },
-          completed: false,
         });
       });
 
       const activity = result.current.oneOffActivities[0];
 
       await waitFor(async () => {
-        const stored = await storageMock.fetchOneOffActivities();
+        const stored = await storageMock.fetchActivities();
         expect(stored).toHaveLength(1);
       });
 
@@ -315,22 +298,25 @@ describe("EnergyPlannerContext", () => {
         await result.current.addToPlan(activity.id);
       });
 
-      // Complete
+      const instanceId = result.current.dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === activity.id,
+      )?.id;
+      if (!instanceId) throw new Error("Instance not found");
+
       await act(async () => {
-        await result.current.toggleActivityCompletion(activity.id);
+        await result.current.toggleActivityCompletion(instanceId);
       });
 
       expect(
-        result.current.dayPlan.activities.find((a) => a.id === activity.id)
+        result.current.dayPlan.plannedInstances.find((i) => i.id === instanceId)
           ?.completed,
       ).toBe(true);
 
-      // Un-complete
       await act(async () => {
-        await result.current.toggleActivityCompletion(activity.id);
+        await result.current.toggleActivityCompletion(instanceId);
       });
       expect(
-        result.current.dayPlan.activities.find((a) => a.id === activity.id)
+        result.current.dayPlan.plannedInstances.find((i) => i.id === instanceId)
           ?.completed,
       ).toBe(false);
     }, 5000);

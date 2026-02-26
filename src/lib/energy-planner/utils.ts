@@ -1,6 +1,6 @@
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import type { DayPlan, EnergyCost } from "./schema";
+import type { EnergyCost, ResolvedActivity } from "./schema";
 
 /**
  * Calculates the new order of items after a drag and drop operation.
@@ -31,11 +31,11 @@ export function getReorderedItems<T>(
   return null;
 }
 
-export const calculateEnergyUsage = (dayPlan: DayPlan): EnergyCost => {
-  const selectedActivities = dayPlan.activities ?? [];
-  return selectedActivities.reduce(
-    (acc, activity) => {
-      // Dynamically sum all energy type properties
+export const calculateEnergyUsage = (
+  resolvedActivities: ResolvedActivity[],
+): EnergyCost => {
+  return resolvedActivities.reduce(
+    (acc, { activity }) => {
       for (const key in activity.energyCost) {
         acc[key] = (acc[key] || 0) + activity.energyCost[key];
       }

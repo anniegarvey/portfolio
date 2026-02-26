@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
 import {
   clearAll,
+  storeActivities,
   storeDayPlan,
-  storeOneOffActivities,
 } from "../../../lib/energy-planner/storage";
 import { DayPlanner } from ".";
 
@@ -251,10 +251,12 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffActivities([activity1, activity2]);
+    await storeActivities([activity1, activity2]);
     await storeDayPlan(today, {
       date: today,
-      activities: [{ ...activity2, completed: true }],
+      plannedInstances: [
+        { id: "inst-a2", sourceActivityId: "a2", completed: true },
+      ],
       dailyCapacity: { physical: 5, social: 5, executive: 5 },
     });
 
@@ -304,10 +306,13 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffActivities([activity1, activity2]);
+    await storeActivities([activity1, activity2]);
     await storeDayPlan(today, {
       date: today,
-      activities: [activity1, activity2],
+      plannedInstances: [
+        { id: "inst-a1", sourceActivityId: "a1", completed: false },
+        { id: "inst-a2", sourceActivityId: "a2", completed: false },
+      ],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
@@ -345,7 +350,7 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffActivities([activity1]);
+    await storeActivities([activity1]);
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
@@ -397,7 +402,7 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffActivities([activity1]);
+    await storeActivities([activity1]);
 
     // Set up yesterday's plan with uncompleted activity
     const yesterday = new Date();
@@ -406,7 +411,9 @@ describe("DayPlanner with populated data", () => {
 
     await storeDayPlan(yesterdayStr, {
       date: yesterdayStr,
-      activities: [activity1],
+      plannedInstances: [
+        { id: "inst-a1", sourceActivityId: "a1", completed: false },
+      ],
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
     });
 
@@ -489,7 +496,7 @@ describe("DayPlanner with populated data", () => {
       completed: false,
     };
 
-    await storeOneOffActivities([activity1, activity2]);
+    await storeActivities([activity1, activity2]);
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
@@ -531,7 +538,6 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
     };
     const activity2 = {
       id: "a2",
@@ -543,12 +549,15 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
     };
 
+    await storeActivities([activity1, activity2]);
     await storeDayPlan(today, {
       date: today,
-      activities: [activity1, activity2],
+      plannedInstances: [
+        { id: "inst-a1", sourceActivityId: "a1", completed: false },
+        { id: "inst-a2", sourceActivityId: "a2", completed: false },
+      ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -591,7 +600,6 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
       zoneId: "morning",
     };
     const activity2 = {
@@ -604,13 +612,26 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
       zoneId: "afternoon",
     };
+    await storeActivities([activity1, activity2]);
 
     await storeDayPlan(today, {
       date: today,
-      activities: [activity1, activity2],
+      plannedInstances: [
+        {
+          id: "inst-a1",
+          sourceActivityId: "a1",
+          completed: false,
+          zoneId: "morning",
+        },
+        {
+          id: "inst-a2",
+          sourceActivityId: "a2",
+          completed: false,
+          zoneId: "afternoon",
+        },
+      ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -629,10 +650,10 @@ describe("DayPlanner with populated data", () => {
       expect(screen.getByText("Activity 2")).toBeInTheDocument();
     });
 
-    // Simulate dragging A1 (morning) to A2 (afternoon)
+    // Simulate dragging inst-a1 (morning) to inst-a2 (afternoon)
     const dragBtn = screen.getByTestId("trigger-drag-default");
-    dragBtn.setAttribute("data-active", "a1");
-    dragBtn.setAttribute("data-over", "a2");
+    dragBtn.setAttribute("data-active", "inst-a1");
+    dragBtn.setAttribute("data-over", "inst-a2");
 
     await user.click(dragBtn);
 
@@ -642,7 +663,9 @@ describe("DayPlanner with populated data", () => {
         "../../../lib/energy-planner/storage"
       );
       const plan = await fetchDayPlan(today);
-      const a1 = plan?.activities?.find((a) => a.id === "a1");
+      const a1 = plan?.plannedInstances?.find(
+        (i) => i.sourceActivityId === "a1",
+      );
       expect(a1?.zoneId).toBe("afternoon");
     });
   });
@@ -665,7 +688,7 @@ describe("DayPlanner with populated data", () => {
       createdAt: new Date(),
       completed: false,
     };
-    await storeOneOffActivities([activity1]);
+    await storeActivities([activity1]);
 
     render(
       <EnergyPlannerProvider>
@@ -704,7 +727,9 @@ describe("DayPlanner with populated data", () => {
         "../../../lib/energy-planner/storage"
       );
       const plan = await fetchDayPlan(today);
-      const a1 = plan?.activities?.find((a) => a.id === "a1");
+      const a1 = plan?.plannedInstances?.find(
+        (i) => i.sourceActivityId === "a1",
+      );
       expect(a1?.zoneId).toBe("afternoon");
     });
   });
@@ -724,13 +749,19 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
-      zoneId: "morning",
     };
 
+    await storeActivities([activity1]);
     await storeDayPlan(today, {
       date: today,
-      activities: [activity1],
+      plannedInstances: [
+        {
+          id: "inst-a1",
+          sourceActivityId: "a1",
+          completed: false,
+          zoneId: "morning",
+        },
+      ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -748,9 +779,9 @@ describe("DayPlanner with populated data", () => {
       expect(screen.getByText("Activity 1")).toBeInTheDocument();
     });
 
-    // Simulate dragging A1 (morning) to Afternoon Zone container
+    // Simulate dragging inst-a1 (morning) to Afternoon Zone container
     const dragBtn = screen.getByTestId("trigger-drag-default");
-    dragBtn.setAttribute("data-active", "a1");
+    dragBtn.setAttribute("data-active", "inst-a1");
     // Assuming afternoon zone id is "afternoon"
     dragBtn.setAttribute("data-over", "afternoon");
 
@@ -761,7 +792,9 @@ describe("DayPlanner with populated data", () => {
         "../../../lib/energy-planner/storage"
       );
       const plan = await fetchDayPlan(today);
-      const a1 = plan?.activities?.find((a) => a.id === "a1");
+      const a1 = plan?.plannedInstances?.find(
+        (i) => i.sourceActivityId === "a1",
+      );
       expect(a1?.zoneId).toBe("afternoon");
     });
   });
@@ -780,13 +813,19 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
-      zoneId: "invalid-zone-id",
     };
 
+    await storeActivities([activity1]);
     await storeDayPlan(today, {
       date: today,
-      activities: [activity1],
+      plannedInstances: [
+        {
+          id: "inst-a1",
+          sourceActivityId: "a1",
+          completed: false,
+          zoneId: "invalid-zone-id",
+        },
+      ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -852,13 +891,19 @@ describe("DayPlanner with populated data", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
-      zoneId: "morning",
     };
 
+    await storeActivities([activity1]);
     await storeDayPlan(today, {
       date: today,
-      activities: [activity1],
+      plannedInstances: [
+        {
+          id: "inst-a1",
+          sourceActivityId: "a1",
+          completed: false,
+          zoneId: "morning",
+        },
+      ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -878,7 +923,7 @@ describe("DayPlanner with populated data", () => {
 
     // Start drag
     const startDragBtn = screen.getByTestId("trigger-drag-start-default");
-    startDragBtn.setAttribute("data-active", "a1");
+    startDragBtn.setAttribute("data-active", "inst-a1");
     await user.click(startDragBtn);
 
     // activeActivity should be set, and DragOverlay should render it

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { EnergyTypeConfig } from "@/lib/energy-planner/schema";
+import type { Activity, EnergyTypeConfig } from "@/lib/energy-planner/schema";
 import { clearAll } from "@/lib/energy-planner/storage";
 import {
   createEmptyDayPlan,
@@ -24,7 +24,7 @@ describe("hooks/utils", () => {
   });
 
   describe("getDefaultCapacity", () => {
-    it("returns capacity object with 50 for each energy type", () => {
+    it("returns capacity object with 0 for each energy type", () => {
       const energyTypes: EnergyTypeConfig[] = [
         { id: "physical", label: "Physical", color: "#ff0000", isPreset: true },
         { id: "social", label: "Social", color: "#00ff00", isPreset: true },
@@ -77,17 +77,10 @@ describe("hooks/utils", () => {
     it("saves and retrieves day plan", async () => {
       const plan = {
         date: "2026-01-14",
-        activities: [
+        plannedInstances: [
           {
-            id: "activity-1",
-            title: "Activity 1",
-            createdAt: new Date(),
-            energyCost: { physical: 10, social: 10, executive: 10 },
-            factors: {
-              initiationDifficulty: 1,
-              terminationDifficulty: 1,
-              isRestorative: false,
-            },
+            id: "instance-1",
+            sourceActivityId: "activity-1",
             completed: false,
           },
         ],
@@ -96,11 +89,9 @@ describe("hooks/utils", () => {
       await saveDayPlanForDate("2026-01-14", plan);
 
       const retrieved = await fetchDayPlanForDate("2026-01-14");
-      // JSON serialization converts Date to string, so we need to match loosely or adjust expectations
-      // Using basic structural match
       expect(retrieved?.date).toBe(plan.date);
-      expect(retrieved?.activities).toHaveLength(1);
-      expect(retrieved?.activities[0].id).toBe("activity-1");
+      expect(retrieved?.plannedInstances).toHaveLength(1);
+      expect(retrieved?.plannedInstances[0].id).toBe("instance-1");
     });
 
     it("returns null for non-existent date", async () => {
@@ -113,7 +104,7 @@ describe("hooks/utils", () => {
     it("creates empty day plan with specified date", async () => {
       const plan = await createEmptyDayPlan("2026-01-15");
       expect(plan.date).toBe("2026-01-15");
-      expect(plan.activities).toEqual([]);
+      expect(plan.plannedInstances).toEqual([]);
     });
   });
 
@@ -170,138 +161,133 @@ describe("hooks/utils", () => {
   });
 
   describe("getUncompletedActivities", () => {
+    const makeActivity = (id: string, title: string): Activity => ({
+      id,
+      title,
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+    });
+
     it("returns empty array when no dates stored", async () => {
-      const result = await getUncompletedActivities("2026-01-14");
+      const map = new Map<string, Activity>();
+      const result = await getUncompletedActivities("2026-01-14", map);
       expect(result).toEqual([]);
     });
 
     it("returns uncompleted activities from previous days", async () => {
+      const activity = makeActivity("activity-1", "Activity 1");
+      const activityMap = new Map([["activity-1", activity]]);
+
       await saveDayPlanForDate("2026-01-13", {
         date: "2026-01-13",
-        activities: [
+        plannedInstances: [
           {
-            id: "activity-1",
-            title: "Activity 1",
-            energyCost: { physical: 10, social: 10, executive: 10 },
-            factors: {
-              initiationDifficulty: 5,
-              terminationDifficulty: 3,
-              isRestorative: false,
-            },
-            createdAt: new Date(),
+            id: "instance-1",
+            sourceActivityId: "activity-1",
             completed: false,
           },
         ],
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedActivities("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14", activityMap);
       expect(result).toHaveLength(1);
       expect(result[0].activity.id).toBe("activity-1");
+      expect(result[0].instanceId).toBe("instance-1");
       expect(result[0].fromDate).toBe("2026-01-13");
     });
 
     it("excludes completed activities", async () => {
+      const a1 = makeActivity("activity-1", "Activity 1");
+      const a2 = makeActivity("activity-2", "Activity 2");
+      const activityMap = new Map([
+        ["activity-1", a1],
+        ["activity-2", a2],
+      ]);
+
       await saveDayPlanForDate("2026-01-13", {
         date: "2026-01-13",
-        activities: [
+        plannedInstances: [
+          { id: "instance-1", sourceActivityId: "activity-1", completed: true },
           {
-            id: "activity-1",
-            title: "Activity 1",
-            energyCost: { physical: 10 },
-            factors: {
-              initiationDifficulty: 1,
-              terminationDifficulty: 1,
-              isRestorative: false,
-            },
-            createdAt: new Date(),
-            completed: true,
-          },
-          {
-            id: "activity-2",
-            title: "Activity 2",
-            energyCost: { physical: 10 },
-            factors: {
-              initiationDifficulty: 1,
-              terminationDifficulty: 1,
-              isRestorative: false,
-            },
-            createdAt: new Date(),
+            id: "instance-2",
+            sourceActivityId: "activity-2",
             completed: false,
           },
         ],
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedActivities("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14", activityMap);
       expect(result).toHaveLength(1);
       expect(result[0].activity.id).toBe("activity-2");
     });
 
     it("skips future dates", async () => {
+      const activity = makeActivity("activity-1", "Activity 1");
+      const activityMap = new Map([["activity-1", activity]]);
+
       await saveDayPlanForDate("2026-01-15", {
         date: "2026-01-15",
-        activities: [
+        plannedInstances: [
           {
-            id: "activity-1",
-            title: "Activity 1",
-            energyCost: { physical: 10 },
-            factors: {
-              initiationDifficulty: 1,
-              terminationDifficulty: 1,
-              isRestorative: false,
-            },
-            createdAt: new Date(),
+            id: "instance-1",
+            sourceActivityId: "activity-1",
             completed: false,
           },
         ],
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedActivities("2026-01-14");
+      const result = await getUncompletedActivities("2026-01-14", activityMap);
       expect(result).toHaveLength(0);
     });
 
-    it("returns activities from multiple past days", async () => {
+    it("returns instances from multiple past days", async () => {
+      const a1 = makeActivity("activity-1", "A1");
+      const activityMap = new Map([["activity-1", a1]]);
+
       await saveDayPlanForDate("2026-01-12", {
         date: "2026-01-12",
-        activities: [
-          {
-            id: "activity-1",
-            title: "A1",
-            energyCost: { physical: 10, social: 10, executive: 10 },
-            factors: {
-              initiationDifficulty: 1,
-              terminationDifficulty: 1,
-              isRestorative: false,
-            },
-            createdAt: new Date(),
-            completed: false,
-          },
+        plannedInstances: [
+          { id: "inst-12", sourceActivityId: "activity-1", completed: false },
         ],
         dailyCapacity: defaultCapacity,
       });
       await saveDayPlanForDate("2026-01-13", {
         date: "2026-01-13",
-        activities: [
+        plannedInstances: [
+          { id: "inst-13", sourceActivityId: "activity-1", completed: false },
+        ],
+        dailyCapacity: defaultCapacity,
+      });
+
+      const result = await getUncompletedActivities("2026-01-14", activityMap);
+      expect(result.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("ignores instances where source activity is not in activityMap", async () => {
+      const activityMap = new Map<string, Activity>(); // empty — no activities known
+
+      await saveDayPlanForDate("2026-01-13", {
+        date: "2026-01-13",
+        plannedInstances: [
           {
-            id: "activity-1",
-            title: "A1",
-            energyCost: { physical: 10, social: 10, executive: 10 },
-            factors: {
-              initiationDifficulty: 1,
-              terminationDifficulty: 1,
-              isRestorative: false,
-            },
-            createdAt: new Date(),
+            id: "instance-1",
+            sourceActivityId: "deleted-activity",
             completed: false,
           },
         ],
         dailyCapacity: defaultCapacity,
       });
 
-      const result = await getUncompletedActivities("2026-01-14");
-      expect(result.length).toBeGreaterThanOrEqual(2);
+      const result = await getUncompletedActivities("2026-01-14", activityMap);
+      expect(result).toHaveLength(0);
     });
   });
 

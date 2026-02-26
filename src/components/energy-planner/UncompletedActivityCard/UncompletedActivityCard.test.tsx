@@ -16,7 +16,6 @@ const mockActivity: Activity = {
     isRestorative: false,
   },
   createdAt: new Date(),
-  completed: false,
 };
 
 describe("UncompletedActivityCard", () => {
@@ -30,6 +29,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -43,6 +43,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -57,6 +58,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -77,6 +79,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={zeroEnergyActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -92,6 +95,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -105,6 +109,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -118,6 +123,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -144,6 +150,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -172,6 +179,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );
@@ -200,6 +208,7 @@ describe("UncompletedActivityCard", () => {
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
+          instanceId="instance-test-1"
         />
       </EnergyPlannerProvider>,
     );

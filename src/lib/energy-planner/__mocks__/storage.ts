@@ -1,46 +1,29 @@
 import { vi } from "vitest";
-import type { Activity, ZoneConfig } from "@/lib/energy-planner/schema";
+import type {
+  Activity,
+  PlannedInstance,
+  ZoneConfig,
+} from "@/lib/energy-planner/schema";
 
 let mockActivities: Activity[] = [];
-let mockRepeatingActivities: Activity[] = [];
-let mockCapacity = { physical: 100, social: 100, executive: 100 };
 let mockDayPlans: Record<string, unknown> = {};
+let mockZones: ZoneConfig[] = [];
 
-export const fetchOneOffActivities = vi.fn(async () => [...mockActivities]);
-export const storeOneOffActivities = vi.fn((activities) => {
+export const fetchActivities = vi.fn(async () => [...mockActivities]);
+export const storeActivities = vi.fn((activities: Activity[]) => {
   mockActivities = [...activities];
   return Promise.resolve();
 });
 
-export const fetchRepeatingActivities = vi.fn(async () => [
-  ...mockRepeatingActivities,
-]);
-export const storeRepeatingActivities = vi.fn((activities) => {
-  mockRepeatingActivities = [...activities];
-  return Promise.resolve();
-});
-
-export const getDailyCapacity = vi.fn(async () => ({ ...mockCapacity }));
-export const setDailyCapacity = vi.fn((capacity) => {
-  mockCapacity = { ...capacity };
-  return Promise.resolve();
-});
-
-export const fetchDayPlan = vi.fn(async (date) => mockDayPlans[date] || null);
-export const storeDayPlan = vi.fn((date, plan) => {
-  mockDayPlans[date] = plan;
-  return Promise.resolve();
-});
-
-export const fetchDayPlanForDate = vi.fn(
-  async (date) => mockDayPlans[date] || null,
+export const fetchDayPlan = vi.fn(
+  async (date: string) => mockDayPlans[date] || null,
 );
-export const saveDayPlanForDate = vi.fn((date, plan) => {
+export const storeDayPlan = vi.fn((date: string, plan: unknown) => {
   mockDayPlans[date] = plan;
   return Promise.resolve();
 });
 
-export const deleteDayPlan = vi.fn((date) => {
+export const deleteDayPlan = vi.fn((date: string) => {
   delete mockDayPlans[date];
   return Promise.resolve();
 });
@@ -56,26 +39,59 @@ export const fetchEnergyTypes = vi.fn(async () => [
 ]);
 export const storeEnergyTypes = vi.fn(() => Promise.resolve());
 
-export const clearAll = vi.fn(async () => {
-  mockActivities = [];
-  mockRepeatingActivities = [];
-  mockDayPlans = {};
-  mockCapacity = { physical: 100, social: 100, executive: 100 };
-});
-
-// Helper to reset the mock store
-let mockZones: ZoneConfig[] = [];
-
 export const fetchZones = vi.fn(async () => mockZones);
-export const storeZones = vi.fn((zones) => {
+export const storeZones = vi.fn((zones: ZoneConfig[]) => {
   mockZones = zones;
   return Promise.resolve();
 });
 
-export const __reset = () => {
+export const clearAll = vi.fn(async () => {
   mockActivities = [];
-  mockRepeatingActivities = [];
-  mockCapacity = { physical: 100, social: 100, executive: 100 };
   mockDayPlans = {};
   mockZones = [];
+});
+
+export const migrateStorageIfNeeded = vi.fn(async () => {});
+
+// --- Helpers also used directly by tests ---
+
+/** Build a minimal stored day plan shape for test setup */
+export function makeStoredDayPlan(instances: PlannedInstance[] = []) {
+  return {
+    plannedInstances: instances,
+    dailyCapacity: { physical: 100, social: 100, executive: 100 },
+  };
+}
+
+export const __reset = () => {
+  mockActivities = [];
+  mockDayPlans = {};
+  mockZones = [];
+  vi.clearAllMocks();
+  // Restore default implementations after clearAllMocks
+  fetchActivities.mockImplementation(async () => [...mockActivities]);
+  storeActivities.mockImplementation((activities: Activity[]) => {
+    mockActivities = [...activities];
+    return Promise.resolve();
+  });
+  fetchDayPlan.mockImplementation(
+    async (date: string) => mockDayPlans[date] || null,
+  );
+  storeDayPlan.mockImplementation((date: string, plan: unknown) => {
+    mockDayPlans[date] = plan;
+    return Promise.resolve();
+  });
+  deleteDayPlan.mockImplementation((date: string) => {
+    delete mockDayPlans[date];
+    return Promise.resolve();
+  });
+  fetchAllDayPlanDates.mockImplementation(async () =>
+    Object.keys(mockDayPlans),
+  );
+  fetchZones.mockImplementation(async () => mockZones);
+  storeZones.mockImplementation((zones: ZoneConfig[]) => {
+    mockZones = zones;
+    return Promise.resolve();
+  });
+  migrateStorageIfNeeded.mockImplementation(async () => {});
 };

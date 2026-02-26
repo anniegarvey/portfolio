@@ -128,15 +128,15 @@ describe("ActivitySchema", () => {
 });
 
 describe("DayPlanSchema", () => {
-  it("defaults activities to empty array if omitted (though it's required usually, let's check schema definition)", () => {
+  it("defaults plannedInstances to empty array if omitted", () => {
     const result = DayPlanSchema.safeParse({
       date: "2023-01-01",
-      activities: [],
+      plannedInstances: [],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.activities).toEqual([]);
+      expect(result.data.plannedInstances).toEqual([]);
     }
   });
 });

@@ -10,11 +10,13 @@ import { Button } from "../common";
 
 interface UncompletedActivityCardProps {
   activity: Activity;
+  instanceId: string;
   fromDate: string;
 }
 
 export function UncompletedActivityCard({
   activity,
+  instanceId,
   fromDate,
 }: UncompletedActivityCardProps) {
   const {
@@ -25,15 +27,15 @@ export function UncompletedActivityCard({
   } = useEnergyPlanner();
 
   const handleMarkComplete = () => {
-    markActivityCompleteOnDate(activity.id, fromDate);
+    markActivityCompleteOnDate(instanceId, fromDate);
   };
 
   const handleMoveToToday = () => {
-    moveActivityToToday(activity.id, fromDate);
+    moveActivityToToday(instanceId, fromDate);
   };
 
   const handleReturnToUnplanned = () => {
-    moveActivityToUnplanned(activity.id, fromDate);
+    moveActivityToUnplanned(instanceId, fromDate);
   };
 
   return (

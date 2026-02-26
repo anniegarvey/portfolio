@@ -4,7 +4,8 @@ import type {
   DayPlan,
   EnergyCost,
   EnergyTypeConfig,
-  PlannedActivity,
+  LegacyPlannedActivity,
+  PlannedInstance,
   ZoneConfig,
 } from "./schema";
 
@@ -16,47 +17,44 @@ const store = createStore("energy-planner-db", "data");
 
 // Storage keys
 const KEYS = {
-  oneOffActivities: "one-off-activities",
-  repeatingActivities: "repeating-activities",
+  activities: "activities", // Single normalised activities store: Activity[]
   types: "types",
   zones: "zones",
+  // Legacy keys — read-only, used during migration
+  _legacyOneOff: "one-off-activities",
+  _legacyRepeating: "repeating-activities",
 } as const;
 
 /**
  * Storage-optimized DayPlan that omits redundant fields:
  * - date: derived from the storage key
- * - activities: omitted entirely if empty
+ * - plannedInstances: omitted entirely if empty
  */
 export interface StoredDayPlan {
-  activities?: PlannedActivity[];
+  plannedInstances?: PlannedInstance[];
   dailyCapacity: EnergyCost;
-  activityOrder?: string[]; // Persisted order including virtual activity IDs
+  activityOrder?: string[]; // Persisted order of instance IDs
 }
 
-// === One-Off Activities ===
+/**
+ * Legacy stored format, used only during migration.
+ * Old day plans stored full PlannedActivity objects.
+ */
+interface LegacyStoredDayPlan {
+  activities?: LegacyPlannedActivity[];
+  dailyCapacity: EnergyCost;
+  activityOrder?: string[];
+}
 
-export async function fetchOneOffActivities(): Promise<Activity[]> {
-  const activities = await get<Activity[]>(KEYS.oneOffActivities, store);
+// === Activities ===
+
+export async function fetchActivities(): Promise<Activity[]> {
+  const activities = await get<Activity[]>(KEYS.activities, store);
   return activities ?? [];
 }
 
-export async function storeOneOffActivities(
-  activities: Activity[],
-): Promise<void> {
-  await set(KEYS.oneOffActivities, activities, store);
-}
-
-// === Repeating Activities ===
-
-export async function fetchRepeatingActivities(): Promise<Activity[]> {
-  const activities = await get<Activity[]>(KEYS.repeatingActivities, store);
-  return activities ?? [];
-}
-
-export async function storeRepeatingActivities(
-  activities: Activity[],
-): Promise<void> {
-  await set(KEYS.repeatingActivities, activities, store);
+export async function storeActivities(activities: Activity[]): Promise<void> {
+  await set(KEYS.activities, activities, store);
 }
 
 // === Energy Types ===
@@ -97,12 +95,10 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
     dailyCapacity: plan.dailyCapacity,
   };
 
-  // Only include activities if there are any
-  if (plan.activities && plan.activities.length > 0) {
-    stored.activities = plan.activities;
+  if (plan.plannedInstances && plan.plannedInstances.length > 0) {
+    stored.plannedInstances = plan.plannedInstances;
   }
 
-  // Persist activity ordering (includes virtual IDs for projected activities)
   if (plan.activityOrder && plan.activityOrder.length > 0) {
     stored.activityOrder = plan.activityOrder;
   }
@@ -116,7 +112,7 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
 function fromStoredDayPlan(date: string, stored: StoredDayPlan): DayPlan {
   return {
     date,
-    activities: stored.activities ?? [],
+    plannedInstances: stored.plannedInstances ?? [],
     dailyCapacity: stored.dailyCapacity,
     activityOrder: stored.activityOrder,
   };
@@ -153,4 +149,93 @@ export async function fetchAllDayPlanDates(): Promise<string[]> {
  */
 export async function clearAll(): Promise<void> {
   await clear(store);
+}
+
+// === Migration ===
+
+/**
+ * Migrates storage from the old split format (one-off / repeating activity
+ * lists, full PlannedActivity objects in day plans) to the normalised format
+ * (single activities list, lightweight PlannedInstance objects in day plans).
+ *
+ * Safe to call on every startup — detects old keys and is idempotent.
+ */
+export async function migrateStorageIfNeeded(): Promise<void> {
+  const [legacyOneOff, legacyRepeating] = await Promise.all([
+    get<Activity[]>(KEYS._legacyOneOff, store),
+    get<Activity[]>(KEYS._legacyRepeating, store),
+  ]);
+
+  const hasLegacyData = legacyOneOff != null || legacyRepeating != null;
+  if (!hasLegacyData) return;
+
+  // Merge both legacy lists into the new single activities store.
+  // If the new store already has data (partial migration), append only missing IDs.
+  const existingActivities = await fetchActivities();
+  const existingIds = new Set(existingActivities.map((a) => a.id));
+
+  const legacyAll = [...(legacyOneOff ?? []), ...(legacyRepeating ?? [])];
+  const newActivities = legacyAll.filter((a) => !existingIds.has(a.id));
+
+  if (newActivities.length > 0) {
+    await storeActivities([...existingActivities, ...newActivities]);
+  }
+
+  // Migrate each day plan from full PlannedActivity format to PlannedInstance format.
+  // We build a lookup from legacy activity ID → canonical Activity record.
+  const allActivities = [...existingActivities, ...newActivities];
+  const activityById = new Map(allActivities.map((a) => [a.id, a]));
+
+  const allDates = await fetchAllDayPlanDates();
+  await Promise.all(
+    allDates.map(async (date) => {
+      const raw = await get<LegacyStoredDayPlan | StoredDayPlan>(
+        fetchDayPlanKey(date),
+        store,
+      );
+      if (!raw) return;
+
+      // Already migrated if it has plannedInstances
+      if ("plannedInstances" in raw) return;
+
+      const legacy = raw as LegacyStoredDayPlan;
+      const legacyActivities = legacy.activities ?? [];
+
+      const plannedInstances: PlannedInstance[] = legacyActivities
+        .filter((la) => !la.isProjected) // Drop projected (virtual) instances — they'll be re-projected
+        .map((la): PlannedInstance => {
+          // The source activity is either the repeatingActivityId (concrete
+          // instance of a repeating activity) or the activity's own id (one-off).
+          const sourceActivityId = la.repeatingActivityId ?? la.id;
+
+          // If the source activity exists in our store, use its id.
+          // If not (e.g. it was deleted), fall back to the id embedded in the plan.
+          const resolvedId = activityById.has(sourceActivityId)
+            ? sourceActivityId
+            : la.id;
+
+          return {
+            id: la.id,
+            sourceActivityId: resolvedId,
+            zoneId: la.zoneId,
+            completed: la.completed ?? false,
+          };
+        });
+
+      const migrated: StoredDayPlan = {
+        dailyCapacity: legacy.dailyCapacity,
+        plannedInstances:
+          plannedInstances.length > 0 ? plannedInstances : undefined,
+        activityOrder: legacy.activityOrder,
+      };
+
+      await set(fetchDayPlanKey(date), migrated, store);
+    }),
+  );
+
+  // Remove the legacy keys now that migration is complete.
+  await Promise.all([
+    del(KEYS._legacyOneOff, store),
+    del(KEYS._legacyRepeating, store),
+  ]);
 }

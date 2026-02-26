@@ -5,16 +5,14 @@ import type {
   ZoneConfig,
 } from "@/lib/energy-planner/schema";
 import {
+  fetchActivities,
   fetchAllDayPlanDates,
   fetchDayPlan,
   fetchEnergyTypes,
-  fetchOneOffActivities,
-  fetchRepeatingActivities,
   fetchZones,
+  storeActivities,
   storeDayPlan,
   storeEnergyTypes,
-  storeOneOffActivities,
-  storeRepeatingActivities,
   storeZones,
 } from "@/lib/energy-planner/storage";
 
@@ -46,12 +44,14 @@ export async function exportEnergyPlannerData(): Promise<void> {
     }
   }
 
+  const allActivities = await fetchActivities();
   const exportData: EnergyPlannerExportData = {
     version: EXPORT_VERSION,
     exportDate: new Date().toISOString(),
     data: {
-      oneOffActivities: await fetchOneOffActivities(),
-      repeatingActivities: await fetchRepeatingActivities(),
+      oneOffActivities: allActivities?.filter((a) => !a.repeatConfig) ?? null,
+      repeatingActivities:
+        allActivities?.filter((a) => !!a.repeatConfig) ?? null,
       energyTypes: (await fetchEnergyTypes()) ?? null,
       zones: (await fetchZones()) ?? null,
       dayPlans: dayPlans.length > 0 ? dayPlans : null,
@@ -89,12 +89,13 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
     throw new Error("Invalid file format. Missing required fields.");
   }
 
-  // Import the data
-  if (data.data.oneOffActivities) {
-    await storeOneOffActivities(data.data.oneOffActivities);
-  }
-  if (data.data.repeatingActivities) {
-    await storeRepeatingActivities(data.data.repeatingActivities);
+  // Import the data — merge both lists into the single unified store
+  const allActivities: Activity[] = [
+    ...(data.data.oneOffActivities ?? []),
+    ...(data.data.repeatingActivities ?? []),
+  ];
+  if (allActivities.length > 0) {
+    await storeActivities(allActivities);
   }
   if (data.data.energyTypes) {
     await storeEnergyTypes(data.data.energyTypes);

@@ -1,19 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { v4 as uuidv4 } from "uuid";
 import type {
   Activity,
   DayPlan,
-  PlannedActivity,
+  PlannedInstance,
+  ResolvedActivity,
 } from "@/lib/energy-planner/schema";
 import {
   createEmptyDayPlan,
   defaultCapacity,
   fetchDayPlanForDate,
   getNextDay,
-  getOriginalActivityId,
   getPreviousDay,
   getTodayDateString,
   saveDayPlanForDate,
@@ -57,32 +56,32 @@ function checkIsActivityDue(activity: Activity, date: string): boolean {
 }
 
 /**
- * Merge activities into a persisted order.
- * Activities in storedOrder are placed first in their stored positions,
- * then any new activities (not in storedOrder) are appended.
+ * Merge instances into a persisted order.
+ * Instances in storedOrder are placed first in their stored positions,
+ * then any new instances (not in storedOrder) are appended.
  */
-function mergeActivitiesWithOrder<T extends { id: string }>(
-  activities: T[],
+function mergeInstancesWithOrder(
+  instances: PlannedInstance[],
   storedOrder: string[] | undefined,
-): T[] {
+): PlannedInstance[] {
   if (!storedOrder || storedOrder.length === 0) {
-    return activities;
+    return instances;
   }
 
-  const activityMap = new Map(activities.map((a) => [a.id, a]));
-  const ordered: T[] = [];
+  const instanceMap = new Map(instances.map((i) => [i.id, i]));
+  const ordered: PlannedInstance[] = [];
 
   for (const id of storedOrder) {
-    const activity = activityMap.get(id);
-    if (activity) {
-      ordered.push(activity);
-      activityMap.delete(id);
+    const instance = instanceMap.get(id);
+    if (instance) {
+      ordered.push(instance);
+      instanceMap.delete(id);
     }
   }
 
-  // Append any activities not in the stored order (newly added)
-  for (const activity of activityMap.values()) {
-    ordered.push(activity);
+  // Append any instances not in the stored order (newly projected)
+  for (const instance of instanceMap.values()) {
+    ordered.push(instance);
   }
 
   return ordered;
@@ -96,10 +95,9 @@ export function useDayPlan(
   const [isLoading, setIsLoading] = useState(true);
   // Version counter to trigger re-renders when storage is modified for other dates
   const [dayPlanVersion, storeDayPlanVersion] = useState(0);
-  // Initialize with default values - actual data loaded in useEffect for SSR compatibility
   const [dayPlan, storeDayPlan] = useState<DayPlan>({
     date: getTodayDateString(),
-    activities: [],
+    plannedInstances: [],
     dailyCapacity: defaultCapacity,
   });
 
@@ -109,21 +107,16 @@ export function useDayPlan(
   const onUpdateActivityRef = useRef(onUpdateActivity);
   onUpdateActivityRef.current = onUpdateActivity;
 
-  // Refs for state access inside effects without triggering re-runs
   const dayPlanRef = useRef(dayPlan);
   dayPlanRef.current = dayPlan;
   const isLoadingRef = useRef(isLoading);
   isLoadingRef.current = isLoading;
 
-  // Helper to check if a activity is due on a given date
   const isActivityDueOnDate = useCallback(
-    (activity: Activity, date: string) => {
-      return checkIsActivityDue(activity, date);
-    },
+    (activity: Activity, date: string) => checkIsActivityDue(activity, date),
     [],
   );
 
-  // Calculate next due date
   const calculateNextDueDate = useCallback(
     (
       currentDueDate: string | undefined,
@@ -133,7 +126,7 @@ export function useDayPlan(
       const date = new Date(currentDueDate);
       const { frequency, unit } = config;
 
-      // Use UTC methods to ensure we stay on the correct "Calendar Date" regardless of local time
+      // Use UTC methods to stay on the correct calendar date regardless of local time
       if (unit === "days") date.setUTCDate(date.getUTCDate() + frequency);
       if (unit === "weeks") date.setUTCDate(date.getUTCDate() + frequency * 7);
       if (unit === "months") date.setUTCMonth(date.getUTCMonth() + frequency);
@@ -154,12 +147,11 @@ export function useDayPlan(
       let basePlan: DayPlan | null = null;
 
       // Optimization: If staying on same day AND not initial load, use current state
-      // This preserves unsaved edits that haven't been persisted to storage yet
       if (!isLoadingRef.current && currentDate === dayPlanRef.current.date) {
         basePlan = {
           ...dayPlanRef.current,
-          activities: dayPlanRef.current.activities.filter(
-            (a) => !a.isProjected,
+          plannedInstances: dayPlanRef.current.plannedInstances.filter(
+            (i) => !i.isProjected,
           ),
         };
       }
@@ -174,40 +166,41 @@ export function useDayPlan(
         basePlan = createEmptyDayPlan(currentDate);
       }
 
-      // Project repeating activities
-      // Filter out activities that already have a concrete instance in the stored plan
-      const storedRepeatingIds = new Set(
-        basePlan.activities.map((a) => a.repeatingActivityId).filter(Boolean),
+      // Project repeating activities that don't already have a concrete instance
+      const storedSourceIds = new Set(
+        basePlan.plannedInstances
+          .filter((i) => !i.isProjected)
+          .map((i) => i.sourceActivityId),
       );
 
-      const projectedActivities = repeatingActivities
-        .filter((ra) => !storedRepeatingIds.has(ra.id))
+      const projectedInstances: PlannedInstance[] = repeatingActivities
+        .filter((ra) => !storedSourceIds.has(ra.id))
         .filter((ra) => isActivityDueOnDate(ra, currentDate))
-        .map((ra) => ({
-          ...ra,
-          // Create a virtual ID that is deterministic but unique for this date
-          id: `virtual-${ra.id}-${currentDate}`,
-          repeatingActivityId: ra.id,
-          completed: false,
-          // Use the default zone from the repeat config if available
-          zoneId: ra.repeatConfig?.defaultZoneId,
-          // Add a transient flag we can check at runtime (not in schema but handled in memory)
-          isProjected: true,
-        }));
+        .map(
+          (ra): PlannedInstance => ({
+            id: uuidv4(),
+            sourceActivityId: ra.id,
+            zoneId: ra.repeatConfig?.defaultZoneId,
+            completed: false,
+            isProjected: true,
+          }),
+        );
 
-      // Merge stored and projected activities using persisted activityOrder
-      const allActivities = [...basePlan.activities, ...projectedActivities];
-      const storedOrder = basePlan.activityOrder;
-      const orderedActivities = mergeActivitiesWithOrder(
-        allActivities,
-        storedOrder,
+      // Merge stored and projected instances using persisted order
+      const allInstances = [
+        ...basePlan.plannedInstances,
+        ...projectedInstances,
+      ];
+      const orderedInstances = mergeInstancesWithOrder(
+        allInstances,
+        basePlan.activityOrder,
       );
 
       storeDayPlan({
         date: basePlan.date,
         dailyCapacity: basePlan.dailyCapacity,
-        activities: orderedActivities,
-        activityOrder: storedOrder,
+        plannedInstances: orderedInstances,
+        activityOrder: basePlan.activityOrder,
       });
 
       setIsLoading(false);
@@ -221,123 +214,78 @@ export function useDayPlan(
   // Save day plan when it changes
   useEffect(() => {
     if (!isLoading) {
-      // Filter out projected activities before saving!
-      const activitiesToSave = dayPlan.activities.filter((a) => !a.isProjected);
-      // Persist the full ordering (including virtual IDs) so we can restore positions on reload
-      const activityOrder = dayPlan.activities.map((a) => a.id);
-      // We pass the filtered activities to save
+      // Filter out projected instances before saving
+      const instancesToSave = dayPlan.plannedInstances.filter(
+        (i) => !i.isProjected,
+      );
+      const activityOrder = dayPlan.plannedInstances.map((i) => i.id);
       saveDayPlanForDate(currentDate, {
         ...dayPlan,
-        activities: activitiesToSave,
+        plannedInstances: instancesToSave,
         activityOrder,
       });
     }
   }, [dayPlan, currentDate, isLoading]);
 
   const toggleActivityCompletion = useCallback(
-    async (activityId: string) => {
-      // Get the current values from refs to avoid stale closures
-      const currentRepeatingActivities = repeatingActivitiesRef.current;
-      const currentOnUpdateActivity = onUpdateActivityRef.current;
+    (instanceId: string) => {
+      storeDayPlan((prev) => {
+        const idx = prev.plannedInstances.findIndex((i) => i.id === instanceId);
+        if (idx === -1) return prev;
 
-      // Use a mutable holder object to capture values from inside the setState callback
-      const holder: { update: Activity | null; plan: DayPlan | null } = {
-        update: null,
-        plan: null,
-      };
+        const instance = prev.plannedInstances[idx];
+        const isCompleting = !instance.completed;
+        const updatedInstance: PlannedInstance = {
+          ...instance,
+          completed: isCompleting,
+          // Solidify on any interaction
+          isProjected: undefined,
+        };
 
-      // Use flushSync to ensure the callback runs synchronously
-      flushSync(() => {
-        storeDayPlan((prev) => {
-          const activityIndex = prev.activities.findIndex(
-            (a) => a.id === activityId,
+        const newInstances = [...prev.plannedInstances];
+        newInstances[idx] = updatedInstance;
+
+        // When completing a projected repeating instance, advance the nextDueDate
+        if (isCompleting && instance.isProjected) {
+          const repeatingActivity = repeatingActivitiesRef.current.find(
+            (ra) => ra.id === instance.sourceActivityId,
           );
-          if (activityIndex === -1) return prev;
-
-          const activity = prev.activities[activityIndex];
-          let newActivity = { ...activity, completed: !activity.completed };
-
-          // Handle Virtual Activity completion (Solidification)
-          if (activity.isProjected && currentOnUpdateActivity) {
-            // 1. Make concrete
-            const concreteId = uuidv4();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { isProjected: _, ...params } = newActivity;
-            newActivity = { ...params, id: concreteId, completed: true };
-
-            // 2. Gather info for repeating activity update (will call after save)
-            const repeatingActivity = currentRepeatingActivities.find(
-              (ra) => ra.id === activity.repeatingActivityId,
+          if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
+            const nextDate = calculateNextDueDate(
+              repeatingActivity.repeatConfig.nextDueDate,
+              repeatingActivity.repeatConfig,
             );
-            if (repeatingActivity?.repeatConfig) {
-              const nextDate = calculateNextDueDate(
-                repeatingActivity.repeatConfig.nextDueDate,
-                repeatingActivity.repeatConfig,
-              );
-              holder.update = {
-                ...repeatingActivity,
-                repeatConfig: {
-                  ...repeatingActivity.repeatConfig,
-                  nextDueDate: nextDate,
-                },
-              };
-            }
+            onUpdateActivityRef.current({
+              ...repeatingActivity,
+              repeatConfig: {
+                ...repeatingActivity.repeatConfig,
+                nextDueDate: nextDate,
+              },
+            });
           }
+        }
 
-          const newActivities = [...prev.activities];
-          newActivities[activityIndex] = newActivity;
-
-          // Update activityOrder to reflect the new ID (solidification changes virtual → concrete)
-          const newActivityOrder = prev.activityOrder?.map((id) =>
-            id === activityId ? newActivity.id : id,
-          );
-
-          holder.plan = {
-            ...prev,
-            activities: newActivities,
-            activityOrder: newActivityOrder,
-          };
-
-          return holder.plan;
-        });
+        return { ...prev, plannedInstances: newInstances };
       });
-
-      // If we have a pending repeating activity update, save first then call onUpdateActivity
-      if (holder.update && currentOnUpdateActivity && holder.plan) {
-        // Create local const to help TypeScript type narrowing
-        const planToSave: DayPlan = holder.plan;
-        // Save the updated state to storage
-        const activitiesToSave = planToSave.activities.filter(
-          (a) => !a.isProjected,
-        );
-        const activityOrder = planToSave.activities.map((a) => a.id);
-        await saveDayPlanForDate(currentDate, {
-          ...planToSave,
-          activities: activitiesToSave,
-          activityOrder,
-        });
-        currentOnUpdateActivity(holder.update);
-      }
     },
-    [calculateNextDueDate, currentDate],
+    [calculateNextDueDate],
   );
 
-  // Mark a activity as complete on a specific date (for uncompleted activities)
+  // Mark an instance as complete on a specific date (for uncompleted activities)
   const markActivityCompleteOnDate = useCallback(
-    async (activityId: string, date: string) => {
+    async (instanceId: string, date: string) => {
       if (date === currentDate) {
-        toggleActivityCompletion(activityId);
+        toggleActivityCompletion(instanceId);
       } else {
         const plan = await fetchDayPlanForDate(date);
         if (plan) {
-          const updatedActivities = plan.activities.map((a: PlannedActivity) =>
-            a.id === activityId ? { ...a, completed: true } : a,
+          const updatedInstances = plan.plannedInstances.map((i) =>
+            i.id === instanceId ? { ...i, completed: true } : i,
           );
           await saveDayPlanForDate(date, {
             ...plan,
-            activities: updatedActivities,
+            plannedInstances: updatedInstances,
           });
-          // Trigger refresh of uncompleted activities
           storeDayPlanVersion((v) => v + 1);
         }
       }
@@ -345,150 +293,137 @@ export function useDayPlan(
     [currentDate, toggleActivityCompletion],
   );
 
-  // Add a activity directly to the day plan (caller is responsible for managing activity state)
+  // Add a one-off activity to today's plan
   const addActivityToDayPlan = useCallback(
     (activity: Activity, zoneId?: string) => {
       storeDayPlan((prev) => {
-        // Avoid duplicates
-        if (prev.activities.some((a) => a.id === activity.id)) return prev;
+        // Avoid duplicates (same sourceActivityId already in plan)
+        if (
+          prev.plannedInstances.some((i) => i.sourceActivityId === activity.id)
+        )
+          return prev;
+        const newInstance: PlannedInstance = {
+          id: uuidv4(),
+          sourceActivityId: activity.id,
+          zoneId: zoneId ?? activity.defaultZoneId,
+          completed: false,
+        };
         return {
           ...prev,
-          activities: [
-            ...prev.activities,
-            {
-              ...activity,
-              completed: false,
-              zoneId: zoneId || activity.defaultZoneId,
-            },
-          ],
+          plannedInstances: [...prev.plannedInstances, newInstance],
         };
       });
     },
     [],
   );
 
-  // Remove a activity from the current day plan and return it (caller handles activity state)
+  // Remove an instance from the current day plan (returns the instance for callers)
   const removeFromPlan = useCallback(
-    (activityId: string): PlannedActivity | undefined => {
-      // Find the activity in current state BEFORE updating
-      // This ensures we capture the activity before the state update
-      const removedActivity = dayPlan.activities.find(
-        (a) => a.id === activityId,
-      );
-
-      if (!removedActivity) return undefined;
+    (instanceId: string): PlannedInstance | undefined => {
+      const removed = dayPlan.plannedInstances.find((i) => i.id === instanceId);
+      if (!removed) return undefined;
 
       storeDayPlan((prev) => ({
         ...prev,
-        activities: prev.activities.filter((a) => a.id !== activityId),
+        plannedInstances: prev.plannedInstances.filter(
+          (i) => i.id !== instanceId,
+        ),
       }));
 
-      return removedActivity;
+      return removed;
     },
-    [dayPlan.activities],
+    [dayPlan.plannedInstances],
   );
 
-  // Forcefully remove a activity from day plan (no return value, no dependency on current state)
-  const deleteFromPlan = useCallback((activityId: string) => {
+  // Forcefully remove an instance (no return value)
+  const deleteFromPlan = useCallback((instanceId: string) => {
     storeDayPlan((prev) => ({
       ...prev,
-      activities: prev.activities.filter((a) => a.id !== activityId),
+      plannedInstances: prev.plannedInstances.filter(
+        (i) => i.id !== instanceId,
+      ),
     }));
   }, []);
 
-  // Move a activity from a past day to today
+  // Move an instance from a past day to today
   const moveActivityToToday = useCallback(
-    async (activityId: string, fromDate: string) => {
+    async (instanceId: string, fromDate: string) => {
       const today = getTodayDateString();
 
-      // 1. Get from old date
       const oldPlan = await fetchDayPlanForDate(fromDate);
       if (!oldPlan) return;
-      const activityToMove = oldPlan.activities.find(
-        (a: PlannedActivity) => a.id === activityId,
+      const instanceToMove = oldPlan.plannedInstances.find(
+        (i) => i.id === instanceId,
       );
-      if (!activityToMove) return;
+      if (!instanceToMove) return;
 
-      // 2. Remove from old date
+      // Remove from old date
       if (currentDate === fromDate) {
-        // If we are viewing the fromDate, update state only.
-        // The useEffect will handle saving to storage.
         storeDayPlan((prev) => ({
           ...prev,
-          activities: prev.activities.filter(
-            (a: PlannedActivity) => a.id !== activityId,
+          plannedInstances: prev.plannedInstances.filter(
+            (i) => i.id !== instanceId,
           ),
         }));
       } else {
-        // Otherwise update storage directly
-        const updatedOldActivities = oldPlan.activities.filter(
-          (a: PlannedActivity) => a.id !== activityId,
-        );
         await saveDayPlanForDate(fromDate, {
           ...oldPlan,
-          activities: updatedOldActivities,
+          plannedInstances: oldPlan.plannedInstances.filter(
+            (i) => i.id !== instanceId,
+          ),
         });
       }
 
-      // 3. Add to today
+      // Add to today
       if (currentDate === today) {
         storeDayPlan((prev) => {
-          if (prev.activities.some((a: PlannedActivity) => a.id === activityId))
+          if (prev.plannedInstances.some((i) => i.id === instanceId))
             return prev;
           return {
             ...prev,
-            activities: [...prev.activities, activityToMove],
+            plannedInstances: [...prev.plannedInstances, instanceToMove],
           };
         });
       } else {
         const todayPlan =
-          (await fetchDayPlanForDate(today)) ||
-          (await createEmptyDayPlan(today));
-        if (
-          !todayPlan.activities.some(
-            (a: PlannedActivity) => a.id === activityId,
-          )
-        ) {
+          (await fetchDayPlanForDate(today)) || createEmptyDayPlan(today);
+        if (!todayPlan.plannedInstances.some((i) => i.id === instanceId)) {
           await saveDayPlanForDate(today, {
             ...todayPlan,
-            activities: [...todayPlan.activities, activityToMove],
+            plannedInstances: [...todayPlan.plannedInstances, instanceToMove],
           });
         }
       }
-      // Trigger refresh of uncompleted activities
+
       storeDayPlanVersion((v) => v + 1);
     },
     [currentDate],
   );
 
-  // Return a activity to unplanned (remove from day plan, returns the activity for caller to handle)
+  // Return an instance to "unplanned" — removes from plan, returns it to caller
   const moveActivityToUnplanned = useCallback(
     async (
-      activityId: string,
+      instanceId: string,
       fromDate: string,
-    ): Promise<PlannedActivity | undefined> => {
+    ): Promise<PlannedInstance | undefined> => {
       if (fromDate === currentDate) {
-        return removeFromPlan(activityId);
+        return removeFromPlan(instanceId);
       }
 
-      // Remove from other date's plan
       const plan = await fetchDayPlanForDate(fromDate);
       if (plan) {
-        const activityToRemove = plan.activities.find(
-          (a: PlannedActivity) => a.id === activityId,
+        const instanceToRemove = plan.plannedInstances.find(
+          (i) => i.id === instanceId,
         );
-        if (activityToRemove) {
-          // Save plan without the activity
-          const updatedActivities = plan.activities.filter(
-            (a: PlannedActivity) => a.id !== activityId,
-          );
+        if (instanceToRemove) {
           await saveDayPlanForDate(fromDate, {
             ...plan,
-            activities: updatedActivities,
+            plannedInstances: plan.plannedInstances.filter(
+              (i) => i.id !== instanceId,
+            ),
           });
-          // Trigger refresh of uncompleted activities
           storeDayPlanVersion((v) => v + 1);
-          return activityToRemove;
+          return instanceToRemove;
         }
       }
       return undefined;
@@ -496,66 +431,45 @@ export function useDayPlan(
     [currentDate, removeFromPlan],
   );
 
-  // Move a activity to a specific future date
+  // Move an instance to a specific future date (creates a fresh instance on that date)
   const moveActivityToDate = useCallback(
-    async (activityId: string, targetDate: string) => {
-      // 1. Remove from current day plan (returns the removed activity)
-      // This handles state update for current view
-      const removedActivity = removeFromPlan(activityId);
+    async (instanceId: string, targetDate: string) => {
+      const removedInstance = removeFromPlan(instanceId);
+      if (!removedInstance) return;
 
-      if (!removedActivity) return;
-
-      // 2. Add to target date plan
       const targetPlan =
         (await fetchDayPlanForDate(targetDate)) ||
-        (await createEmptyDayPlan(targetDate));
+        createEmptyDayPlan(targetDate);
 
-      // Check if already exists in target plan
-      // Note: Since we are generating a new ID, we check by name or just assume we add it?
-      // But let's check if the *exact same* ID exists just in case, though we are changing ID.
-      // Better to check if we already have this activity moved? No, user allows duplicates.
-
-      // Strip 'completed' status and repeating config when moving to future
-      // effectively converting it to a one-off instance
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const {
-        completed,
-        repeatConfig,
-        repeatingActivityId,
-        isProjected,
-        ...activityData
-      } = removedActivity;
-
-      // Create a clean new concrete activity
-      const activityToAdd = {
-        ...activityData,
+      // Create a clean new instance for the target date (not projected, not completed)
+      const newInstance: PlannedInstance = {
         id: uuidv4(),
+        sourceActivityId: removedInstance.sourceActivityId,
+        zoneId: removedInstance.zoneId,
         completed: false,
-        isProjected: false,
-      } as PlannedActivity;
+      };
 
       await saveDayPlanForDate(targetDate, {
         ...targetPlan,
-        activities: [...targetPlan.activities, activityToAdd],
+        plannedInstances: [...targetPlan.plannedInstances, newInstance],
       });
     },
     [removeFromPlan],
   );
 
   const skipActivity = useCallback(
-    (activityId: string) => {
-      const activity = dayPlan.activities.find((a) => a.id === activityId);
-      if (!activity) return;
+    (instanceId: string) => {
+      const instance = dayPlan.plannedInstances.find(
+        (i) => i.id === instanceId,
+      );
+      if (!instance) return;
 
-      const originalId =
-        activity.repeatingActivityId || getOriginalActivityId(activityId);
       const repeatingActivity = repeatingActivitiesRef.current.find(
-        (ra) => ra.id === originalId,
+        (ra) => ra.id === instance.sourceActivityId,
       );
 
       if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
-        // Remove the current instance immediately so it doesn't persist until re-projection
-        deleteFromPlan(activityId);
+        deleteFromPlan(instanceId);
 
         const nextDate = calculateNextDueDate(
           repeatingActivity.repeatConfig.nextDueDate,
@@ -573,27 +487,41 @@ export function useDayPlan(
         }
       }
     },
-    [calculateNextDueDate, dayPlan.activities, deleteFromPlan],
+    [calculateNextDueDate, dayPlan.plannedInstances, deleteFromPlan],
   );
 
   const reorderPlannedActivitiesWithIds = useCallback((itemIds: string[]) => {
     storeDayPlan((prev) => {
-      const activityMap = new Map(
-        prev.activities.map((a: PlannedActivity) => [a.id, a]),
-      );
-      const newActivities = itemIds
-        .map((id) => activityMap.get(id))
-        .filter((a): a is PlannedActivity => !!a); // filter loose undefineds
+      const instanceMap = new Map(prev.plannedInstances.map((i) => [i.id, i]));
+      const newInstances = itemIds
+        .map((id) => instanceMap.get(id))
+        .filter((i): i is PlannedInstance => !!i);
 
-      // If length mismatch, simple safety fallback (don't reorder if data lost)
-      if (newActivities.length !== prev.activities.length) return prev;
+      if (newInstances.length !== prev.plannedInstances.length) return prev;
 
-      return {
-        ...prev,
-        activities: newActivities,
-      };
+      return { ...prev, plannedInstances: newInstances };
     });
   }, []);
+
+  const assignActivityToZone = useCallback(
+    (instanceId: string, zoneId: string) => {
+      storeDayPlan((prev) => {
+        const idx = prev.plannedInstances.findIndex((i) => i.id === instanceId);
+        if (idx === -1) return prev;
+
+        const newInstances = [...prev.plannedInstances];
+        newInstances[idx] = {
+          ...newInstances[idx],
+          zoneId,
+          // Solidify on any interaction
+          isProjected: undefined,
+        };
+
+        return { ...prev, plannedInstances: newInstances };
+      });
+    },
+    [],
+  );
 
   const navigateToDate = useCallback((date: string) => {
     setCurrentDate(date);
@@ -612,70 +540,23 @@ export function useDayPlan(
   }, []);
 
   const setDailyCapacity = useCallback((capacity: DayPlan["dailyCapacity"]) => {
-    storeDayPlan((prev) => ({
-      ...prev,
-      dailyCapacity: capacity,
-    }));
+    storeDayPlan((prev) => ({ ...prev, dailyCapacity: capacity }));
   }, []);
 
-  const assignActivityToZone = useCallback(
-    (activityId: string, zoneId: string) => {
-      storeDayPlan((prev) => {
-        const activityIndex = prev.activities.findIndex(
-          (a) => a.id === activityId,
-        );
-        if (activityIndex === -1) return prev;
-
-        const activity = prev.activities[activityIndex];
-        let newActivity = { ...activity, zoneId };
-
-        // Handle Virtual Activity solidification
-        if (activity.isProjected) {
-          const concreteId = uuidv4();
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { isProjected: _, ...params } = newActivity;
-          newActivity = { ...params, id: concreteId };
-        }
-
-        const newActivities = [...prev.activities];
-        newActivities[activityIndex] = newActivity;
-
-        return {
-          ...prev,
-          activities: newActivities,
-        };
+  /**
+   * Resolve the current day plan's instances against an activity map.
+   * Returns only instances whose source activity still exists.
+   */
+  const resolveActivities = useCallback(
+    (activityMap: Map<string, Activity>): ResolvedActivity[] => {
+      return dayPlan.plannedInstances.flatMap((instance) => {
+        const activity = activityMap.get(instance.sourceActivityId);
+        if (!activity) return []; // Dangling reference — activity was deleted
+        return [{ instance, activity }];
       });
     },
-    [],
+    [dayPlan.plannedInstances],
   );
-
-  const updatePlannedActivity = useCallback((updatedActivity: Activity) => {
-    storeDayPlan((prev) => {
-      const activityIndex = prev.activities.findIndex(
-        (a) => a.id === updatedActivity.id,
-      );
-      if (activityIndex === -1) return prev;
-
-      const existingActivity = prev.activities[activityIndex];
-      const newActivity = {
-        ...existingActivity,
-        ...updatedActivity,
-        // If it's now repeating, ensure it's linked correctly
-        repeatingActivityId: updatedActivity.repeatConfig
-          ? getOriginalActivityId(updatedActivity.id)
-          : undefined,
-        isProjected: false, // Solidify upon update
-      };
-
-      const newActivities = [...prev.activities];
-      newActivities[activityIndex] = newActivity;
-
-      return {
-        ...prev,
-        activities: newActivities,
-      };
-    });
-  }, []);
 
   return {
     currentDate,
@@ -697,7 +578,7 @@ export function useDayPlan(
     reorderPlannedActivities: reorderPlannedActivitiesWithIds,
     assignActivityToZone,
     deleteFromPlan,
-    updatePlannedActivity,
+    resolveActivities,
     skipActivity,
   };
 }

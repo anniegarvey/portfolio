@@ -9,7 +9,7 @@ import { Plus, Settings } from "lucide-react";
 import { styled } from "next-yak";
 import type {
   Activity,
-  PlannedActivity,
+  ResolvedActivity,
   ZoneConfig,
 } from "@/lib/energy-planner/schema";
 import { Button } from "../common";
@@ -18,14 +18,14 @@ import { SortableItem } from "../SortableItem";
 
 interface ZoneSectionProps {
   zone: ZoneConfig;
-  activities: PlannedActivity[];
+  activities: ResolvedActivity[];
   isPastDay: boolean;
   isFutureDay: boolean;
   onAddActivity: () => void;
   onEditActivity: (activity: Activity) => void;
-  onRemove: (activityId: string) => void;
-  onMove: (activityId: string, date: string) => void;
-  onToggleCompletion: (activityId: string) => void;
+  onRemove: (instanceId: string) => void;
+  onMove: (instanceId: string, date: string) => void;
+  onToggleCompletion: (instanceId: string) => void;
   onManageZones: () => void;
 }
 
@@ -66,20 +66,21 @@ export function ZoneSection({
       </ZoneHeaderWrapper>
       <SortableContext
         id={zone.id}
-        items={activities.map((a) => a.id)}
+        items={activities.map(({ instance }) => instance.id)}
         strategy={verticalListSortingStrategy}
       >
         <ZoneActivityList data-testid={`zone-activities-${zone.id}`}>
           {activities.length === 0 && (
             <EmptyZone>No activities in this zone</EmptyZone>
           )}
-          {activities.map((activity) => (
-            <SortableItem id={activity.id} key={activity.id}>
+          {activities.map(({ instance, activity }) => (
+            <SortableItem id={instance.id} key={instance.id}>
               {({ dragHandleProps }) => (
                 <PlannerActivityCard
                   activity={activity}
-                  completed={activity.completed}
+                  completed={instance.completed}
                   dragHandleProps={dragHandleProps}
+                  instance={instance}
                   isFutureDay={isFutureDay}
                   isPastDay={isPastDay}
                   onEdit={onEditActivity}

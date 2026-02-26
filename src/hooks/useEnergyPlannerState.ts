@@ -1,16 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import type { Activity, EnergyCost } from "@/lib/energy-planner/schema";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  Activity,
+  EnergyCost,
+  PlannedInstance,
+  ResolvedActivity,
+} from "@/lib/energy-planner/schema";
 import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
 import { useActivities } from "./useActivities";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useZones } from "./useZones";
-import { getOriginalActivityId, getUncompletedActivities } from "./utils";
+import { getUncompletedActivities } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
+    activities,
     oneOffActivities,
     repeatingActivities,
     isLoading: activitiesLoading,
@@ -19,9 +25,8 @@ export function useEnergyPlannerState() {
     removeActivityState,
     reorderActivities,
     reorderRepeatingActivities,
-    addActivityToAvailable,
-    removeActivityFromAvailable,
   } = useActivities();
+
   const {
     currentDate,
     dayPlan,
@@ -41,10 +46,11 @@ export function useEnergyPlannerState() {
     reorderPlannedActivities,
     assignActivityToZone,
     deleteFromPlan,
-    updatePlannedActivity,
+    resolveActivities,
     moveActivityToDate,
     skipActivity,
   } = useDayPlan(repeatingActivities, updateActivityBase);
+
   const {
     energyTypes,
     isLoading: typesLoading,
@@ -52,6 +58,7 @@ export function useEnergyPlannerState() {
     updateEnergyType,
     removeEnergyType,
   } = useEnergyTypes();
+
   const {
     zones,
     isLoading: zonesLoading,
@@ -61,104 +68,90 @@ export function useEnergyPlannerState() {
     reorderZones,
   } = useZones();
 
-  // State for async-computed values
+  // Build an activity map for fast lookups — used for resolving instances
+  const activityMap = useMemo(
+    () => new Map(activities.map((a) => [a.id, a])),
+    [activities],
+  );
+
+  // Resolve the current day plan's instances against the activity store
+  const resolvedActivities: ResolvedActivity[] = useMemo(
+    () => resolveActivities(activityMap),
+    [resolveActivities, activityMap],
+  );
+
+  // Uncompleted activities from previous days
   const [uncompletedActivities, setUncompletedActivities] = useState<
-    { activity: Activity; fromDate: string }[]
+    { activity: Activity; instanceId: string; fromDate: string }[]
   >([]);
 
-  const availableActivities = oneOffActivities;
-
-  // Load uncompleted activities from previous days
-  // Re-run when dayPlanVersion changes (after uncompleted activity actions)
   // biome-ignore lint/correctness/useExhaustiveDependencies: dayPlanVersion intentionally triggers re-fetch after storage changes
   useEffect(() => {
     if (activitiesLoading) return;
 
     (async () => {
-      const uncompleted = await getUncompletedActivities(currentDate);
+      const uncompleted = await getUncompletedActivities(
+        currentDate,
+        activityMap,
+      );
       setUncompletedActivities(uncompleted);
     })();
-  }, [activitiesLoading, currentDate, dayPlanVersion]);
+  }, [activitiesLoading, currentDate, dayPlanVersion, activityMap]);
 
   const addActivity = useCallback(
     (activityData: Omit<Activity, "id" | "createdAt">) => {
-      const newActivity = addActivityBase(activityData);
-
-      // If it's repeating, the projection logic in useDayPlan will handle showing it
-      // based on the nextDueDate (which defaults to today for new activities).
-      // So no need to manually add to plan.
-
-      return newActivity;
+      return addActivityBase(activityData);
     },
     [addActivityBase],
   );
 
-  // Add activity to day plan - finds activity and coordinates state
+  // Add a one-off activity to the plan for the current day
   const addToPlan = useCallback(
     (activityId: string, zoneId?: string, knownActivity?: Activity) => {
-      // Prefer the passed-in activity object to avoid stale-closure issues
-      // when addToPlan is called immediately after addActivity (before re-render).
       const activity =
-        knownActivity ?? oneOffActivities.find((a) => a.id === activityId);
-      if (!activity) {
-        // Not a one-off activity - might be a repeating activity (handled elsewhere)
+        knownActivity ?? activities.find((a) => a.id === activityId);
+      if (!activity || activity.repeatConfig) {
+        // Repeating activities are projected automatically — don't manually add
         return;
       }
-
-      // Add to day plan
       addActivityToDayPlan(activity, zoneId);
-      // Remove from available activities
-      removeActivityFromAvailable(activityId);
     },
-    [oneOffActivities, addActivityToDayPlan, removeActivityFromAvailable],
+    [activities, addActivityToDayPlan],
   );
 
-  // Remove activity from day plan and return to available activities
+  // Remove a one-off instance from the plan (instance stays in activity store)
   const removeFromPlan = useCallback(
-    (activityId: string) => {
-      // Remove from day plan (returns the removed activity)
-      const removedActivity = removeFromPlanBase(activityId);
-      // Add back to available activities if found
-      if (removedActivity) {
-        // Strip 'completed' when moving back to available activities
-        const { completed: _completed, ...rawActivity } = removedActivity;
-        addActivityToAvailable(rawActivity as Activity);
-      }
+    (instanceId: string) => {
+      removeFromPlanBase(instanceId);
     },
-    [addActivityToAvailable, removeFromPlanBase],
+    [removeFromPlanBase],
   );
 
-  // Move activity from day plan to available activities
+  // Move an unplanned instance back from any date
   const moveActivityToUnplanned = useCallback(
-    async (activityId: string, fromDate: string) => {
-      // Remove from day plan (returns the removed activity)
-      const removedActivity = await moveActivityToUnplannedBase(
-        activityId,
-        fromDate,
-      );
-      // Add back to available activities if found
-      if (removedActivity) {
-        // Strip 'completed' when moving back to available activities
-        const { completed: _completed, ...rawActivity } = removedActivity;
-        addActivityToAvailable(rawActivity as Activity);
-      }
+    async (instanceId: string, fromDate: string) => {
+      await moveActivityToUnplannedBase(instanceId, fromDate);
     },
-    [addActivityToAvailable, moveActivityToUnplannedBase],
+    [moveActivityToUnplannedBase],
   );
 
   const removeActivity = useCallback(
     async (activityId: string) => {
-      // If it's in the day plan, remove it (but don't add back to available)
-      deleteFromPlan(activityId);
-      // Remove from activity lists (one-off and repeating)
+      // Remove any planned instance for this activity from the current view
+      const instanceToRemove = dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === activityId,
+      );
+      if (instanceToRemove) {
+        deleteFromPlan(instanceToRemove.id);
+      }
       removeActivityState(activityId);
     },
-    [removeActivityState, deleteFromPlan],
+    [removeActivityState, deleteFromPlan, dayPlan.plannedInstances],
   );
 
   const calculateEnergyUsage = useCallback((): EnergyCost => {
-    return calcUsage(dayPlan);
-  }, [dayPlan]);
+    return calcUsage(resolvedActivities);
+  }, [resolvedActivities]);
 
   const checkExceedsCapacity = useCallback(() => {
     const usage = calculateEnergyUsage();
@@ -181,36 +174,32 @@ export function useEnergyPlannerState() {
     return { exceeded: false };
   }, [calculateEnergyUsage, energyTypes, dayPlan.dailyCapacity]);
 
-  // Wrap updateActivity to handle both stores
   const handleUpdateActivity = useCallback(
     (activity: Activity) => {
-      const originalId = getOriginalActivityId(activity.id);
+      updateActivityBase(activity);
 
-      // Update in master lists
-      updateActivityBase({ ...activity, id: originalId });
-
-      // For projected (virtual) repeating activity instances that remain
-      // repeating, delete from the day plan so that the re-projection logic
-      // can decide whether to show it based on the updated nextDueDate.
-      // Without this, updatePlannedActivity would solidify the virtual
-      // instance (isProjected: false), preventing re-projection from
-      // removing it when the nextDueDate changes.
-      //
-      // If the activity is being converted to non-repeating (repeatConfig
-      // removed), we still want to solidify it via updatePlannedActivity
-      // so it persists in the day plan as a concrete one-off activity.
-      if (activity.id.startsWith("virtual-") && activity.repeatConfig) {
-        deleteFromPlan(activity.id);
-      } else {
-        // Update in day plan for concrete or converting-to-one-off activities
-        updatePlannedActivity(activity);
+      // For projected repeating instances, remove them from the day plan so that
+      // the re-projection logic can re-evaluate based on the updated nextDueDate.
+      const projectedInstance = dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === activity.id && i.isProjected,
+      );
+      if (projectedInstance && activity.repeatConfig) {
+        deleteFromPlan(projectedInstance.id);
       }
     },
-    [updateActivityBase, updatePlannedActivity, deleteFromPlan],
+    [updateActivityBase, deleteFromPlan, dayPlan.plannedInstances],
   );
 
   const isLoading =
     activitiesLoading || dayPlanLoading || typesLoading || zonesLoading;
+
+  // Available activities = one-offs not currently in the day plan
+  const plannedSourceIds = new Set(
+    dayPlan.plannedInstances.map((i: PlannedInstance) => i.sourceActivityId),
+  );
+  const availableActivities = oneOffActivities.filter(
+    (a) => !plannedSourceIds.has(a.id),
+  );
 
   return {
     oneOffActivities,
@@ -222,6 +211,7 @@ export function useEnergyPlannerState() {
     setDailyCapacity,
     currentDate,
     dayPlan,
+    resolvedActivities,
     navigateToDate,
     goToPreviousDay,
     goToNextDay,

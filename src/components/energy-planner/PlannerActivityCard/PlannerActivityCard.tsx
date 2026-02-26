@@ -20,20 +20,21 @@ import { getNextDay } from "../../../hooks/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import type {
   Activity,
-  PlannedActivity,
+  PlannedInstance,
 } from "../../../lib/energy-planner/schema";
 import { Button } from "../common";
 
 interface PlannerActivityCardProps {
   activity: Activity;
+  instance?: PlannedInstance;
   selected?: boolean;
   completed?: boolean;
   isPastDay?: boolean;
   isFutureDay?: boolean;
   onEdit: (activity: Activity) => void;
-  onToggleCompletion?: (activityId: string) => void;
-  onRemove?: (activityId: string) => void;
-  onMove?: (activityId: string, date: string) => void;
+  onToggleCompletion?: (instanceId: string) => void;
+  onRemove?: (instanceId: string) => void;
+  onMove?: (instanceId: string, date: string) => void;
   onDelete?: (activityId: string) => void;
   onAdd?: (activityId: string) => void;
   dragHandleProps?: {
@@ -45,6 +46,7 @@ interface PlannerActivityCardProps {
 
 export function PlannerActivityCard({
   activity,
+  instance,
   selected,
   completed,
   isPastDay,
@@ -68,13 +70,14 @@ export function PlannerActivityCard({
   const tomorrow = getNextDay(currentDate);
   const dayAfter = getNextDay(tomorrow);
 
+  const instanceId = instance?.id;
   const handleMove = onMove || moveActivityToDate;
   const handleRemove = onRemove || removeFromPlan;
 
   return (
     <Card
       $completed={completed}
-      $isProjected={(activity as PlannedActivity).isProjected}
+      $isProjected={instance?.isProjected}
       $selected={selected}
     >
       {dragHandleProps && (
@@ -117,18 +120,22 @@ export function PlannerActivityCard({
         </EnergyBadges>
       </ActivityContent>
       <Actions>
-        {selected && onToggleCompletion && !isPastDay && !isFutureDay && (
-          <Button
-            aria-label={completed ? "Mark as not done" : "Mark as done"}
-            intent={completed ? "danger" : "teal"}
-            onClick={() => onToggleCompletion(activity.id)}
-            size="icon"
-            title={completed ? "Mark as not done" : "Mark as done"}
-            variant="ghost"
-          >
-            {completed ? <Undo2 size={18} /> : <Check size={18} />}
-          </Button>
-        )}
+        {selected &&
+          onToggleCompletion &&
+          instanceId &&
+          !isPastDay &&
+          !isFutureDay && (
+            <Button
+              aria-label={completed ? "Mark as not done" : "Mark as done"}
+              intent={completed ? "danger" : "teal"}
+              onClick={() => onToggleCompletion(instanceId)}
+              size="icon"
+              title={completed ? "Mark as not done" : "Mark as done"}
+              variant="ghost"
+            >
+              {completed ? <Undo2 size={18} /> : <Check size={18} />}
+            </Button>
+          )}
 
         {onDelete && (
           <Button
@@ -143,7 +150,7 @@ export function PlannerActivityCard({
           </Button>
         )}
 
-        {selected && !completed && !isPastDay && (
+        {selected && !completed && !isPastDay && instanceId && (
           <DropdownMenuPrimitive.Root modal={false}>
             <DropdownMenuTrigger asChild>
               <Button
@@ -159,19 +166,19 @@ export function PlannerActivityCard({
             <DropdownMenuPortal>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => handleMove?.(activity.id, tomorrow)}
+                  onClick={() => handleMove?.(instanceId, tomorrow)}
                 >
                   Tomorrow
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleMove?.(activity.id, dayAfter)}
+                  onClick={() => handleMove?.(instanceId, dayAfter)}
                 >
                   Day after tomorrow
                 </DropdownMenuItem>
                 {activity.repeatConfig && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => skipActivity(activity.id)}>
+                    <DropdownMenuItem onClick={() => skipActivity(instanceId)}>
                       Skip this time
                     </DropdownMenuItem>
                   </>
@@ -179,7 +186,7 @@ export function PlannerActivityCard({
                 {handleRemove && !activity.repeatConfig && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleRemove(activity.id)}>
+                    <DropdownMenuItem onClick={() => handleRemove(instanceId)}>
                       Return to unplanned
                     </DropdownMenuItem>
                   </>

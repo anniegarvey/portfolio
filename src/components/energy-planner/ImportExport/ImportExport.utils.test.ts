@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearAll,
+  fetchActivities,
   fetchDayPlan,
   fetchEnergyTypes,
-  fetchOneOffActivities,
-  fetchRepeatingActivities,
   fetchZones,
+  storeActivities,
   storeDayPlan,
   storeEnergyTypes,
-  storeOneOffActivities,
 } from "@/lib/energy-planner/storage";
 import {
   exportEnergyPlannerData,
@@ -27,8 +26,8 @@ describe("exportEnergyPlannerData", () => {
 
   async function setupExportMocks() {
     await clearAll();
-    // Pre-populate storage
-    await storeOneOffActivities([
+    // Pre-populate storage with a one-off activity (no repeatConfig)
+    await storeActivities([
       {
         id: "1",
         title: "Test",
@@ -39,7 +38,6 @@ describe("exportEnergyPlannerData", () => {
           terminationDifficulty: 1,
           isRestorative: false,
         },
-        completed: false,
       },
     ]);
     await storeEnergyTypes([
@@ -98,7 +96,7 @@ describe("exportEnergyPlannerData", () => {
     // Setup day plan
     await storeDayPlan("2026-01-01", {
       date: "2026-01-01",
-      activities: [],
+      plannedInstances: [],
       dailyCapacity: { physical: 100 },
     });
 
@@ -190,17 +188,10 @@ describe("importEnergyPlannerData", () => {
             date: "2026-01-01",
             plan: {
               date: "2026-01-01",
-              activities: [
+              plannedInstances: [
                 {
-                  id: "1",
-                  title: "Imported Activity",
-                  createdAt: new Date().toISOString(),
-                  energyCost: { physical: 10 },
-                  factors: {
-                    initiationDifficulty: 1,
-                    terminationDifficulty: 1,
-                    isRestorative: false,
-                  },
+                  id: "inst-1",
+                  sourceActivityId: "1",
                   completed: false,
                 },
               ],
@@ -215,23 +206,19 @@ describe("importEnergyPlannerData", () => {
     const file = new File([fileContent], "backup.json", {
       type: "application/json",
     });
-    // Mock the text() method for vitest
     file.text = vi.fn().mockResolvedValue(fileContent);
 
     await importEnergyPlannerData(file);
 
-    // Verify data was imported
-    const activities = await fetchOneOffActivities();
-    expect(activities).toHaveLength(1);
-    expect(activities[0].title).toBe("Imported Activity");
-
-    const repeatingActivities = await fetchRepeatingActivities();
-    expect(repeatingActivities).toHaveLength(1);
-    expect(repeatingActivities[0].title).toBe("Repeating Activity");
-    expect(repeatingActivities[0].repeatConfig?.defaultZoneId).toBe(
-      "afternoon",
-    );
-    expect(repeatingActivities[0].repeatConfig?.frequency).toBe(1);
+    // Verify all activities were imported into the unified store
+    const activities = await fetchActivities();
+    expect(activities).toHaveLength(2);
+    const imported = activities?.find((a) => a.title === "Imported Activity");
+    expect(imported).toBeDefined();
+    const repeating = activities?.find((a) => a.title === "Repeating Activity");
+    expect(repeating).toBeDefined();
+    expect(repeating?.repeatConfig?.defaultZoneId).toBe("afternoon");
+    expect(repeating?.repeatConfig?.frequency).toBe(1);
 
     const types = await fetchEnergyTypes();
     expect(types).toHaveLength(1);
@@ -241,8 +228,8 @@ describe("importEnergyPlannerData", () => {
     expect(zones?.[0].id).toBe("morning");
 
     const dayPlan = await fetchDayPlan("2026-01-01");
-    expect(dayPlan?.activities).toHaveLength(1);
-    expect(dayPlan?.activities[0].id).toBe("1");
+    expect(dayPlan?.plannedInstances).toHaveLength(1);
+    expect(dayPlan?.plannedInstances[0].sourceActivityId).toBe("1");
 
     expect(reloadSpy).toHaveBeenCalled();
   });
@@ -322,7 +309,7 @@ describe("importEnergyPlannerData - data handling", () => {
 
     await importEnergyPlannerData(file);
 
-    const activities = await fetchOneOffActivities();
+    const activities = await fetchActivities();
     expect(activities).toHaveLength(1);
     expect(reloadSpy).toHaveBeenCalled();
   });

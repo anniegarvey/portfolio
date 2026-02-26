@@ -7,6 +7,7 @@ import type {
   DayPlan,
   EnergyCost,
   EnergyTypeConfig,
+  ResolvedActivity,
   ZoneConfig,
 } from "./schema";
 
@@ -20,6 +21,7 @@ interface EnergyPlannerContextType {
   setDailyCapacity: (capacity: EnergyCost) => void;
   currentDate: string;
   dayPlan: DayPlan;
+  resolvedActivities: ResolvedActivity[];
   navigateToDate: (date: string) => void;
   goToPreviousDay: () => void;
   goToNextDay: () => void;
@@ -29,15 +31,19 @@ interface EnergyPlannerContextType {
     zoneId?: string,
     knownActivity?: Activity,
   ) => void;
-  removeFromPlan: (activityId: string) => void;
-  toggleActivityCompletion: (activityId: string) => void;
-  markActivityCompleteOnDate: (activityId: string, date: string) => void;
-  moveActivityToToday: (activityId: string, fromDate: string) => void;
-  moveActivityToUnplanned: (activityId: string, fromDate: string) => void;
-  moveActivityToDate: (activityId: string, targetDate: string) => void;
+  removeFromPlan: (instanceId: string) => void;
+  toggleActivityCompletion: (instanceId: string) => void;
+  markActivityCompleteOnDate: (instanceId: string, date: string) => void;
+  moveActivityToToday: (instanceId: string, fromDate: string) => void;
+  moveActivityToUnplanned: (instanceId: string, fromDate: string) => void;
+  moveActivityToDate: (instanceId: string, targetDate: string) => void;
   calculateEnergyUsage: () => EnergyCost;
   checkExceedsCapacity: () => { exceeded: boolean; message?: string };
-  uncompletedActivities: { activity: Activity; fromDate: string }[];
+  uncompletedActivities: {
+    activity: Activity;
+    instanceId: string;
+    fromDate: string;
+  }[];
   availableActivities: Activity[];
   isLoading: boolean;
   energyTypes: EnergyTypeConfig[];
@@ -52,8 +58,8 @@ interface EnergyPlannerContextType {
   updateZone: (zone: ZoneConfig) => void;
   removeZone: (zoneId: string) => void;
   reorderZones: (zones: ZoneConfig[]) => void;
-  assignActivityToZone: (activityId: string, zoneId: string) => void;
-  skipActivity: (activityId: string) => void;
+  assignActivityToZone: (instanceId: string, zoneId: string) => void;
+  skipActivity: (instanceId: string) => void;
 }
 
 const EnergyPlannerContext = createContext<

@@ -58,7 +58,7 @@ export async function saveDayPlanForDate(
 export function createEmptyDayPlan(date: string): DayPlan {
   return {
     date,
-    activities: [],
+    plannedInstances: [],
     dailyCapacity: defaultCapacity,
     activityOrder: undefined,
   };
@@ -72,26 +72,37 @@ export async function getAllStoredDates(): Promise<string[]> {
 }
 
 /**
- * Find uncompleted activities from previous days
- * Returns activities that were planned but not completed on days before today
+ * Find uncompleted activities from previous days.
+ * Returns activities that were planned but not completed on days before today,
+ * resolved against the provided activity map.
  */
 export async function getUncompletedActivities(
   today: string,
-): Promise<{ activity: Activity; fromDate: string }[]> {
-  const uncompleted: { activity: Activity; fromDate: string }[] = [];
+  activityMap: Map<string, Activity>,
+): Promise<{ activity: Activity; instanceId: string; fromDate: string }[]> {
+  const uncompleted: {
+    activity: Activity;
+    instanceId: string;
+    fromDate: string;
+  }[] = [];
   const storedDates = await getAllStoredDates();
 
   for (const date of storedDates) {
     if (date >= today) continue; // Skip today and future dates
 
     const dayPlan = await fetchDayPlanForDate(date);
-    if (!dayPlan?.activities) continue;
+    if (!dayPlan?.plannedInstances) continue;
 
-    for (const activity of dayPlan.activities) {
-      if (!activity.completed) {
-        // Check if already added (though physically distinct copies)
-        // We probably want to show instances from previous days
-        uncompleted.push({ activity, fromDate: date });
+    for (const instance of dayPlan.plannedInstances) {
+      if (!instance.completed) {
+        const activity = activityMap.get(instance.sourceActivityId);
+        if (activity) {
+          uncompleted.push({
+            activity,
+            instanceId: instance.id,
+            fromDate: date,
+          });
+        }
       }
     }
   }
@@ -168,17 +179,4 @@ export function generateUniqueKey(
   }
 
   return `${baseKey}-${suffix}`;
-}
-
-/**
- * Extracts the original activity ID from a virtual projected activity ID.
- * Projected IDs follow the format: virtual-{originalId}-{date}
- */
-export function getOriginalActivityId(id: string): string {
-  if (!id.startsWith("virtual-")) {
-    return id;
-  }
-  const parts = id.split("-");
-  // Remove "virtual" (first part) and "YYYY-MM-DD" (last 3 parts)
-  return parts.slice(1, -3).join("-");
 }

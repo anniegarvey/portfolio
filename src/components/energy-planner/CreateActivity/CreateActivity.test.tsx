@@ -21,10 +21,9 @@ vi.mock("../../../lib/energy-planner/storage", () => ({
   storeDayPlan: vi.fn().mockResolvedValue(undefined),
   deleteDayPlan: vi.fn().mockResolvedValue(undefined),
   fetchAllDayPlanDates: vi.fn().mockResolvedValue([]),
-  fetchOneOffActivities: vi.fn().mockResolvedValue([]),
-  storeOneOffActivities: vi.fn().mockResolvedValue(undefined),
-  fetchRepeatingActivities: vi.fn().mockResolvedValue([]),
-  storeRepeatingActivities: vi.fn().mockResolvedValue(undefined),
+  fetchActivities: vi.fn().mockResolvedValue([]),
+  storeActivities: vi.fn().mockResolvedValue(undefined),
+  migrateStorageIfNeeded: vi.fn().mockResolvedValue(undefined),
   clearAll: vi.fn(),
 }));
 
@@ -70,7 +69,6 @@ describe("CreateActivity", () => {
         isRestorative: false,
       },
       createdAt: new Date(),
-      completed: false,
     };
 
     render(

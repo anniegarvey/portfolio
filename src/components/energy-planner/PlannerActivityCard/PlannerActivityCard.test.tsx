@@ -23,7 +23,6 @@ const mockActivity: Activity = {
     terminationDifficulty: 1,
     isRestorative: false,
   },
-  completed: false,
 };
 
 describe("PlannerActivityCard", () => {

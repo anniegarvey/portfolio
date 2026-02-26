@@ -24,7 +24,7 @@ import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import type {
   Activity,
-  PlannedActivity,
+  ResolvedActivity,
 } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { Button } from "../common";
@@ -53,7 +53,7 @@ export function DayPlanner({
     goToToday: onGoToToday,
     goToNextDay: onNextDay,
     goToPreviousDay: onPreviousDay,
-    dayPlan,
+    resolvedActivities,
     addToPlan,
     removeFromPlan,
     removeActivity,
@@ -80,7 +80,7 @@ export function DayPlanner({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isZoneManagerOpen, setIsZoneManagerOpen] = useState(false);
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
-  const [activeActivity, setActiveActivity] = useState<PlannedActivity | null>(
+  const [activeResolved, setActiveResolved] = useState<ResolvedActivity | null>(
     null,
   );
 
@@ -100,30 +100,25 @@ export function DayPlanner({
   const viewingToday = isToday(currentDate);
   const viewedUncompletedActivities = viewingToday ? uncompletedActivities : [];
 
-  const selectedActivities = dayPlan.activities ?? [];
-
-  // Group activities by zone
+  // Group resolved activities by zone
   const activitiesByZone = useMemo(() => {
-    const grouped = new Map<string, PlannedActivity[]>();
+    const grouped = new Map<string, ResolvedActivity[]>();
 
-    // Initialize all zones with empty arrays
     for (const zone of zones) {
       grouped.set(zone.id, []);
     }
 
-    // Assign activities to their zones
-    for (const activity of selectedActivities) {
-      const zoneId = activity.zoneId ?? zones[0]?.id;
+    for (const resolved of resolvedActivities) {
+      const zoneId = resolved.instance.zoneId ?? zones[0]?.id;
       if (zoneId && grouped.has(zoneId)) {
-        grouped.get(zoneId)?.push(activity);
+        grouped.get(zoneId)?.push(resolved);
       } else if (zones[0]) {
-        // Fallback to first zone if zone doesn't exist
-        grouped.get(zones[0].id)?.push(activity);
+        grouped.get(zones[0].id)?.push(resolved);
       }
     }
 
     return grouped;
-  }, [selectedActivities, zones]);
+  }, [resolvedActivities, zones]);
 
   const handleAddToPlanForZone = (activityId: string) => {
     if (activeZoneId) {
@@ -142,16 +137,18 @@ export function DayPlanner({
 
   const handleDragStart = (event: DragOverEvent) => {
     const { active } = event;
-    const activity = selectedActivities.find((a) => a.id === active.id);
-    if (activity) {
-      setActiveActivity(activity);
+    const resolved = resolvedActivities.find(
+      ({ instance }) => instance.id === active.id,
+    );
+    if (resolved) {
+      setActiveResolved(resolved);
     }
   };
 
-  const findZoneForActivity = (activityId: string): string | null => {
+  const findZoneForInstance = (instanceId: string): string | null => {
     for (const zone of zones) {
-      const zoneActivities = activitiesByZone.get(zone.id) ?? [];
-      if (zoneActivities.some((a) => a.id === activityId)) {
+      const zoneResolved = activitiesByZone.get(zone.id) ?? [];
+      if (zoneResolved.some(({ instance }) => instance.id === instanceId)) {
         return zone.id;
       }
     }
@@ -159,41 +156,37 @@ export function DayPlanner({
   };
 
   const getTargetZoneId = (overId: string): string | null => {
-    // Check if dropping directly on a zone container
     const targetZone = zones.find((z) => z.id === overId);
     if (targetZone) {
       return targetZone.id;
     }
-    // Check if dropping on a activity within a zone
-    return findZoneForActivity(overId);
+    return findZoneForInstance(overId);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveActivity(null);
+    setActiveResolved(null);
 
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const sourceZoneId = findZoneForActivity(activeId);
+    const sourceZoneId = findZoneForInstance(activeId);
     const targetZoneId = getTargetZoneId(overId);
 
-    // Move activity to new zone if zones differ
     if (targetZoneId && sourceZoneId !== targetZoneId) {
       assignActivityToZone(activeId, targetZoneId);
     }
 
-    // Handle reordering
     if (activeId !== overId) {
       const newItems = getReorderedItems(
-        selectedActivities,
+        resolvedActivities,
         event,
-        (a) => a.id,
+        ({ instance }) => instance.id,
       );
       if (newItems) {
-        reorderPlannedActivities(newItems.map((a) => a.id));
+        reorderPlannedActivities(newItems.map(({ instance }) => instance.id));
       }
     }
   };
@@ -232,7 +225,7 @@ export function DayPlanner({
       </DateSelectorRow>
 
       <Header>
-        <h2>Your Day Plan ({selectedActivities.length})</h2>
+        <h2>Your Day Plan ({resolvedActivities.length})</h2>
         <ButtonGroup>
           <Button
             intent="secondary"
@@ -291,13 +284,16 @@ export function DayPlanner({
             Uncompleted Activities ({viewedUncompletedActivities.length})
           </UncompletedHeader>
           <UncompletedList>
-            {viewedUncompletedActivities.map(({ activity, fromDate }) => (
-              <UncompletedActivityCard
-                activity={activity}
-                fromDate={fromDate}
-                key={`${activity.id}-${fromDate}`}
-              />
-            ))}
+            {viewedUncompletedActivities.map(
+              ({ activity, instanceId, fromDate }) => (
+                <UncompletedActivityCard
+                  activity={activity}
+                  fromDate={fromDate}
+                  instanceId={instanceId}
+                  key={`${instanceId}-${fromDate}`}
+                />
+              ),
+            )}
           </UncompletedList>
         </UncompletedSection>
       )}
@@ -328,15 +324,16 @@ export function DayPlanner({
             ))}
           </ZonesContainer>
           <DragOverlay>
-            {activeActivity ? (
+            {activeResolved ? (
               <PlannerActivityCard
-                activity={activeActivity}
-                completed={activeActivity.completed}
+                activity={activeResolved.activity}
+                completed={activeResolved.instance.completed}
                 dragHandleProps={{
                   listeners: {} as DraggableSyntheticListeners,
                   attributes: {} as DraggableAttributes,
                   ref: () => {},
                 }}
+                instance={activeResolved.instance}
                 isFutureDay={currentDate > getTodayDateString()}
                 isPastDay={!viewingToday}
                 onEdit={onEditActivity}

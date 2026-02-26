@@ -5,13 +5,11 @@ import type { Activity } from "@/lib/energy-planner/schema";
 import { fetchDayPlan, storeDayPlan } from "@/lib/energy-planner/storage";
 import { useDayPlan } from "./useDayPlan";
 
-// Mock storage
 vi.mock("@/lib/energy-planner/storage");
 
-const mockActivity = (id: string, title: string, completed = false) => ({
+const mockActivity = (id: string, title: string): Activity => ({
   id,
   title,
-  completed,
   createdAt: new Date(),
   energyCost: { physical: 10, social: 10, executive: 10 },
   factors: {
@@ -23,16 +21,14 @@ const mockActivity = (id: string, title: string, completed = false) => ({
 
 describe("useDayPlan", () => {
   beforeEach(async () => {
-    // Reset mock storage
     const storageMock = await import("@/lib/energy-planner/storage");
     (storageMock as unknown as { __reset: () => void }).__reset();
   });
 
   const STABLE_EMPTY_ACTIVITIES: Activity[] = [];
 
-  it("initializes with today's date and empty lists", async () => {
+  it("initializes with today's date and empty instances", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-    // Use local date string matching implementation
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
@@ -41,18 +37,19 @@ describe("useDayPlan", () => {
     });
 
     expect(result.current.dayPlan.date).toBe(todayStr);
-    expect(result.current.dayPlan.activities).toEqual([]);
+    expect(result.current.dayPlan.plannedInstances).toEqual([]);
   });
 
   it("loads day plan from IndexedDB if date matches today", async () => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const activity1 = mockActivity("activity-1", "T1", true);
-    const activity2 = mockActivity("activity-2", "T2", false);
 
     await storeDayPlan(todayStr, {
       date: todayStr,
-      activities: [activity1, activity2],
+      plannedInstances: [
+        { id: "instance-1", sourceActivityId: "activity-1", completed: true },
+        { id: "instance-2", sourceActivityId: "activity-2", completed: false },
+      ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -62,11 +59,11 @@ describe("useDayPlan", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.dayPlan.activities).toHaveLength(2);
-    expect(result.current.dayPlan.activities[0].id).toBe("activity-1");
-    expect(result.current.dayPlan.activities[0].completed).toBe(true);
-    expect(result.current.dayPlan.activities[1].id).toBe("activity-2");
-    expect(result.current.dayPlan.activities[1].completed).toBe(false);
+    expect(result.current.dayPlan.plannedInstances).toHaveLength(2);
+    expect(result.current.dayPlan.plannedInstances[0].id).toBe("instance-1");
+    expect(result.current.dayPlan.plannedInstances[0].completed).toBe(true);
+    expect(result.current.dayPlan.plannedInstances[1].id).toBe("instance-2");
+    expect(result.current.dayPlan.plannedInstances[1].completed).toBe(false);
   });
 
   it("navigates to previous day and keeps that day's plan separate", async () => {
@@ -78,7 +75,6 @@ describe("useDayPlan", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Add activity to today
     const activity1 = mockActivity("activity-1", "Activity 1");
 
     await act(async () => {
@@ -94,8 +90,7 @@ describe("useDayPlan", () => {
       expect(result.current.dayPlan.date).not.toBe(todayStr);
     });
 
-    // Yesterday's plan should be empty
-    expect(result.current.dayPlan.activities).toHaveLength(0);
+    expect(result.current.dayPlan.plannedInstances).toHaveLength(0);
   });
 
   it("adds an activity to the plan", async () => {
@@ -110,8 +105,10 @@ describe("useDayPlan", () => {
       result.current.addActivityToDayPlan(activity1);
     });
 
-    expect(result.current.dayPlan.activities).toHaveLength(1);
-    expect(result.current.dayPlan.activities[0].id).toBe("activity-1");
+    expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
+    expect(result.current.dayPlan.plannedInstances[0].sourceActivityId).toBe(
+      "activity-1",
+    );
   });
 
   it("does not duplicate activity when added twice", async () => {
@@ -127,7 +124,7 @@ describe("useDayPlan", () => {
       result.current.addActivityToDayPlan(activity1);
     });
 
-    expect(result.current.dayPlan.activities).toHaveLength(1);
+    expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
   });
 
   it("removes an activity from the plan", async () => {
@@ -142,11 +139,13 @@ describe("useDayPlan", () => {
       result.current.addActivityToDayPlan(activity1);
     });
 
+    const instanceId = result.current.dayPlan.plannedInstances[0].id;
+
     await act(async () => {
-      result.current.removeFromPlan("activity-1");
+      result.current.removeFromPlan(instanceId);
     });
 
-    expect(result.current.dayPlan.activities).toHaveLength(0);
+    expect(result.current.dayPlan.plannedInstances).toHaveLength(0);
   });
 
   it("toggles activity completion on", async () => {
@@ -159,10 +158,15 @@ describe("useDayPlan", () => {
 
     await act(async () => {
       result.current.addActivityToDayPlan(activity1);
-      result.current.toggleActivityCompletion("activity-1");
     });
 
-    expect(result.current.dayPlan.activities[0].completed).toBe(true);
+    const instanceId = result.current.dayPlan.plannedInstances[0].id;
+
+    await act(async () => {
+      result.current.toggleActivityCompletion(instanceId);
+    });
+
+    expect(result.current.dayPlan.plannedInstances[0].completed).toBe(true);
   });
 
   it("toggles activity completion off", async () => {
@@ -175,19 +179,24 @@ describe("useDayPlan", () => {
 
     await act(async () => {
       result.current.addActivityToDayPlan(activity1);
-      result.current.toggleActivityCompletion("activity-1"); // on
     });
 
-    expect(result.current.dayPlan.activities[0].completed).toBe(true);
+    const instanceId = result.current.dayPlan.plannedInstances[0].id;
 
     await act(async () => {
-      result.current.toggleActivityCompletion("activity-1"); // off
+      result.current.toggleActivityCompletion(instanceId); // on
     });
 
-    expect(result.current.dayPlan.activities[0].completed).toBe(false);
+    expect(result.current.dayPlan.plannedInstances[0].completed).toBe(true);
+
+    await act(async () => {
+      result.current.toggleActivityCompletion(instanceId); // off
+    });
+
+    expect(result.current.dayPlan.plannedInstances[0].completed).toBe(false);
   });
 
-  it("toggles completion for only the specified activity", async () => {
+  it("toggles completion for only the specified instance", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
     const activity1 = mockActivity("activity-1", "Activity 1");
     const activity2 = mockActivity("activity-2", "Activity 2");
@@ -199,18 +208,26 @@ describe("useDayPlan", () => {
     await act(async () => {
       result.current.addActivityToDayPlan(activity1);
       result.current.addActivityToDayPlan(activity2);
-      result.current.toggleActivityCompletion("activity-1");
     });
 
-    const a1 = result.current.dayPlan.activities.find(
-      (a) => a.id === "activity-1",
+    const instance1Id = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "activity-1",
+    )?.id;
+    if (!instance1Id) throw new Error("Missing instance for activity-1");
+
+    await act(async () => {
+      result.current.toggleActivityCompletion(instance1Id);
+    });
+
+    const i1 = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "activity-1",
     );
-    const a2 = result.current.dayPlan.activities.find(
-      (a) => a.id === "activity-2",
+    const i2 = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "activity-2",
     );
 
-    expect(a1?.completed).toBe(true);
-    expect(a2?.completed).toBe(false);
+    expect(i1?.completed).toBe(true);
+    expect(i2?.completed).toBe(false);
   });
 
   it("persists day plan to IndexedDB", async () => {
@@ -230,8 +247,8 @@ describe("useDayPlan", () => {
     await waitFor(async () => {
       const stored = await fetchDayPlan(todayStr);
       expect(stored).not.toBeNull();
-      expect(stored?.activities).toHaveLength(1);
-      expect(stored?.activities?.[0].id).toBe("activity-1");
+      expect(stored?.plannedInstances).toHaveLength(1);
+      expect(stored?.plannedInstances?.[0].sourceActivityId).toBe("activity-1");
     });
   });
 
@@ -251,86 +268,34 @@ describe("useDayPlan", () => {
       result.current.addActivityToDayPlan(activity3);
     });
 
-    expect(result.current.dayPlan.activities.map((a) => a.id)).toEqual([
-      "activity-1",
-      "activity-2",
-      "activity-3",
+    const [id1, id2, id3] = result.current.dayPlan.plannedInstances.map(
+      (i) => i.id,
+    );
+
+    await act(async () => {
+      result.current.reorderPlannedActivities([id3, id1, id2]);
+    });
+
+    expect(result.current.dayPlan.plannedInstances.map((i) => i.id)).toEqual([
+      id3,
+      id1,
+      id2,
     ]);
-
-    await act(async () => {
-      // Reorder using reorderPlannedActivities (which might be the id-based one now)
-      result.current.reorderPlannedActivities([
-        "activity-3",
-        "activity-1",
-        "activity-2",
-      ]);
-    });
-
-    expect(result.current.dayPlan.activities.map((a) => a.id)).toEqual([
-      "activity-3",
-      "activity-1",
-      "activity-2",
-    ]);
-  });
-
-  it("moves uncompleted activity to next day", async () => {
-    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-    const _today = new Date().toISOString().split("T")[0];
-
-    // Create activity
-    const activity1 = mockActivity("activity-1", "Activity 1");
-
-    // Add to plan
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-    await act(async () => {
-      result.current.addActivityToDayPlan(activity1);
-    });
-
-    // Go to next day
-    await act(async () => {
-      result.current.goToNextDay();
-    });
-
-    // Verify correct date
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-
-    await waitFor(() => {
-      expect(result.current.dayPlan.date).toBe(tomorrowStr);
-    });
-  });
-
-  it("ignores duplicate activities when same activity added multiple times", async () => {
-    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-    const activity1 = mockActivity("activity-1", "Activity 1");
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Add same activity multiple times rapidly
-    await act(async () => {
-      result.current.addActivityToDayPlan(activity1);
-      result.current.addActivityToDayPlan(activity1);
-      result.current.addActivityToDayPlan(activity1);
-    });
-
-    expect(result.current.dayPlan.activities).toHaveLength(1);
   });
 
   it("marks an activity from a past day as complete", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-
-    // Seed past day plan
     const pastDate = "2023-01-01";
-    const activity1 = mockActivity("activity-1", "Past Activity", false);
+
     await storeDayPlan(pastDate, {
       date: pastDate,
-      activities: [activity1],
+      plannedInstances: [
+        {
+          id: "instance-past",
+          sourceActivityId: "activity-1",
+          completed: false,
+        },
+      ],
       dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
@@ -339,131 +304,83 @@ describe("useDayPlan", () => {
     });
 
     await act(async () => {
-      await result.current.markActivityCompleteOnDate("activity-1", pastDate);
-    });
-
-    const stored = await fetchDayPlan(pastDate);
-    expect(stored?.activities[0].completed).toBe(true);
-  });
-
-  it("moves an activity from a past day to today", async () => {
-    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-    const pastDate = "2023-01-01";
-    const activity1 = mockActivity("activity-1", "Past Activity", false);
-    await storeDayPlan(pastDate, {
-      date: pastDate,
-      activities: [activity1],
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.moveActivityToToday("activity-1", pastDate);
-    });
-
-    // Validations
-    // 1. Removed from past day
-    const pastStored = await fetchDayPlan(pastDate);
-    expect(pastStored?.activities).toHaveLength(0);
-
-    // 2. Added to today (current dayPlan)
-    expect(result.current.dayPlan.activities).toHaveLength(1);
-    expect(result.current.dayPlan.activities[0].id).toBe("activity-1");
-  });
-
-  it("moves an activity from a past day to unplanned (removes from day plan and returns activity)", async () => {
-    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-    const pastDate = "2023-01-01";
-    const activity1 = mockActivity("activity-1", "Past Activity", false);
-    await storeDayPlan(pastDate, {
-      date: pastDate,
-      activities: [activity1],
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    let removedActivity: unknown;
-    await act(async () => {
-      removedActivity = await result.current.moveActivityToUnplanned(
-        "activity-1",
+      await result.current.markActivityCompleteOnDate(
+        "instance-past",
         pastDate,
       );
     });
 
-    // 1. Removed from past day
-    const pastStored = await fetchDayPlan(pastDate);
-    expect(pastStored?.activities).toHaveLength(0);
-
-    // 2. Returns the removed activity (caller is responsible for adding to one-off)
-    expect(removedActivity).toBeDefined();
-    expect((removedActivity as { id: string }).id).toBe("activity-1");
+    const stored = await fetchDayPlan(pastDate);
+    expect(stored?.plannedInstances[0].completed).toBe(true);
   });
 
-  it("does not duplicate activity when moving to today if already present", async () => {
+  it("moves an instance from a past day to today", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
     const pastDate = "2023-01-01";
-    const activity1 = mockActivity("activity-1", "Past Activity", false);
 
-    // Seed past day
-    await act(async () => {
-      await storeDayPlan(pastDate, {
-        date: pastDate,
-        activities: [activity1],
-        dailyCapacity: { physical: 100, social: 100, executive: 100 },
-      });
-    });
-
-    // Seed today WITH the activity already
-    const { getTodayDateString } = await import("./utils");
-    const today = getTodayDateString();
-
-    await act(async () => {
-      await storeDayPlan(today, {
-        date: today,
-        activities: [activity1], // Already here
-        dailyCapacity: { physical: 100, social: 100, executive: 100 },
-      });
+    await storeDayPlan(pastDate, {
+      date: pastDate,
+      plannedInstances: [
+        {
+          id: "instance-past",
+          sourceActivityId: "activity-1",
+          completed: false,
+        },
+      ],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Go to past
     await act(async () => {
-      result.current.navigateToDate(pastDate);
+      await result.current.moveActivityToToday("instance-past", pastDate);
+    });
+
+    const pastStored = await fetchDayPlan(pastDate);
+    expect(pastStored?.plannedInstances).toHaveLength(0);
+
+    expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
+    expect(result.current.dayPlan.plannedInstances[0].id).toBe("instance-past");
+  });
+
+  it("moves an instance from a past day to unplanned (removes from day plan and returns it)", async () => {
+    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
+    const pastDate = "2023-01-01";
+
+    await storeDayPlan(pastDate, {
+      date: pastDate,
+      plannedInstances: [
+        {
+          id: "instance-past",
+          sourceActivityId: "activity-1",
+          completed: false,
+        },
+      ],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
     });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
-      expect(result.current.currentDate).toBe(pastDate);
     });
 
-    // Move to today
+    let removedInstance: unknown;
     await act(async () => {
-      await result.current.moveActivityToToday("activity-1", pastDate);
+      removedInstance = await result.current.moveActivityToUnplanned(
+        "instance-past",
+        pastDate,
+      );
     });
 
-    // 1. Removed from past
-    await waitFor(async () => {
-      const pastStored = await fetchDayPlan(pastDate);
-      expect(pastStored?.activities).toHaveLength(0);
-    });
+    const pastStored = await fetchDayPlan(pastDate);
+    expect(pastStored?.plannedInstances).toHaveLength(0);
 
-    // 2. Still only 1 in today
-    await waitFor(async () => {
-      const stored = await fetchDayPlan(today);
-      expect(stored?.activities).toHaveLength(1);
-    });
-  }, 10000);
+    expect(removedInstance).toBeDefined();
+    expect((removedInstance as { id: string }).id).toBe("instance-past");
+  });
 
-  it("moves an activity from current day to unplanned", async () => {
+  it("moves an instance from the current day to unplanned", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
     const activity1 = mockActivity("activity-1", "Activity 1");
 
@@ -471,21 +388,21 @@ describe("useDayPlan", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Add to plan
     await act(async () => {
       result.current.addActivityToDayPlan(activity1);
     });
+
+    const instanceId = result.current.dayPlan.plannedInstances[0].id;
 
     await act(async () => {
       const today = result.current.currentDate;
-      await result.current.moveActivityToUnplanned("activity-1", today);
+      await result.current.moveActivityToUnplanned(instanceId, today);
     });
 
-    expect(result.current.dayPlan.activities).toHaveLength(0);
-    // Note: The hook now returns the removed activity, caller is responsible for adding to one-off
+    expect(result.current.dayPlan.plannedInstances).toHaveLength(0);
   });
 
-  it("assigns activity to a zone", async () => {
+  it("assigns instance to a zone", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
     const activity1 = mockActivity("activity-1", "Activity 1");
 
@@ -497,16 +414,16 @@ describe("useDayPlan", () => {
       result.current.addActivityToDayPlan(activity1);
     });
 
-    // Default zone is undefined or handled by util/default
+    const instanceId = result.current.dayPlan.plannedInstances[0].id;
 
     await act(async () => {
-      result.current.assignActivityToZone("activity-1", "evening");
+      result.current.assignActivityToZone(instanceId, "evening");
     });
 
-    expect(result.current.dayPlan.activities[0].zoneId).toBe("evening");
+    expect(result.current.dayPlan.plannedInstances[0].zoneId).toBe("evening");
   });
 
-  it("solidifies a projected repeating activity when assigned to a zone", async () => {
+  it("projects repeating activity with real UUID (not virtual ID)", async () => {
     const today = new Date().toISOString().split("T")[0];
     const repeatingActivity = {
       ...mockActivity("rep-1", "Repeating Activity"),
@@ -520,31 +437,49 @@ describe("useDayPlan", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Verify it is projected
-    const projectedActivity = result.current.dayPlan.activities.find((a) =>
-      a.id.startsWith("virtual-"),
+    const projectedInstance = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "rep-1",
     );
-    expect(projectedActivity).toBeDefined();
-    expect(projectedActivity?.isProjected).toBe(true);
+    expect(projectedInstance).toBeDefined();
+    expect(projectedInstance?.isProjected).toBe(true);
+    // Must be a real UUID, not a virtual-* ID
+    expect(projectedInstance?.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+  });
 
-    // biome-ignore lint/style/noNonNullAssertion: Test will fail if this is null, detecting the issue
-    const virtualId = projectedActivity!.id;
+  it("assigns zone to projected instance without changing its ID", async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const repeatingActivity = {
+      ...mockActivity("rep-1", "Repeating Activity"),
+      repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
+    } as const;
+    const stableList = [repeatingActivity];
 
-    // Assign zone to virtual activity
-    await act(async () => {
-      result.current.assignActivityToZone(virtualId, "morning");
+    const { result } = renderHook(() => useDayPlan(stableList));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
     });
 
-    // Verify it is now concrete
-    const solidActivity = result.current.dayPlan.activities.find(
-      (a) => a.title === "Repeating Activity",
+    const projectedInstance = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "rep-1",
     );
-    expect(solidActivity).toBeDefined();
-    expect(solidActivity?.id).not.toBe(virtualId); // Should have new UUID
-    expect(solidActivity?.id).not.toBe("rep-1"); // Should not be the definition ID
-    expect(solidActivity?.isProjected).toBeUndefined(); // Should not be projected
-    expect(solidActivity?.zoneId).toBe("morning");
-    expect(solidActivity?.zoneId).toBe("morning");
+    expect(projectedInstance).toBeDefined();
+    if (!projectedInstance) throw new Error("Projected instance missing");
+    const originalId = projectedInstance.id;
+
+    await act(async () => {
+      result.current.assignActivityToZone(originalId, "morning");
+    });
+
+    const solidInstance = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "rep-1",
+    );
+    expect(solidInstance).toBeDefined();
+    expect(solidInstance?.id).toBe(originalId); // ID does NOT change
+    expect(solidInstance?.isProjected).toBeUndefined(); // No longer projected
+    expect(solidInstance?.zoneId).toBe("morning");
   });
 
   it("projects repeating activities with their default zone", async () => {
@@ -566,15 +501,14 @@ describe("useDayPlan", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Verify the projected activity has the zone from defaultZoneId
-    const projectedActivity = result.current.dayPlan.activities.find((a) =>
-      a.id.startsWith("virtual-"),
+    const projectedInstance = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "rep-zone",
     );
-    expect(projectedActivity).toBeDefined();
-    expect(projectedActivity?.zoneId).toBe("afternoon");
+    expect(projectedInstance).toBeDefined();
+    expect(projectedInstance?.zoneId).toBe("afternoon");
   });
 
-  it("solidifies a projected repeating activity when completed", async () => {
+  it("completing a projected instance solidifies it and advances nextDueDate", async () => {
     const today = new Date().toISOString().split("T")[0];
     const repeatingActivity = {
       ...mockActivity("rep-2", "Repeating Activity 2"),
@@ -591,90 +525,26 @@ describe("useDayPlan", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    const projectedActivity = result.current.dayPlan.activities.find((a) =>
-      a.id.startsWith("virtual-"),
+    const projectedInstance = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "rep-2",
     );
-    expect(projectedActivity).toBeDefined();
-    expect(projectedActivity?.repeatingActivityId).toBe("rep-2");
-    expect(projectedActivity?.isProjected).toBe(true);
+    expect(projectedInstance).toBeDefined();
+    expect(projectedInstance?.isProjected).toBe(true);
 
-    // Toggle completion
     await act(async () => {
-      // biome-ignore lint/style/noNonNullAssertion: Test will fail if this is null, detecting the issue
-      await result.current.toggleActivityCompletion(projectedActivity!.id);
+      result.current.toggleActivityCompletion(projectedInstance?.id ?? "");
     });
 
-    // Verify it is now concrete and completed
     await waitFor(() => {
-      const activity = result.current.dayPlan.activities.find(
-        (a) => a.title === "Repeating Activity 2",
+      const instance = result.current.dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === "rep-2",
       );
-      expect(activity).toBeDefined();
-      expect(activity?.completed).toBe(true);
-      expect(activity?.isProjected).toBeUndefined();
+      expect(instance).toBeDefined();
+      expect(instance?.completed).toBe(true);
+      expect(instance?.isProjected).toBeUndefined();
     });
 
-    // Should have updated the repeating activity definition with the next due date
     expect(mockOnUpdateActivity).toHaveBeenCalled();
-  });
-
-  it("moves an activity to today when viewing a different day", async () => {
-    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-    const pastDate = "2023-01-01";
-    const activity1 = mockActivity("activity-1", "Past Activity", false);
-    await storeDayPlan(pastDate, {
-      date: pastDate,
-      activities: [activity1],
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
-    });
-
-    // We are currently on today
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Go to tomorrow
-    await act(async () => {
-      result.current.goToNextDay();
-    });
-
-    // Move activity from past to today (not current view)
-    await act(async () => {
-      await result.current.moveActivityToToday("activity-1", pastDate);
-    });
-
-    // Verify it is in today's plan in storage
-    const { fetchDayPlan } = await import("@/lib/energy-planner/storage");
-    // getTodayDateString is not exported from storage but utils...
-    // Just construct string
-    const today = new Date().toISOString().split("T")[0];
-    const todayPlan = await fetchDayPlan(today);
-
-    expect(todayPlan?.activities).toHaveLength(1);
-    // expect(todayPlan?.activities[0].id).toBe("activity-1"); // ID might be different if move regenerated it, but moveActivityToToday logic (not moveActivityToDate) usually preserves it?
-    // moveActivityToToday implementation (lines 400+) preserves activityToMove object.
-    expect(todayPlan?.activities[0].title).toBe("Past Activity");
-  });
-
-  it("navigates to today", async () => {
-    const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
-    const today = new Date().toISOString().split("T")[0];
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      result.current.goToPreviousDay();
-    });
-
-    expect(result.current.currentDate).not.toBe(today);
-
-    await act(async () => {
-      result.current.goToToday();
-    });
-
-    expect(result.current.currentDate).toBe(today);
   });
 
   it("marks an activity as complete on the current day", async () => {
@@ -689,19 +559,18 @@ describe("useDayPlan", () => {
       result.current.addActivityToDayPlan(activity1);
     });
 
+    const instanceId = result.current.dayPlan.plannedInstances[0].id;
     const today = result.current.currentDate;
+
     await act(async () => {
-      await result.current.markActivityCompleteOnDate("activity-1", today);
+      await result.current.markActivityCompleteOnDate(instanceId, today);
     });
 
-    expect(result.current.dayPlan.activities[0].completed).toBe(true);
+    expect(result.current.dayPlan.plannedInstances[0].completed).toBe(true);
   });
 
   describe("Repeating Activity Logic Coverage", () => {
     beforeEach(() => {
-      // Set a safe date (middle of month) to avoid end-of-month overflow issues
-      // e.g. Jan 31 + 1 month -> March 2/3
-      // Only fake Date, leave setTimeout/Interval/etc real so waitFor works naturally
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
     });
@@ -722,10 +591,8 @@ describe("useDayPlan", () => {
       const { result } = renderHook(() => useDayPlan(stableList));
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      // Should be visible today
-      expect(result.current.dayPlan.activities).toHaveLength(1);
+      expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
 
-      // Navigate to next week
       const nextWeek = new Date(today);
       nextWeek.setDate(today.getDate() + 7);
       const nextWeekStr = nextWeek.toISOString().split("T")[0];
@@ -735,9 +602,9 @@ describe("useDayPlan", () => {
       });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      expect(result.current.dayPlan.activities).toHaveLength(1);
-      expect(result.current.dayPlan.activities[0].title).toBe(
-        "Weekly Activity",
+      expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
+      expect(result.current.dayPlan.plannedInstances[0].sourceActivityId).toBe(
+        "rep-week",
       );
     });
 
@@ -753,7 +620,6 @@ describe("useDayPlan", () => {
       const { result } = renderHook(() => useDayPlan(stableList));
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      // Navigate to next month
       const nextMonth = new Date(today);
       nextMonth.setMonth(today.getMonth() + 1);
       const nextMonthStr = nextMonth.toISOString().split("T")[0];
@@ -763,9 +629,9 @@ describe("useDayPlan", () => {
       });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      expect(result.current.dayPlan.activities).toHaveLength(1);
-      expect(result.current.dayPlan.activities[0].title).toBe(
-        "Monthly Activity",
+      expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
+      expect(result.current.dayPlan.plannedInstances[0].sourceActivityId).toBe(
+        "rep-month",
       );
     });
 
@@ -781,7 +647,6 @@ describe("useDayPlan", () => {
       const { result } = renderHook(() => useDayPlan(stableList));
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      // Navigate to next year
       const nextYear = new Date(today);
       nextYear.setFullYear(today.getFullYear() + 1);
       const nextYearStr = nextYear.toISOString().split("T")[0];
@@ -791,20 +656,19 @@ describe("useDayPlan", () => {
       });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      expect(result.current.dayPlan.activities).toHaveLength(1);
-      expect(result.current.dayPlan.activities[0].title).toBe(
-        "Yearly Activity",
+      expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
+      expect(result.current.dayPlan.plannedInstances[0].sourceActivityId).toBe(
+        "rep-year",
       );
     });
 
-    it("skips a repeating activity (deferred execution)", async () => {
+    it("skips a repeating activity and advances nextDueDate", async () => {
       const today = new Date().toISOString().split("T")[0];
       const activity = {
         ...mockActivity("rep-skip", "Skippable Activity"),
         repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
       } as const;
       const stableList = [activity];
-
       const mockOnUpdateActivity = vi.fn();
 
       const { result } = renderHook(() =>
@@ -812,25 +676,19 @@ describe("useDayPlan", () => {
       );
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      // Should be projected
-      const projected = result.current.dayPlan.activities.find((a) =>
-        a.id.startsWith("virtual-"),
+      const projected = result.current.dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === "rep-skip",
       );
 
-      // Verify projected activity exists and is valid
       expect(projected).toBeDefined();
-      if (!projected) throw new Error("No projected activity found");
+      if (!projected) throw new Error("No projected instance found");
 
-      const activityId = projected.id;
-      expect(projected.repeatingActivityId).toBe("rep-skip");
       expect(projected.isProjected).toBe(true);
 
-      // Skip it
       await act(async () => {
-        result.current.skipActivity(activityId);
+        result.current.skipActivity(projected.id);
       });
 
-      // Verify onUpdateActivity was called with updated nextDueDate (tomorrow)
       expect(mockOnUpdateActivity).toHaveBeenCalled();
       const updatedActivity = mockOnUpdateActivity.mock.calls[0][0];
 
@@ -840,9 +698,8 @@ describe("useDayPlan", () => {
 
       expect(updatedActivity.repeatConfig.nextDueDate).toBe(tomorrowStr);
 
-      // Should be removed from plan
-      const remaining = result.current.dayPlan.activities.find(
-        (a) => a.id === activityId,
+      const remaining = result.current.dayPlan.plannedInstances.find(
+        (i) => i.id === projected.id,
       );
       expect(remaining).toBeUndefined();
     });

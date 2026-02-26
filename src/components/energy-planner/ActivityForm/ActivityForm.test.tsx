@@ -1,71 +1,20 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { Mock } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as storageMock from "@/lib/energy-planner/storage";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
-import {
-  clearAll,
-  fetchOneOffActivities,
-  fetchRepeatingActivities,
-  storeOneOffActivities,
-  storeRepeatingActivities,
-} from "../../../lib/energy-planner/storage";
 import { ActivityForm } from ".";
 
-// Explicitly type the mock implementations to avoid 'any'
-vi.mock("../../../lib/energy-planner/storage", () => {
-  let mockOneOffActivities: Activity[] = [];
-  let mockRepeatingActivities: Activity[] = [];
-
-  return {
-    clearAll: vi.fn().mockImplementation(async () => {
-      mockOneOffActivities = [];
-      mockRepeatingActivities = [];
-    }),
-    fetchOneOffActivities: vi.fn().mockImplementation(async () => {
-      return mockOneOffActivities;
-    }),
-    storeOneOffActivities: vi.fn().mockImplementation(async (activities) => {
-      mockOneOffActivities = activities;
-    }),
-    fetchRepeatingActivities: vi
-      .fn()
-      .mockImplementation(async () => mockRepeatingActivities),
-    storeRepeatingActivities: vi.fn().mockImplementation(async (activities) => {
-      mockRepeatingActivities = activities;
-    }),
-    fetchEnergyTypes: vi.fn().mockResolvedValue([
-      { id: "physical", label: "Physical", color: "red" },
-      { id: "social", label: "Social", color: "blue" },
-      { id: "executive", label: "Executive", color: "green" },
-    ]),
-    storeEnergyTypes: vi.fn().mockResolvedValue(undefined),
-    fetchZones: vi.fn().mockResolvedValue([]),
-    storeZones: vi.fn().mockResolvedValue(undefined),
-    fetchDayPlan: vi.fn().mockResolvedValue(null),
-    storeDayPlan: vi.fn().mockResolvedValue(undefined),
-    deleteDayPlan: vi.fn().mockResolvedValue(undefined),
-    fetchAllDayPlanDates: vi.fn().mockResolvedValue([]),
-  };
-});
+vi.mock("@/lib/energy-planner/storage");
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
 );
 
-// Helper to type mocks
-import type { Mock } from "vitest";
-
-const mockstoreOneOffActivities = storeOneOffActivities as unknown as Mock;
-const mockstoreRepeatingActivities =
-  storeRepeatingActivities as unknown as Mock;
-
 describe("ActivityForm", () => {
   beforeEach(async () => {
-    vi.clearAllMocks();
-    (fetchOneOffActivities as unknown as Mock).mockResolvedValue([]);
-    (fetchRepeatingActivities as unknown as Mock).mockResolvedValue([]);
-    (storeRepeatingActivities as unknown as Mock).mockResolvedValue(undefined);
-    await clearAll();
+    (storageMock as unknown as { __reset: () => void }).__reset();
   });
 
   it("renders empty form for new activity", async () => {
@@ -124,7 +73,7 @@ describe("ActivityForm", () => {
 
     // Verify storage
     await waitFor(() => {
-      expect(mockstoreOneOffActivities).toHaveBeenCalledWith(
+      expect(storageMock.storeActivities).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             title: "New Chore",
@@ -142,7 +91,7 @@ describe("ActivityForm", () => {
   });
 
   it("updates an existing activity", async () => {
-    const initialActivity = {
+    const initialActivity: Activity = {
       id: "123",
       createdAt: new Date(),
       title: "Existing Activity",
@@ -153,11 +102,10 @@ describe("ActivityForm", () => {
         terminationDifficulty: 1,
         isRestorative: false,
       },
-      completed: false,
     };
 
     // Initialize mock state
-    (fetchOneOffActivities as unknown as Mock).mockImplementation(async () => [
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
       initialActivity,
     ]);
 
@@ -191,12 +139,9 @@ describe("ActivityForm", () => {
 
     // Verify storage
     await waitFor(() => {
-      // console.log("Calls:", mockstoreOneOffActivities.mock.calls);
-      expect(mockstoreOneOffActivities).toHaveBeenCalled();
-      const lastCall =
-        mockstoreOneOffActivities.mock.calls[
-          mockstoreOneOffActivities.mock.calls.length - 1
-        ];
+      expect(storageMock.storeActivities).toHaveBeenCalled();
+      const mockFn = storageMock.storeActivities as unknown as Mock;
+      const lastCall = mockFn.mock.calls[mockFn.mock.calls.length - 1];
       expect(lastCall[0]).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -236,7 +181,7 @@ describe("ActivityForm", () => {
     });
 
     await waitFor(() => {
-      expect(mockstoreOneOffActivities).toHaveBeenCalledWith(
+      expect(storageMock.storeActivities).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             title: "Another Activity",
@@ -265,12 +210,13 @@ describe("ActivityForm", () => {
 
     // Clear mocks to ignore initial load calls
     vi.clearAllMocks();
+    (storageMock as unknown as { __reset: () => void }).__reset();
 
     // Submit without title
     fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
 
     expect(onClose).not.toHaveBeenCalled();
-    expect(mockstoreOneOffActivities).not.toHaveBeenCalled();
+    expect(storageMock.storeActivities).not.toHaveBeenCalled();
   });
 
   it("toggles repeating activity options", async () => {
@@ -306,7 +252,7 @@ describe("ActivityForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
 
     await waitFor(() => {
-      expect(mockstoreRepeatingActivities).toHaveBeenCalledWith(
+      expect(storageMock.storeActivities).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             title: "Repeater",
@@ -342,16 +288,12 @@ describe("ActivityForm", () => {
 
     // The activity is immediately planned when there is a zone context,
     // so it ends up in the day plan rather than the available activities pool.
-    const { storeDayPlan } = await import(
-      "../../../lib/energy-planner/storage"
-    );
     await waitFor(() => {
-      expect(storeDayPlan).toHaveBeenCalledWith(
+      expect(storageMock.storeDayPlan).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          activities: expect.arrayContaining([
+          plannedInstances: expect.arrayContaining([
             expect.objectContaining({
-              title: "Contextual Activity",
               zoneId: "morning",
             }),
           ]),

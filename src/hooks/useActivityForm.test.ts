@@ -14,7 +14,6 @@ const mockActivity: Activity = {
     terminationDifficulty: 7,
     isRestorative: true,
   },
-  completed: false,
 };
 
 // Mock the context hook

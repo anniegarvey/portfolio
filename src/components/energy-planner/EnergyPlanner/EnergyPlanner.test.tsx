@@ -52,7 +52,6 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
               terminationDifficulty: 0,
               isRestorative: false,
             },
-            completed: false,
           })
         }
         type="button"

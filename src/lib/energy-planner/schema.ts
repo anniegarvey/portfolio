@@ -85,24 +85,50 @@ export const ActivitySchema = z.object({
   factors: ActivityFactorSchema,
   createdAt: z.date(),
   repeatConfig: RepeatConfigSchema.optional(),
-  completed: z.boolean().default(false),
   defaultZoneId: z.string().optional(),
 });
 export type Activity = z.infer<typeof ActivitySchema>;
 
-export const PlannedActivitySchema = ActivitySchema.extend({
-  completed: z.boolean().default(false),
+// A planned instance is a lightweight reference linking an activity to a day plan.
+// Activity data (title, energy cost, etc.) is derived live from the activity store.
+export const PlannedInstanceSchema = z.object({
+  id: z.string().uuid(),
+  sourceActivityId: z.string().uuid(),
   zoneId: z.string().optional(),
-  repeatingActivityId: z.string().optional(), // Link back to the definition
+  completed: z.boolean().default(false),
   isProjected: z.boolean().optional(), // Transient flag for virtual instances
 });
-export type PlannedActivity = z.infer<typeof PlannedActivitySchema>;
+export type PlannedInstance = z.infer<typeof PlannedInstanceSchema>;
+
+// Convenience type pairing an instance with its resolved activity definition,
+// used by components that need both for display.
+export type ResolvedActivity = {
+  instance: PlannedInstance;
+  activity: Activity;
+};
 
 export const DayPlanSchema = z.object({
   date: z.string(), // ISO date string YYYY-MM-DD
-  activities: z.array(PlannedActivitySchema).default([]),
+  plannedInstances: z.array(PlannedInstanceSchema).default([]),
   dailyCapacity: EnergyCostSchema,
-  activityOrder: z.array(z.string()).optional(), // Persisted order including virtual activity IDs
+  activityOrder: z.array(z.string()).optional(), // Persisted order of instance IDs
 });
 
 export type DayPlan = z.infer<typeof DayPlanSchema>;
+
+// Legacy types used only during storage migration from the old format.
+export const LegacyPlannedActivitySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  energyCost: EnergyCostSchema,
+  factors: ActivityFactorSchema,
+  createdAt: z.date(),
+  repeatConfig: RepeatConfigSchema.optional(),
+  completed: z.boolean().default(false),
+  defaultZoneId: z.string().optional(),
+  zoneId: z.string().optional(),
+  repeatingActivityId: z.string().optional(),
+  isProjected: z.boolean().optional(),
+});
+export type LegacyPlannedActivity = z.infer<typeof LegacyPlannedActivitySchema>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Activity, DayPlan } from "./schema";
+import type { Activity, ResolvedActivity } from "./schema";
 import { calculateEnergyUsage, getReorderedItems } from "./utils";
 
 const mockActivities: Activity[] = [
@@ -13,7 +13,6 @@ const mockActivities: Activity[] = [
       terminationDifficulty: 1,
       isRestorative: false,
     },
-    completed: false,
   },
   {
     id: "activity-2",
@@ -25,7 +24,6 @@ const mockActivities: Activity[] = [
       terminationDifficulty: 1,
       isRestorative: false,
     },
-    completed: false,
   },
   {
     id: "activity-3",
@@ -37,40 +35,32 @@ const mockActivities: Activity[] = [
       terminationDifficulty: 1,
       isRestorative: false,
     },
-    completed: false,
   },
 ];
 
+const makeResolved = (activities: Activity[]): ResolvedActivity[] =>
+  activities.map((activity, i) => ({
+    activity,
+    instance: {
+      id: `instance-${i}`,
+      sourceActivityId: activity.id,
+      completed: false,
+    },
+  }));
+
 describe("calculateEnergyUsage", () => {
   it("calculates energy usage for selected activities correctly", () => {
-    const dayPlan: DayPlan = {
-      date: "2023-01-01",
-      activities: [
-        { ...mockActivities[0], completed: false },
-        { ...mockActivities[1], completed: false },
-      ],
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
-    };
-
-    const usage = calculateEnergyUsage(dayPlan);
-
+    const resolved = makeResolved([mockActivities[0], mockActivities[1]]);
+    const usage = calculateEnergyUsage(resolved);
     expect(usage).toEqual({
-      physical: 15, // 10 + 5
-      social: 20, // 20 + 0
-      executive: 20, // 5 + 15
+      physical: 15,
+      social: 20,
+      executive: 20,
     });
   });
 
   it("returns zero usage when no activities are selected", () => {
-    const dayPlan: DayPlan = {
-      date: "2023-01-01",
-      activities: [],
-      dailyCapacity: { physical: 100, social: 100, executive: 100 },
-    };
-
-    const usage = calculateEnergyUsage(dayPlan);
-
-    // With dynamic energy types, empty selection returns object with 0 values
+    const usage = calculateEnergyUsage([]);
     expect(usage).toEqual({ physical: 0, social: 0, executive: 0 });
   });
 });

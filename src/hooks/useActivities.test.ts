@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { useActivities } from "./useActivities";
 
-// Reuse the manual mock from storage
 vi.mock("@/lib/energy-planner/storage");
 
 const newRepeatingActivity = {
@@ -16,7 +15,6 @@ const newRepeatingActivity = {
     isRestorative: false,
   },
   repeatConfig: { frequency: 1, unit: "days" },
-  completed: false,
 } as const;
 
 describe("useActivities", () => {
@@ -45,7 +43,6 @@ describe("useActivities", () => {
     expect(result.current.repeatingActivities).toHaveLength(1);
     expect(result.current.repeatingActivities[0].title).toBe("Rep Activity");
 
-    // Update
     act(() => {
       result.current.updateActivity({
         ...addedActivity,
@@ -59,28 +56,7 @@ describe("useActivities", () => {
     );
   });
 
-  it("handles adding activity back to available (repeating)", async () => {
-    const { result } = renderHook(() => useActivities());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    act(() => {
-      result.current.addActivity(newRepeatingActivity);
-    });
-
-    // Try to add back to available
-    act(() => {
-      result.current.addActivityToAvailable({
-        ...newRepeatingActivity,
-        id: "123",
-        createdAt: new Date(),
-      });
-    });
-
-    // Should not duplicate
-    expect(result.current.repeatingActivities).toHaveLength(1);
-  });
-
-  it("converts one-off activity to repeating", async () => {
+  it("converts one-off activity to repeating via updateActivity", async () => {
     const { result } = renderHook(() => useActivities());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -94,14 +70,12 @@ describe("useActivities", () => {
           terminationDifficulty: 0,
           isRestorative: false,
         },
-        completed: false,
       });
     });
 
     expect(result.current.oneOffActivities).toHaveLength(1);
     expect(result.current.repeatingActivities).toHaveLength(0);
 
-    // Convert to repeating
     act(() => {
       result.current.updateActivity({
         ...addedActivity,
@@ -114,7 +88,7 @@ describe("useActivities", () => {
     expect(result.current.repeatingActivities[0].title).toBe("One-Off");
   });
 
-  it("converts repeating activity to one-off", async () => {
+  it("converts repeating activity to one-off via updateActivity", async () => {
     const { result } = renderHook(() => useActivities());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -129,13 +103,11 @@ describe("useActivities", () => {
           isRestorative: false,
         },
         repeatConfig: { frequency: 1, unit: "days" },
-        completed: false,
       });
     });
 
     expect(result.current.repeatingActivities).toHaveLength(1);
 
-    // Convert to one-off
     act(() => {
       const { repeatConfig: _, ...oneOffData } = addedActivity;
       result.current.updateActivity(oneOffData as Activity);
@@ -146,7 +118,7 @@ describe("useActivities", () => {
     expect(result.current.oneOffActivities[0].title).toBe("Repeating");
   });
 
-  it("removes activity state from both lists", async () => {
+  it("removes activities from the unified store", async () => {
     const { result } = renderHook(() => useActivities());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -159,7 +131,6 @@ describe("useActivities", () => {
           terminationDifficulty: 0,
           isRestorative: false,
         },
-        completed: false,
       });
       result.current.addActivity({
         title: "Repeating",
@@ -170,7 +141,6 @@ describe("useActivities", () => {
           isRestorative: false,
         },
         repeatConfig: { frequency: 1, unit: "days" },
-        completed: false,
       });
     });
 
@@ -184,71 +154,7 @@ describe("useActivities", () => {
 
     expect(result.current.oneOffActivities).toHaveLength(0);
     expect(result.current.repeatingActivities).toHaveLength(0);
-  });
-
-  it("handles addActivityToAvailable correctly", async () => {
-    const { result } = renderHook(() => useActivities());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    const oneOff: Activity = {
-      id: "1",
-      title: "O",
-      energyCost: {},
-      factors: {
-        initiationDifficulty: 0,
-        terminationDifficulty: 0,
-        isRestorative: false,
-      },
-      createdAt: new Date(),
-      completed: false,
-    };
-    const repeating: Activity = {
-      id: "2",
-      title: "R",
-      energyCost: {},
-      factors: {
-        initiationDifficulty: 0,
-        terminationDifficulty: 0,
-        isRestorative: false,
-      },
-      repeatConfig: { frequency: 1, unit: "days" },
-      createdAt: new Date(),
-      completed: false,
-    };
-
-    act(() => {
-      result.current.addActivityToAvailable(oneOff);
-      result.current.addActivityToAvailable(repeating);
-    });
-
-    expect(result.current.oneOffActivities).toHaveLength(1);
-    expect(result.current.repeatingActivities).toHaveLength(0);
-  });
-
-  it("handles removeActivityFromAvailable", async () => {
-    const { result } = renderHook(() => useActivities());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    act(() => {
-      result.current.addActivity({
-        title: "One-off",
-        energyCost: {},
-        factors: {
-          initiationDifficulty: 0,
-          terminationDifficulty: 0,
-          isRestorative: false,
-        },
-        completed: false,
-      });
-    });
-
-    const id = result.current.oneOffActivities[0].id;
-
-    act(() => {
-      result.current.removeActivityFromAvailable(id);
-    });
-
-    expect(result.current.oneOffActivities).toHaveLength(0);
+    expect(result.current.activities).toHaveLength(0);
   });
 
   it("updates existing activities in their respective lists", async () => {
@@ -267,7 +173,6 @@ describe("useActivities", () => {
           terminationDifficulty: 0,
           isRestorative: false,
         },
-        completed: false,
       });
       repeating = result.current.addActivity({
         title: "R",
@@ -278,7 +183,6 @@ describe("useActivities", () => {
           isRestorative: false,
         },
         repeatConfig: { frequency: 1, unit: "days" },
-        completed: false,
       });
     });
 
@@ -289,5 +193,51 @@ describe("useActivities", () => {
 
     expect(result.current.oneOffActivities[0].title).toBe("O-up");
     expect(result.current.repeatingActivities[0].title).toBe("R-up");
+  });
+
+  it("derives oneOffActivities and repeatingActivities from single store", async () => {
+    const { result } = renderHook(() => useActivities());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.addActivity({
+        title: "One-off A",
+        energyCost: {},
+        factors: {
+          initiationDifficulty: 0,
+          terminationDifficulty: 0,
+          isRestorative: false,
+        },
+      });
+      result.current.addActivity({
+        title: "Repeating A",
+        energyCost: {},
+        factors: {
+          initiationDifficulty: 0,
+          terminationDifficulty: 0,
+          isRestorative: false,
+        },
+        repeatConfig: { frequency: 1, unit: "days" },
+      });
+      result.current.addActivity({
+        title: "One-off B",
+        energyCost: {},
+        factors: {
+          initiationDifficulty: 0,
+          terminationDifficulty: 0,
+          isRestorative: false,
+        },
+      });
+    });
+
+    expect(result.current.activities).toHaveLength(3);
+    expect(result.current.oneOffActivities).toHaveLength(2);
+    expect(result.current.repeatingActivities).toHaveLength(1);
+    expect(result.current.oneOffActivities.every((a) => !a.repeatConfig)).toBe(
+      true,
+    );
+    expect(
+      result.current.repeatingActivities.every((a) => !!a.repeatConfig),
+    ).toBe(true);
   });
 });
