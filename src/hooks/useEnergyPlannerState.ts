@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   Activity,
   EnergyCost,
-  PlannedInstance,
   ResolvedActivity,
 } from "@/lib/energy-planner/schema";
 import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
@@ -12,7 +11,7 @@ import { useActivities } from "./useActivities";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useZones } from "./useZones";
-import { getUncompletedActivities } from "./utils";
+import { fetchOneOffPlanningState, type OneOffPlanningState } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
@@ -68,33 +67,32 @@ export function useEnergyPlannerState() {
     reorderZones,
   } = useZones();
 
-  // Build an activity map for fast lookups — used for resolving instances
   const activityMap = useMemo(
     () => new Map(activities.map((a) => [a.id, a])),
     [activities],
   );
 
-  // Resolve the current day plan's instances against the activity store
   const resolvedActivities: ResolvedActivity[] = useMemo(
     () => resolveActivities(activityMap),
     [resolveActivities, activityMap],
   );
 
-  // Uncompleted activities from previous days
-  const [uncompletedActivities, setUncompletedActivities] = useState<
-    { activity: Activity; instanceId: string; fromDate: string }[]
-  >([]);
+  const emptyPlanningState: OneOffPlanningState = {
+    uncompleted: [],
+    scheduledOneOffIds: new Set(),
+    completedOneOffIds: new Set(),
+  };
+
+  const [oneOffPlanningState, setOneOffPlanningState] =
+    useState<OneOffPlanningState>(emptyPlanningState);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: dayPlanVersion intentionally triggers re-fetch after storage changes
   useEffect(() => {
     if (activitiesLoading) return;
 
     (async () => {
-      const uncompleted = await getUncompletedActivities(
-        currentDate,
-        activityMap,
-      );
-      setUncompletedActivities(uncompleted);
+      const state = await fetchOneOffPlanningState(currentDate, activityMap);
+      setOneOffPlanningState(state);
     })();
   }, [activitiesLoading, currentDate, dayPlanVersion, activityMap]);
 
@@ -105,7 +103,6 @@ export function useEnergyPlannerState() {
     [addActivityBase],
   );
 
-  // Add a one-off activity to the plan for the current day
   const addToPlan = useCallback(
     (activityId: string, zoneId?: string, knownActivity?: Activity) => {
       const activity =
@@ -115,29 +112,83 @@ export function useEnergyPlannerState() {
         return;
       }
       addActivityToDayPlan(activity, zoneId);
+
+      setOneOffPlanningState((prev) => ({
+        ...prev,
+        scheduledOneOffIds: new Set([...prev.scheduledOneOffIds, activityId]),
+      }));
     },
     [activities, addActivityToDayPlan],
   );
 
-  // Remove a one-off instance from the plan (instance stays in activity store)
   const removeFromPlan = useCallback(
     (instanceId: string) => {
+      const instance = dayPlan.plannedInstances.find(
+        (i) => i.id === instanceId,
+      );
+      const sourceActivityId = instance?.sourceActivityId;
+      const activity = sourceActivityId
+        ? activities.find((a) => a.id === sourceActivityId)
+        : undefined;
+
       removeFromPlanBase(instanceId);
+
+      if (activity && !activity.repeatConfig && sourceActivityId) {
+        setOneOffPlanningState((prev) => {
+          const scheduledOneOffIds = new Set(prev.scheduledOneOffIds);
+          const completedOneOffIds = new Set(prev.completedOneOffIds);
+          scheduledOneOffIds.delete(sourceActivityId);
+          completedOneOffIds.delete(sourceActivityId);
+          return { ...prev, scheduledOneOffIds, completedOneOffIds };
+        });
+      }
     },
-    [removeFromPlanBase],
+    [removeFromPlanBase, dayPlan.plannedInstances, activities],
   );
 
-  // Move an unplanned instance back from any date
   const moveActivityToUnplanned = useCallback(
     async (instanceId: string, fromDate: string) => {
+      let sourceActivityId: string | undefined;
+
+      if (fromDate === currentDate) {
+        const instance = dayPlan.plannedInstances.find(
+          (i) => i.id === instanceId,
+        );
+        sourceActivityId = instance?.sourceActivityId;
+      } else {
+        const uncompletedItem = oneOffPlanningState.uncompleted.find(
+          (u) => u.instanceId === instanceId,
+        );
+        sourceActivityId = uncompletedItem?.activity.id;
+      }
+
+      const activity = sourceActivityId
+        ? activities.find((a) => a.id === sourceActivityId)
+        : undefined;
+
       await moveActivityToUnplannedBase(instanceId, fromDate);
+
+      if (activity && !activity.repeatConfig && sourceActivityId) {
+        setOneOffPlanningState((prev) => {
+          const scheduledOneOffIds = new Set(prev.scheduledOneOffIds);
+          const completedOneOffIds = new Set(prev.completedOneOffIds);
+          scheduledOneOffIds.delete(sourceActivityId);
+          completedOneOffIds.delete(sourceActivityId);
+          return { ...prev, scheduledOneOffIds, completedOneOffIds };
+        });
+      }
     },
-    [moveActivityToUnplannedBase],
+    [
+      moveActivityToUnplannedBase,
+      oneOffPlanningState.uncompleted,
+      dayPlan.plannedInstances,
+      activities,
+      currentDate,
+    ],
   );
 
   const removeActivity = useCallback(
     async (activityId: string) => {
-      // Remove any planned instance for this activity from the current view
       const instanceToRemove = dayPlan.plannedInstances.find(
         (i) => i.sourceActivityId === activityId,
       );
@@ -176,29 +227,49 @@ export function useEnergyPlannerState() {
 
   const handleUpdateActivity = useCallback(
     (activity: Activity) => {
-      updateActivityBase(activity);
-
-      // For projected repeating instances, remove them from the day plan so that
-      // the re-projection logic can re-evaluate based on the updated nextDueDate.
       const projectedInstance = dayPlan.plannedInstances.find(
         (i) => i.sourceActivityId === activity.id && i.isProjected,
       );
-      if (projectedInstance && activity.repeatConfig) {
-        deleteFromPlan(projectedInstance.id);
+
+      if (projectedInstance) {
+        if (activity.repeatConfig) {
+          // If it's still repeating but updated (e.g., date changed),
+          // remove the old projection so `useDayPlan` can re-evaluate it.
+          deleteFromPlan(projectedInstance.id);
+        } else {
+          // Converted from repeating to one-off: replace the projection with a
+          // concrete instance and mark it as scheduled in the index.
+          addActivityToDayPlan(activity, projectedInstance.zoneId);
+          setOneOffPlanningState((prev) => ({
+            ...prev,
+            scheduledOneOffIds: new Set([
+              ...prev.scheduledOneOffIds,
+              activity.id,
+            ]),
+          }));
+        }
       }
+
+      updateActivityBase(activity);
     },
-    [updateActivityBase, deleteFromPlan, dayPlan.plannedInstances],
+    [
+      updateActivityBase,
+      deleteFromPlan,
+      dayPlan.plannedInstances,
+      addActivityToDayPlan,
+    ],
   );
 
   const isLoading =
     activitiesLoading || dayPlanLoading || typesLoading || zonesLoading;
 
-  // Available activities = one-offs not currently in the day plan
-  const plannedSourceIds = new Set(
-    dayPlan.plannedInstances.map((i: PlannedInstance) => i.sourceActivityId),
-  );
+  // Available = one-offs with no concrete instance scheduled or completed anywhere
   const availableActivities = oneOffActivities.filter(
-    (a) => !plannedSourceIds.has(a.id),
+    (a) =>
+      !(
+        oneOffPlanningState.scheduledOneOffIds.has(a.id) ||
+        oneOffPlanningState.completedOneOffIds.has(a.id)
+      ),
   );
 
   return {
@@ -225,7 +296,7 @@ export function useEnergyPlannerState() {
     moveActivityToDate,
     calculateEnergyUsage,
     checkExceedsCapacity,
-    uncompletedActivities,
+    uncompletedActivities: oneOffPlanningState.uncompleted,
     availableActivities,
     repeatingActivities,
     energyTypes,

@@ -5,6 +5,7 @@ import {
   createEmptyDayPlan,
   defaultCapacity,
   fetchDayPlanForDate,
+  fetchOneOffPlanningState,
   formatDateForDisplay,
   generateUniqueKey,
   getAllStoredDates,
@@ -288,6 +289,140 @@ describe("hooks/utils", () => {
 
       const result = await getUncompletedActivities("2026-01-14", activityMap);
       expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("fetchOneOffPlanningState", () => {
+    const makeOneOff = (id: string, title: string): Activity => ({
+      id,
+      title,
+      energyCost: { physical: 10 },
+      factors: {
+        initiationDifficulty: 1,
+        terminationDifficulty: 1,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+    });
+
+    const makeRepeating = (id: string, title: string): Activity => ({
+      id,
+      title,
+      energyCost: { physical: 10 },
+      factors: {
+        initiationDifficulty: 1,
+        terminationDifficulty: 1,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+      repeatConfig: { frequency: 1, unit: "days" as const },
+    });
+
+    it("returns empty sets when no data stored", async () => {
+      const map = new Map<string, Activity>();
+      const result = await fetchOneOffPlanningState("2026-01-14", map);
+      expect(result.uncompleted).toEqual([]);
+      expect(result.scheduledOneOffIds.size).toBe(0);
+      expect(result.completedOneOffIds.size).toBe(0);
+    });
+
+    it("marks a scheduled one-off in scheduledOneOffIds", async () => {
+      const activity = makeOneOff("a1", "A1");
+      const activityMap = new Map([["a1", activity]]);
+
+      await saveDayPlanForDate("2026-01-14", {
+        date: "2026-01-14",
+        plannedInstances: [
+          { id: "inst-1", sourceActivityId: "a1", completed: false },
+        ],
+        dailyCapacity: defaultCapacity,
+      });
+
+      const result = await fetchOneOffPlanningState("2026-01-14", activityMap);
+      expect(result.scheduledOneOffIds.has("a1")).toBe(true);
+    });
+
+    it("marks a completed one-off in completedOneOffIds", async () => {
+      const activity = makeOneOff("a1", "A1");
+      const activityMap = new Map([["a1", activity]]);
+
+      await saveDayPlanForDate("2026-01-13", {
+        date: "2026-01-13",
+        plannedInstances: [
+          { id: "inst-1", sourceActivityId: "a1", completed: true },
+        ],
+        dailyCapacity: defaultCapacity,
+      });
+
+      const result = await fetchOneOffPlanningState("2026-01-14", activityMap);
+      expect(result.scheduledOneOffIds.has("a1")).toBe(true);
+      expect(result.completedOneOffIds.has("a1")).toBe(true);
+      expect(result.uncompleted).toHaveLength(0);
+    });
+
+    it("includes past uncompleted one-offs but not today or future", async () => {
+      const activity = makeOneOff("a1", "A1");
+      const activityMap = new Map([["a1", activity]]);
+
+      // Past — should appear in uncompleted
+      await saveDayPlanForDate("2026-01-12", {
+        date: "2026-01-12",
+        plannedInstances: [
+          { id: "past", sourceActivityId: "a1", completed: false },
+        ],
+        dailyCapacity: defaultCapacity,
+      });
+      // Today — should NOT appear in uncompleted
+      await saveDayPlanForDate("2026-01-14", {
+        date: "2026-01-14",
+        plannedInstances: [
+          { id: "today", sourceActivityId: "a1", completed: false },
+        ],
+        dailyCapacity: defaultCapacity,
+      });
+
+      const result = await fetchOneOffPlanningState("2026-01-14", activityMap);
+      expect(result.uncompleted.map((u) => u.instanceId)).toContain("past");
+      expect(result.uncompleted.map((u) => u.instanceId)).not.toContain(
+        "today",
+      );
+    });
+
+    it("ignores projected instances", async () => {
+      const activity = makeOneOff("a1", "A1");
+      const activityMap = new Map([["a1", activity]]);
+
+      await saveDayPlanForDate("2026-01-14", {
+        date: "2026-01-14",
+        plannedInstances: [
+          {
+            id: "proj",
+            sourceActivityId: "a1",
+            completed: false,
+            isProjected: true,
+          },
+        ],
+        dailyCapacity: defaultCapacity,
+      });
+
+      const result = await fetchOneOffPlanningState("2026-01-14", activityMap);
+      expect(result.scheduledOneOffIds.has("a1")).toBe(false);
+    });
+
+    it("ignores repeating activities", async () => {
+      const activity = makeRepeating("r1", "R1");
+      const activityMap = new Map([["r1", activity]]);
+
+      await saveDayPlanForDate("2026-01-14", {
+        date: "2026-01-14",
+        plannedInstances: [
+          { id: "inst", sourceActivityId: "r1", completed: false },
+        ],
+        dailyCapacity: defaultCapacity,
+      });
+
+      const result = await fetchOneOffPlanningState("2026-01-14", activityMap);
+      expect(result.scheduledOneOffIds.has("r1")).toBe(false);
     });
   });
 

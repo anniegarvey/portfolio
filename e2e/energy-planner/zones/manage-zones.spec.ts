@@ -29,6 +29,7 @@ test.describe("Zone Management", () => {
 
     const addModal = page.getByRole("dialog", { name: "Add New Zone" });
     await expect(addModal).toBeVisible();
+    await page.waitForTimeout(350); // wait for modal animation
 
     const firstAccessibilityScanResults = await makeAxeBuilder().analyze();
     expect(
@@ -72,6 +73,7 @@ test.describe("Zone Management", () => {
     // 4. Rename zone
     await manageButton.click();
     await expect(modal).toBeVisible();
+    await page.waitForTimeout(350); // wait for modal animation
 
     const secondAccessibilityScanResults = await makeAxeBuilder().analyze();
     expect(
@@ -101,6 +103,7 @@ test.describe("Zone Management", () => {
     // Expect confirmation modal
     const confirmModal = page.getByRole("dialog", { name: "Delete Zone?" });
     await expect(confirmModal).toBeVisible();
+    await page.waitForTimeout(350); // wait for modal animation
 
     const thirdAccessibilityScanResults = await makeAxeBuilder().analyze();
     expect(

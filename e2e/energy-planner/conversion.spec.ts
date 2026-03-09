@@ -97,10 +97,22 @@ test.describe("Activity Conversion", () => {
     await expect(selectedActivities.getByText(activityName)).not.toBeVisible();
 
     // 6. Reload and verify persistence
+    // Energy planner resets to Today on reload. Since the activity was explicitly scheduled for today, it should be visible.
     await page.reload();
+    await expect(selectedActivities.getByText(activityName)).toBeVisible();
+
+    // 7. Remove it from today's day plan
+    const activityCardToWait = page
+      .getByRole("article")
+      .filter({ hasText: activityName });
+    await activityCardToWait.hover();
+    await activityCardToWait
+      .getByRole("button", { name: "Move activity" })
+      .click();
+    await page.getByRole("menuitem", { name: "Return to unplanned" }).click();
     await expect(selectedActivities.getByText(activityName)).not.toBeVisible();
 
-    // 7. Check one-off tab in management modal
+    // 8. Check one-off tab in management modal
     await page.getByRole("button", { name: "Manage Activities" }).click();
     const modal = page.getByRole("dialog", { name: "Available Activities" });
     await modal.getByRole("button", { name: "One-Off Activities" }).click();

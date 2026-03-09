@@ -297,11 +297,15 @@ export function useDayPlan(
   const addActivityToDayPlan = useCallback(
     (activity: Activity, zoneId?: string) => {
       storeDayPlan((prev) => {
-        // Avoid duplicates (same sourceActivityId already in plan)
+        // Avoid duplicates (same sourceActivityId already in plan, explicitly concrete)
         if (
-          prev.plannedInstances.some((i) => i.sourceActivityId === activity.id)
-        )
+          prev.plannedInstances.some(
+            (i) => i.sourceActivityId === activity.id && !i.isProjected,
+          )
+        ) {
           return prev;
+        }
+
         const newInstance: PlannedInstance = {
           id: uuidv4(),
           sourceActivityId: activity.id,

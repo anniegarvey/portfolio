@@ -40,7 +40,9 @@ export function violationFingerprints(accessibilityScanResults: AxeResults) {
     }),
   );
 
-  return JSON.stringify(violationFingerprints, null, 2);
+  const jsonString = JSON.stringify(violationFingerprints, null, 2);
+  // Mask dynamic Radix IDs to ensure deterministic snapshots
+  return jsonString.replace(/#radix-[a-zA-Z0-9_:-]+/g, "#radix-[id]");
 }
 
 export { expect } from "@playwright/test";

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { fetchDayPlan, storeDayPlan } from "@/lib/energy-planner/storage";
 import { useDayPlan } from "./useDayPlan";
+import { getNextDay, getTodayDateString } from "./utils";
 
 vi.mock("@/lib/energy-planner/storage");
 
@@ -702,6 +703,71 @@ describe("useDayPlan", () => {
         (i) => i.id === projected.id,
       );
       expect(remaining).toBeUndefined();
+    });
+  });
+
+  describe("Navigation and moving to today", () => {
+    it("can navigate to next day and today", async () => {
+      const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      const todayStr = getTodayDateString();
+      const nextDayStr = getNextDay(todayStr);
+
+      act(() => {
+        result.current.goToNextDay();
+      });
+      expect(result.current.currentDate).toBe(nextDayStr);
+
+      act(() => {
+        result.current.goToToday();
+      });
+      expect(result.current.currentDate).toBe(todayStr);
+    });
+
+    it("moves activity to today when currently viewing another day", async () => {
+      const activity1 = mockActivity("activity-1", "Activity 1");
+      const stableActivities = [activity1];
+      const { result } = renderHook(() => useDayPlan(stableActivities));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      const todayStr = getTodayDateString();
+      const tomorrowStr = getNextDay(todayStr);
+
+      // Go to tomorrow
+      act(() => {
+        result.current.goToNextDay();
+      });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      // Add activity to tomorrow's plan
+      await act(async () => {
+        result.current.addActivityToDayPlan(activity1);
+      });
+
+      const instanceId = result.current.dayPlan.plannedInstances[0].id;
+
+      // Move back to today
+      await act(async () => {
+        await result.current.moveActivityToToday(instanceId, tomorrowStr);
+      });
+
+      // Ensure it was removed from tomorrow
+      expect(result.current.dayPlan.plannedInstances).toHaveLength(0);
+
+      // Go to today and verify it is there
+      act(() => {
+        result.current.goToToday();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.dayPlan.plannedInstances).toHaveLength(1);
+      expect(result.current.dayPlan.plannedInstances[0].sourceActivityId).toBe(
+        "activity-1",
+      );
     });
   });
 });

@@ -6,7 +6,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
-import type { Activity } from "../../../lib/energy-planner/schema";
+import type {
+  Activity,
+  PlannedInstance,
+} from "../../../lib/energy-planner/schema";
 import { PlannerActivityCard } from ".";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -23,6 +26,12 @@ const mockActivity: Activity = {
     terminationDifficulty: 1,
     isRestorative: false,
   },
+};
+
+const mockInstance: PlannedInstance = {
+  id: "instance-1",
+  sourceActivityId: "activity-1",
+  completed: false,
 };
 
 describe("PlannerActivityCard", () => {
@@ -83,6 +92,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onEdit={mockOnEdit}
         onRemove={mockOnRemove}
         selected
@@ -101,7 +111,7 @@ describe("PlannerActivityCard", () => {
     expect(returnButton).toBeInTheDocument();
 
     await user.click(returnButton);
-    expect(mockOnRemove).toHaveBeenCalledWith("activity-1");
+    expect(mockOnRemove).toHaveBeenCalledWith("instance-1");
   });
 
   it("shows completion toggle when selected", async () => {
@@ -111,6 +121,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onEdit={mockOnEdit}
         onToggleCompletion={mockOnToggleCompletion}
         selected
@@ -122,7 +133,7 @@ describe("PlannerActivityCard", () => {
     expect(toggleButton).toBeInTheDocument();
 
     await user.click(toggleButton);
-    expect(mockOnToggleCompletion).toHaveBeenCalledWith("activity-1");
+    expect(mockOnToggleCompletion).toHaveBeenCalledWith("instance-1");
   });
 
   it("shows 'Mark as not done' when activity is completed", () => {
@@ -132,6 +143,7 @@ describe("PlannerActivityCard", () => {
       <PlannerActivityCard
         activity={mockActivity}
         completed
+        instance={mockInstance}
         onEdit={mockOnEdit}
         onToggleCompletion={mockOnToggleCompletion}
         selected
@@ -147,6 +159,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onEdit={mockOnEdit}
         selected
       />,
@@ -161,7 +174,11 @@ describe("PlannerActivityCard", () => {
   it("does not show move button when not selected", () => {
     const mockOnEdit = vi.fn();
     render(
-      <PlannerActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
+      <PlannerActivityCard
+        activity={mockActivity}
+        instance={mockInstance}
+        onEdit={mockOnEdit}
+      />,
       {
         wrapper,
       },
@@ -173,7 +190,11 @@ describe("PlannerActivityCard", () => {
   it("does not show completion toggle when not selected", () => {
     const mockOnEdit = vi.fn();
     render(
-      <PlannerActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
+      <PlannerActivityCard
+        activity={mockActivity}
+        instance={mockInstance}
+        onEdit={mockOnEdit}
+      />,
       {
         wrapper,
       },
@@ -185,7 +206,11 @@ describe("PlannerActivityCard", () => {
   it("displays correct energy badge labels with P, S, E suffixes", () => {
     const mockOnEdit = vi.fn();
     render(
-      <PlannerActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
+      <PlannerActivityCard
+        activity={mockActivity}
+        instance={mockInstance}
+        onEdit={mockOnEdit}
+      />,
       {
         wrapper,
       },
@@ -203,6 +228,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onAdd={mockOnAdd}
         onEdit={mockOnEdit}
       />,
@@ -219,6 +245,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onEdit={mockOnEdit}
         onRemove={mockOnRemove}
         onToggleCompletion={mockOnToggleCompletion}
@@ -239,6 +266,7 @@ describe("PlannerActivityCard", () => {
       <PlannerActivityCard
         activity={mockActivity}
         completed
+        instance={mockInstance}
         onEdit={mockOnEdit}
         onToggleCompletion={mockOnToggleCompletion}
         selected
@@ -248,7 +276,7 @@ describe("PlannerActivityCard", () => {
 
     const toggleButton = screen.getByLabelText("Mark as not done");
     await user.click(toggleButton);
-    expect(mockOnToggleCompletion).toHaveBeenCalledWith("activity-1");
+    expect(mockOnToggleCompletion).toHaveBeenCalledWith("instance-1");
   });
 
   it("renders all three energy types with correct values", () => {
@@ -296,6 +324,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onEdit={mockOnEdit}
         selected
       />,
@@ -311,7 +340,11 @@ describe("PlannerActivityCard", () => {
   it("does not show add button when not selected but onAdd is missing", () => {
     const mockOnEdit = vi.fn();
     render(
-      <PlannerActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
+      <PlannerActivityCard
+        activity={mockActivity}
+        instance={mockInstance}
+        onEdit={mockOnEdit}
+      />,
       {
         wrapper,
       },
@@ -338,6 +371,7 @@ describe("PlannerActivityCard", () => {
       <PlannerActivityCard
         activity={mockActivity}
         dragHandleProps={dragHandleProps}
+        instance={mockInstance}
         onEdit={mockOnEdit}
       />,
       { wrapper },
@@ -354,6 +388,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onDelete={mockOnDelete}
         onEdit={mockOnEdit}
       />,
@@ -380,6 +415,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={repeatingActivity}
+        instance={mockInstance}
         onEdit={mockOnEdit}
         onMove={mockOnMove}
         onRemove={mockOnRemove}
@@ -403,6 +439,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         isFutureDay
         onEdit={mockOnEdit}
         onToggleCompletion={mockOnToggleCompletion}
@@ -421,6 +458,7 @@ describe("PlannerActivityCard", () => {
     render(
       <PlannerActivityCard
         activity={mockActivity}
+        instance={mockInstance}
         onEdit={mockOnEdit}
         onMove={mockOnMove}
         selected
@@ -432,6 +470,6 @@ describe("PlannerActivityCard", () => {
     await user.click(screen.getByText("Tomorrow"));
 
     // Expect second argument to be a date string (just checking it's called with id)
-    expect(mockOnMove).toHaveBeenCalledWith("activity-1", expect.any(String));
+    expect(mockOnMove).toHaveBeenCalledWith("instance-1", expect.any(String));
   });
 });
