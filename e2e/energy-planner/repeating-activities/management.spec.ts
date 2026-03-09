@@ -4,37 +4,38 @@ import {
   violationFingerprints,
 } from "../../utils/accessibility-test";
 import {
-  createActivity,
-  goToEnergyPlanner,
-  repeatingActivity,
-} from "../../utils/activity-test-helpers";
+  mockPlannedInstance,
+  mockRepeatingActivity,
+  mockStoredDayPlan,
+  TODAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
+
+const instance = mockPlannedInstance(mockRepeatingActivity.id);
 
 test.describe("Repeating Activities - Management", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [mockRepeatingActivity],
+      dayPlans: { [TODAY]: mockStoredDayPlan([instance]) },
+    });
   });
 
   test("should manage repeating activities via Available Activities modal", async ({
     page,
     makeAxeBuilder,
   }) => {
-    await createActivity(page, repeatingActivity);
-
-    // Open Manage Activities
     await page.getByRole("button", { name: "Manage Activities" }).click();
     const modal = page.getByRole("dialog", { name: "Available Activities" });
 
-    // Switch to Repeating Tab
     await modal.getByRole("button", { name: "Repeating Activities" }).click();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
-    // Verify activity is listed
-    await expect(modal.getByText(repeatingActivity.name)).toBeVisible();
+    await expect(modal.getByText(mockRepeatingActivity.title)).toBeVisible();
 
-    // Click Edit
-    await modal.getByText(repeatingActivity.name).click();
+    await modal.getByText(mockRepeatingActivity.title).click();
     const editModal = page.getByRole("dialog", { name: "Edit Activity" });
     await expect(editModal).toBeVisible();
 
@@ -42,27 +43,30 @@ test.describe("Repeating Activities - Management", () => {
     await editModal.getByRole("spinbutton", { name: "Frequency" }).fill("2");
     await editModal.getByRole("button", { name: "Update Activity" }).click();
 
-    // Verify update
-    // Check Today (should still be there as it was due today)
     await page.getByRole("button", { name: "Close modal" }).click();
-    await expect(page.getByTestId("selected-activities")).toBeVisible(); // Wait for main view
+    await expect(page.getByTestId("selected-activities")).toBeVisible();
 
-    // Navigating: Today = Instance. Next instance = Today + 2 days.
-    // Today is visible.
+    // Today — still visible (instance was already concrete)
     await expect(
-      page.getByTestId("selected-activities").getByText(repeatingActivity.name),
+      page
+        .getByTestId("selected-activities")
+        .getByText(mockRepeatingActivity.title),
     ).toBeVisible();
 
-    // Tomorrow (Today+1) should NOT have it anymore
+    // Tomorrow (Today+1) should NOT have it
     await page.getByRole("button", { name: "Next day" }).click();
     await expect(
-      page.getByTestId("selected-activities").getByText(repeatingActivity.name),
+      page
+        .getByTestId("selected-activities")
+        .getByText(mockRepeatingActivity.title),
     ).not.toBeVisible();
 
     // Day after Tomorrow (Today+2) SHOULD have it
     await page.getByRole("button", { name: "Next day" }).click();
     await expect(
-      page.getByTestId("selected-activities").getByText(repeatingActivity.name),
+      page
+        .getByTestId("selected-activities")
+        .getByText(mockRepeatingActivity.title),
     ).toBeVisible();
   });
 });

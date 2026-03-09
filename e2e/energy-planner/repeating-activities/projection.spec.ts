@@ -5,13 +5,16 @@ import {
 } from "../../utils/accessibility-test";
 import {
   createActivity,
-  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
+import { DEFAULT_CAPACITY, TODAY } from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
 
 test.describe("Repeating Activities - Future Projection", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },
+    });
   });
 
   test("should project repeating activity on future dates", async ({

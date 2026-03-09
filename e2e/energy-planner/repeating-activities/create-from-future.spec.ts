@@ -5,13 +5,16 @@ import {
 } from "../../utils/accessibility-test";
 import {
   fillActivityForm,
-  goToEnergyPlanner,
   repeatingActivity,
 } from "../../utils/activity-test-helpers";
+import { DEFAULT_CAPACITY, TODAY } from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
 
 test.describe("Repeating Activities - Create From Future", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },
+    });
   });
 
   test("should start repeating activity on selected date when created from future date", async ({

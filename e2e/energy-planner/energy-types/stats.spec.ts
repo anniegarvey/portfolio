@@ -4,25 +4,27 @@ import {
   violationFingerprints,
 } from "../../utils/accessibility-test";
 import {
-  createActivity,
-  goToEnergyPlanner,
-  planActivityForToday,
-  testActivity,
-} from "../../utils/activity-test-helpers";
+  mockOneOffActivity,
+  mockPlannedInstance,
+  mockStoredDayPlan,
+  TODAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
+
+const instance = mockPlannedInstance(mockOneOffActivity.id);
 
 test.describe("Energy Types - Stats", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [mockOneOffActivity],
+      dayPlans: { [TODAY]: mockStoredDayPlan([instance]) },
+    });
   });
 
   test("should show energy usage summary when activities are planned", async ({
     page,
     makeAxeBuilder,
   }) => {
-    await createActivity(page, testActivity);
-    await planActivityForToday(page, testActivity.name);
-
-    // Verify usage summary shows energy values
     const usageSummary = page.getByRole("heading", {
       name: "Energy Usage vs Capacity",
     });

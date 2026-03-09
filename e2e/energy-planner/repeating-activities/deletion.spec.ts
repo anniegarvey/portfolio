@@ -4,34 +4,33 @@ import {
   violationFingerprints,
 } from "../../utils/accessibility-test";
 import {
-  createActivity,
-  goToEnergyPlanner,
-  repeatingActivity,
-} from "../../utils/activity-test-helpers";
+  mockRepeatingActivity,
+  mockStoredDayPlan,
+  TODAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
 
 test.describe("Repeating Activities - Deletion", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [mockRepeatingActivity],
+      dayPlans: { [TODAY]: mockStoredDayPlan([]) },
+    });
   });
 
   test("should allow deleting a repeating activity", async ({
     page,
     makeAxeBuilder,
   }) => {
-    await createActivity(page, repeatingActivity);
-
-    // Open Manage Activities
     await page.getByRole("button", { name: "Manage Activities" }).click();
     const modal = page.getByRole("dialog", { name: "Available Activities" });
     await expect(modal).toBeVisible();
 
-    // Switch to Repeating Activities tab
     await modal.getByRole("button", { name: "Repeating Activities" }).click();
+    await expect(modal.getByText(mockRepeatingActivity.title)).toBeVisible();
 
-    // Find and click delete
     await modal.getByLabel("Delete activity").click();
 
-    // Verify confirmation modal
     const confirmModal = page.getByRole("dialog", { name: "Delete Activity?" });
     await expect(confirmModal).toBeVisible();
     await expect(
@@ -41,17 +40,18 @@ test.describe("Repeating Activities - Deletion", () => {
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
-    // Confirm delete
     await confirmModal.getByRole("button", { name: "Delete" }).click();
     await expect(confirmModal).not.toBeVisible();
 
-    // Verify removed from list
-    await expect(modal.getByText(repeatingActivity.name)).not.toBeVisible();
+    await expect(
+      modal.getByText(mockRepeatingActivity.title),
+    ).not.toBeVisible();
 
-    // Close modal and verify removed from day plan (since it was projected)
     await page.getByRole("button", { name: "Close modal" }).click();
     await expect(
-      page.getByTestId("selected-activities").getByText(repeatingActivity.name),
+      page
+        .getByTestId("selected-activities")
+        .getByText(mockRepeatingActivity.title),
     ).not.toBeVisible();
   });
 });

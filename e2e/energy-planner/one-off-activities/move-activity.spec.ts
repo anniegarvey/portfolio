@@ -1,49 +1,52 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
-  createActivity,
-  goToEnergyPlanner,
-  planActivityForToday,
-  testActivity,
-} from "../../utils/activity-test-helpers";
+  mockOneOffActivity,
+  mockPlannedInstance,
+  mockStoredDayPlan,
+  TODAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
+
+const instance = mockPlannedInstance(mockOneOffActivity.id);
 
 test.describe("One-off Activities - Move Activity", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [mockOneOffActivity],
+      dayPlans: {
+        [TODAY]: mockStoredDayPlan([instance]),
+      },
+    });
   });
 
   test("should allow moving an activity to tomorrow", async ({ page }) => {
-    await createActivity(page, testActivity);
-    await planActivityForToday(page, testActivity.name);
-
     await expect(page.getByText("Your Day Plan (1)")).toBeVisible();
 
-    // Verify it is in today's plan
     const selectedActivities = page.getByTestId("selected-activities");
-    await expect(selectedActivities.getByText(testActivity.name)).toBeVisible();
+    await expect(
+      selectedActivities.getByText(mockOneOffActivity.title),
+    ).toBeVisible();
 
-    // Move activity to tomorrow
     await selectedActivities
       .getByRole("button", { name: "Move activity", exact: true })
       .click();
 
     await page.getByText("Tomorrow", { exact: true }).click();
 
-    // Activity count should decrease
     await expect(page.getByText("Your Day Plan (0)")).toBeVisible();
     await expect(
       page.getByText("No activities in this zone").first(),
     ).toBeVisible();
 
-    // Navigate to tomorrow
     await page.getByLabel("Next Day").click();
 
-    // Verify activity is present on tomorrow
     await expect(page.getByText("Your Day Plan (1)")).toBeVisible();
     await expect(
-      page.getByTestId("selected-activities").getByText(testActivity.name),
+      page
+        .getByTestId("selected-activities")
+        .getByText(mockOneOffActivity.title),
     ).toBeVisible();
 
-    // Move back to unplanned from tomorrow
     await page
       .getByTestId("selected-activities")
       .getByRole("button", { name: "Move activity", exact: true })

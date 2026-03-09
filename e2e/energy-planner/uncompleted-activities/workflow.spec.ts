@@ -4,44 +4,37 @@ import {
   violationFingerprints,
 } from "../../utils/accessibility-test";
 import {
-  createActivity,
-  goToEnergyPlanner,
-  planActivityForToday,
-  testActivity,
-} from "../../utils/activity-test-helpers";
+  mockOneOffActivity,
+  mockPlannedInstance,
+  mockStoredDayPlan,
+  TODAY,
+  YESTERDAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
+
+// Seed: activity was planned yesterday but left uncompleted
+const yesterdayInstance = mockPlannedInstance(mockOneOffActivity.id);
 
 test.describe("Uncompleted Activities Workflow", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
-    // Create an activity and plan it for yesterday
-    await createActivity(page, testActivity);
-
-    // Navigate to yesterday
-    await page
-      .getByRole("button", {
-        name: "Previous day",
-      })
-      .click();
-
-    // Plan the activity for yesterday
-    await planActivityForToday(page, testActivity.name);
-
-    // Return to today - activity should appear as uncompleted
-    await page
-      .getByRole("button", {
-        name: "Go to Today",
-      })
-      .click();
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [mockOneOffActivity],
+      dayPlans: {
+        [TODAY]: mockStoredDayPlan([]),
+        [YESTERDAY]: mockStoredDayPlan([yesterdayInstance]),
+      },
+    });
   });
 
   test("should show uncompleted activities from previous days", async ({
     page,
     makeAxeBuilder,
   }) => {
-    // Verify uncompleted section is visible
     await expect(page.getByText("Uncompleted Activities (1)")).toBeVisible();
     const uncompletedSection = page.getByTestId("uncompleted-activities");
-    await expect(uncompletedSection.getByText(testActivity.name)).toBeVisible();
+    await expect(
+      uncompletedSection.getByText(mockOneOffActivity.title),
+    ).toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
@@ -49,69 +42,55 @@ test.describe("Uncompleted Activities Workflow", () => {
 
   test("should mark uncompleted activity as complete", async ({ page }) => {
     const uncompletedSection = page.getByTestId("uncompleted-activities");
-    await expect(uncompletedSection.getByText(testActivity.name)).toBeVisible();
+    await expect(
+      uncompletedSection.getByText(mockOneOffActivity.title),
+    ).toBeVisible();
 
-    // Mark as complete
     await uncompletedSection
-      .getByRole("button", {
-        name: "Mark as complete",
-        exact: true,
-      })
+      .getByRole("button", { name: "Mark as complete", exact: true })
       .click();
 
-    // Activity should disappear from uncompleted section
     await expect(
-      uncompletedSection.getByText(testActivity.name),
+      uncompletedSection.getByText(mockOneOffActivity.title),
     ).not.toBeVisible();
   });
 
   test("should move uncompleted activity to today", async ({ page }) => {
     const uncompletedSection = page.getByTestId("uncompleted-activities");
-    await expect(uncompletedSection.getByText(testActivity.name)).toBeVisible();
+    await expect(
+      uncompletedSection.getByText(mockOneOffActivity.title),
+    ).toBeVisible();
 
-    // Move to today
     await uncompletedSection
-      .getByRole("button", {
-        name: "Move to today",
-        exact: true,
-      })
+      .getByRole("button", { name: "Move to today", exact: true })
       .click();
 
-    // Activity should disappear from uncompleted and appear in selected
     await expect(
-      uncompletedSection.getByText(testActivity.name),
+      uncompletedSection.getByText(mockOneOffActivity.title),
     ).not.toBeVisible();
     await expect(
-      page.getByTestId("selected-activities").getByText(testActivity.name),
+      page
+        .getByTestId("selected-activities")
+        .getByText(mockOneOffActivity.title),
     ).toBeVisible();
   });
 
   test("should return uncompleted activity to unplanned", async ({ page }) => {
     const uncompletedSection = page.getByTestId("uncompleted-activities");
-    await expect(uncompletedSection.getByText(testActivity.name)).toBeVisible();
+    await expect(
+      uncompletedSection.getByText(mockOneOffActivity.title),
+    ).toBeVisible();
 
-    // Return to unplanned
     await uncompletedSection
-      .getByRole("button", {
-        name: "Return to unplanned",
-        exact: true,
-      })
+      .getByRole("button", { name: "Return to unplanned", exact: true })
       .click();
 
-    // Activity should disappear from uncompleted section
     await expect(
-      uncompletedSection.getByText(testActivity.name),
+      uncompletedSection.getByText(mockOneOffActivity.title),
     ).not.toBeVisible();
 
-    // Verify activity is now available (not planned anywhere)
-    await page
-      .getByRole("button", {
-        name: "Manage Activities",
-      })
-      .click();
-    const modal = page.getByRole("dialog", {
-      name: "Available Activities",
-    });
-    await expect(modal.getByText(testActivity.name)).toBeVisible();
+    await page.getByRole("button", { name: "Manage Activities" }).click();
+    const modal = page.getByRole("dialog", { name: "Available Activities" });
+    await expect(modal.getByText(mockOneOffActivity.title)).toBeVisible();
   });
 });

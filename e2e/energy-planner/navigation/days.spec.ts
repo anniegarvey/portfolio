@@ -1,9 +1,12 @@
 import { expect, test } from "../../utils/accessibility-test";
-import { goToEnergyPlanner } from "../../utils/activity-test-helpers";
+import { DEFAULT_CAPACITY, TODAY } from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
 
 test.describe("Navigation - Days", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },
+    });
   });
 
   test("should allow navigating between days", async ({

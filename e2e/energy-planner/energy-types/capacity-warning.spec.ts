@@ -4,42 +4,39 @@ import {
   violationFingerprints,
 } from "../../utils/accessibility-test";
 import {
-  type ActivityData,
-  createActivity,
-  goToEnergyPlanner,
-  planActivityForToday,
-  testActivity,
-} from "../../utils/activity-test-helpers";
+  mockOneOffActivity,
+  mockPlannedInstance,
+  TODAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
+
+// Activity with 20 physical cost; seeded capacity will be set to 10 physical
+const highEnergyActivity = {
+  ...mockOneOffActivity,
+  id: "aaaaaaaa-0000-0000-0000-000000000099",
+  title: "High Energy Activity",
+  energyCost: { physical: 20, social: 5, executive: 10 },
+};
+const instance = mockPlannedInstance(highEnergyActivity.id);
 
 test.describe("Energy Types - Capacity Warning", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [highEnergyActivity],
+      dayPlans: {
+        [TODAY]: {
+          // Physical capacity = 10, activity costs 20 → triggers warning
+          dailyCapacity: { physical: 10, social: 50, executive: 51 },
+          plannedInstances: [instance],
+        },
+      },
+    });
   });
 
   test("should show warning when energy capacity is exceeded", async ({
     page,
     makeAxeBuilder,
   }) => {
-    // 1. Create an activity with high energy cost
-    const highEnergyActivity: ActivityData = {
-      ...testActivity,
-      name: "High Energy Activity",
-      physical: "20",
-    };
-    await createActivity(page, highEnergyActivity);
-
-    // 2. Set daily capacity lower than activity cost
-    await page.getByRole("button", { name: "Edit Capacity" }).click();
-
-    // The physical slider is the first one
-    const physicalSlider = page.getByLabel("Physical").first();
-    await physicalSlider.fill("10");
-    await page.getByRole("button", { name: "Save" }).click();
-
-    // 3. Plan the activity for today
-    await planActivityForToday(page, highEnergyActivity.name);
-
-    // 4. Verify warning appears
     await expect(
       page.getByText(
         "Warning: You have exceeded your Physical energy capacity!",

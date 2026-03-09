@@ -4,55 +4,54 @@ import {
   violationFingerprints,
 } from "../../utils/accessibility-test";
 import {
-  createActivity,
-  goToEnergyPlanner,
-  planActivityForToday,
-  testActivity,
-} from "../../utils/activity-test-helpers";
+  mockOneOffActivity,
+  mockPlannedInstance,
+  mockStoredDayPlan,
+  TODAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
+
+const instance = mockPlannedInstance(mockOneOffActivity.id);
 
 test.describe("One-off Activities - Edit Description", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [mockOneOffActivity],
+      dayPlans: {
+        [TODAY]: mockStoredDayPlan([instance]),
+      },
+    });
   });
 
   test("should allow editing an activity's description while in the day plan", async ({
     page,
     makeAxeBuilder,
   }) => {
-    await createActivity(page, testActivity);
-    await planActivityForToday(page, testActivity.name);
-
-    // Verify activity is in day plan
     const selectedActivities = page.getByTestId("selected-activities");
-    await expect(selectedActivities.getByText(testActivity.name)).toBeVisible();
+    await expect(
+      selectedActivities.getByText(mockOneOffActivity.title),
+    ).toBeVisible();
 
-    // Click edit on the planned activity
-    // Click edit on the planned activity (title is now clickable)
     const card = selectedActivities
       .getByRole("article")
-      .filter({ hasText: testActivity.name });
-    await card.getByText(testActivity.name).click();
+      .filter({ hasText: mockOneOffActivity.title });
+    await card.getByText(mockOneOffActivity.title).click();
 
-    // Edit modal should open
     const editModal = page.getByRole("dialog", { name: "Edit Activity" });
     await expect(editModal).toBeVisible();
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
-    // Add a description
     const newDescription = "This is a detailed description of the activity.";
     await editModal.getByLabel("Description").fill(newDescription);
     await page.getByRole("button", { name: "Update Activity" }).click();
     await expect(editModal).not.toBeVisible();
 
-    // Verify description appears on card immediately
     await expect(selectedActivities.getByText(newDescription)).toBeVisible();
 
-    // Reload page to verify persistence
     await page.reload();
 
-    // Verify description persists
     await expect(page.getByTestId("selected-activities")).toBeVisible();
     await expect(
       page.getByTestId("selected-activities").getByText(newDescription),

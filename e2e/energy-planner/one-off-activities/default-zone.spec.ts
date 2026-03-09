@@ -1,13 +1,16 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
   fillActivityForm,
-  goToEnergyPlanner,
   testActivity,
 } from "../../utils/activity-test-helpers";
+import { DEFAULT_CAPACITY, TODAY } from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
 
 test.describe("One-off Activities - Default Zone", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },
+    });
   });
 
   test("should use default zone when adding to plan", async ({ page }) => {

@@ -1,30 +1,37 @@
 import { expect, test } from "../../utils/accessibility-test";
 import {
-  createActivity,
-  goToEnergyPlanner,
-  planActivityForToday,
-  testActivity,
-} from "../../utils/activity-test-helpers";
+  mockOneOffActivity,
+  mockPlannedInstance,
+  mockStoredDayPlan,
+  TODAY,
+} from "../../utils/mocks";
+import { goToEnergyPlannerWithSeed } from "../../utils/seed-storage";
+
+const instance = mockPlannedInstance(mockOneOffActivity.id);
 
 test.describe("One-off Activities - Complete", () => {
   test.beforeEach(async ({ page }) => {
-    await goToEnergyPlanner(page, {});
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [mockOneOffActivity],
+      dayPlans: {
+        [TODAY]: mockStoredDayPlan([instance]),
+      },
+    });
   });
 
   test("should allow marking an activity as complete", async ({
     page,
     makeAxeBuilder,
   }) => {
-    await createActivity(page, testActivity);
-    await planActivityForToday(page, testActivity.name);
-
-    // Mark activity as complete
     const selectedActivities = page.getByTestId("selected-activities");
+    await expect(
+      selectedActivities.getByText(mockOneOffActivity.title),
+    ).toBeVisible();
+
     await selectedActivities
       .getByRole("button", { name: "Mark as done", exact: true })
       .click();
 
-    // Activity should now show as completed (button changes to "Mark as not done")
     await expect(
       selectedActivities.getByRole("button", {
         name: "Mark as not done",
