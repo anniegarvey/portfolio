@@ -11,14 +11,20 @@ describe("useEnergyPlannerState", () => {
     (storageMock as unknown as { __reset: () => void }).__reset();
   });
 
-  it("initializes with empty activities", () => {
+  it("initializes with empty activities", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
     expect(result.current.oneOffActivities).toEqual([]);
   });
 
-  it("initializes with default daily capacity", () => {
+  it("initializes with default daily capacity", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
     expect(result.current.dailyCapacity).toEqual({
       physical: 0,
       social: 0,
@@ -26,8 +32,12 @@ describe("useEnergyPlannerState", () => {
     });
   });
 
-  it("adds a new activity", () => {
+  it("adds a new activity", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addActivity({
@@ -46,8 +56,12 @@ describe("useEnergyPlannerState", () => {
     expect(result.current.oneOffActivities[0].title).toBe("Test Activity");
   });
 
-  it("updates an existing activity", () => {
+  it("updates an existing activity", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.addActivity({
@@ -124,8 +138,12 @@ describe("useEnergyPlannerState", () => {
     ).toBe(false);
   });
 
-  it("updates daily capacity", () => {
+  it("updates daily capacity", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     act(() => {
       result.current.setDailyCapacity({

@@ -714,14 +714,16 @@ describe("useDayPlan", () => {
       const todayStr = getTodayDateString();
       const nextDayStr = getNextDay(todayStr);
 
-      act(() => {
+      await act(async () => {
         result.current.goToNextDay();
       });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
       expect(result.current.currentDate).toBe(nextDayStr);
 
-      act(() => {
+      await act(async () => {
         result.current.goToToday();
       });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
       expect(result.current.currentDate).toBe(todayStr);
     });
 
@@ -735,7 +737,7 @@ describe("useDayPlan", () => {
       const tomorrowStr = getNextDay(todayStr);
 
       // Go to tomorrow
-      act(() => {
+      await act(async () => {
         result.current.goToNextDay();
       });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -756,7 +758,7 @@ describe("useDayPlan", () => {
       expect(result.current.dayPlan.plannedInstances).toHaveLength(0);
 
       // Go to today and verify it is there
-      act(() => {
+      await act(async () => {
         result.current.goToToday();
       });
 

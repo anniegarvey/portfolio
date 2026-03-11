@@ -30,8 +30,12 @@ describe("EnergyPlannerContext", () => {
       consoleSpy.mockRestore();
     });
 
-    it("adds an activity", () => {
+    it("adds an activity", async () => {
       const { result } = renderHook(() => useEnergyPlanner(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
 
       act(() => {
         result.current.addActivity({
