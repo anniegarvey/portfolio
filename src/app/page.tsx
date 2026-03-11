@@ -83,5 +83,6 @@ const Wrapper = styled(MaxWidthWrapper)`
   }
   a {
     color: light-dark(var(--color-primary-800), var(--color-primary-400));
+    text-decoration: underline;
   }
 `;
