@@ -20,7 +20,8 @@
       "!types/routes.d.ts",
       "!types/validator.ts",
       "!next-env.d.ts",
-      "!.stryker-tmp"
+      "!.stryker-tmp",
+      "!public"
     ]
   },
   "formatter": {
