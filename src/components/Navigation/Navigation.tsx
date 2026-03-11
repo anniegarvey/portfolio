@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -53,20 +54,25 @@ export function Navigation() {
           </Dialog.Trigger>
           <Dialog.Portal>
             <StyledOverlay />
-            <StyledContent>
-              <CloseButton aria-label="Close navigation menu">
-                <X size={32} />
-              </CloseButton>
-              <MobileNavList>
-                {NAV_ITEMS.map((item) => (
-                  <MobileNavItem key={item.href}>
-                    <MobileNavLink href={item.href} onClick={handleLinkClick}>
-                      {item.label}
-                    </MobileNavLink>
-                  </MobileNavItem>
-                ))}
-              </MobileNavList>
-            </StyledContent>
+            <Dialog.Content aria-describedby={undefined} asChild>
+              <StyledContent>
+                <VisuallyHidden>
+                  <Dialog.Title>Navigation menu</Dialog.Title>
+                </VisuallyHidden>
+                <CloseButton aria-label="Close navigation menu">
+                  <X size={32} />
+                </CloseButton>
+                <MobileNavList>
+                  {NAV_ITEMS.map((item) => (
+                    <MobileNavItem key={item.href}>
+                      <MobileNavLink href={item.href} onClick={handleLinkClick}>
+                        {item.label}
+                      </MobileNavLink>
+                    </MobileNavItem>
+                  ))}
+                </MobileNavList>
+              </StyledContent>
+            </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
       </MobileNav>
@@ -171,7 +177,7 @@ const StyledOverlay = styled(Dialog.Overlay)`
   animation: fadeFromTransparent 300ms ease;
 `;
 
-const StyledContent = styled(Dialog.Content)`
+const StyledContent = styled.div`
   background-color: var(--color-grey-900);
   position: absolute;
   top: 0;
