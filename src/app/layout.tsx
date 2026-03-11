@@ -3,6 +3,7 @@ import { Lexend, Tangerine } from "next/font/google";
 import "./globals.css";
 
 import { Navigation } from "@/components/Navigation";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const lexend = Lexend({
   variable: "--font-lexend",
@@ -44,9 +45,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* Runs synchronously before paint to apply saved theme and prevent FOUC */}
+      <head>
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: intentional inline script for FOUC prevention
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}})()`,
+          }}
+        />
+      </head>
       <body className={`${lexend.variable} ${tangerine.variable}`}>
-        <Navigation />
-        {children}
+        <ThemeProvider>
+          <Navigation />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

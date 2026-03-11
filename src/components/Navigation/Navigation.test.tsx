@@ -1,7 +1,16 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navigation } from "./Navigation";
+
+function renderWithTheme() {
+  return render(
+    <ThemeProvider>
+      <Navigation />
+    </ThemeProvider>,
+  );
+}
 
 // Mock Next.js components
 vi.mock("next/image", () => ({
@@ -38,14 +47,19 @@ global.ResizeObserver = class ResizeObserver {
 };
 
 describe("Navigation", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
+  });
+
   it("renders the logo with correct alt text", () => {
-    render(<Navigation />);
+    renderWithTheme();
     const logo = screen.getByAltText("Annie Garvey Girl Coding");
     expect(logo).toBeInTheDocument();
   });
 
   it("renders desktop navigation links", () => {
-    render(<Navigation />);
+    renderWithTheme();
     // Desktop links are in a nav with aria-label="Main navigation"
     const desktopNav = screen.getByLabelText("Main navigation");
     expect(desktopNav).toBeInTheDocument();
@@ -61,7 +75,7 @@ describe("Navigation", () => {
   });
 
   it("renders hamburger button", () => {
-    render(<Navigation />);
+    renderWithTheme();
     const hamburgerButton = screen.getByRole("button", {
       name: "Toggle navigation menu",
     });
@@ -70,7 +84,7 @@ describe("Navigation", () => {
 
   it("opens mobile menu when hamburger button is clicked", async () => {
     const user = userEvent.setup();
-    render(<Navigation />);
+    renderWithTheme();
 
     const hamburgerButton = screen.getByRole("button", {
       name: "Toggle navigation menu",
@@ -89,7 +103,7 @@ describe("Navigation", () => {
 
   it("closes mobile menu when close button is clicked", async () => {
     const user = userEvent.setup();
-    render(<Navigation />);
+    renderWithTheme();
 
     // Open first
     const hamburgerButton = screen.getByRole("button", {
@@ -111,7 +125,7 @@ describe("Navigation", () => {
 
   it("closes mobile menu when a navigation link is clicked", async () => {
     const user = userEvent.setup();
-    render(<Navigation />);
+    renderWithTheme();
 
     // Open first
     const hamburgerButton = screen.getByRole("button", {
@@ -133,5 +147,58 @@ describe("Navigation", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("renders theme toggle button defaulting to system mode", () => {
+    renderWithTheme();
+    expect(
+      screen.getAllByRole("button", { name: /Theme: System/i })[0],
+    ).toBeInTheDocument();
+  });
+
+  it("cycles theme from system to light on first click", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    const toggles = screen.getAllByRole("button", { name: /Theme: System/i });
+    await user.click(toggles[0]);
+
+    expect(
+      screen.getAllByRole("button", { name: /Theme: Light/i })[0],
+    ).toBeInTheDocument();
+  });
+
+  it("cycles theme from light to dark", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    const systemToggle = screen.getAllByRole("button", {
+      name: /Theme: System/i,
+    })[0];
+    await user.click(systemToggle);
+
+    const lightToggle = screen.getAllByRole("button", {
+      name: /Theme: Light/i,
+    })[0];
+    await user.click(lightToggle);
+
+    expect(
+      screen.getAllByRole("button", { name: /Theme: Dark/i })[0],
+    ).toBeInTheDocument();
+  });
+
+  it("cycles theme back to system from dark", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    // system → light → dark → system
+    for (let i = 0; i < 3; i++) {
+      const button = screen.getAllByRole("button", { name: /Theme:/i })[0];
+      await user.click(button);
+    }
+
+    expect(
+      screen.getAllByRole("button", { name: /Theme: System/i })[0],
+    ).toBeInTheDocument();
   });
 });

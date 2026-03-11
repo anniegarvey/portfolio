@@ -2,12 +2,49 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Menu, X } from "lucide-react";
+import { Menu, Monitor, Moon, Sun, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
 import { useState } from "react";
+import { type ThemeSetting, useTheme } from "@/components/ThemeProvider";
 import { QUERIES } from "@/lib/constants";
+
+const THEME_META: Record<
+  ThemeSetting,
+  { icon: React.ReactNode; label: string; next: ThemeSetting }
+> = {
+  system: {
+    icon: <Monitor size={20} />,
+    label: "Theme: System (click for Light)",
+    next: "light",
+  },
+  light: {
+    icon: <Sun size={20} />,
+    label: "Theme: Light (click for Dark)",
+    next: "dark",
+  },
+  dark: {
+    icon: <Moon size={20} />,
+    label: "Theme: Dark (click for System)",
+    next: "system",
+  },
+};
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const meta = THEME_META[theme];
+  return (
+    <ThemeToggleButton
+      aria-label={meta.label}
+      onClick={() => setTheme(meta.next)}
+      title={meta.label}
+      type="button"
+    >
+      {meta.icon}
+    </ThemeToggleButton>
+  );
+}
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
@@ -71,13 +108,19 @@ export function Navigation() {
                     </MobileNavItem>
                   ))}
                 </MobileNavList>
+                <MobileThemeSection>
+                  <MobileThemeLabel>Theme</MobileThemeLabel>
+                  <ThemeToggle />
+                </MobileThemeSection>
               </StyledContent>
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
       </MobileNav>
 
-      <Side />
+      <DesktopSide>
+        <ThemeToggle />
+      </DesktopSide>
     </Header>
   );
 }
@@ -227,4 +270,48 @@ const MobileNavLink = styled(Link)`
   &:focus {
     color: var(--color-primary-400);
   }
+`;
+
+const DesktopSide = styled.div`
+  display: none;
+  flex: 1;
+  justify-content: flex-end;
+  align-items: center;
+
+  @media (${QUERIES.TABLET_UP}) {
+    display: flex;
+  }
+`;
+
+const ThemeToggleButton = styled.button`
+  background: none;
+  border: 1px solid var(--color-grey-600);
+  border-radius: 6px;
+  color: var(--color-grey-100);
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  align-items: center;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+
+  &:hover {
+    background-color: var(--color-primary-700);
+    border-color: var(--color-primary-500);
+    color: var(--color-primary-100);
+  }
+`;
+
+const MobileThemeSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-grey-800);
+`;
+
+const MobileThemeLabel = styled.span`
+  color: var(--color-grey-100);
+  font-weight: 700;
+  font-size: 1.6rem;
 `;
