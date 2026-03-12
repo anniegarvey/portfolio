@@ -16,16 +16,44 @@ const tangerine = Tangerine({
   weight: "700",
 });
 
+const APP_NAME = "Annie Garvey";
+const APP_DEFAULT_TITLE = "Annie Garvey | Neurospicy Front End Specialist";
+const APP_TITLE_TEMPLATE = `%s·|·${APP_NAME}`;
+const APP_DESCRIPTION = "Energy planning with motivation and more";
+
 // biome-ignore lint/style/useComponentExportOnlyModules: Next.js metadata must be exported from layout
 export const metadata: Metadata = {
-  title: "Annie Garvey's Portfolio",
-  description:
-    "Principal software engineer specializing in front-end development.",
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "Energy Planner",
+    title: APP_DEFAULT_TITLE,
     statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: APP_NAME,
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary",
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
   },
   icons: {
     apple: "/icon-192.png",

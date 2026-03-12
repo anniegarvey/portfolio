@@ -24,10 +24,10 @@ test.describe("PWA Metadata and Offline Capabilities", () => {
     expect(response.ok()).toBeTruthy();
 
     const manifest = await response.json();
-    expect(manifest.name).toBe("Energy Planner");
-    expect(manifest.short_name).toBe("Energy Planner");
+    expect(manifest.name).toBe("Annie Garvey");
+    expect(manifest.short_name).toBe("Annie Garvey");
     expect(manifest.display).toBe("standalone");
-    expect(manifest.start_url).toBe("/energy-planner");
+    expect(manifest.start_url).toBe("/");
     expect(manifest.icons.length).toBeGreaterThan(0);
   });
 

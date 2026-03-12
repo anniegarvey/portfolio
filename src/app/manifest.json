@@ -1,11 +1,12 @@
 {
-  "name": "Energy Planner",
-  "short_name": "Energy Planner",
-  "description": "Plan your day around your energy levels.",
-  "start_url": "/energy-planner",
+  "name": "Annie Garvey",
+  "short_name": "Annie Garvey",
+  "description": "Energy planning with motivation and more",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#1e293b",
   "theme_color": "#1e293b",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",
