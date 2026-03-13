@@ -71,6 +71,7 @@ export function ZoneFormModal({
         <FormGroup>
           <Label htmlFor={nameId}>Name</Label>
           <Input
+            autoComplete="off"
             autoFocus
             id={nameId}
             onChange={(e) => setName(e.target.value)}
@@ -83,6 +84,7 @@ export function ZoneFormModal({
         <FormGroup>
           <Label htmlFor={descriptionId}>Description (Optional)</Label>
           <TextArea
+            autoComplete="off"
             id={descriptionId}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What kind of activities happen here?"
@@ -130,7 +132,7 @@ const Input = styled.input`
   background-color: light-dark(#ffffff, var(--color-grey-900));
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: var(--color-primary-500);
     box-shadow: 0 0 0 2px var(--color-primary-100);
@@ -147,7 +149,7 @@ const TextArea = styled.textarea`
   background-color: light-dark(#ffffff, var(--color-grey-900));
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: var(--color-primary-500);
     box-shadow: 0 0 0 2px var(--color-primary-100);

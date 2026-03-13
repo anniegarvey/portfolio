@@ -122,6 +122,7 @@ const Value = styled.span`
   font-size: 0.875rem;
   text-align: right;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: light-dark(var(--color-grey-500), var(--color-grey-400));
 `;
 

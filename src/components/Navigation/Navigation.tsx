@@ -169,6 +169,11 @@ const LogoLink = styled(Link)`
     opacity: 0.8;
     transition-duration: 300ms;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
 `;
 
 const StyledImage = styled(Image)`
@@ -195,7 +200,7 @@ const NavLink = styled(Link)`
   text-decoration: none;
 
   &:hover,
-  &:focus {
+  &:focus-visible {
     background-color: var(--color-primary-700);
     color: var(--color-primary-100);
   }
@@ -207,9 +212,16 @@ const HamburgerButton = styled.button`
   color: var(--color-grey-100);
   cursor: pointer;
   padding: 0.5rem;
-  
+  touch-action: manipulation;
+
   &:hover {
     color: var(--color-primary-400);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 `;
 
@@ -218,6 +230,10 @@ const StyledOverlay = styled(Dialog.Overlay)`
   position: fixed;
   inset: 0;
   animation: fadeFromTransparent 300ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const StyledContent = styled.div`
@@ -230,6 +246,10 @@ const StyledContent = styled.div`
   padding: 2rem;
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
   animation: slideInFromRight 300ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const CloseButton = styled(Dialog.Close)`
@@ -240,9 +260,16 @@ const CloseButton = styled(Dialog.Close)`
   border: none;
   color: var(--color-grey-100);
   cursor: pointer;
-  
+  touch-action: manipulation;
+
   &:hover {
     color: var(--color-primary-400);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 `;
 
@@ -267,7 +294,7 @@ const MobileNavLink = styled(Link)`
   display: block;
 
   &:hover,
-  &:focus {
+  &:focus-visible {
     color: var(--color-primary-400);
   }
 `;
@@ -292,12 +319,22 @@ const ThemeToggleButton = styled.button`
   padding: 0.4rem 0.6rem;
   display: flex;
   align-items: center;
+  touch-action: manipulation;
   transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
 
   &:hover {
     background-color: var(--color-primary-700);
     border-color: var(--color-primary-500);
     color: var(--color-primary-100);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 

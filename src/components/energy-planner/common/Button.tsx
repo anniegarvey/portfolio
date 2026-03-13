@@ -75,9 +75,18 @@ const StyledButton = styled.button<{
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: manipulation;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   border: 1px solid transparent; /* Reserve space for border to prevent layout shift */
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   ${({ $fullWidth }) =>
     $fullWidth &&

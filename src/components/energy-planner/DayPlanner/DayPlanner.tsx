@@ -425,11 +425,17 @@ const Fill = styled.div<{ $color: string; $percent: number }>`
   top: 0;
   left: 0;
   height: 100%;
-  width: ${({ $percent }) => $percent}%;
+  width: 100%;
+  transform: scaleX(${({ $percent }) => $percent / 100});
+  transform-origin: left;
   background-color: ${({ $color }) => $color};
   border-radius: 7px;
-  transition: width 0.3s ease;
+  transition: transform 0.3s ease;
   z-index: 2;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const CapacityFill = styled.div<{ $color: string; $percent: number }>`
@@ -437,7 +443,9 @@ const CapacityFill = styled.div<{ $color: string; $percent: number }>`
   top: 0;
   left: 0;
   height: 100%;
-  width: ${({ $percent }) => $percent}%;
+  width: 100%;
+  transform: scaleX(${({ $percent }) => $percent / 100});
+  transform-origin: left;
   /* Diagonal stripes clearly distinguish capacity ceiling from solid usage */
   background-image: repeating-linear-gradient(
     -45deg,
@@ -448,14 +456,19 @@ const CapacityFill = styled.div<{ $color: string; $percent: number }>`
   );
   opacity: 0.55;
   border-radius: 7px;
-  transition: width 0.3s ease;
+  transition: transform 0.3s ease;
   z-index: 1;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const UsageText = styled.div<{ $isOver: boolean }>`
   width: 60px;
   text-align: right;
   font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
   font-weight: ${({ $isOver }) => ($isOver ? "700" : "500")};
   color: ${({ $isOver }) =>
     $isOver
