@@ -130,9 +130,13 @@ export async function fetchOneOffPlanningState(
 
   const storedDates = await getAllStoredDates();
 
-  for (const date of storedDates) {
-    const dayPlan = await fetchDayPlanForDate(date);
+  const dayPlans = await Promise.all(
+    storedDates.map((d) => fetchDayPlanForDate(d)),
+  );
+
+  for (const [i, dayPlan] of dayPlans.entries()) {
     if (!dayPlan?.plannedInstances) continue;
+    const date = storedDates[i];
 
     for (const instance of dayPlan.plannedInstances) {
       processInstance(instance, date, today, activityMap, state);
