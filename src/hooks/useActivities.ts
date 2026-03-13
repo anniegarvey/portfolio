@@ -85,14 +85,14 @@ export function useActivities() {
   };
 
   // Derived lists — memoized so consumers' useEffects don't re-fire on every render
-  const oneOffActivities = useMemo(
-    () => activities.filter((a) => !a.repeatConfig),
-    [activities],
-  );
-  const repeatingActivities = useMemo(
-    () => activities.filter((a) => !!a.repeatConfig),
-    [activities],
-  );
+  const { oneOffActivities, repeatingActivities } = useMemo(() => {
+    const oneOff: Activity[] = [];
+    const repeating: Activity[] = [];
+    for (const a of activities) {
+      (a.repeatConfig ? repeating : oneOff).push(a);
+    }
+    return { oneOffActivities: oneOff, repeatingActivities: repeating };
+  }, [activities]);
 
   return {
     activities,

@@ -95,8 +95,8 @@ export function DayPlanner({
     }),
   );
 
-  const usage = calculateEnergyUsage();
-  const warning = checkExceedsCapacity();
+  const usage = useMemo(() => calculateEnergyUsage(), [calculateEnergyUsage]);
+  const warning = useMemo(() => checkExceedsCapacity(), [checkExceedsCapacity]);
   const viewingToday = isToday(currentDate);
   const viewedUncompletedActivities = viewingToday ? uncompletedActivities : [];
 
@@ -276,9 +276,9 @@ export function DayPlanner({
         </UsageGrid>
       </UsageSection>
 
-      {warning.exceeded && <Warning>{warning.message}</Warning>}
+      {warning.exceeded ? <Warning>{warning.message}</Warning> : null}
 
-      {viewedUncompletedActivities.length > 0 && (
+      {viewedUncompletedActivities.length > 0 ? (
         <UncompletedSection data-testid="uncompleted-activities">
           <UncompletedHeader>
             Uncompleted Activities ({viewedUncompletedActivities.length})
@@ -296,7 +296,7 @@ export function DayPlanner({
             )}
           </UncompletedList>
         </UncompletedSection>
-      )}
+      ) : null}
 
       <SelectedSection>
         <DndContext
