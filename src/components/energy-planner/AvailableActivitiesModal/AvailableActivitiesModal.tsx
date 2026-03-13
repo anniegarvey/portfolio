@@ -22,7 +22,7 @@ import type { Activity } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { Modal } from "../../Modal";
 import { Button } from "../common";
-import { PlannerActivityCard } from "../PlannerActivityCard";
+import { AvailableActivityCard } from "../PlannerActivityCard";
 import { SortableItem } from "../SortableItem";
 
 interface AvailableActivitiesModalProps {
@@ -154,7 +154,7 @@ export function AvailableActivitiesModal({
                     {availableActivities.map((activity) => (
                       <SortableItem id={activity.id} key={activity.id}>
                         {({ dragHandleProps }) => (
-                          <PlannerActivityCard
+                          <AvailableActivityCard
                             activity={activity}
                             dragHandleProps={dragHandleProps}
                             onAdd={onAddActivity}
@@ -190,7 +190,7 @@ export function AvailableActivitiesModal({
                     repeatingActivities.map((activity) => (
                       <SortableItem id={activity.id} key={activity.id}>
                         {({ dragHandleProps }) => (
-                          <PlannerActivityCard
+                          <AvailableActivityCard
                             activity={activity}
                             dragHandleProps={dragHandleProps}
                             key={activity.id}

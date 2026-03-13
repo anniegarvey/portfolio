@@ -1,1 +1,4 @@
-export * from "./PlannerActivityCard";
+export {
+  AvailableActivityCard,
+  PlannedActivityCard,
+} from "./PlannerActivityCard";

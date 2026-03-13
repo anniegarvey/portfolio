@@ -10,7 +10,7 @@ import type {
   Activity,
   PlannedInstance,
 } from "../../../lib/energy-planner/schema";
-import { PlannerActivityCard } from ".";
+import { AvailableActivityCard, PlannedActivityCard } from ".";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
@@ -34,14 +34,18 @@ const mockInstance: PlannedInstance = {
   completed: false,
 };
 
-describe("PlannerActivityCard", () => {
+// ─── PlannedActivityCard ──────────────────────────────────────────────────────
+
+describe("PlannedActivityCard", () => {
   it("renders activity title and energy costs", () => {
-    const mockOnEdit = vi.fn();
     render(
-      <PlannerActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
-      {
-        wrapper,
-      },
+      <PlannedActivityCard
+        activity={mockActivity}
+        dayContext="today"
+        instance={mockInstance}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
     );
 
     expect(screen.getByText("Test Activity")).toBeInTheDocument();
@@ -54,48 +58,29 @@ describe("PlannerActivityCard", () => {
     const user = userEvent.setup();
     const mockOnEdit = vi.fn();
     render(
-      <PlannerActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
-      {
-        wrapper,
-      },
-    );
-
-    // Click on the title text
-    await user.click(screen.getByText("Test Activity"));
-    expect(mockOnEdit).toHaveBeenCalledWith(mockActivity);
-  });
-
-  it("shows add button when not selected", async () => {
-    const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
-    const mockOnAdd = vi.fn();
-    render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
-        onAdd={mockOnAdd}
+        dayContext="today"
+        instance={mockInstance}
         onEdit={mockOnEdit}
       />,
       { wrapper },
     );
 
-    const addButton = screen.getByLabelText("Add to day");
-    expect(addButton).toBeInTheDocument();
-
-    await user.click(addButton);
-    expect(mockOnAdd).toHaveBeenCalledWith("activity-1");
+    await user.click(screen.getByText("Test Activity"));
+    expect(mockOnEdit).toHaveBeenCalledWith(mockActivity);
   });
 
-  it("shows move button when selected, allowing return to unplanned", async () => {
+  it("shows move button on today, allowing return to unplanned", async () => {
     const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
     const mockOnRemove = vi.fn();
     render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
+        dayContext="today"
         instance={mockInstance}
-        onEdit={mockOnEdit}
+        onEdit={vi.fn()}
         onRemove={mockOnRemove}
-        selected
       />,
       { wrapper },
     );
@@ -106,25 +91,22 @@ describe("PlannerActivityCard", () => {
     await user.click(moveButton);
 
     expect(screen.getByText("Tomorrow")).toBeInTheDocument();
+    expect(screen.getByText("Return to unplanned")).toBeInTheDocument();
 
-    const returnButton = screen.getByText("Return to unplanned");
-    expect(returnButton).toBeInTheDocument();
-
-    await user.click(returnButton);
+    await user.click(screen.getByText("Return to unplanned"));
     expect(mockOnRemove).toHaveBeenCalledWith("instance-1");
   });
 
-  it("shows completion toggle when selected", async () => {
+  it("shows completion toggle on today", async () => {
     const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
     const mockOnToggleCompletion = vi.fn();
     render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
+        dayContext="today"
         instance={mockInstance}
-        onEdit={mockOnEdit}
+        onEdit={vi.fn()}
         onToggleCompletion={mockOnToggleCompletion}
-        selected
       />,
       { wrapper },
     );
@@ -137,16 +119,14 @@ describe("PlannerActivityCard", () => {
   });
 
   it("shows 'Mark as not done' when activity is completed", () => {
-    const mockOnEdit = vi.fn();
-    const mockOnToggleCompletion = vi.fn();
     render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
         completed
+        dayContext="today"
         instance={mockInstance}
-        onEdit={mockOnEdit}
-        onToggleCompletion={mockOnToggleCompletion}
-        selected
+        onEdit={vi.fn()}
+        onToggleCompletion={vi.fn()}
       />,
       { wrapper },
     );
@@ -154,206 +134,143 @@ describe("PlannerActivityCard", () => {
     expect(screen.getByLabelText("Mark as not done")).toBeInTheDocument();
   });
 
-  it("does not show add button when selected", () => {
-    const mockOnEdit = vi.fn();
+  it("toggles completion when clicked on a completed activity", async () => {
+    const user = userEvent.setup();
+    const mockOnToggleCompletion = vi.fn();
     render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
+        completed
+        dayContext="today"
         instance={mockInstance}
-        onEdit={mockOnEdit}
-        selected
+        onEdit={vi.fn()}
+        onToggleCompletion={mockOnToggleCompletion}
       />,
-      {
-        wrapper,
-      },
+      { wrapper },
     );
 
-    expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText("Mark as not done"));
+    expect(mockOnToggleCompletion).toHaveBeenCalledWith("instance-1");
   });
 
-  it("does not show move button when not selected", () => {
-    const mockOnEdit = vi.fn();
+  it("does not show completion toggle when dayContext is future", () => {
     render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
+        dayContext="future"
         instance={mockInstance}
-        onEdit={mockOnEdit}
+        onEdit={vi.fn()}
+        onToggleCompletion={vi.fn()}
       />,
-      {
-        wrapper,
-      },
+      { wrapper },
+    );
+
+    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
+  });
+
+  it("does not show completion toggle when dayContext is past", () => {
+    render(
+      <PlannedActivityCard
+        activity={mockActivity}
+        dayContext="past"
+        instance={mockInstance}
+        onEdit={vi.fn()}
+        onToggleCompletion={vi.fn()}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
+  });
+
+  it("does not show move button when dayContext is past", () => {
+    render(
+      <PlannedActivityCard
+        activity={mockActivity}
+        dayContext="past"
+        instance={mockInstance}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
     );
 
     expect(screen.queryByLabelText("Move activity")).not.toBeInTheDocument();
   });
 
-  it("does not show completion toggle when not selected", () => {
-    const mockOnEdit = vi.fn();
+  it("shows move button on future day", () => {
     render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
+        dayContext="future"
         instance={mockInstance}
-        onEdit={mockOnEdit}
-      />,
-      {
-        wrapper,
-      },
-    );
-
-    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
-  });
-
-  it("displays correct energy badge labels with P, S, E suffixes", () => {
-    const mockOnEdit = vi.fn();
-    render(
-      <PlannerActivityCard
-        activity={mockActivity}
-        instance={mockInstance}
-        onEdit={mockOnEdit}
-      />,
-      {
-        wrapper,
-      },
-    );
-
-    // Verify the exact text including the suffix
-    expect(screen.getByText(/10 P/)).toBeInTheDocument();
-    expect(screen.getByText(/20 S/)).toBeInTheDocument();
-    expect(screen.getByText(/5 E/)).toBeInTheDocument();
-  });
-
-  it("displays correct button titles for accessibility", () => {
-    const mockOnEdit = vi.fn();
-    const mockOnAdd = vi.fn();
-    render(
-      <PlannerActivityCard
-        activity={mockActivity}
-        instance={mockInstance}
-        onAdd={mockOnAdd}
-        onEdit={mockOnEdit}
+        onEdit={vi.fn()}
       />,
       { wrapper },
-    );
-
-    expect(screen.getByTitle("Add to day")).toBeInTheDocument();
-  });
-
-  it("displays correct button titles when selected", () => {
-    const mockOnEdit = vi.fn();
-    const mockOnRemove = vi.fn();
-    const mockOnToggleCompletion = vi.fn();
-    render(
-      <PlannerActivityCard
-        activity={mockActivity}
-        instance={mockInstance}
-        onEdit={mockOnEdit}
-        onRemove={mockOnRemove}
-        onToggleCompletion={mockOnToggleCompletion}
-        selected
-      />,
-      { wrapper },
-    );
-
-    expect(screen.getByTitle("Mark as done")).toBeInTheDocument();
-    expect(screen.getByTitle("Move activity")).toBeInTheDocument();
-  });
-
-  it("toggles completion button when clicked on completed activity", async () => {
-    const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
-    const mockOnToggleCompletion = vi.fn();
-    render(
-      <PlannerActivityCard
-        activity={mockActivity}
-        completed
-        instance={mockInstance}
-        onEdit={mockOnEdit}
-        onToggleCompletion={mockOnToggleCompletion}
-        selected
-      />,
-      { wrapper },
-    );
-
-    const toggleButton = screen.getByLabelText("Mark as not done");
-    await user.click(toggleButton);
-    expect(mockOnToggleCompletion).toHaveBeenCalledWith("instance-1");
-  });
-
-  it("renders all three energy types with correct values", () => {
-    const mockOnEdit = vi.fn();
-    const activityWithDifferentEnergy: Activity = {
-      ...mockActivity,
-      energyCost: { physical: 25, social: 50, executive: 75 },
-    };
-    render(
-      <PlannerActivityCard
-        activity={activityWithDifferentEnergy}
-        onEdit={mockOnEdit}
-      />,
-      { wrapper },
-    );
-
-    expect(screen.getByText("25 P")).toBeInTheDocument();
-    expect(screen.getByText("50 S")).toBeInTheDocument();
-    expect(screen.getByText("75 E")).toBeInTheDocument();
-  });
-
-  it("does not render energy badge if cost is 0", () => {
-    const mockOnEdit = vi.fn();
-    const activityWithZeroCost: Activity = {
-      ...mockActivity,
-      energyCost: { physical: 0, social: 10, executive: 0 },
-    };
-    render(
-      <PlannerActivityCard
-        activity={activityWithZeroCost}
-        onEdit={mockOnEdit}
-      />,
-      {
-        wrapper,
-      },
-    );
-
-    expect(screen.queryByText(/0 P/)).not.toBeInTheDocument();
-    expect(screen.getByText(/10 S/)).toBeInTheDocument();
-    expect(screen.queryByText(/0 E/)).not.toBeInTheDocument();
-  });
-
-  it("does not render actions if optional callbacks are not provided", () => {
-    const mockOnEdit = vi.fn();
-    render(
-      <PlannerActivityCard
-        activity={mockActivity}
-        instance={mockInstance}
-        onEdit={mockOnEdit}
-        selected
-      />,
-      {
-        wrapper,
-      },
     );
 
     expect(screen.getByLabelText("Move activity")).toBeInTheDocument();
+  });
+
+  it("does not show completion toggle when onToggleCompletion is not provided", () => {
+    render(
+      <PlannedActivityCard
+        activity={mockActivity}
+        dayContext="today"
+        instance={mockInstance}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
+    );
+
     expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
   });
 
-  it("does not show add button when not selected but onAdd is missing", () => {
-    const mockOnEdit = vi.fn();
+  it("shows move button for repeating activities, without return to unplanned option", async () => {
+    const user = userEvent.setup();
+    const repeatingActivity: Activity = {
+      ...mockActivity,
+      repeatConfig: { frequency: 1, unit: "days" },
+    };
+
     render(
-      <PlannerActivityCard
-        activity={mockActivity}
+      <PlannedActivityCard
+        activity={repeatingActivity}
+        dayContext="today"
         instance={mockInstance}
-        onEdit={mockOnEdit}
+        onEdit={vi.fn()}
+        onMove={vi.fn()}
+        onRemove={vi.fn()}
       />,
-      {
-        wrapper,
-      },
+      { wrapper },
     );
 
-    expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText("Move activity"));
+
+    expect(screen.getByText("Tomorrow")).toBeInTheDocument();
+    expect(screen.queryByText("Return to unplanned")).not.toBeInTheDocument();
   });
+
+  it("calls onMove when Tomorrow is clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnMove = vi.fn();
+    render(
+      <PlannedActivityCard
+        activity={mockActivity}
+        dayContext="today"
+        instance={mockInstance}
+        onEdit={vi.fn()}
+        onMove={mockOnMove}
+      />,
+      { wrapper },
+    );
+
+    await user.click(screen.getByLabelText("Move activity"));
+    await user.click(screen.getByText("Tomorrow"));
+
+    expect(mockOnMove).toHaveBeenCalledWith("instance-1", expect.any(String));
+  });
+
   it("renders drag handle when dragHandleProps are provided", () => {
-    const mockOnEdit = vi.fn();
     const dragHandleProps = {
       listeners: {
         onPointerDown: vi.fn(),
@@ -368,29 +285,142 @@ describe("PlannerActivityCard", () => {
     };
 
     render(
-      <PlannerActivityCard
+      <PlannedActivityCard
         activity={mockActivity}
+        dayContext="today"
         dragHandleProps={dragHandleProps}
         instance={mockInstance}
-        onEdit={mockOnEdit}
+        onEdit={vi.fn()}
       />,
       { wrapper },
     );
 
-    const handle = screen.getByLabelText("Reorder activity: Test Activity");
-    expect(handle).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Reorder activity: Test Activity"),
+    ).toBeInTheDocument();
+  });
+
+  it("renders all three energy types with correct values", () => {
+    const activityWithDifferentEnergy: Activity = {
+      ...mockActivity,
+      energyCost: { physical: 25, social: 50, executive: 75 },
+    };
+    render(
+      <PlannedActivityCard
+        activity={activityWithDifferentEnergy}
+        dayContext="today"
+        instance={mockInstance}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByText("25 P")).toBeInTheDocument();
+    expect(screen.getByText("50 S")).toBeInTheDocument();
+    expect(screen.getByText("75 E")).toBeInTheDocument();
+  });
+
+  it("does not render energy badge if cost is 0", () => {
+    const activityWithZeroCost: Activity = {
+      ...mockActivity,
+      energyCost: { physical: 0, social: 10, executive: 0 },
+    };
+    render(
+      <PlannedActivityCard
+        activity={activityWithZeroCost}
+        dayContext="today"
+        instance={mockInstance}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByText(/0 P/)).not.toBeInTheDocument();
+    expect(screen.getByText(/10 S/)).toBeInTheDocument();
+    expect(screen.queryByText(/0 E/)).not.toBeInTheDocument();
+  });
+});
+
+// ─── AvailableActivityCard ────────────────────────────────────────────────────
+
+describe("AvailableActivityCard", () => {
+  it("renders activity title and energy costs", () => {
+    render(<AvailableActivityCard activity={mockActivity} onEdit={vi.fn()} />, {
+      wrapper,
+    });
+
+    expect(screen.getByText("Test Activity")).toBeInTheDocument();
+    expect(screen.getByText("10 P")).toBeInTheDocument();
+    expect(screen.getByText("20 S")).toBeInTheDocument();
+    expect(screen.getByText("5 E")).toBeInTheDocument();
+  });
+
+  it("calls onEdit when title is clicked", async () => {
+    const user = userEvent.setup();
+    const mockOnEdit = vi.fn();
+    render(
+      <AvailableActivityCard activity={mockActivity} onEdit={mockOnEdit} />,
+      {
+        wrapper,
+      },
+    );
+
+    await user.click(screen.getByText("Test Activity"));
+    expect(mockOnEdit).toHaveBeenCalledWith(mockActivity);
+  });
+
+  it("shows add button for one-off activity", async () => {
+    const user = userEvent.setup();
+    const mockOnAdd = vi.fn();
+    render(
+      <AvailableActivityCard
+        activity={mockActivity}
+        onAdd={mockOnAdd}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
+    );
+
+    const addButton = screen.getByLabelText("Add to day");
+    expect(addButton).toBeInTheDocument();
+
+    await user.click(addButton);
+    expect(mockOnAdd).toHaveBeenCalledWith("activity-1");
+  });
+
+  it("does not show add button when onAdd is not provided", () => {
+    render(<AvailableActivityCard activity={mockActivity} onEdit={vi.fn()} />, {
+      wrapper,
+    });
+
+    expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
+  });
+
+  it("does not show add button for repeating activities", () => {
+    const repeatingActivity: Activity = {
+      ...mockActivity,
+      repeatConfig: { frequency: 1, unit: "days" },
+    };
+    render(
+      <AvailableActivityCard
+        activity={repeatingActivity}
+        onAdd={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByLabelText("Add to day")).not.toBeInTheDocument();
   });
 
   it("shows delete button and calls onDelete when clicked", async () => {
     const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
     const mockOnDelete = vi.fn();
     render(
-      <PlannerActivityCard
+      <AvailableActivityCard
         activity={mockActivity}
-        instance={mockInstance}
         onDelete={mockOnDelete}
-        onEdit={mockOnEdit}
+        onEdit={vi.fn()}
       />,
       { wrapper },
     );
@@ -402,74 +432,70 @@ describe("PlannerActivityCard", () => {
     expect(mockOnDelete).toHaveBeenCalledWith(mockActivity.id);
   });
 
-  it("shows move button for repeating activities, but without return option", async () => {
-    const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
-    const mockOnRemove = vi.fn();
-    const mockOnMove = vi.fn();
-    const repeatingActivity: Activity = {
-      ...mockActivity,
-      repeatConfig: { frequency: 1, unit: "days" },
+  it("does not show delete button when onDelete is not provided", () => {
+    render(<AvailableActivityCard activity={mockActivity} onEdit={vi.fn()} />, {
+      wrapper,
+    });
+
+    expect(screen.queryByLabelText("Delete activity")).not.toBeInTheDocument();
+  });
+
+  it("shows correct button title for accessibility", () => {
+    render(
+      <AvailableActivityCard
+        activity={mockActivity}
+        onAdd={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByTitle("Add to day")).toBeInTheDocument();
+  });
+
+  it("renders drag handle when dragHandleProps are provided", () => {
+    const dragHandleProps = {
+      listeners: {
+        onPointerDown: vi.fn(),
+      } as unknown as DraggableSyntheticListeners,
+      attributes: {
+        "data-testid": "drag-handle",
+        "aria-pressed": false,
+        role: "button",
+        tabIndex: 0,
+      } as unknown as DraggableAttributes,
+      ref: vi.fn(),
     };
 
     render(
-      <PlannerActivityCard
-        activity={repeatingActivity}
-        instance={mockInstance}
-        onEdit={mockOnEdit}
-        onMove={mockOnMove}
-        onRemove={mockOnRemove}
-        selected
+      <AvailableActivityCard
+        activity={mockActivity}
+        dragHandleProps={dragHandleProps}
+        onEdit={vi.fn()}
       />,
       { wrapper },
     );
 
-    const moveButton = screen.getByLabelText("Move activity");
-    expect(moveButton).toBeInTheDocument();
-
-    await user.click(moveButton);
-
-    expect(screen.getByText("Tomorrow")).toBeInTheDocument();
-    expect(screen.queryByText("Return to unplanned")).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Reorder activity: Test Activity"),
+    ).toBeInTheDocument();
   });
 
-  it("does not show completion toggle when isFutureDay is true", () => {
-    const mockOnEdit = vi.fn();
-    const mockOnToggleCompletion = vi.fn();
+  it("does not render energy badge if cost is 0", () => {
+    const activityWithZeroCost: Activity = {
+      ...mockActivity,
+      energyCost: { physical: 0, social: 10, executive: 0 },
+    };
     render(
-      <PlannerActivityCard
-        activity={mockActivity}
-        instance={mockInstance}
-        isFutureDay
-        onEdit={mockOnEdit}
-        onToggleCompletion={mockOnToggleCompletion}
-        selected
+      <AvailableActivityCard
+        activity={activityWithZeroCost}
+        onEdit={vi.fn()}
       />,
       { wrapper },
     );
 
-    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
-  });
-
-  it("calls onMove when Tomorrow is clicked", async () => {
-    const user = userEvent.setup();
-    const mockOnEdit = vi.fn();
-    const mockOnMove = vi.fn();
-    render(
-      <PlannerActivityCard
-        activity={mockActivity}
-        instance={mockInstance}
-        onEdit={mockOnEdit}
-        onMove={mockOnMove}
-        selected
-      />,
-      { wrapper },
-    );
-
-    await user.click(screen.getByLabelText("Move activity"));
-    await user.click(screen.getByText("Tomorrow"));
-
-    // Expect second argument to be a date string (just checking it's called with id)
-    expect(mockOnMove).toHaveBeenCalledWith("instance-1", expect.any(String));
+    expect(screen.queryByText(/0 P/)).not.toBeInTheDocument();
+    expect(screen.getByText(/10 S/)).toBeInTheDocument();
+    expect(screen.queryByText(/0 E/)).not.toBeInTheDocument();
   });
 });

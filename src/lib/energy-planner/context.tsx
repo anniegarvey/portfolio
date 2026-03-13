@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, use } from "react";
 import { useEnergyPlannerState } from "@/hooks/useEnergyPlannerState";
 import type {
   Activity,
@@ -78,7 +78,7 @@ export function EnergyPlannerProvider({ children }: { children: ReactNode }) {
 
 // biome-ignore lint/style/useComponentExportOnlyModules: Standard pattern for Context + Hook
 export function useEnergyPlanner() {
-  const context = useContext(EnergyPlannerContext);
+  const context = use(EnergyPlannerContext);
   if (context === undefined) {
     throw new Error(
       "useEnergyPlanner must be used within an EnergyPlannerProvider",
