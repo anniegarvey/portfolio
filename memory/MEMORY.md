@@ -3,6 +3,7 @@
 ## Always run `pnpm validate` to check changes
 Any new behaviour must also be covered in e2e Playwright tests in `/e2e`.
 Runs: `tsc --noEmit && pnpm lint --fix && pnpm test && pnpm playwright test`
+- Playwright needs a dev server on port 3000. `playwright.config.ts` tries to start `pnpm dev` with a 60s timeout — **start `pnpm dev` in the background first** to avoid timeout failures.
 
 ## Linting (Biome)
 - `--error-on-warnings` is set, so warnings are treated as errors
