@@ -704,6 +704,59 @@ describe("useDayPlan", () => {
       );
       expect(remaining).toBeUndefined();
     });
+
+    it("skipping a daily activity with a past nextDueDate sets nextDueDate to tomorrow, not past date + 1", async () => {
+      // Regression: when nextDueDate is a past date (activity has been running for a while),
+      // skipActivity must advance from currentDate, not from nextDueDate. Otherwise for
+      // daily (freq=1) activities the new nextDueDate is still in the past and the activity
+      // is immediately re-projected on the same day — making skip appear to do nothing.
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const oneWeekAgoStr = oneWeekAgo.toISOString().split("T")[0];
+
+      const activity = {
+        ...mockActivity("rep-skip-past", "Daily Since Last Week"),
+        repeatConfig: {
+          frequency: 1,
+          unit: "days",
+          nextDueDate: oneWeekAgoStr,
+        },
+      } as const;
+      const stableList = [activity];
+      const mockOnUpdateActivity = vi.fn();
+
+      const { result } = renderHook(() =>
+        useDayPlan(stableList, mockOnUpdateActivity),
+      );
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      const projected = result.current.dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === "rep-skip-past",
+      );
+      expect(projected).toBeDefined();
+      if (!projected) throw new Error("No projected instance found");
+
+      await act(async () => {
+        result.current.skipActivity(projected.id);
+      });
+
+      expect(mockOnUpdateActivity).toHaveBeenCalled();
+      const updatedActivity = mockOnUpdateActivity.mock.calls[0][0];
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+      // nextDueDate must be tomorrow — not oneWeekAgo + 1 day
+      expect(updatedActivity.repeatConfig.nextDueDate).toBe(tomorrowStr);
+
+      // Instance must be removed from today's plan
+      expect(
+        result.current.dayPlan.plannedInstances.find(
+          (i) => i.id === projected.id,
+        ),
+      ).toBeUndefined();
+    });
   });
 
   describe("Navigation and moving to today", () => {

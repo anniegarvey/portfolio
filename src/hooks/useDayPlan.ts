@@ -476,7 +476,7 @@ export function useDayPlan(
         deleteFromPlan(instanceId);
 
         const nextDate = calculateNextDueDate(
-          repeatingActivity.repeatConfig.nextDueDate,
+          currentDate,
           repeatingActivity.repeatConfig,
         );
 
@@ -491,7 +491,12 @@ export function useDayPlan(
         }
       }
     },
-    [calculateNextDueDate, dayPlan.plannedInstances, deleteFromPlan],
+    [
+      calculateNextDueDate,
+      currentDate,
+      dayPlan.plannedInstances,
+      deleteFromPlan,
+    ],
   );
 
   const reorderPlannedActivitiesWithIds = useCallback((itemIds: string[]) => {
