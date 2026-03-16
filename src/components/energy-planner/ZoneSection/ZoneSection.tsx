@@ -13,14 +13,13 @@ import type {
   ZoneConfig,
 } from "@/lib/energy-planner/schema";
 import { Button } from "../common";
-import { PlannerActivityCard } from "../PlannerActivityCard";
+import { PlannedActivityCard } from "../PlannerActivityCard";
 import { SortableItem } from "../SortableItem";
 
 interface ZoneSectionProps {
   zone: ZoneConfig;
   activities: ResolvedActivity[];
-  isPastDay: boolean;
-  isFutureDay: boolean;
+  dayContext: "today" | "past" | "future";
   onAddActivity: () => void;
   onEditActivity: (activity: Activity) => void;
   onRemove: (instanceId: string) => void;
@@ -32,8 +31,7 @@ interface ZoneSectionProps {
 export function ZoneSection({
   zone,
   activities,
-  isPastDay,
-  isFutureDay,
+  dayContext,
   onAddActivity,
   onEditActivity,
   onRemove,
@@ -76,18 +74,16 @@ export function ZoneSection({
           {activities.map(({ instance, activity }) => (
             <SortableItem id={instance.id} key={instance.id}>
               {({ dragHandleProps }) => (
-                <PlannerActivityCard
+                <PlannedActivityCard
                   activity={activity}
                   completed={instance.completed}
+                  dayContext={dayContext}
                   dragHandleProps={dragHandleProps}
                   instance={instance}
-                  isFutureDay={isFutureDay}
-                  isPastDay={isPastDay}
                   onEdit={onEditActivity}
                   onMove={onMove}
                   onRemove={onRemove}
                   onToggleCompletion={onToggleCompletion}
-                  selected
                 />
               )}
             </SortableItem>

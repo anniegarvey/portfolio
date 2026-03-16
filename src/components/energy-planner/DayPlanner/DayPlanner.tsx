@@ -29,7 +29,7 @@ import type {
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { Button } from "../common";
 import { DateSelector } from "../DateSelector";
-import { PlannerActivityCard } from "../PlannerActivityCard";
+import { PlannedActivityCard } from "../PlannerActivityCard";
 import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
 import { ZoneSection } from "../ZoneSection";
@@ -99,6 +99,9 @@ export function DayPlanner({
   const warning = useMemo(() => checkExceedsCapacity(), [checkExceedsCapacity]);
   const viewingToday = isToday(currentDate);
   const viewedUncompletedActivities = viewingToday ? uncompletedActivities : [];
+  const today = getTodayDateString();
+  const dayContext =
+    currentDate < today ? "past" : currentDate > today ? "future" : "today";
 
   // Group resolved activities by zone
   const activitiesByZone = useMemo(() => {
@@ -310,8 +313,7 @@ export function DayPlanner({
             {zones.map((zone) => (
               <ZoneSection
                 activities={activitiesByZone.get(zone.id) ?? []}
-                isFutureDay={currentDate > getTodayDateString()}
-                isPastDay={currentDate < getTodayDateString()}
+                dayContext={dayContext}
                 key={zone.id}
                 onAddActivity={() => handleOpenModalForZone(zone.id)}
                 onEditActivity={onEditActivity}
@@ -325,20 +327,17 @@ export function DayPlanner({
           </ZonesContainer>
           <DragOverlay>
             {activeResolved ? (
-              <PlannerActivityCard
+              <PlannedActivityCard
                 activity={activeResolved.activity}
                 completed={activeResolved.instance.completed}
+                dayContext={dayContext}
                 dragHandleProps={{
                   listeners: {} as DraggableSyntheticListeners,
                   attributes: {} as DraggableAttributes,
                   ref: () => {},
                 }}
                 instance={activeResolved.instance}
-                isFutureDay={currentDate > getTodayDateString()}
-                isPastDay={!viewingToday}
                 onEdit={onEditActivity}
-                onMove={moveActivityToDate}
-                selected
               />
             ) : null}
           </DragOverlay>

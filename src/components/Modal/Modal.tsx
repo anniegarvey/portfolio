@@ -30,14 +30,6 @@ export function Modal({
   showDescription,
   onOpenAutoFocus,
 }: ModalProps) {
-  const DescriptionWrapper = showDescription
-    ? Description
-    : ({ children }: { children: ReactNode }) => (
-        <VisuallyHidden>
-          <Dialog.DialogDescription>{children}</Dialog.DialogDescription>
-        </VisuallyHidden>
-      );
-
   return (
     <Dialog.Root onOpenChange={(open) => !open && onClose()} open={isOpen}>
       <Dialog.Portal>
@@ -58,7 +50,15 @@ export function Modal({
             </Dialog.Close>
           </Header>
           <Body>
-            <DescriptionWrapper>{description}</DescriptionWrapper>
+            {showDescription ? (
+              <Description>{description}</Description>
+            ) : (
+              <VisuallyHidden>
+                <Dialog.DialogDescription>
+                  {description}
+                </Dialog.DialogDescription>
+              </VisuallyHidden>
+            )}
             {children}
           </Body>
         </Content>

@@ -24,63 +24,45 @@ import type {
 } from "../../../lib/energy-planner/schema";
 import { Button } from "../common";
 
-interface PlannerActivityCardProps {
+type DragHandleProps = {
+  listeners: DraggableSyntheticListeners;
+  attributes: DraggableAttributes;
+  ref: (node: HTMLElement | null) => void;
+};
+
+// ─── Planned Activity Card ────────────────────────────────────────────────────
+// Used in ZoneSection (day plan) and DragOverlay.
+
+interface PlannedActivityCardProps {
   activity: Activity;
-  instance?: PlannedInstance;
-  selected?: boolean;
+  instance: PlannedInstance;
   completed?: boolean;
-  isPastDay?: boolean;
-  isFutureDay?: boolean;
+  dayContext: "today" | "past" | "future";
   onEdit: (activity: Activity) => void;
   onToggleCompletion?: (instanceId: string) => void;
   onRemove?: (instanceId: string) => void;
   onMove?: (instanceId: string, date: string) => void;
-  onDelete?: (activityId: string) => void;
-  onAdd?: (activityId: string) => void;
-  dragHandleProps?: {
-    listeners: DraggableSyntheticListeners;
-    attributes: DraggableAttributes;
-    ref: (node: HTMLElement | null) => void;
-  };
+  dragHandleProps?: DragHandleProps;
 }
 
-export function PlannerActivityCard({
+export function PlannedActivityCard({
   activity,
   instance,
-  selected,
   completed,
-  isPastDay,
-  isFutureDay,
+  dayContext,
   onEdit,
   onToggleCompletion,
   onRemove,
   onMove,
-  onDelete,
-  onAdd,
   dragHandleProps,
-}: PlannerActivityCardProps) {
-  const {
-    energyTypes,
-    currentDate,
-    moveActivityToDate,
-    removeFromPlan,
-    skipActivity,
-  } = useEnergyPlanner();
-
-  const tomorrow = getNextDay(currentDate);
-  const dayAfter = getNextDay(tomorrow);
-
-  const instanceId = instance?.id;
-  const handleMove = onMove || moveActivityToDate;
-  const handleRemove = onRemove || removeFromPlan;
+}: PlannedActivityCardProps) {
+  const { energyTypes } = useEnergyPlanner();
+  const isToday = dayContext === "today";
+  const isPast = dayContext === "past";
 
   return (
-    <Card
-      $completed={completed}
-      $isProjected={instance?.isProjected}
-      $selected={selected}
-    >
-      {dragHandleProps && (
+    <Card $completed={completed} $isProjected={instance.isProjected} $selected>
+      {dragHandleProps ? (
         <DragHandle
           {...dragHandleProps.listeners}
           {...dragHandleProps.attributes}
@@ -89,18 +71,18 @@ export function PlannerActivityCard({
         >
           <GripVertical size={20} />
         </DragHandle>
-      )}
+      ) : null}
       <ActivityContent $completed={completed}>
         <ActivityTitleRow>
           <ActivityTitle onClick={() => onEdit(activity)}>
             {activity.title}
           </ActivityTitle>
         </ActivityTitleRow>
-        {activity.description && (
+        {activity.description ? (
           <ActivityDescription onClick={() => onEdit(activity)}>
             {activity.description}
           </ActivityDescription>
-        )}
+        ) : null}
         <EnergyBadges>
           {energyTypes.map((type) => {
             const value = activity.energyCost[type.id] || 0;
@@ -111,33 +93,157 @@ export function PlannerActivityCard({
               </Badge>
             );
           })}
-          {activity.repeatConfig && selected && (
+          {activity.repeatConfig ? (
             <RepeatBadge title="Repeating Activity">
               <RotateCw size={12} />
               <VisuallyHidden>Repeat</VisuallyHidden>
             </RepeatBadge>
-          )}
+          ) : null}
         </EnergyBadges>
       </ActivityContent>
       <Actions>
-        {selected &&
-          onToggleCompletion &&
-          instanceId &&
-          !isPastDay &&
-          !isFutureDay && (
-            <Button
-              aria-label={completed ? "Mark as not done" : "Mark as done"}
-              intent={completed ? "danger" : "teal"}
-              onClick={() => onToggleCompletion(instanceId)}
-              size="icon"
-              title={completed ? "Mark as not done" : "Mark as done"}
-              variant="ghost"
-            >
-              {completed ? <Undo2 size={18} /> : <Check size={18} />}
-            </Button>
-          )}
+        {onToggleCompletion && isToday ? (
+          <Button
+            aria-label={completed ? "Mark as not done" : "Mark as done"}
+            intent={completed ? "danger" : "teal"}
+            onClick={() => onToggleCompletion(instance.id)}
+            size="icon"
+            title={completed ? "Mark as not done" : "Mark as done"}
+            variant="ghost"
+          >
+            {completed ? <Undo2 size={18} /> : <Check size={18} />}
+          </Button>
+        ) : null}
+        {!(completed || isPast) ? (
+          <MoveDropdown
+            activity={activity}
+            instance={instance}
+            onMove={onMove}
+            onRemove={onRemove}
+          />
+        ) : null}
+      </Actions>
+    </Card>
+  );
+}
 
-        {onDelete && (
+interface MoveDropdownProps {
+  activity: Activity;
+  instance: PlannedInstance;
+  onMove?: (instanceId: string, date: string) => void;
+  onRemove?: (instanceId: string) => void;
+}
+
+function MoveDropdown({
+  activity,
+  instance,
+  onMove,
+  onRemove,
+}: MoveDropdownProps) {
+  const { currentDate, moveActivityToDate, skipActivity } = useEnergyPlanner();
+  const tomorrow = getNextDay(currentDate);
+  const dayAfter = getNextDay(tomorrow);
+  const handleMove = onMove ?? moveActivityToDate;
+
+  return (
+    <DropdownMenuPrimitive.Root modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          aria-label="Move activity"
+          size="icon"
+          title="Move activity"
+          variant="ghost"
+        >
+          <ArrowRight size={18} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => handleMove(instance.id, tomorrow)}>
+            Tomorrow
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleMove(instance.id, dayAfter)}>
+            Day after tomorrow
+          </DropdownMenuItem>
+          {activity.repeatConfig ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => skipActivity(instance.id)}>
+                Skip this time
+              </DropdownMenuItem>
+            </>
+          ) : null}
+          {onRemove && !activity.repeatConfig ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onRemove(instance.id)}>
+                Return to unplanned
+              </DropdownMenuItem>
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenuPortal>
+    </DropdownMenuPrimitive.Root>
+  );
+}
+
+// ─── Available Activity Card ──────────────────────────────────────────────────
+// Used in AvailableActivitiesModal (unplanned activities list).
+
+interface AvailableActivityCardProps {
+  activity: Activity;
+  onEdit: (activity: Activity) => void;
+  onAdd?: (activityId: string) => void;
+  onDelete?: (activityId: string) => void;
+  dragHandleProps?: DragHandleProps;
+}
+
+export function AvailableActivityCard({
+  activity,
+  onEdit,
+  onAdd,
+  onDelete,
+  dragHandleProps,
+}: AvailableActivityCardProps) {
+  const { energyTypes } = useEnergyPlanner();
+
+  return (
+    <Card>
+      {dragHandleProps ? (
+        <DragHandle
+          {...dragHandleProps.listeners}
+          {...dragHandleProps.attributes}
+          aria-label={`Reorder activity: ${activity.title}`}
+          ref={dragHandleProps.ref}
+        >
+          <GripVertical size={20} />
+        </DragHandle>
+      ) : null}
+      <ActivityContent>
+        <ActivityTitleRow>
+          <ActivityTitle onClick={() => onEdit(activity)}>
+            {activity.title}
+          </ActivityTitle>
+        </ActivityTitleRow>
+        {activity.description ? (
+          <ActivityDescription onClick={() => onEdit(activity)}>
+            {activity.description}
+          </ActivityDescription>
+        ) : null}
+        <EnergyBadges>
+          {energyTypes.map((type) => {
+            const value = activity.energyCost[type.id] || 0;
+            if (value === 0) return null;
+            return (
+              <Badge $color={type.color} key={type.id}>
+                {value} {type.label.charAt(0).toUpperCase()}
+              </Badge>
+            );
+          })}
+        </EnergyBadges>
+      </ActivityContent>
+      <Actions>
+        {onDelete ? (
           <Button
             aria-label="Delete activity"
             intent="danger"
@@ -148,55 +254,8 @@ export function PlannerActivityCard({
           >
             <Trash2 size={18} />
           </Button>
-        )}
-
-        {selected && !completed && !isPastDay && instanceId && (
-          <DropdownMenuPrimitive.Root modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label="Move activity"
-                size="icon"
-                title="Move activity"
-                variant="ghost"
-              >
-                <ArrowRight size={18} />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuPortal>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => handleMove?.(instanceId, tomorrow)}
-                >
-                  Tomorrow
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleMove?.(instanceId, dayAfter)}
-                >
-                  Day after tomorrow
-                </DropdownMenuItem>
-                {activity.repeatConfig && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => skipActivity(instanceId)}>
-                      Skip this time
-                    </DropdownMenuItem>
-                  </>
-                )}
-                {handleRemove && !activity.repeatConfig && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleRemove(instanceId)}>
-                      Return to unplanned
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenuPortal>
-          </DropdownMenuPrimitive.Root>
-        )}
-
-        {!selected && onAdd && !isPastDay && !activity.repeatConfig && (
+        ) : null}
+        {onAdd && !activity.repeatConfig ? (
           <Button
             aria-label="Add to day"
             onClick={() => onAdd(activity.id)}
@@ -206,11 +265,13 @@ export function PlannerActivityCard({
           >
             <CopyPlus size={18} />
           </Button>
-        )}
+        ) : null}
       </Actions>
     </Card>
   );
 }
+
+// ─── Shared Styled Components ─────────────────────────────────────────────────
 
 const DragHandle = styled.div`
   display: flex;
@@ -261,10 +322,10 @@ const Card = styled.article<{
     css`
       border-color: var(--color-primary-300);
       background-color: light-dark(var(--color-primary-50), var(--color-primary-950));
-      border-style: solid; 
-  `}
+      border-style: solid;
+    `}
 
-  ${({ $completed }: { $completed?: boolean }) =>
+  ${({ $completed }) =>
     $completed &&
     css`
       background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
@@ -285,7 +346,7 @@ const ActivityContent = styled.div<{ $completed?: boolean }>`
     css`
       text-decoration: line-through;
       color: light-dark(var(--color-grey-700), var(--color-grey-300));
-  `}
+    `}
 `;
 
 const ActivityTitleRow = styled.div`
@@ -308,7 +369,7 @@ const ActivityTitle = styled.button`
   color: inherit;
 
   &:hover {
-    text-decoration: underline; 
+    text-decoration: underline;
   }
 
   &:focus-visible {
@@ -334,7 +395,7 @@ const ActivityDescription = styled.button`
   line-height: 1.4;
 
   &:hover {
-    text-decoration: underline; 
+    text-decoration: underline;
   }
 
   &:focus-visible {
@@ -345,20 +406,20 @@ const ActivityDescription = styled.button`
 `;
 
 const RepeatBadge = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 6px;
-    border-radius: 999px;
-    background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
-    color: light-dark(var(--color-grey-700), var(--color-grey-200));
-    border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 6px;
+  border-radius: 999px;
+  background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
+  color: light-dark(var(--color-grey-700), var(--color-grey-200));
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
 
-    svg {
-        flex-shrink: 0;
-    }
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 const EnergyBadges = styled.div`
@@ -390,8 +451,8 @@ const DropdownMenuContent = styled(DropdownMenuPrimitive.Content)`
   background-color: light-dark(white, var(--color-grey-800));
   border-radius: 6px;
   padding: 5px;
-  box-shadow: 0px 10px 38px -10px rgba(22, 23, 24, 0.35), 
-              0px 10px 20px -15px rgba(22, 23, 24, 0.2);
+  box-shadow: 0px 10px 38px -10px rgba(22, 23, 24, 0.35),
+    0px 10px 20px -15px rgba(22, 23, 24, 0.2);
   border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   z-index: 50;
   animation-duration: 400ms;

@@ -4,7 +4,7 @@ import type { Activity } from "@/lib/energy-planner/schema";
 import { AvailableActivitiesModal } from ".";
 
 vi.mock("../PlannerActivityCard", () => ({
-  PlannerActivityCard: ({
+  AvailableActivityCard: ({
     activity,
     onDelete,
   }: {

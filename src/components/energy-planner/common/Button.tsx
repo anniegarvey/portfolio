@@ -2,10 +2,10 @@
 
 import { Loader2 } from "lucide-react";
 import { css, styled } from "next-yak";
-import { forwardRef } from "react";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: React.Ref<HTMLButtonElement>;
   variant?: "solid" | "outline" | "ghost" | "dashed" | "link";
   intent?: "primary" | "secondary" | "danger" | "teal";
   size?: "xs" | "sm" | "md" | "lg" | "icon";
@@ -15,52 +15,46 @@ export interface ButtonProps
   rightIcon?: React.ReactNode;
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      variant = "solid",
-      intent = "primary",
-      size = "md",
-      fullWidth = false,
-      isLoading = false,
-      leftIcon,
-      rightIcon,
-      children,
-      disabled,
-      ...props
-    },
-    ref,
-  ) => {
-    return (
-      <StyledButton
-        $fullWidth={fullWidth}
-        $intent={intent}
-        $size={size}
-        $variant={variant}
-        disabled={disabled || isLoading}
-        ref={ref}
-        style={{
-          ...getIntentVariables(intent),
-          ...props.style,
-        }}
-        type="button" // Default to button to prevent accidental form submission
-        {...props}
-      >
-        {isLoading ? (
-          <Loader2 className="animate-spin" size={16} />
-        ) : (
-          <>
-            {leftIcon && <IconWrapper>{leftIcon}</IconWrapper>}
-            {children}
-            {rightIcon && <IconWrapper>{rightIcon}</IconWrapper>}
-          </>
-        )}
-      </StyledButton>
-    );
-  },
-);
-
-Button.displayName = "Button";
+export function Button({
+  ref,
+  variant = "solid",
+  intent = "primary",
+  size = "md",
+  fullWidth = false,
+  isLoading = false,
+  leftIcon,
+  rightIcon,
+  children,
+  disabled,
+  ...props
+}: ButtonProps) {
+  return (
+    <StyledButton
+      $fullWidth={fullWidth}
+      $intent={intent}
+      $size={size}
+      $variant={variant}
+      disabled={disabled || isLoading}
+      ref={ref}
+      style={{
+        ...getIntentVariables(intent),
+        ...props.style,
+      }}
+      type="button" // Default to button to prevent accidental form submission
+      {...props}
+    >
+      {isLoading ? (
+        <Loader2 className="animate-spin" size={16} />
+      ) : (
+        <>
+          {leftIcon && <IconWrapper>{leftIcon}</IconWrapper>}
+          {children}
+          {rightIcon && <IconWrapper>{rightIcon}</IconWrapper>}
+        </>
+      )}
+    </StyledButton>
+  );
+}
 
 const IconWrapper = styled.span`
   display: flex;
