@@ -2,11 +2,11 @@
 
 import { ArrowRight, Check, Undo2 } from "lucide-react";
 import { styled } from "next-yak";
+import { Button } from "@/components/Button";
 import { formatDateForDisplay } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
-import { Button } from "../common";
 
 interface UncompletedActivityCardProps {
   activity: Activity;
@@ -63,7 +63,7 @@ export function UncompletedActivityCard({
       <Actions>
         <Button
           aria-label="Mark as complete"
-          intent="teal"
+          intent="secondary"
           leftIcon={<Check size={16} />}
           onClick={handleMarkComplete}
           title="Mark as complete"
@@ -72,7 +72,7 @@ export function UncompletedActivityCard({
         </Button>
         <Button
           aria-label="Move to today"
-          intent="teal"
+          intent="secondary"
           leftIcon={<ArrowRight size={16} />}
           onClick={handleMoveToToday}
           title="Move to today"

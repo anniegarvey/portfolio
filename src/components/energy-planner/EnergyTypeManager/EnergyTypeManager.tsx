@@ -3,10 +3,10 @@
 import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useId, useState } from "react";
+import { Button } from "@/components/Button";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import { PRESET_ENERGY_TYPES } from "../../../lib/energy-planner/schema";
 import { Modal } from "../../Modal";
-import { Button } from "../common";
 
 function EnergyTypeDialog({
   isOpen,
@@ -88,7 +88,7 @@ function EnergyTypeDialog({
         <Button intent="secondary" onClick={onClose} variant="outline">
           Cancel
         </Button>
-        <Button intent="teal" onClick={onSave}>
+        <Button intent="secondary" onClick={onSave}>
           {editingType ? "Update" : "Add"}
         </Button>
       </DialogActions>
@@ -169,7 +169,7 @@ function EnergyTypeManagerContent() {
     <>
       <Button
         fullWidth
-        intent="teal"
+        intent="secondary"
         leftIcon={<Plus size={16} />}
         onClick={() => handleOpenDialog()}
         style={{ marginBottom: "16px" }}

@@ -22,9 +22,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
+import { Button } from "@/components/Button";
 import type { ZoneConfig } from "@/lib/energy-planner/schema";
 import { Modal } from "../../Modal";
-import { Button } from "../common";
 import { ZoneFormModal } from "../ZoneFormModal";
 
 interface ZoneManagerModalProps {
