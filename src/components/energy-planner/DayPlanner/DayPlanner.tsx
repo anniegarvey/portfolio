@@ -279,7 +279,9 @@ export function DayPlanner({
         </UsageGrid>
       </UsageSection>
 
-      {warning.exceeded ? <Warning>{warning.message}</Warning> : null}
+      {viewingToday && warning.exceeded ? (
+        <Warning>{warning.message}</Warning>
+      ) : null}
 
       {viewedUncompletedActivities.length > 0 ? (
         <UncompletedSection data-testid="uncompleted-activities">
