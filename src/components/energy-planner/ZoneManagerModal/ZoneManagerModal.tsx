@@ -120,6 +120,11 @@ export function ZoneManagerModal({
                         <Pencil size={16} />
                       </Button>
                       <Button
+                        aria-label={
+                          zones.length <= 1
+                            ? "Cannot remove last zone"
+                            : `Remove ${zone.name}`
+                        }
                         disabled={zones.length <= 1}
                         intent="secondary"
                         onClick={() => setDeleteConfirmation(zone.id)}

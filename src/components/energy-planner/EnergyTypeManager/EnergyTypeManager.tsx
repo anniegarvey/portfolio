@@ -184,6 +184,7 @@ function EnergyTypeManagerContent() {
             <TypeLabel>{type.label}</TypeLabel>
             <Actions>
               <Button
+                aria-label={`Edit ${type.label}`}
                 onClick={() => handleOpenDialog(type.id)}
                 size="sm"
                 variant="outline"
@@ -191,6 +192,7 @@ function EnergyTypeManagerContent() {
                 Edit
               </Button>
               <Button
+                aria-label={`Delete ${type.label}`}
                 onClick={(e) => handleDeleteCallback(e, type.id)}
                 size="sm"
                 variant="outline"
@@ -311,9 +313,10 @@ const Input = styled.input`
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
   font-size: 1rem;
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: var(--color-teal-500);
+    box-shadow: 0 0 0 2px var(--color-teal-200);
   }
 `;
 

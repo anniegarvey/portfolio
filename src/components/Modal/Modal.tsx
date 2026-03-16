@@ -91,6 +91,10 @@ const Overlay = styled(Dialog.Overlay)`
   padding: 16px;
   animation: ${fadeIn} 0.2s ease-out;
   backdrop-filter: blur(2px);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const Content = styled(Dialog.Content)`
@@ -110,7 +114,11 @@ const Content = styled(Dialog.Content)`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
   /* Ensure it doesn't overflow if centered with flexbox on Overlay */
   &:focus {
     outline: none;

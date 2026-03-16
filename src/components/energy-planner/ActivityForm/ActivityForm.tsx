@@ -64,6 +64,7 @@ export function ActivityForm({
       <Field>
         <Label htmlFor={`${formId}-title`}>Activity Name</Label>
         <TextInput
+          autoComplete="off"
           id={`${formId}-title`}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g., Do Laundry"
@@ -76,9 +77,10 @@ export function ActivityForm({
       <Field>
         <Label htmlFor={`${formId}-description`}>Description</Label>
         <TextArea
+          autoComplete="off"
           id={`${formId}-description`}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional details..."
+          placeholder="Optional details…"
           value={description}
         />
       </Field>
