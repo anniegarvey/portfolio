@@ -105,7 +105,7 @@ export function PlannedActivityCard({
         {onToggleCompletion && isToday ? (
           <Button
             aria-label={completed ? "Mark as not done" : "Mark as done"}
-            intent={completed ? "danger" : "teal"}
+            intent={completed ? "danger" : "secondary"}
             onClick={() => onToggleCompletion(instance.id)}
             size="icon"
             title={completed ? "Mark as not done" : "Mark as done"}

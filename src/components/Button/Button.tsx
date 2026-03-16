@@ -7,7 +7,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   ref?: React.Ref<HTMLButtonElement>;
   variant?: "solid" | "outline" | "ghost" | "dashed" | "link";
-  intent?: "primary" | "secondary" | "danger" | "teal";
+  intent?: "primary" | "secondary" | "danger";
   size?: "sm" | "md" | "icon";
   fullWidth?: boolean;
   loading?: boolean;
@@ -72,10 +72,8 @@ const intentVariables: Record<string, React.CSSProperties> = {
     "--btn-bg": "light-dark(var(--color-grey-200), var(--color-grey-700))",
     "--btn-bg-hover":
       "light-dark(var(--color-grey-300), var(--color-grey-600))",
-    "--btn-text":
-      "light-dark(var(--color-grey-900), var(--color-grey-100))",
-    "--btn-border":
-      "light-dark(var(--color-grey-300), var(--color-grey-600))",
+    "--btn-text": "light-dark(var(--color-grey-900), var(--color-grey-100))",
+    "--btn-border": "light-dark(var(--color-grey-300), var(--color-grey-600))",
     "--btn-ghost-text":
       "light-dark(var(--color-grey-600), var(--color-grey-400))",
     "--btn-ghost-hover-bg":
@@ -94,16 +92,6 @@ const intentVariables: Record<string, React.CSSProperties> = {
     "--btn-ghost-hover-bg": "var(--color-rose-50)",
     "--btn-outline-text": "var(--color-rose-700)",
     "--btn-outline-hover-text": "var(--color-rose-700)",
-  } as React.CSSProperties,
-  teal: {
-    "--btn-bg": "var(--color-teal-700)",
-    "--btn-bg-hover": "var(--color-teal-800)",
-    "--btn-text": "white",
-    "--btn-border": "var(--color-teal-700)",
-    "--btn-ghost-text": "var(--color-teal-700)",
-    "--btn-ghost-hover-bg": "var(--color-teal-50)",
-    "--btn-outline-text": "var(--color-teal-700)",
-    "--btn-outline-hover-text": "var(--color-teal-700)",
   } as React.CSSProperties,
 };
 

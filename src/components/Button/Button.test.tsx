@@ -6,7 +6,9 @@ import { Button } from "./Button";
 describe("Button", () => {
   it("renders children", () => {
     render(<Button>Click me</Button>);
-    expect(screen.getByRole("button", { name: "Click me" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Click me" }),
+    ).toBeInTheDocument();
   });
 
   it("defaults to type=button", () => {
@@ -30,7 +32,11 @@ describe("Button", () => {
   it("does not fire onClick when disabled", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
-    render(<Button disabled onClick={onClick}>Click me</Button>);
+    render(
+      <Button disabled onClick={onClick}>
+        Click me
+      </Button>,
+    );
     await user.click(screen.getByRole("button"));
     expect(onClick).not.toHaveBeenCalled();
   });
@@ -47,7 +53,11 @@ describe("Button", () => {
   it("does not fire onClick when loading", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
-    render(<Button loading onClick={onClick}>Save</Button>);
+    render(
+      <Button loading onClick={onClick}>
+        Save
+      </Button>,
+    );
     await user.click(screen.getByRole("button"));
     expect(onClick).not.toHaveBeenCalled();
   });
@@ -59,7 +69,11 @@ describe("Button", () => {
   });
 
   it("does not render leftIcon when loading", () => {
-    render(<Button leftIcon={<span data-testid="icon" />} loading>Label</Button>);
+    render(
+      <Button leftIcon={<span data-testid="icon" />} loading>
+        Label
+      </Button>,
+    );
     expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
   });
 
@@ -71,42 +85,57 @@ describe("Button", () => {
 
   it("passes through aria-label", () => {
     render(<Button aria-label="Close dialog">X</Button>);
-    expect(screen.getByRole("button", { name: "Close dialog" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Close dialog" }),
+    ).toBeInTheDocument();
   });
 
   it("forwards ref to the button element", () => {
     let ref: HTMLButtonElement | null = null;
-    render(<Button ref={(el) => { ref = el; }}>Ref</Button>);
+    render(
+      <Button
+        ref={(el) => {
+          ref = el;
+        }}
+      >
+        Ref
+      </Button>,
+    );
     expect(ref).toBeInstanceOf(HTMLButtonElement);
   });
 
   describe("variant", () => {
-    it.each(["solid", "outline", "ghost", "dashed", "link"] as const)(
-      "renders variant=%s without error",
-      (variant) => {
-        render(<Button variant={variant}>Label</Button>);
-        expect(screen.getByRole("button")).toBeInTheDocument();
-      },
-    );
+    it.each([
+      "solid",
+      "outline",
+      "ghost",
+      "dashed",
+      "link",
+    ] as const)("renders variant=%s without error", (variant) => {
+      render(<Button variant={variant}>Label</Button>);
+      expect(screen.getByRole("button")).toBeInTheDocument();
+    });
   });
 
   describe("intent", () => {
-    it.each(["primary", "secondary", "danger", "teal"] as const)(
-      "renders intent=%s without error",
-      (intent) => {
-        render(<Button intent={intent}>Label</Button>);
-        expect(screen.getByRole("button")).toBeInTheDocument();
-      },
-    );
+    it.each([
+      "primary",
+      "secondary",
+      "danger",
+    ] as const)("renders intent=%s without error", (intent) => {
+      render(<Button intent={intent}>Label</Button>);
+      expect(screen.getByRole("button")).toBeInTheDocument();
+    });
   });
 
   describe("size", () => {
-    it.each(["sm", "md", "icon"] as const)(
-      "renders size=%s without error",
-      (size) => {
-        render(<Button size={size}>Label</Button>);
-        expect(screen.getByRole("button")).toBeInTheDocument();
-      },
-    );
+    it.each([
+      "sm",
+      "md",
+      "icon",
+    ] as const)("renders size=%s without error", (size) => {
+      render(<Button size={size}>Label</Button>);
+      expect(screen.getByRole("button")).toBeInTheDocument();
+    });
   });
 });
