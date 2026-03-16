@@ -105,7 +105,7 @@ export function ZoneSection({
 const ZoneContainer = styled.div`
   border: 2px dotted light-dark(var(--color-grey-300), var(--color-grey-500));
   border-radius: 8px;
-  padding: 16px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;

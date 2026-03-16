@@ -277,8 +277,9 @@ const DragHandle = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  margin-right: 4px;
+  padding: 12px;
+  margin-left: -14px;
+  margin-right: -10px;
   color: var(--color-grey-400);
   cursor: grab;
   touch-action: none;
@@ -298,7 +299,7 @@ const Card = styled.article<{
   $completed?: boolean;
   $isProjected?: boolean;
 }>`
-  background-color: light-dark(var(--color-grey-50), var(--color-grey-800));
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-900));
   padding: 12px;
   border-radius: 4px;
   border: 1px solid var(--color-grey-200);
@@ -312,7 +313,6 @@ const Card = styled.article<{
   ${({ $isProjected }) =>
     $isProjected &&
     css`
-      background-color: light-dark(var(--color-blue-50), var(--color-blue-950));
       border-style: dashed;
       border-color: var(--color-blue-300);
     `}
@@ -320,15 +320,14 @@ const Card = styled.article<{
   ${({ $selected }) =>
     $selected &&
     css`
-      border-color: var(--color-primary-300);
-      background-color: light-dark(var(--color-primary-50), var(--color-primary-950));
+      border-color: var(--color-primary-400);
       border-style: solid;
     `}
 
   ${({ $completed }) =>
     $completed &&
     css`
-      background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
+      background-color: light-dark(var(--color-grey-100), var(--color-grey-700));
       border-color: var(--color-grey-300);
       opacity: 0.8;
     `}

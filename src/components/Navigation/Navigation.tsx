@@ -127,8 +127,8 @@ export function Navigation() {
 
 const Header = styled.header`
   display: flex;
-  padding: 1rem;
-  background-color: var(--color-grey-900);
+  padding: 0.2rem 1rem;
+  background-color: var(--color-grey-950);
   border-bottom: 1px solid var(--color-grey-700);
   position: relative;
   align-items: center;
@@ -179,7 +179,8 @@ const LogoLink = styled(Link)`
 const StyledImage = styled(Image)`
   height: 5rem;
   width: auto;
-  margin-block: -8px;
+  margin-top: -5px;
+  margin-bottom: -13px;
 `;
 
 const NavList = styled.ul`

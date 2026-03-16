@@ -479,7 +479,7 @@ const UsageText = styled.div<{ $isOver: boolean }>`
 `;
 
 const Container = styled.section`
-  background-color: light-dark(var(--color-grey-50), var(--color-grey-700));
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
   border-radius: 8px;
   padding: 24px;
   display: flex;
@@ -556,4 +556,5 @@ const ZonesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-inline: -12px;
 `;
