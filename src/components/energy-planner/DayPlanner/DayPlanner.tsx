@@ -18,6 +18,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Pencil, Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/Button";
 import { getTodayDateString, isToday } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
@@ -27,7 +28,6 @@ import type {
   ResolvedActivity,
 } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
-import { Button } from "../common";
 import { DateSelector } from "../DateSelector";
 import { PlannedActivityCard } from "../PlannerActivityCard";
 import { UncompletedActivityCard } from "../UncompletedActivityCard";

@@ -16,13 +16,13 @@ import {
   Undo2,
 } from "lucide-react";
 import { css, styled } from "next-yak";
+import { Button } from "@/components/Button";
 import { getNextDay } from "../../../hooks/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import type {
   Activity,
   PlannedInstance,
 } from "../../../lib/energy-planner/schema";
-import { Button } from "../common";
 
 type DragHandleProps = {
   listeners: DraggableSyntheticListeners;

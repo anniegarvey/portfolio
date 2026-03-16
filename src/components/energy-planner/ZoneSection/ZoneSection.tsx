@@ -7,12 +7,12 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus, Settings } from "lucide-react";
 import { styled } from "next-yak";
+import { Button } from "@/components/Button";
 import type {
   Activity,
   ResolvedActivity,
   ZoneConfig,
 } from "@/lib/energy-planner/schema";
-import { Button } from "../common";
 import { PlannedActivityCard } from "../PlannerActivityCard";
 import { SortableItem } from "../SortableItem";
 

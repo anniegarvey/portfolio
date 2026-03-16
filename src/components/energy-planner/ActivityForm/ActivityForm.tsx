@@ -1,6 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
+import { Button } from "@/components/Button";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,6 @@ import { useActivityForm } from "@/hooks/useActivityForm";
 import { QUERIES } from "@/lib/constants";
 import type { Activity, RepeatUnit } from "@/lib/energy-planner/schema";
 import { ActivityFactorFields } from "../ActivityFactorFields";
-import { Button } from "../common";
 import { EnergyCostFields } from "../EnergyCostFields";
 
 interface ActivityFormProps {
