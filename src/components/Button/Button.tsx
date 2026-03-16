@@ -42,7 +42,10 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <Loader2 className="animate-spin" size={16} />
+        <>
+          <Loader2 aria-hidden className="animate-spin" size={16} />
+          <VisuallyHidden>{children}</VisuallyHidden>
+        </>
       ) : (
         <>
           {leftIcon}
@@ -94,6 +97,18 @@ const intentVariables: Record<string, React.CSSProperties> = {
     "--btn-outline-hover-text": "var(--color-rose-700)",
   } as React.CSSProperties,
 };
+
+const VisuallyHidden = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
 
 const StyledButton = styled.button<{
   $variant: ButtonProps["variant"];

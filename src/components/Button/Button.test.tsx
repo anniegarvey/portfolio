@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe, toHaveNoViolations } from "jest-axe";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "./Button";
+
+expect.extend(toHaveNoViolations);
 
 describe("Button", () => {
   it("renders children", () => {
@@ -45,9 +48,10 @@ describe("Button", () => {
     render(<Button loading>Save</Button>);
     const button = screen.getByRole("button");
     expect(button).toBeDisabled();
-    expect(screen.queryByText("Save")).not.toBeInTheDocument();
-    // Loader icon is present (lucide renders an svg)
+    // Children are visually hidden but remain in the DOM for screen readers
+    expect(screen.getByText("Save")).toBeInTheDocument();
     expect(button.querySelector("svg")).toBeInTheDocument();
+    expect(button).toMatchSnapshot();
   });
 
   it("does not fire onClick when loading", async () => {
@@ -78,9 +82,8 @@ describe("Button", () => {
   });
 
   it("applies fullWidth", () => {
-    render(<Button fullWidth>Label</Button>);
-    // The styled button receives the $fullWidth prop — just assert it renders without error
-    expect(screen.getByRole("button")).toBeInTheDocument();
+    const { container } = render(<Button fullWidth>Label</Button>);
+    expect(container.firstChild).toMatchSnapshot();
   });
 
   it("passes through aria-label", () => {
@@ -111,9 +114,9 @@ describe("Button", () => {
       "ghost",
       "dashed",
       "link",
-    ] as const)("renders variant=%s without error", (variant) => {
-      render(<Button variant={variant}>Label</Button>);
-      expect(screen.getByRole("button")).toBeInTheDocument();
+    ] as const)("renders variant=%s", (variant) => {
+      const { container } = render(<Button variant={variant}>Label</Button>);
+      expect(container.firstChild).toMatchSnapshot();
     });
   });
 
@@ -122,20 +125,57 @@ describe("Button", () => {
       "primary",
       "secondary",
       "danger",
-    ] as const)("renders intent=%s without error", (intent) => {
-      render(<Button intent={intent}>Label</Button>);
-      expect(screen.getByRole("button")).toBeInTheDocument();
+    ] as const)("renders intent=%s", (intent) => {
+      const { container } = render(<Button intent={intent}>Label</Button>);
+      expect(container.firstChild).toMatchSnapshot();
     });
   });
 
   describe("size", () => {
+    it.each(["sm", "md", "icon"] as const)("renders size=%s", (size) => {
+      const { container } = render(<Button size={size}>Label</Button>);
+      expect(container.firstChild).toMatchSnapshot();
+    });
+  });
+
+  describe("accessibility", () => {
     it.each([
-      "sm",
-      "md",
-      "icon",
-    ] as const)("renders size=%s without error", (size) => {
-      render(<Button size={size}>Label</Button>);
-      expect(screen.getByRole("button")).toBeInTheDocument();
+      "solid",
+      "outline",
+      "ghost",
+      "dashed",
+      "link",
+    ] as const)("variant=%s has no violations", async (variant) => {
+      const { container } = render(<Button variant={variant}>Label</Button>);
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    it.each([
+      "primary",
+      "secondary",
+      "danger",
+    ] as const)("intent=%s has no violations", async (intent) => {
+      const { container } = render(<Button intent={intent}>Label</Button>);
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    it("disabled state has no violations", async () => {
+      const { container } = render(<Button disabled>Label</Button>);
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    it("loading state has no violations", async () => {
+      const { container } = render(<Button loading>Label</Button>);
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    it("icon button with aria-label has no violations", async () => {
+      const { container } = render(
+        <Button aria-label="Close" size="icon" variant="ghost">
+          X
+        </Button>,
+      );
+      expect(await axe(container)).toHaveNoViolations();
     });
   });
 });
