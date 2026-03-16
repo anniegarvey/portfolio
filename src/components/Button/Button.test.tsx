@@ -1,10 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { axe, toHaveNoViolations } from "jest-axe";
+import { axe } from "jest-axe";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "./Button";
-
-expect.extend(toHaveNoViolations);
 
 describe("Button", () => {
   it("renders children", () => {

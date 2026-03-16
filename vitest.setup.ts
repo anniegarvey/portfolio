@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom";
+import "jest-axe/extend-expect";
 import { afterEach, beforeEach, vi } from "vitest";
 
 beforeEach(() => {
