@@ -169,7 +169,7 @@ export function ActivityForm({
         </RepeatConfigRow>
       )}
 
-      <Button disabled={isLoading} isLoading={isLoading} type="submit">
+      <Button disabled={isLoading} loading={isLoading} type="submit">
         {initialData ? "Update Activity" : "Add Activity"}
       </Button>
     </Form>

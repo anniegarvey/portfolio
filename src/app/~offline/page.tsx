@@ -3,7 +3,7 @@
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { styled } from "next-yak";
-import { Button } from "@/components/energy-planner/common/Button";
+import { Button } from "@/components/Button";
 
 const Container = styled.div`
   display: flex;
