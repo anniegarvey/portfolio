@@ -42,12 +42,14 @@ describe("Button", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it("is disabled and shows spinner when loading", () => {
+  it("shows spinner and remains focusable when loading", () => {
     render(<Button loading>Save</Button>);
     const button = screen.getByRole("button");
-    expect(button).toBeDisabled();
-    // Children are visually hidden but remain in the DOM for screen readers
-    expect(screen.getByText("Save")).toBeInTheDocument();
+    // Uses aria-disabled, not native disabled, so the button stays in the tab order
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    // Accessible name is composed as "Save loading" via aria-labelledby
+    expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
     expect(button.querySelector("svg")).toBeInTheDocument();
     expect(button).toMatchSnapshot();
   });

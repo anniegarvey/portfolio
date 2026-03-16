@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { css, styled } from "next-yak";
+import { useId } from "react";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -24,15 +25,19 @@ export function Button({
   leftIcon,
   children,
   disabled,
+  onClick,
   ...props
 }: ButtonProps) {
+  const labelId = useId();
+  const statusId = useId();
+
   return (
     <StyledButton
       $fullWidth={fullWidth}
       $intent={intent}
       $size={size}
       $variant={variant}
-      disabled={disabled || loading}
+      disabled={disabled}
       ref={ref}
       style={{
         ...intentVariables[intent],
@@ -40,11 +45,16 @@ export function Button({
       }}
       type="button"
       {...props}
+      // These must come after {...props} so loading state always wins
+      aria-disabled={loading || undefined}
+      aria-labelledby={loading ? `${labelId} ${statusId}` : undefined}
+      onClick={loading ? undefined : onClick}
     >
       {loading ? (
         <>
+          <VisuallyHidden id={labelId}>{children}</VisuallyHidden>
           <Loader2 aria-hidden className="animate-spin" size={16} />
-          <VisuallyHidden>{children}</VisuallyHidden>
+          <VisuallyHidden id={statusId}>loading</VisuallyHidden>
         </>
       ) : (
         <>
@@ -142,7 +152,8 @@ const StyledButton = styled.button<{
       width: 100%;
     `}
 
-  &:disabled {
+  &:disabled,
+  &[aria-disabled="true"] {
     opacity: 0.6;
     cursor: not-allowed;
   }
@@ -183,7 +194,7 @@ const StyledButton = styled.button<{
           border-color: var(--btn-border);
           color: var(--btn-outline-text);
 
-          &:hover:not(:disabled) {
+          &:hover:not(:disabled):not([aria-disabled="true"]) {
             background-color: var(--btn-ghost-hover-bg);
             color: var(--btn-outline-hover-text);
           }
@@ -194,7 +205,7 @@ const StyledButton = styled.button<{
           border-color: transparent;
           color: var(--btn-ghost-text);
 
-          &:hover:not(:disabled) {
+          &:hover:not(:disabled):not([aria-disabled="true"]) {
             background-color: var(--btn-ghost-hover-bg);
           }
         `;
@@ -204,7 +215,7 @@ const StyledButton = styled.button<{
           border: 1px dashed var(--color-grey-300);
           color: light-dark(var(--color-grey-600), var(--color-grey-400));
 
-          &:hover:not(:disabled) {
+          &:hover:not(:disabled):not([aria-disabled="true"]) {
             border-color: var(--btn-border);
             color: var(--btn-ghost-text);
             background-color: var(--btn-ghost-hover-bg);
@@ -219,7 +230,7 @@ const StyledButton = styled.button<{
           color: var(--btn-ghost-text);
           text-decoration: underline;
 
-          &:hover:not(:disabled) {
+          &:hover:not(:disabled):not([aria-disabled="true"]) {
             color: var(--btn-bg-hover);
           }
         `;
@@ -229,7 +240,7 @@ const StyledButton = styled.button<{
           border-color: var(--btn-border);
           color: var(--btn-text);
 
-          &:hover:not(:disabled) {
+          &:hover:not(:disabled):not([aria-disabled="true"]) {
             background-color: var(--btn-bg-hover);
             border-color: var(--btn-bg-hover);
           }
