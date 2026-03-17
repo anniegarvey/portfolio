@@ -1,9 +1,9 @@
 # Portfolio Project Memory
 
-## Always run `pnpm validate` to check changes
-Any new behaviour must also be covered in e2e Playwright tests in `/e2e`.
+## Always run `pnpm validate` before committing
 Runs: `tsc --noEmit && pnpm lint --fix && pnpm test && pnpm playwright test`
 - Playwright needs a dev server on port 3000. `playwright.config.ts` tries to start `pnpm dev` with a 60s timeout — **start `pnpm dev` in the background first** to avoid timeout failures.
+- Run this even for small changes — tsc catches type errors across the whole codebase that vitest alone won't surface.
 
 ## Linting (Biome)
 - `--error-on-warnings` is set, so warnings are treated as errors
@@ -15,6 +15,7 @@ Runs: `tsc --noEmit && pnpm lint --fix && pnpm test && pnpm playwright test`
 - Thresholds per file: lines 87%, statements 85.5%, branches 70%, functions 77.77%
 - `// v8 ignore next` comments can exclude unreachable lines (e.g. `createContext` no-op defaults)
 - Every new source file needs an accompanying test file
+- New user-facing behaviour must also be covered by an e2e Playwright test in `/e2e`
 
 ## Dark Mode
 - Uses CSS `light-dark()` function with `color-scheme: dark light` on `:root`

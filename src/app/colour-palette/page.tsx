@@ -1,7 +1,7 @@
 import { styled } from "next-yak";
 import type React from "react";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader, PageTitle } from "@/components/PageHeader";
 
 const SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
@@ -18,64 +18,68 @@ export default function ColourPalettePage() {
   return (
     <MaxWidthWrapper>
       <PageHeader>
-        <h1>Colour Palette</h1>
+        <PageTitle>Colour Palette</PageTitle>
       </PageHeader>
 
-      {Object.keys(COLOUR_CONTRAST_SWITCH_POINTS).map((colour) => (
-        <ColourSection
-          key={colour}
-          style={{
-            color: `light-dark(var(--color-${colour}-700), var(--color-${colour}-300))`,
-          }}
-        >
-          <h2>{colour}</h2>
-          <SwatchWrapper>
-            {SHADES.map((shade) => (
-              <Swatch
-                key={shade}
-                style={
-                  {
-                    "--background-color": `var(--color-${colour}-${shade})`,
-                    color:
-                      shade >
-                      COLOUR_CONTRAST_SWITCH_POINTS[
-                        colour as keyof typeof COLOUR_CONTRAST_SWITCH_POINTS
-                      ]
-                        ? "white"
-                        : "black",
-                  } as React.CSSProperties
-                }
-              >
-                {shade}
-              </Swatch>
-            ))}
-          </SwatchWrapper>
-        </ColourSection>
-      ))}
-      <Alert>
-        <b>Primary Testing</b> 1 ... 2 ... <em>3</em> ...
-        <AlertButton>Click me</AlertButton>
-      </Alert>
-      <Alert colour="secondary">
-        <b>Secondary Testing</b> 1 ... 2 ... <em>3</em> ...
-        <AlertButton>Click me</AlertButton>
-      </Alert>
-      <Alert colour="teal">
-        <b>Teal Testing</b> 1 ... 2 ... <em>3</em> ...
-        <AlertButton>Click me</AlertButton>
-      </Alert>
-      <Alert colour="orange">
-        <b>Orange Testing</b> 1 ... 2 ... <em>3</em> ...
-        <AlertButton>Click me</AlertButton>
-      </Alert>
-      <Alert colour="rose">
-        <b>Rose Testing</b> 1 ... 2 ... <em>3</em> ...
-        <AlertButton>Click me</AlertButton>
-      </Alert>
-      <Alert colour="grey">
-        <b>Grey Testing</b> 1 ... 2 ... <em>3</em> ...
-        <AlertButton>Click me</AlertButton>
-      </Alert>
+      <ColourContainer>
+        {Object.keys(COLOUR_CONTRAST_SWITCH_POINTS).map((colour) => (
+          <ColourSection
+            key={colour}
+            style={{
+              color: `light-dark(var(--color-${colour}-700), var(--color-${colour}-300))`,
+            }}
+          >
+            <h2>{colour}</h2>
+            <SwatchWrapper>
+              {SHADES.map((shade) => (
+                <Swatch
+                  key={shade}
+                  style={
+                    {
+                      "--background-color": `var(--color-${colour}-${shade})`,
+                      color:
+                        shade >
+                        COLOUR_CONTRAST_SWITCH_POINTS[
+                          colour as keyof typeof COLOUR_CONTRAST_SWITCH_POINTS
+                        ]
+                          ? "white"
+                          : "black",
+                    } as React.CSSProperties
+                  }
+                >
+                  {shade}
+                </Swatch>
+              ))}
+            </SwatchWrapper>
+          </ColourSection>
+        ))}
+      </ColourContainer>
+      <AlertContainer>
+        <Alert>
+          <b>Primary Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
+        </Alert>
+        <Alert colour="secondary">
+          <b>Secondary Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
+        </Alert>
+        <Alert colour="teal">
+          <b>Teal Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
+        </Alert>
+        <Alert colour="orange">
+          <b>Orange Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
+        </Alert>
+        <Alert colour="rose">
+          <b>Rose Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
+        </Alert>
+        <Alert colour="grey">
+          <b>Grey Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
+        </Alert>
+      </AlertContainer>
     </MaxWidthWrapper>
   );
 }
@@ -98,11 +102,18 @@ const Alert: React.FC<{ colour?: string; children: React.ReactNode }> = ({
   </BaseAlert>
 );
 
-const ColourSection = styled.section`
+const ColourContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
   padding: 32px;
-  margin-inline: -32px;
+  text-align: center;
+`;
+
+const ColourSection = styled.section`
   text-transform: capitalize;
-  background-color: light-dark(var(--color-grey-50), var(--color-grey-600));
 `;
 
 const SwatchWrapper = styled.div`
@@ -121,6 +132,14 @@ const Swatch = styled.div`
   font-size: 1.25rem;
 `;
 
+const AlertContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+`;
+
 const BaseAlert = styled.div`
   padding: 16px;
   background-color: var(--background-colour);
@@ -132,7 +151,6 @@ const BaseAlert = styled.div`
   border-radius: 8px;
   display: flex;
   align-items: center;
-  margin-block: 32px;
 
   & b, & em {
     margin-inline: 0.5rem;

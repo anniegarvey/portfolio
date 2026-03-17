@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { Mock } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
@@ -55,6 +56,45 @@ describe("CreateActivity", () => {
       },
       { timeout: 1000 },
     );
+  });
+
+  it("tracks suggestions visibility and intercepts Escape when suggestions are open", async () => {
+    const { fetchActivities } = await import(
+      "../../../lib/energy-planner/storage"
+    );
+    (fetchActivities as unknown as Mock).mockResolvedValue([
+      {
+        id: "seed-1",
+        createdAt: new Date("2024-01-01"),
+        title: "Do Laundry",
+        energyCost: { physical: 10, social: 0, executive: 0 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+      },
+    ]);
+
+    const onClose = vi.fn();
+    render(<CreateActivity isOpen={true} onClose={onClose} />, { wrapper });
+
+    const input = await screen.findByPlaceholderText("e.g., Do Laundry");
+
+    // Type to trigger suggestions
+    fireEvent.change(input, { target: { value: "laundry" } });
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeDefined();
+    });
+
+    // Pressing Escape should close the suggestions (Radix fires onEscapeKeyDown,
+    // which calls e.preventDefault(), keeping the dialog open).
+    // Verify onClose was not called — dialog remains open.
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: "Escape",
+    });
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("renders correctly when editing an activity", async () => {

@@ -21,7 +21,8 @@
       "!types/validator.ts",
       "!next-env.d.ts",
       "!.stryker-tmp",
-      "!public"
+      "!public",
+      "!.claude"
     ]
   },
   "formatter": {
