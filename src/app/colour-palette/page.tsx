@@ -110,6 +110,8 @@ const ColourContainer = styled.div`
   background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
   padding: 32px;
   text-align: center;
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  border-radius: 8px;
 `;
 
 const ColourSection = styled.section`

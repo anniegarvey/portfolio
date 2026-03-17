@@ -119,23 +119,6 @@ describe("DayPlanner", () => {
     });
   });
 
-  it("displays energy usage summary with zeros", async () => {
-    const mockOnEditActivity = vi.fn();
-    const mockOnOpenCreateActivity = vi.fn();
-    render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("Energy Usage vs Capacity")).toBeInTheDocument();
-    });
-  });
-
   it("shows empty state message when no activities selected", async () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();

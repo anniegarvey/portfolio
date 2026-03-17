@@ -248,7 +248,6 @@ export function DayPlanner({
       </Header>
 
       <UsageSection>
-        <UsageHeader>Energy Usage vs Capacity</UsageHeader>
         <UsageGrid>
           {energyTypes.map((type) => {
             const used = usage[type.id] || 0;
@@ -387,12 +386,6 @@ const UsageSection = styled.section`
   isolation: isolate;
 `;
 
-const UsageHeader = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: light-dark(var(--color-grey-700), var(--color-grey-300));
-`;
-
 const UsageGrid = styled.div`
   display: flex;
   flex-direction: column;
@@ -499,14 +492,18 @@ const Container = styled.section`
 
 const Header = styled.div`
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 8px;
 
   h2 {
     color: light-dark(var(--color-grey-900), var(--color-grey-50));
+  }
+
+  @media (${QUERIES.TABLET_UP}) {
+    flex-direction: row;
   }
 `;
 
