@@ -29,6 +29,7 @@ import type {
 } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
+import { DayPlannerSkeleton } from "../DayPlannerSkeleton";
 import { PlannedActivityCard } from "../PlannerActivityCard";
 import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
@@ -49,6 +50,7 @@ export function DayPlanner({
   onOpenCapacityModal,
 }: DayPlannerProps) {
   const {
+    isLoading,
     currentDate,
     goToToday: onGoToToday,
     goToNextDay: onNextDay,
@@ -214,6 +216,10 @@ export function DayPlanner({
       closeThisModal,
     );
   };
+
+  if (isLoading) {
+    return <DayPlannerSkeleton />;
+  }
 
   return (
     <Container>
