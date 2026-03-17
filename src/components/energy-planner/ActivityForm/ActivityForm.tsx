@@ -1,7 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { Button } from "@/components/Button";
 import {
   Select,
@@ -69,9 +69,12 @@ export function ActivityForm({
   const [activeIndex, setActiveIndex] = useState(-1);
 
   // Notify parent so it can intercept Escape before the dialog closes
+  const notifySuggestionsChange = useEffectEvent(
+    onSuggestionsChange ?? (() => {}),
+  );
   useEffect(() => {
-    onSuggestionsChange?.(showSuggestions);
-  }, [showSuggestions, onSuggestionsChange]);
+    notifySuggestionsChange?.(showSuggestions);
+  }, [showSuggestions]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);

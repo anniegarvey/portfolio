@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type {
   Activity,
@@ -91,31 +91,34 @@ export function useActivityForm({
     return Array.from(byTitle.values());
   }, [oneOffActivities, repeatingActivities, title]);
 
-  const populateFromActivity = (activity: Activity) => {
-    setTitle(activity.title);
-    setDescription(activity.description || "");
-    setEnergyCost(activity.energyCost);
-    setFactors(activity.factors);
-    setDefaultZoneId(
-      activity.defaultZoneId ||
-        activity.repeatConfig?.defaultZoneId ||
-        initialContext?.zoneId ||
-        undefined,
-    );
-    if (activity.repeatConfig) {
-      setIsRepeating(true);
-      setFrequency(activity.repeatConfig.frequency);
-      setUnit(activity.repeatConfig.unit);
-      setNextDueDate(
-        activity.repeatConfig.nextDueDate || initialContext?.date || "",
+  const populateFromActivity = useCallback(
+    (activity: Activity) => {
+      setTitle(activity.title);
+      setDescription(activity.description || "");
+      setEnergyCost(activity.energyCost);
+      setFactors(activity.factors);
+      setDefaultZoneId(
+        activity.defaultZoneId ||
+          activity.repeatConfig?.defaultZoneId ||
+          initialContext?.zoneId ||
+          undefined,
       );
-    } else {
-      setIsRepeating(false);
-      setFrequency(1);
-      setUnit("days");
-      setNextDueDate(initialContext?.date || "");
-    }
-  };
+      if (activity.repeatConfig) {
+        setIsRepeating(true);
+        setFrequency(activity.repeatConfig.frequency);
+        setUnit(activity.repeatConfig.unit);
+        setNextDueDate(
+          activity.repeatConfig.nextDueDate || initialContext?.date || "",
+        );
+      } else {
+        setIsRepeating(false);
+        setFrequency(1);
+        setUnit("days");
+        setNextDueDate(initialContext?.date || "");
+      }
+    },
+    [initialContext?.date, initialContext?.zoneId],
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
