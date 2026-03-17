@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type {
   Activity,
@@ -25,8 +25,15 @@ export function useActivityForm({
   onClose,
   onCreated,
 }: UseActivityFormProps) {
-  const { addActivity, updateActivity, addToPlan, isLoading, zones } =
-    useEnergyPlanner();
+  const {
+    addActivity,
+    updateActivity,
+    addToPlan,
+    isLoading,
+    zones,
+    oneOffActivities,
+    repeatingActivities,
+  } = useEnergyPlanner();
   const formId = useId();
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(
@@ -61,6 +68,54 @@ export function useActivityForm({
   const [nextDueDate, setNextDueDate] = useState(
     initialData?.repeatConfig?.nextDueDate || initialContext?.date || "",
   );
+
+  const suggestions = useMemo(() => {
+    const query = title.trim().toLowerCase();
+    if (!query) return [];
+
+    const allActivities = [...oneOffActivities, ...repeatingActivities];
+    const matching = allActivities.filter((a) =>
+      a.title.toLowerCase().includes(query),
+    );
+
+    // Deduplicate by title (case-insensitive), keeping the most recent
+    const byTitle = new Map<string, Activity>();
+    for (const activity of matching) {
+      const key = activity.title.toLowerCase();
+      const existing = byTitle.get(key);
+      if (!existing || activity.createdAt > existing.createdAt) {
+        byTitle.set(key, activity);
+      }
+    }
+
+    return Array.from(byTitle.values());
+  }, [oneOffActivities, repeatingActivities, title]);
+
+  const populateFromActivity = (activity: Activity) => {
+    setTitle(activity.title);
+    setDescription(activity.description || "");
+    setEnergyCost(activity.energyCost);
+    setFactors(activity.factors);
+    setDefaultZoneId(
+      activity.defaultZoneId ||
+        activity.repeatConfig?.defaultZoneId ||
+        initialContext?.zoneId ||
+        undefined,
+    );
+    if (activity.repeatConfig) {
+      setIsRepeating(true);
+      setFrequency(activity.repeatConfig.frequency);
+      setUnit(activity.repeatConfig.unit);
+      setNextDueDate(
+        activity.repeatConfig.nextDueDate || initialContext?.date || "",
+      );
+    } else {
+      setIsRepeating(false);
+      setFrequency(1);
+      setUnit("days");
+      setNextDueDate(initialContext?.date || "");
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,5 +237,7 @@ export function useActivityForm({
     zones,
     defaultZoneId,
     setDefaultZoneId,
+    suggestions,
+    populateFromActivity,
   };
 }
