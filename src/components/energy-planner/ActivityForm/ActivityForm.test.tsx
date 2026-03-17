@@ -267,6 +267,188 @@ describe("ActivityForm", () => {
     });
   });
 
+  const seedActivity: Activity = {
+    id: "seed-1",
+    createdAt: new Date("2024-01-01"),
+    title: "Do Laundry",
+    energyCost: { physical: 10, social: 0, executive: 0 },
+    factors: {
+      initiationDifficulty: 1,
+      terminationDifficulty: 1,
+      isRestorative: false,
+    },
+  };
+
+  it("shows suggestions dropdown when typing matching text", async () => {
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
+      seedActivity,
+    ]);
+
+    render(<ActivityForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: /Add Activity/i,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
+      target: { value: "laundry" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeDefined();
+      expect(screen.getByRole("option", { name: "Do Laundry" })).toBeDefined();
+    });
+  });
+
+  it("selects a suggestion on mouse click and populates the form", async () => {
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
+      seedActivity,
+    ]);
+
+    render(<ActivityForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: /Add Activity/i,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+
+    const input = screen.getByPlaceholderText(
+      /Do Laundry/i,
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "laundry" } });
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeDefined();
+    });
+
+    fireEvent.mouseDown(screen.getByRole("option", { name: "Do Laundry" }));
+
+    await waitFor(() => {
+      expect(input.value).toBe("Do Laundry");
+      expect(screen.queryByRole("listbox")).toBeNull();
+    });
+  });
+
+  it("navigates and selects a suggestion with arrow keys and Enter", async () => {
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
+      seedActivity,
+    ]);
+
+    render(<ActivityForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: /Add Activity/i,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+
+    const input = screen.getByPlaceholderText(
+      /Do Laundry/i,
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "laundry" } });
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeDefined();
+    });
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(
+      screen
+        .getByRole("option", { name: "Do Laundry" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(input.value).toBe("Do Laundry");
+      expect(screen.queryByRole("listbox")).toBeNull();
+    });
+  });
+
+  it("closes suggestions on Escape without changing the input value", async () => {
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
+      seedActivity,
+    ]);
+
+    render(<ActivityForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: /Add Activity/i,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+
+    const input = screen.getByPlaceholderText(
+      /Do Laundry/i,
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "laundry" } });
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeDefined();
+    });
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox")).toBeNull();
+    });
+    expect(input.value).toBe("laundry");
+  });
+
+  it("calls onSuggestionsChange when suggestions open and close", async () => {
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
+      seedActivity,
+    ]);
+
+    const onSuggestionsChange = vi.fn();
+    render(<ActivityForm onSuggestionsChange={onSuggestionsChange} />, {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: /Add Activity/i,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+
+    const input = screen.getByPlaceholderText(/Do Laundry/i);
+    fireEvent.change(input, { target: { value: "laundry" } });
+
+    await waitFor(() => {
+      expect(onSuggestionsChange).toHaveBeenCalledWith(true);
+    });
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(onSuggestionsChange).toHaveBeenCalledWith(false);
+    });
+  });
+
   it("includes contextual default zone in submission", async () => {
     const onClose = vi.fn();
     render(
