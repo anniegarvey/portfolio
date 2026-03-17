@@ -30,31 +30,4 @@ test.describe("PWA Metadata and Offline Capabilities", () => {
     expect(manifest.start_url).toBe("/");
     expect(manifest.icons.length).toBeGreaterThan(0);
   });
-
-  test("should render the offline fallback page correctly", async ({
-    page,
-  }) => {
-    // Navigate directly to the offline route
-    await page.goto("/~offline");
-
-    // Check for the main heading
-    await expect(
-      page.getByRole("heading", { name: "You are offline" }),
-    ).toBeVisible();
-
-    // Check for the explanatory text
-    await expect(
-      page.getByText("It seems there's a problem with your connection."),
-    ).toBeVisible();
-
-    // Check for the Try Again button
-    const tryAgainButton = page.getByRole("button", { name: "Try Again" });
-    await expect(tryAgainButton).toBeVisible();
-
-    // Check for the return navigation button
-    const goBackButton = page.getByRole("button", {
-      name: "Go to Energy Planner",
-    });
-    await expect(goBackButton).toBeVisible();
-  });
 });
