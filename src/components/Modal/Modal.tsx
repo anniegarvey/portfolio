@@ -101,6 +101,7 @@ const Overlay = styled(Dialog.Overlay)`
 `;
 
 const Content = styled(Dialog.Content)`
+  overscroll-behavior: contain;
   background-color: light-dark(var(--color-grey-50), var(--color-grey-900));
   border-radius: 0.5rem;
   width: 90vw; /* Changed from 100% to 90vw for better mobile default, max-width still applies */
