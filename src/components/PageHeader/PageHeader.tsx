@@ -1,6 +1,5 @@
 import { styled } from "next-yak";
 import type { ReactNode } from "react";
-import { QUERIES } from "@/lib/constants";
 
 interface PageHeaderProps {
   children: ReactNode;
