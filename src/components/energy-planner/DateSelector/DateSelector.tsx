@@ -30,7 +30,7 @@ export function DateSelector({
         size="icon"
         variant="outline"
       >
-        <ChevronLeft size={32} />
+        <ChevronLeft aria-hidden="true" size={32} />
       </Button>
       <DateDisplay>
         <CurrentDate>{formatDateForDisplay(currentDate)}</CurrentDate>
@@ -48,7 +48,7 @@ export function DateSelector({
         size="icon"
         variant="outline"
       >
-        <ChevronRight size={32} />
+        <ChevronRight aria-hidden="true" size={32} />
       </Button>
     </Container>
   );

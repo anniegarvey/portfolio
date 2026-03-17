@@ -35,6 +35,8 @@ describe("useActivityForm", () => {
       updateActivity: mockUpdateActivity,
       addToPlan: mockAddToPlan,
       isLoading: false,
+      oneOffActivities: [],
+      repeatingActivities: [],
     });
   });
 
@@ -241,6 +243,143 @@ describe("useActivityForm", () => {
 
     // handleSubmit calls resetForm if no onClose is provided
     expect(result.current.defaultZoneId).toBe("afternoon");
+  });
+
+  it("returns empty suggestions when title is empty", () => {
+    const { result } = renderHook(() => useActivityForm({}));
+    expect(result.current.suggestions).toEqual([]);
+  });
+
+  it("returns suggestions matching the typed title", () => {
+    (useEnergyPlanner as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      addActivity: mockAddActivity,
+      updateActivity: mockUpdateActivity,
+      addToPlan: mockAddToPlan,
+      isLoading: false,
+      oneOffActivities: [
+        {
+          ...mockActivity,
+          id: "a1",
+          title: "Do Laundry",
+          createdAt: new Date("2024-01-01"),
+        },
+        {
+          ...mockActivity,
+          id: "a2",
+          title: "Buy Groceries",
+          createdAt: new Date("2024-01-01"),
+        },
+      ],
+      repeatingActivities: [],
+    });
+
+    const { result } = renderHook(() => useActivityForm({}));
+
+    act(() => {
+      result.current.setTitle("laundry");
+    });
+
+    expect(result.current.suggestions).toHaveLength(1);
+    expect(result.current.suggestions[0].title).toBe("Do Laundry");
+  });
+
+  it("deduplicates suggestions by title keeping the most recent", () => {
+    (useEnergyPlanner as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      addActivity: mockAddActivity,
+      updateActivity: mockUpdateActivity,
+      addToPlan: mockAddToPlan,
+      isLoading: false,
+      oneOffActivities: [
+        {
+          ...mockActivity,
+          id: "a1",
+          title: "Do Laundry",
+          createdAt: new Date("2024-01-01"),
+        },
+        {
+          ...mockActivity,
+          id: "a2",
+          title: "do laundry",
+          createdAt: new Date("2024-06-01"),
+        },
+      ],
+      repeatingActivities: [],
+    });
+
+    const { result } = renderHook(() => useActivityForm({}));
+
+    act(() => {
+      result.current.setTitle("laundry");
+    });
+
+    expect(result.current.suggestions).toHaveLength(1);
+    expect(result.current.suggestions[0].id).toBe("a2");
+  });
+
+  it("populateFromActivity fills all fields for a one-off activity", () => {
+    const activity: Activity = {
+      id: "populate-1",
+      createdAt: new Date(),
+      title: "Populate Me",
+      description: "Some description",
+      energyCost: { physical: 30, social: 40, executive: 50 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 2,
+        isRestorative: true,
+      },
+      defaultZoneId: "morning",
+    };
+
+    const { result } = renderHook(() => useActivityForm({}));
+
+    act(() => {
+      result.current.populateFromActivity(activity);
+    });
+
+    expect(result.current.title).toBe("Populate Me");
+    expect(result.current.description).toBe("Some description");
+    expect(result.current.energyCost).toEqual({
+      physical: 30,
+      social: 40,
+      executive: 50,
+    });
+    expect(result.current.factors).toEqual({
+      initiationDifficulty: 5,
+      terminationDifficulty: 2,
+      isRestorative: true,
+    });
+    expect(result.current.defaultZoneId).toBe("morning");
+    expect(result.current.isRepeating).toBe(false);
+    expect(result.current.frequency).toBe(1);
+    expect(result.current.unit).toBe("days");
+  });
+
+  it("populateFromActivity fills repeat config for a repeating activity", () => {
+    const activity: Activity = {
+      id: "repeat-1",
+      createdAt: new Date(),
+      title: "Weekly Jog",
+      energyCost: { physical: 60, social: 0, executive: 10 },
+      factors: {
+        initiationDifficulty: 4,
+        terminationDifficulty: 1,
+        isRestorative: true,
+      },
+      repeatConfig: { frequency: 1, unit: "weeks", nextDueDate: "2024-03-01" },
+    };
+
+    const { result } = renderHook(() => useActivityForm({}));
+
+    act(() => {
+      result.current.populateFromActivity(activity);
+    });
+
+    expect(result.current.title).toBe("Weekly Jog");
+    expect(result.current.isRepeating).toBe(true);
+    expect(result.current.frequency).toBe(1);
+    expect(result.current.unit).toBe("weeks");
+    expect(result.current.nextDueDate).toBe("2024-03-01");
   });
 
   it("provides a unique formId", () => {

@@ -24,12 +24,19 @@ export function CreateActivity({
   onCreated,
 }: CreateActivityProps) {
   const focusRef = useRef<HTMLInputElement>(null);
+  const suggestionsOpenRef = useRef(false);
 
   return (
     <Modal
       description="Record how completing this activity may affect your energy levels."
       isOpen={isOpen}
       onClose={onClose}
+      onEscapeKeyDown={(e) => {
+        // When suggestions are visible, dismiss them instead of closing the dialog
+        if (suggestionsOpenRef.current) {
+          e.preventDefault();
+        }
+      }}
       onOpenAutoFocus={(e) => {
         e.preventDefault();
         focusRef.current?.focus();
@@ -43,6 +50,9 @@ export function CreateActivity({
         initialData={editingActivity}
         onClose={onClose}
         onCreated={onCreated}
+        onSuggestionsChange={(open) => {
+          suggestionsOpenRef.current = open;
+        }}
       />
     </Modal>
   );
