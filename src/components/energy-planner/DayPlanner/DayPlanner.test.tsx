@@ -509,6 +509,9 @@ describe("DayPlanner with populated data", () => {
     );
 
     // Open modal to see available activities DndContext
+    await waitFor(() => {
+      expect(screen.getByText("Manage Activities")).toBeInTheDocument();
+    });
     await user.click(screen.getByText("Manage Activities"));
 
     await waitFor(() => {
