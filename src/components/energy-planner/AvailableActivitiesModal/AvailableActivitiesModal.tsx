@@ -18,10 +18,10 @@ import {
 import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
+import { Button } from "@/components/Button";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { Modal } from "../../Modal";
-import { Button } from "../common";
 import { AvailableActivityCard } from "../PlannerActivityCard";
 import { SortableItem } from "../SortableItem";
 

@@ -2,9 +2,9 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { styled } from "next-yak";
+import { Button } from "@/components/Button";
 import { formatDateForDisplay } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
-import { Button } from "../common";
 
 interface DateSelectorProps {
   currentDate: string;

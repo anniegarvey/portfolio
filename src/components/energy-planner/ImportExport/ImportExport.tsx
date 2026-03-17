@@ -3,7 +3,7 @@
 import { Download, Upload } from "lucide-react";
 import { styled } from "next-yak";
 import { useRef } from "react";
-import { Button } from "../common";
+import { Button } from "@/components/Button";
 import {
   exportEnergyPlannerData,
   importEnergyPlannerData,

@@ -16,13 +16,13 @@ import {
   Undo2,
 } from "lucide-react";
 import { css, styled } from "next-yak";
+import { Button } from "@/components/Button";
 import { getNextDay } from "../../../hooks/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import type {
   Activity,
   PlannedInstance,
 } from "../../../lib/energy-planner/schema";
-import { Button } from "../common";
 
 type DragHandleProps = {
   listeners: DraggableSyntheticListeners;
@@ -105,7 +105,7 @@ export function PlannedActivityCard({
         {onToggleCompletion && isToday ? (
           <Button
             aria-label={completed ? "Mark as not done" : "Mark as done"}
-            intent={completed ? "danger" : "teal"}
+            intent={completed ? "danger" : "secondary"}
             onClick={() => onToggleCompletion(instance.id)}
             size="icon"
             title={completed ? "Mark as not done" : "Mark as done"}

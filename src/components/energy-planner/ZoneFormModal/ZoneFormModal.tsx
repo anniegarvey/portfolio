@@ -2,9 +2,9 @@
 
 import { styled } from "next-yak";
 import { useEffect, useId, useState } from "react";
+import { Button } from "@/components/Button";
 import type { ZoneConfig } from "@/lib/energy-planner/schema";
 import { Modal } from "../../Modal";
-import { Button } from "../common";
 
 interface ZoneFormModalProps {
   isOpen: boolean;

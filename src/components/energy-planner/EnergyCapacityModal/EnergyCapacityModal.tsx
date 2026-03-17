@@ -3,10 +3,10 @@
 import { Settings } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
+import { Button } from "@/components/Button";
 import { formatDateForDisplay, isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import { Modal } from "../../Modal";
-import { Button } from "../common";
 import { EnergyTypeManagerModal } from "../EnergyTypeManager";
 
 interface EnergyCapacityModalProps {
