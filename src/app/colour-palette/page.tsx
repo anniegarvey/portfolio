@@ -56,28 +56,28 @@ export default function ColourPalettePage() {
       </ColourContainer>
       <AlertContainer>
         <Alert>
-          <b>Primary Testing</b> 1 ... 2 ... <em>3</em> ...
-          <AlertButton>Click me</AlertButton>
+          <b>Primary Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
         </Alert>
         <Alert colour="secondary">
-          <b>Secondary Testing</b> 1 ... 2 ... <em>3</em> ...
-          <AlertButton>Click me</AlertButton>
+          <b>Secondary Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
         </Alert>
         <Alert colour="teal">
-          <b>Teal Testing</b> 1 ... 2 ... <em>3</em> ...
-          <AlertButton>Click me</AlertButton>
+          <b>Teal Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
         </Alert>
         <Alert colour="orange">
-          <b>Orange Testing</b> 1 ... 2 ... <em>3</em> ...
-          <AlertButton>Click me</AlertButton>
+          <b>Orange Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
         </Alert>
         <Alert colour="rose">
-          <b>Rose Testing</b> 1 ... 2 ... <em>3</em> ...
-          <AlertButton>Click me</AlertButton>
+          <b>Rose Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
         </Alert>
         <Alert colour="grey">
-          <b>Grey Testing</b> 1 ... 2 ... <em>3</em> ...
-          <AlertButton>Click me</AlertButton>
+          <b>Grey Testing</b> 1 … 2 … <em>3</em> …
+          <AlertButton>Test Action</AlertButton>
         </Alert>
       </AlertContainer>
     </MaxWidthWrapper>

@@ -12,11 +12,12 @@ export function PageHeader({ children }: PageHeaderProps) {
 
 // biome-ignore lint/style/useComponentExportOnlyModules: PageTitle is a styled component
 export const PageTitle = styled.h1`
- font-size: 2.5rem;
+  font-size: 2.5rem;
   font-weight: 600;
   color: light-dark(var(--color-primary-700), var(--color-primary-400));
   margin: 0;
   line-height: 1.2;
+  text-wrap: balance;
 `;
 
 const Header = styled.div`
