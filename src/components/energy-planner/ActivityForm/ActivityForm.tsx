@@ -1,6 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import {
   Select,
@@ -25,6 +26,8 @@ interface ActivityFormProps {
   // Called after a new one-off activity is successfully created with context
   onCreated?: () => void;
   focusRef?: React.RefObject<HTMLInputElement | null>;
+  // Called when the suggestions dropdown opens or closes (create mode only)
+  onSuggestionsChange?: (open: boolean) => void;
 }
 
 export function ActivityForm({
@@ -33,6 +36,7 @@ export function ActivityForm({
   onClose,
   onCreated,
   focusRef,
+  onSuggestionsChange,
 }: ActivityFormProps) {
   const {
     title,
@@ -57,21 +61,85 @@ export function ActivityForm({
     zones,
     defaultZoneId,
     setDefaultZoneId,
+    suggestions,
+    populateFromActivity,
   } = useActivityForm({ initialData, initialContext, onClose, onCreated });
+
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  // Notify parent so it can intercept Escape before the dialog closes
+  useEffect(() => {
+    onSuggestionsChange?.(showSuggestions);
+  }, [showSuggestions, onSuggestionsChange]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+    setActiveIndex(-1);
+    setShowSuggestions(true);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      populateFromActivity(suggestions[activeIndex]);
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  const handleSuggestionSelect = (activity: Activity) => {
+    populateFromActivity(activity);
+    setShowSuggestions(false);
+    setActiveIndex(-1);
+  };
 
   return (
     <Form onSubmit={handleSubmit}>
       <Field>
         <Label htmlFor={`${formId}-title`}>Activity Name</Label>
-        <TextInput
-          autoComplete="off"
-          id={`${formId}-title`}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g., Do Laundry"
-          ref={focusRef}
-          required
-          value={title}
-        />
+        <TitleWrapper>
+          <TextInput
+            autoComplete="off"
+            id={`${formId}-title`}
+            onBlur={() => {
+              // Delay so mousedown on a suggestion fires first
+              setTimeout(() => setShowSuggestions(false), 150);
+            }}
+            onChange={handleTitleChange}
+            onFocus={() => setShowSuggestions(true)}
+            onKeyDown={!initialData ? handleTitleKeyDown : undefined}
+            placeholder="e.g., Do Laundry"
+            ref={focusRef}
+            required
+            value={title}
+          />
+          {!initialData && showSuggestions && suggestions.length > 0 && (
+            <SuggestionsList role="listbox">
+              {suggestions.map((activity, index) => (
+                <SuggestionItem
+                  $isActive={index === activeIndex}
+                  aria-selected={index === activeIndex}
+                  key={activity.id}
+                  onMouseDown={() => handleSuggestionSelect(activity)}
+                  role="option"
+                >
+                  {activity.title}
+                </SuggestionItem>
+              ))}
+            </SuggestionsList>
+          )}
+        </TitleWrapper>
       </Field>
 
       <Field>
@@ -244,12 +312,47 @@ const Label = styled.label`
     font-weight: 500;
 `;
 
+const TitleWrapper = styled.div`
+  position: relative;
+`;
+
+const SuggestionsList = styled.ul`
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: light-dark(var(--color-grey-50), var(--color-grey-900));
+  border: 1px solid var(--color-grey-300);
+  border-radius: 0.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const SuggestionItem = styled.li<{ $isActive: boolean }>`
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  background: ${({ $isActive }) =>
+    $isActive ? "var(--color-grey-100)" : "transparent"};
+
+  &:hover {
+    background: var(--color-grey-100);
+  }
+`;
+
 const TextInput = styled.input`
     padding: 0.5rem;
     border: 1px solid var(--color-grey-300);
     border-radius: 0.25rem;
     background: transparent;
     color: inherit;
+    width: 100%;
+    box-sizing: border-box;
 `;
 
 const TextArea = styled.textarea`
