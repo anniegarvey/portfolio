@@ -7,6 +7,7 @@ import {
   storeActivities,
   storeDayPlan,
 } from "../../../lib/energy-planner/storage";
+import { PointsProvider } from "../../../lib/points/context";
 import { DayPlanner } from ".";
 
 describe("DayPlanner", () => {
@@ -89,12 +90,14 @@ describe("DayPlanner", () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -106,12 +109,14 @@ describe("DayPlanner", () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -123,12 +128,14 @@ describe("DayPlanner", () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -140,12 +147,14 @@ describe("DayPlanner", () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -157,12 +166,14 @@ describe("DayPlanner", () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -175,12 +186,14 @@ describe("DayPlanner", () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -198,12 +211,14 @@ describe("DayPlanner", () => {
     const mockOnEditActivity = vi.fn();
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -262,12 +277,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -318,12 +335,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -354,12 +373,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -419,12 +440,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -440,12 +463,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -500,12 +525,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     // Open modal to see available activities DndContext
@@ -566,12 +593,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -640,12 +669,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -694,12 +725,14 @@ describe("DayPlanner with populated data", () => {
     await storeActivities([activity1]);
 
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -770,12 +803,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -834,12 +869,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -859,12 +896,14 @@ describe("DayPlanner with populated data", () => {
     const mockOnOpenCreateActivity = vi.fn();
 
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {
@@ -912,12 +951,14 @@ describe("DayPlanner with populated data", () => {
 
     const mockOnOpenCreateActivity = vi.fn();
     render(
-      <EnergyPlannerProvider>
-        <DayPlanner
-          onEditActivity={mockOnEditActivity}
-          onOpenCreateActivity={mockOnOpenCreateActivity}
-        />
-      </EnergyPlannerProvider>,
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
     );
 
     await waitFor(() => {

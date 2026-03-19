@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Navigation } from "@/components/Navigation";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { PointsProvider } from "@/lib/points/context";
 
 const lexend = Lexend({
   variable: "--font-lexend",
@@ -84,8 +85,10 @@ export default function RootLayout({
       </head>
       <body className={`${lexend.variable} ${tangerine.variable}`}>
         <ThemeProvider>
-          <Navigation />
-          {children}
+          <PointsProvider>
+            <Navigation />
+            {children}
+          </PointsProvider>
         </ThemeProvider>
       </body>
     </html>

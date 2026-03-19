@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { ThemeProvider } from "./ThemeProvider";
 import { useTheme } from "./useTheme";
 
-// biome-ignore lint/style/useComponentExportOnlyModules: test helper component
 function TestConsumer() {
   const { theme, setTheme } = useTheme();
   return (

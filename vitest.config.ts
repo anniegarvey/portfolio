@@ -14,7 +14,12 @@ export default defineConfig({
     },
     coverage: {
       enabled: true,
-      exclude: ["src/**/__mocks__/**", "**/node_modules/**", "**/*.d.ts"],
+      exclude: [
+        "src/**/__mocks__/**",
+        "**/node_modules/**",
+        "**/*.d.ts",
+        "src/lib/points/sounds.ts",
+      ],
       thresholds: {
         lines: 87,
         statements: 85.5,

@@ -10,10 +10,13 @@ import type {
   Activity,
   PlannedInstance,
 } from "../../../lib/energy-planner/schema";
+import { PointsProvider } from "../../../lib/points/context";
 import { AvailableActivityCard, PlannedActivityCard } from ".";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+  <PointsProvider>
+    <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+  </PointsProvider>
 );
 
 const mockActivity: Activity = {

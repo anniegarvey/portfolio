@@ -23,6 +23,7 @@ import type {
   Activity,
   PlannedInstance,
 } from "../../../lib/energy-planner/schema";
+import { usePoints } from "../../../lib/points/context";
 
 type DragHandleProps = {
   listeners: DraggableSyntheticListeners;
@@ -57,6 +58,7 @@ export function PlannedActivityCard({
   dragHandleProps,
 }: PlannedActivityCardProps) {
   const { energyTypes } = useEnergyPlanner();
+  const { awardPoints } = usePoints();
   const isToday = dayContext === "today";
   const isPast = dayContext === "past";
 
@@ -106,7 +108,17 @@ export function PlannedActivityCard({
           <Button
             aria-label={completed ? "Mark as not done" : "Mark as done"}
             intent={completed ? "danger" : "secondary"}
-            onClick={() => onToggleCompletion(instance.id)}
+            onClick={(e) => {
+              if (!completed) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                awardPoints(
+                  10,
+                  rect.left + rect.width / 2,
+                  rect.top + rect.height / 2,
+                );
+              }
+              onToggleCompletion(instance.id);
+            }}
             size="icon"
             title={completed ? "Mark as not done" : "Mark as done"}
             variant="ghost"
@@ -206,6 +218,7 @@ export function AvailableActivityCard({
   dragHandleProps,
 }: AvailableActivityCardProps) {
   const { energyTypes } = useEnergyPlanner();
+  const { awardPoints } = usePoints();
 
   return (
     <Card>
@@ -258,7 +271,15 @@ export function AvailableActivityCard({
         {onAdd && !activity.repeatConfig ? (
           <Button
             aria-label="Add to day"
-            onClick={() => onAdd(activity.id)}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              awardPoints(
+                3,
+                rect.left + rect.width / 2,
+                rect.top + rect.height / 2,
+              );
+              onAdd(activity.id);
+            }}
             size="icon"
             title="Add to day"
             variant="ghost"
