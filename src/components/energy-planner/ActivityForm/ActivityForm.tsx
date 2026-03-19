@@ -123,8 +123,7 @@ export function ActivityForm({
   const wrappedSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     handleSubmit(e);
     if (!initialData && submitBtnRef.current) {
-      const rect = submitBtnRef.current.getBoundingClientRect();
-      awardPoints(5, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      awardPoints(5, submitBtnRef.current.getBoundingClientRect());
     }
   };
 

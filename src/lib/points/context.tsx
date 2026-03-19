@@ -116,7 +116,7 @@ function Particle({
 
 export interface PointsContextType {
   points: number;
-  awardPoints: (amount: number, x: number, y: number) => void;
+  awardPoints: (amount: number, rect: DOMRect) => void;
 }
 
 const PointsContext = createContext<PointsContextType | undefined>(undefined);
@@ -152,8 +152,10 @@ export function PointsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const awardPoints = useCallback((amount: number, x: number, y: number) => {
+  const awardPoints = useCallback((amount: number, rect: DOMRect) => {
     if (typeof window === "undefined") return;
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
 
     // Skip animation for users who prefer reduced motion — just add points
     if (

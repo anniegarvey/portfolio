@@ -15,7 +15,7 @@ function PointsReadout() {
 function AwardButton({ amount }: { amount: number }) {
   const { awardPoints } = usePoints();
   return (
-    <button onClick={() => awardPoints(amount, 0, 0)} type="button">
+    <button onClick={() => awardPoints(amount, new DOMRect())} type="button">
       Award
     </button>
   );

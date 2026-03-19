@@ -110,12 +110,7 @@ export function PlannedActivityCard({
             intent={completed ? "danger" : "secondary"}
             onClick={(e) => {
               if (!completed) {
-                const rect = e.currentTarget.getBoundingClientRect();
-                awardPoints(
-                  10,
-                  rect.left + rect.width / 2,
-                  rect.top + rect.height / 2,
-                );
+                awardPoints(10, e.currentTarget.getBoundingClientRect());
               }
               onToggleCompletion(instance.id);
             }}
@@ -272,12 +267,7 @@ export function AvailableActivityCard({
           <Button
             aria-label="Add to day"
             onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              awardPoints(
-                3,
-                rect.left + rect.width / 2,
-                rect.top + rect.height / 2,
-              );
+              awardPoints(3, e.currentTarget.getBoundingClientRect());
               onAdd(activity.id);
             }}
             size="icon"
