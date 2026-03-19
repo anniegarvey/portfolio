@@ -451,9 +451,7 @@ const CapacityFill = styled.div<{ $color: string; $percent: number }>`
   top: 0;
   left: 0;
   height: 100%;
-  width: 100%;
-  transform: scaleX(${({ $percent }) => $percent / 100});
-  transform-origin: left;
+  width: ${({ $percent }) => $percent}%;
   /* Diagonal stripes clearly distinguish capacity ceiling from solid usage */
   background-image: repeating-linear-gradient(
     -45deg,
