@@ -47,7 +47,7 @@ export function useActivities() {
       }),
     };
 
-    setActivitiesState((prev) => [...prev, newActivity]);
+    setActivitiesState((prev) => [newActivity, ...prev]);
     return newActivity;
   };
 

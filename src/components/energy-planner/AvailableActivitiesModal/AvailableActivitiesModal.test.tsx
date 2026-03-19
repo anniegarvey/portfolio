@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { AvailableActivitiesModal } from ".";
@@ -112,6 +112,38 @@ describe("AvailableActivitiesModal", () => {
 
     // Verify onDeleteActivity was called
     expect(mockProps.onDeleteActivity).toHaveBeenCalledWith("1");
+  });
+
+  it("calls onOpenCreateActivity with a callback when New Activity is clicked", () => {
+    render(<AvailableActivitiesModal {...mockProps} />);
+    fireEvent.click(screen.getByText("New Activity"));
+    expect(mockProps.onOpenCreateActivity).toHaveBeenCalledWith(
+      expect.any(Function),
+    );
+  });
+
+  it("switches to repeating tab when callback is called with 'repeating'", () => {
+    render(
+      <AvailableActivitiesModal
+        {...mockProps}
+        availableActivities={[{ id: "1", title: "One Off" } as Activity]}
+        repeatingActivities={[{ id: "2", title: "Repeating" } as Activity]}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("New Activity"));
+    const callback = (
+      mockProps.onOpenCreateActivity as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0] as (type: "one-off" | "repeating") => void;
+
+    // Simulate activity created as repeating — tab should switch
+    act(() => callback("repeating"));
+    expect(screen.queryByText("One Off")).toBeNull();
+    expect(screen.getByText("Repeating")).toBeDefined();
+
+    // Simulate activity created as one-off — tab should switch back
+    act(() => callback("one-off"));
+    expect(screen.getByText("One Off")).toBeDefined();
   });
 
   it("cancels deletion", async () => {

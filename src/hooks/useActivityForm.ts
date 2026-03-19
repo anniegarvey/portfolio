@@ -17,6 +17,8 @@ interface UseActivityFormProps {
   onClose?: () => void;
   // Called after a new one-off activity is successfully created with context
   onCreated?: () => void;
+  // Called after any new activity is created, with the type of activity
+  onCreatedWithType?: (type: "one-off" | "repeating") => void;
 }
 
 export function useActivityForm({
@@ -24,6 +26,7 @@ export function useActivityForm({
   initialContext,
   onClose,
   onCreated,
+  onCreatedWithType,
 }: UseActivityFormProps) {
   const {
     addActivity,
@@ -148,6 +151,7 @@ export function useActivityForm({
       updateActivity({ ...initialData, ...activityData });
     } else {
       handleCreate(activityData);
+      onCreatedWithType?.(isRepeating ? "repeating" : "one-off");
     }
 
     if (onClose) {

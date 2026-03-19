@@ -30,7 +30,9 @@ interface AvailableActivitiesModalProps {
   onClose: () => void;
   availableActivities: Activity[];
   repeatingActivities: Activity[];
-  onOpenCreateActivity: () => void;
+  onOpenCreateActivity: (
+    onCreatedWithType: (type: "one-off" | "repeating") => void,
+  ) => void;
   onEditActivity: (activity: Activity) => void;
   onAddActivity: (activityId: string) => void;
   onReorderActivities: (activities: Activity[]) => void;
@@ -112,7 +114,11 @@ export function AvailableActivitiesModal({
           <ModalActions>
             <Button
               leftIcon={<Plus size={18} />}
-              onClick={onOpenCreateActivity}
+              onClick={() =>
+                onOpenCreateActivity((type) =>
+                  setActiveTab(type === "repeating" ? "repeating" : "one-off"),
+                )
+              }
             >
               New Activity
             </Button>

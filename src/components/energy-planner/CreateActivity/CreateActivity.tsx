@@ -14,6 +14,8 @@ interface CreateActivityProps {
   creationContext?: { date: string; zoneId?: string };
   // Called after a new one-off activity is successfully created with context
   onCreated?: () => void;
+  // Called after any new activity is created, with the type of activity
+  onCreatedWithType?: (type: "one-off" | "repeating") => void;
 }
 
 export function CreateActivity({
@@ -22,6 +24,7 @@ export function CreateActivity({
   editingActivity,
   creationContext,
   onCreated,
+  onCreatedWithType,
 }: CreateActivityProps) {
   const focusRef = useRef<HTMLInputElement>(null);
   const suggestionsOpenRef = useRef(false);
@@ -50,6 +53,7 @@ export function CreateActivity({
         initialData={editingActivity}
         onClose={onClose}
         onCreated={onCreated}
+        onCreatedWithType={onCreatedWithType}
         onSuggestionsChange={(open) => {
           suggestionsOpenRef.current = open;
         }}

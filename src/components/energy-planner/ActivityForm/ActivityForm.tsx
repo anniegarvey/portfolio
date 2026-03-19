@@ -25,6 +25,8 @@ interface ActivityFormProps {
   onClose?: () => void;
   // Called after a new one-off activity is successfully created with context
   onCreated?: () => void;
+  // Called after any new activity is created, with the type of activity
+  onCreatedWithType?: (type: "one-off" | "repeating") => void;
   focusRef?: React.RefObject<HTMLInputElement | null>;
   // Called when the suggestions dropdown opens or closes (create mode only)
   onSuggestionsChange?: (open: boolean) => void;
@@ -35,6 +37,7 @@ export function ActivityForm({
   initialContext,
   onClose,
   onCreated,
+  onCreatedWithType,
   focusRef,
   onSuggestionsChange,
 }: ActivityFormProps) {
@@ -63,7 +66,13 @@ export function ActivityForm({
     setDefaultZoneId,
     suggestions,
     populateFromActivity,
-  } = useActivityForm({ initialData, initialContext, onClose, onCreated });
+  } = useActivityForm({
+    initialData,
+    initialContext,
+    onClose,
+    onCreated,
+    onCreatedWithType,
+  });
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);

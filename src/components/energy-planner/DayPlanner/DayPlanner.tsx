@@ -40,6 +40,7 @@ interface DayPlannerProps {
   onOpenCreateActivity: (
     context?: { date: string; zoneId?: string },
     onCreated?: () => void,
+    onCreatedWithType?: (type: "one-off" | "repeating") => void,
   ) => void;
   onOpenCapacityModal?: () => void;
 }
@@ -200,7 +201,9 @@ export function DayPlanner({
     setIsZoneManagerOpen(true);
   };
 
-  const handleCreateActivity = () => {
+  const handleCreateActivity = (
+    onCreatedWithType?: (type: "one-off" | "repeating") => void,
+  ) => {
     // Pass current context (date and active zone). If creating with a zone
     // context, also close this modal so the user immediately sees the new activity.
     const closeThisModal =
@@ -214,6 +217,7 @@ export function DayPlanner({
     onOpenCreateActivity(
       { date: currentDate, zoneId: activeZoneId || undefined },
       closeThisModal,
+      onCreatedWithType,
     );
   };
 
