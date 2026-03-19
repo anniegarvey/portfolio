@@ -240,9 +240,16 @@ export function ActivityForm({
         </RepeatConfigRow>
       )}
 
-      <Button disabled={isLoading} loading={isLoading} type="submit">
-        {initialData ? "Update Activity" : "Add Activity"}
-      </Button>
+      <StickyBottom>
+        <Button
+          disabled={isLoading}
+          fullWidth
+          loading={isLoading}
+          type="submit"
+        >
+          {initialData ? "Update Activity" : "Add Activity"}
+        </Button>
+      </StickyBottom>
     </Form>
   );
 }
@@ -367,4 +374,9 @@ const TextArea = styled.textarea`
     min-height: 80px;
     resize: vertical;
     font-family: inherit;
+`;
+
+const StickyBottom = styled.div`
+  position: sticky;
+  bottom: 0;
 `;
