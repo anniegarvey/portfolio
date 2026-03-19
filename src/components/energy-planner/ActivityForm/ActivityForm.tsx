@@ -1,7 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import {
   Select,
@@ -13,6 +13,7 @@ import {
 import { useActivityForm } from "@/hooks/useActivityForm";
 import { QUERIES } from "@/lib/constants";
 import type { Activity, RepeatUnit } from "@/lib/energy-planner/schema";
+import { usePoints } from "@/lib/points/context";
 import { ActivityFactorFields } from "../ActivityFactorFields";
 import { EnergyCostFields } from "../EnergyCostFields";
 
@@ -74,6 +75,9 @@ export function ActivityForm({
     onCreatedWithType,
   });
 
+  const { awardPoints } = usePoints();
+  const submitBtnRef = useRef<HTMLButtonElement>(null);
+
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -116,8 +120,15 @@ export function ActivityForm({
     setActiveIndex(-1);
   };
 
+  const wrappedSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    handleSubmit(e);
+    if (!initialData && submitBtnRef.current) {
+      awardPoints(5, submitBtnRef.current.getBoundingClientRect());
+    }
+  };
+
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form onSubmit={wrappedSubmit}>
       <Field>
         <Label htmlFor={`${formId}-title`}>Activity Name</Label>
         <TitleWrapper>
@@ -254,6 +265,7 @@ export function ActivityForm({
           disabled={isLoading}
           fullWidth
           loading={isLoading}
+          ref={submitBtnRef}
           type="submit"
         >
           {initialData ? "Update Activity" : "Add Activity"}

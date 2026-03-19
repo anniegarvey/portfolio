@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
 import { useState } from "react";
+import { PointsDisplay } from "@/components/PointsDisplay";
 import { type ThemeSetting, useTheme } from "@/components/ThemeProvider";
 import { QUERIES } from "@/lib/constants";
 
@@ -83,6 +84,7 @@ export function Navigation() {
 
       {/* Mobile Navigation */}
       <MobileNav>
+        <PointsDisplay />
         <Dialog.Root onOpenChange={setOpen} open={open}>
           <Dialog.Trigger asChild>
             <HamburgerButton aria-label="Toggle navigation menu">
@@ -119,6 +121,7 @@ export function Navigation() {
       </MobileNav>
 
       <DesktopSide>
+        <PointsDisplay />
         <ThemeToggle />
       </DesktopSide>
     </Header>
@@ -155,6 +158,8 @@ const MobileNav = styled.div`
   display: flex;
   flex: 1;
   justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
 
   @media (${QUERIES.TABLET_UP}) {
     display: none;
@@ -305,6 +310,7 @@ const DesktopSide = styled.div`
   flex: 1;
   justify-content: flex-end;
   align-items: center;
+  gap: 0.75rem;
 
   @media (${QUERIES.TABLET_UP}) {
     display: flex;

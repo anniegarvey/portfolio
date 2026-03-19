@@ -3,11 +3,14 @@ import type { Mock } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
+import { PointsProvider } from "../../../lib/points/context";
 import { CreateActivity } from "./CreateActivity";
 
 // Helper wrapper
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+  <PointsProvider>
+    <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+  </PointsProvider>
 );
 
 // Mock storage

@@ -23,6 +23,7 @@ import type {
   Activity,
   PlannedInstance,
 } from "../../../lib/energy-planner/schema";
+import { usePoints } from "../../../lib/points/context";
 
 type DragHandleProps = {
   listeners: DraggableSyntheticListeners;
@@ -57,6 +58,7 @@ export function PlannedActivityCard({
   dragHandleProps,
 }: PlannedActivityCardProps) {
   const { energyTypes } = useEnergyPlanner();
+  const { awardPoints } = usePoints();
   const isToday = dayContext === "today";
   const isPast = dayContext === "past";
 
@@ -106,7 +108,12 @@ export function PlannedActivityCard({
           <Button
             aria-label={completed ? "Mark as not done" : "Mark as done"}
             intent={completed ? "danger" : "secondary"}
-            onClick={() => onToggleCompletion(instance.id)}
+            onClick={(e) => {
+              if (!completed) {
+                awardPoints(10, e.currentTarget.getBoundingClientRect());
+              }
+              onToggleCompletion(instance.id);
+            }}
             size="icon"
             title={completed ? "Mark as not done" : "Mark as done"}
             variant="ghost"
@@ -206,6 +213,7 @@ export function AvailableActivityCard({
   dragHandleProps,
 }: AvailableActivityCardProps) {
   const { energyTypes } = useEnergyPlanner();
+  const { awardPoints } = usePoints();
 
   return (
     <Card>
@@ -258,7 +266,10 @@ export function AvailableActivityCard({
         {onAdd && !activity.repeatConfig ? (
           <Button
             aria-label="Add to day"
-            onClick={() => onAdd(activity.id)}
+            onClick={(e) => {
+              awardPoints(3, e.currentTarget.getBoundingClientRect());
+              onAdd(activity.id);
+            }}
             size="icon"
             title="Add to day"
             variant="ghost"

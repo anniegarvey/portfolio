@@ -4,12 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as storageMock from "@/lib/energy-planner/storage";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
+import { PointsProvider } from "../../../lib/points/context";
 import { ActivityForm } from ".";
 
 vi.mock("@/lib/energy-planner/storage");
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+  <PointsProvider>
+    <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+  </PointsProvider>
 );
 
 describe("ActivityForm", () => {

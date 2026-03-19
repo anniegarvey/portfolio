@@ -2,13 +2,16 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { PointsProvider } from "@/lib/points/context";
 import { Navigation } from "./Navigation";
 
 function renderWithTheme() {
   return render(
-    <ThemeProvider>
-      <Navigation />
-    </ThemeProvider>,
+    <PointsProvider>
+      <ThemeProvider>
+        <Navigation />
+      </ThemeProvider>
+    </PointsProvider>,
   );
 }
 
