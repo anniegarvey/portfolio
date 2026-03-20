@@ -339,7 +339,7 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
   if (!tree) {
     return (
       <EmptyState>
-        <EmptyEmoji>🪴</EmptyEmoji>
+        <EmptyEmoji aria-hidden="true">🪴</EmptyEmoji>
         <p>No tree selected. Plant a seed to get started!</p>
       </EmptyState>
     );

@@ -104,7 +104,7 @@ function ShopCard({ item }: { item: ShopItem }) {
         )}
       </CardFooter>
       {feedback === "insufficient" && (
-        <FeedbackMsg>Not enough points</FeedbackMsg>
+        <FeedbackMsg aria-live="polite">Not enough points</FeedbackMsg>
       )}
     </Card>
   );

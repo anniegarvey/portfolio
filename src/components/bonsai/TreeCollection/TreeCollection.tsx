@@ -22,7 +22,7 @@ export function TreeCollection() {
               const isActive = tree.id === state.activePlantedTreeId;
               return (
                 <TreeCard data-active={isActive} key={tree.id}>
-                  <TreeEmoji>{config.emoji}</TreeEmoji>
+                  <TreeEmoji aria-hidden="true">{config.emoji}</TreeEmoji>
                   <TreeInfo>
                     <TreeName>{config.label}</TreeName>
                     <TreeStage>
@@ -79,7 +79,7 @@ export function TreeCollection() {
       {state.trees.length === 0 && ownedSeeds.length === 0 && (
         <EmptyState>
           <p>
-            You don't have any trees yet. Buy a seed from the shop to get
+            You don&rsquo;t have any trees yet. Buy a seed from the shop to get
             started!
           </p>
         </EmptyState>
