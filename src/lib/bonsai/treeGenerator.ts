@@ -86,6 +86,8 @@ function seededInt(
 
 /** Tapered filled quadrilateral path from (x1,y1) [width w1] to (x2,y2) [width w2].
  *  Sides are gently curved outward using quadratic bezier for an organic look. */
+/** curveBias: lateral offset (SVG units) at midpoint — positive bends toward the perpendicular,
+ *  negative away. Creates gently curved organic branches instead of straight ones. */
 function taperedPath(
   x1: number,
   y1: number,
@@ -93,6 +95,7 @@ function taperedPath(
   y2: number,
   w1: number,
   w2: number,
+  curveBias = 0,
 ): string {
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -111,9 +114,9 @@ function taperedPath(
   const dx2 = x2 - px * w2;
   const dy2 = y2 - py * w2;
 
-  // Control points (slightly outside midpoint for convex sides)
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
+  // Shift the midpoint laterally by curveBias to curve the branch centreline
+  const mx = (x1 + x2) / 2 + px * curveBias;
+  const my = (y1 + y2) / 2 + py * curveBias;
   const cp1x = mx + px * (w1 * 0.85);
   const cp1y = my + py * (w1 * 0.85);
   const cp2x = mx - px * (w1 * 0.85);
@@ -214,11 +217,12 @@ function generateLeaves(
   depth: number,
   spec: SpeciesConfig,
   treeId: string,
+  sizeMultiplier = 1.0,
 ): Leaf[] {
   const [minL, maxL] = spec.leavesPerCluster;
   const count = seededInt(branchId + treeId, 77, minL, maxL);
   const leaves: Leaf[] = [];
-  const size = spec.leafSize * progress;
+  const size = spec.leafSize * progress * sizeMultiplier;
 
   if (spec.leafShape === "needle") {
     // Radiate needles evenly around the tip with a small jitter
@@ -284,6 +288,8 @@ interface BranchSpec {
   baseWidth: number;
   tipWidth: number;
   depth: number;
+  /** Lateral midpoint offset for taperedPath — gives each branch its own gentle curve. */
+  curveBias: number;
 }
 
 function buildBranchTree(
@@ -303,6 +309,9 @@ function buildBranchTree(
   const tipWidth = Math.max(baseWidth * 0.25, 0.4);
   const fulltipX = x1 + Math.cos(angle) * maxLength;
   const fulltipY = y1 + Math.sin(angle) * maxLength;
+  // Each branch gets a seeded random curve — range ±branchCurvature
+  const curveBias =
+    (seededVal(id + treeId, 91) - 0.5) * 2 * spec.branchCurvature;
 
   out.push({
     id,
@@ -316,6 +325,7 @@ function buildBranchTree(
     baseWidth,
     tipWidth,
     depth,
+    curveBias,
   });
 
   if (depth >= MAX_DEPTH) return;
@@ -374,10 +384,13 @@ export function generateTree(
 
   // ─── Trunk ────────────────────────────────────────────────────────────────
 
-  const trunkHeight =
-    activeDaysCount > 0
-      ? Math.min(spec.maxTrunkHeight, activeDaysCount ** 0.72 * 5.5)
-      : 0;
+  // Per-tree growth rate variation (±15%) for visual uniqueness between same-species trees
+  const growthRate = 5.5 * (0.88 + seededVal(treeId, 3) * 0.24);
+  // Smooth asymptotic approach to maxTrunkHeight — growth slows naturally near the limit
+  const rawGrowth =
+    activeDaysCount > 0 ? activeDaysCount ** 0.72 * growthRate : 0;
+  const maxH = spec.maxTrunkHeight;
+  const trunkHeight = maxH > 0 ? (maxH * rawGrowth) / (maxH + rawGrowth) : 0;
   const trunkTopY = trunkBaseY - trunkHeight;
 
   const trunkBaseW = Math.min(14, 2 + activeDaysCount * 0.12);
@@ -385,8 +398,8 @@ export function generateTree(
 
   // Per-tree curvature direction: 50% left, 50% right, based on tree ID
   const curveDir = seededVal(treeId, 0) > 0.5 ? 1 : -1;
-  // Small per-tree variation on curvature magnitude (±20%)
-  const curveMag = spec.trunkCurvature * (0.85 + seededVal(treeId, 1) * 0.3);
+  // Per-tree curvature variation (±30%) — makes each individual tree look distinct
+  const curveMag = spec.trunkCurvature * (0.75 + seededVal(treeId, 1) * 0.5);
   const curveOffset = curveMag * trunkHeight * 0.4 * curveDir;
 
   // Trunk centreline: quadratic bezier P0 (base) → P1 (control) → P2 (top)
@@ -420,75 +433,82 @@ export function generateTree(
   // ─── Branch Specs ─────────────────────────────────────────────────────────
 
   const allSpecs: BranchSpec[] = [];
-  const pairsCount = Math.min(
-    Math.floor(activeDaysCount / spec.branchFrequency),
-    spec.maxBranchPairs,
-  );
+  // Total number of individual branches (no longer generated in symmetric pairs).
+  // Branches alternate L/R loosely; each has its own seeded appearance day.
+  const maxBranches = spec.maxBranchPairs * 2;
 
-  // Reserve headroom above the top branch pair ≈ that pair's branch length.
-  // finalTopBranchLen is species-constant (length of the fully-grown top pair).
+  // Reserve headroom above the topmost branch ≈ one full top-branch length above.
   const finalTopBranchLen = Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
   const maxAttachFrac =
     trunkHeight > 0
-      ? Math.max(0.62, Math.min(0.86, 1 - finalTopBranchLen / trunkHeight))
-      : 0.72;
-  const branchSpan = Math.max(0.05, maxAttachFrac - 0.55);
-  const maxPairs = Math.max(spec.maxBranchPairs - 1, 1);
+      ? Math.max(
+          0.55,
+          Math.min(0.82, 1 - (finalTopBranchLen * 1.4) / trunkHeight),
+        )
+      : 0.68;
+  const branchSpan = Math.max(0.05, maxAttachFrac - 0.5);
+  const maxSlots = Math.max(maxBranches - 1, 1);
 
-  for (let pairIdx = 0; pairIdx < pairsCount; pairIdx++) {
-    const appearsAtDay = (pairIdx + 1) * spec.branchFrequency;
+  for (let branchIdx = 0; branchIdx < maxBranches; branchIdx++) {
+    // Alternate L/R but give each branch its own seeded timing jitter
+    const side = branchIdx % 2 === 0 ? "L" : "R";
+    const sideIdx = Math.floor(branchIdx / 2); // 0-based index within each side
+    const id = `${side}${sideIdx}`;
 
-    // Distribute pairs evenly across the upper portion of the *current* trunk.
-    // The span is computed above so the gap above the top pair ≈ its branch length.
-    const baseFrac = 0.55 + (pairIdx / maxPairs) * branchSpan;
+    // Independent appearance day with ±70% of branchFrequency jitter
+    const baseDay = (sideIdx + 1) * spec.branchFrequency;
+    const jitter =
+      (seededVal(`${id}t${treeId}`, 0) - 0.5) * spec.branchFrequency * 0.7;
+    const appearsAtDay = Math.max(1, Math.round(baseDay + jitter));
+    if (activeDaysCount < appearsAtDay) continue;
+
+    // Height fraction: distribute across the trunk with extra per-branch randomness
+    const baseFrac = 0.5 + (branchIdx / maxSlots) * branchSpan;
     const attachFraction =
-      baseFrac + (seededVal(`p${pairIdx}${treeId}`, 0) - 0.5) * 0.08;
-    const heightFromBase = trunkHeight * Math.max(attachFraction, 0.3);
+      baseFrac + (seededVal(`p${branchIdx}${treeId}`, 0) - 0.5) * 0.12;
+    const heightFromBase = trunkHeight * Math.max(attachFraction, 0.28);
 
     // Position on the curved trunk centreline
     const t = trunkHeight > 0 ? Math.min(heightFromBase / trunkHeight, 1) : 0;
     const attachX = trunkCentreX(t, trunkBaseX, trunkCpX, trunkTopX);
     const attachY = trunkBaseY - heightFromBase;
 
-    // Per-species angle with position-based droop
-    // Lower branches (small pairIdx) are more horizontal/drooping; upper are more ascending
-    const midPair = spec.maxBranchPairs / 2;
-    const droop = (midPair - pairIdx) * spec.branchAngleDroop;
-    const angleVar = (seededVal(`pa${pairIdx}${treeId}`, 0) - 0.5) * 0.08;
+    // Angle: lower branches more horizontal/drooping, upper more ascending
+    const midBranch = maxBranches / 2;
+    const droop = (midBranch - branchIdx) * spec.branchAngleDroop * 0.5;
+    // Extra per-branch angle randomness (±10°)
+    const angleVar = (seededVal(`pa${branchIdx}${treeId}`, 0) - 0.5) * 0.18;
     const effectiveBase = spec.branchAngleBase - droop + angleVar;
 
-    // Right branch angle (negative = upward in SVG, positive = downward)
-    const rightAngle = -effectiveBase;
-    // Left branch angle (mirror: -(π - effectiveBase))
-    const leftAngle = -(Math.PI - effectiveBase);
+    const angle = side === "L" ? -(Math.PI - effectiveBase) : -effectiveBase;
 
-    // Primary branch thickness proportional to trunk width at time of birth
-    const trunkWatBirth = Math.min(14, 2 + appearsAtDay * 0.12);
-    // Older (lower) branches are slightly thicker
-    const primaryBaseW = trunkWatBirth * (0.4 - pairIdx * 0.015);
+    // Thickness: based on trunk width at the attachment point — upper/shorter
+    // branches are naturally thinner since the trunk has tapered by then.
+    const attachTrunkW = lerp(trunkBaseW, trunkTopW, t);
+    const primaryBaseW = Math.max(
+      0.5,
+      attachTrunkW * spec.branchThicknessFactor,
+    );
 
-    // Primary branch length: older/lower branches are longer
-    const lengthBase = 34 - pairIdx * 3;
-    const lengthVar = (seededVal(`pl${pairIdx}${treeId}`, 0) - 0.5) * 6;
-    const primaryLength = Math.max(12, lengthBase + lengthVar);
+    // Length: lower/older branches longer; add per-branch variation (±20%)
+    const lengthBase = 34 - sideIdx * 3;
+    const lengthVar = (seededVal(`pl${branchIdx}${treeId}`, 0) - 0.5) * 8;
+    const primaryLength = Math.max(10, lengthBase + lengthVar);
 
-    for (const side of ["L", "R"] as const) {
-      const angle = side === "L" ? leftAngle : rightAngle;
-      buildBranchTree(
-        `${side}${pairIdx}`,
-        attachX,
-        attachY,
-        angle,
-        primaryLength,
-        appearsAtDay,
-        0,
-        primaryBaseW,
-        spec,
-        activeDaysCount,
-        treeId,
-        allSpecs,
-      );
-    }
+    buildBranchTree(
+      id,
+      attachX,
+      attachY,
+      angle,
+      primaryLength,
+      appearsAtDay,
+      0,
+      primaryBaseW,
+      spec,
+      activeDaysCount,
+      treeId,
+      allSpecs,
+    );
   }
 
   // ─── Apex Branches ────────────────────────────────────────────────────────
@@ -568,16 +588,46 @@ export function generateTree(
     const y2 = s.y1 + Math.sin(s.angle) * currentLen;
     const currentTipW = lerp(s.baseWidth, s.tipWidth, effectiveProg);
 
-    const path = taperedPath(s.x1, s.y1, x2, y2, s.baseWidth, currentTipW);
+    const path = taperedPath(
+      s.x1,
+      s.y1,
+      x2,
+      y2,
+      s.baseWidth,
+      currentTipW,
+      s.curveBias,
+    );
 
     const isTerminal = !(
       visibleIds.has(`${s.id}-a`) || visibleIds.has(`${s.id}-b`)
     );
 
-    const leaves =
+    // Tip leaves — always at the terminal point when the branch is a terminal
+    const leaves: Leaf[] =
       isTerminal && effectiveProg > 0.3
         ? generateLeaves(s.id, x2, y2, effectiveProg, s.depth, spec, treeId)
         : [];
+
+    // Interior leaf clusters along the branch for species like pine / juniper
+    if (spec.leavesAlongBranch && effectiveProg > 0.4 && currentLen > 8) {
+      const interiorCount = Math.min(3, Math.floor(currentLen / 10));
+      for (let k = 1; k <= interiorCount; k++) {
+        const frac = k / (interiorCount + 1);
+        const ix = s.x1 + Math.cos(s.angle) * currentLen * frac;
+        const iy = s.y1 + Math.sin(s.angle) * currentLen * frac;
+        const interior = generateLeaves(
+          `${s.id}-int-${k}`,
+          ix,
+          iy,
+          effectiveProg * 0.75,
+          s.depth,
+          spec,
+          treeId,
+          0.65,
+        );
+        leaves.push(...interior);
+      }
+    }
 
     rendered.push({
       id: s.id,

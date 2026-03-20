@@ -192,12 +192,13 @@ describe("generateTree", () => {
     it("different treeIds produce different branch geometry", () => {
       const a = generateTree(30, PINE, [], "tree-alpha");
       const b = generateTree(30, PINE, [], "tree-beta");
-      // Same structural count (pairs determined by day + species), different positions
-      expect(a.branches).toHaveLength(b.branches.length);
-      const differs = a.branches.some(
+      // Branch count or geometry must differ — individual branches now have
+      // seeded per-tree appearance-day jitter so the visible sets can vary.
+      const countDiffers = a.branches.length !== b.branches.length;
+      const pathDiffers = a.branches.some(
         (ab, i) => ab.pathData !== b.branches[i]?.pathData,
       );
-      expect(differs).toBe(true);
+      expect(countDiffers || pathDiffers).toBe(true);
     });
   });
 
