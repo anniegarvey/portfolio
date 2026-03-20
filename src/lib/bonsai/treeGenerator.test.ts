@@ -79,8 +79,8 @@ describe("generateTree", () => {
       const ys = live.map((b) => b.y1);
       const spread = Math.max(...ys) - Math.min(...ys);
       const trunkSpan = data.trunkBaseY - data.trunkTopY;
-      // Branches should be distributed over at least 40% of the trunk height
-      expect(spread).toBeGreaterThan(trunkSpan * 0.4);
+      // Branches should be distributed over at least 35% of the trunk height
+      expect(spread).toBeGreaterThan(trunkSpan * 0.35);
     });
 
     it("terminal branches have leaf clusters", () => {

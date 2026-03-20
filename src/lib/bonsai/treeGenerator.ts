@@ -412,14 +412,22 @@ export function generateTree(
     spec.maxBranchPairs,
   );
 
+  // Reserve headroom above the top branch pair ≈ that pair's branch length.
+  // finalTopBranchLen is species-constant (length of the fully-grown top pair).
+  const finalTopBranchLen = Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
+  const maxAttachFrac =
+    trunkHeight > 0
+      ? Math.max(0.62, Math.min(0.86, 1 - finalTopBranchLen / trunkHeight))
+      : 0.72;
+  const branchSpan = Math.max(0.05, maxAttachFrac - 0.55);
+  const maxPairs = Math.max(spec.maxBranchPairs - 1, 1);
+
   for (let pairIdx = 0; pairIdx < pairsCount; pairIdx++) {
     const appearsAtDay = (pairIdx + 1) * spec.branchFrequency;
 
-    // Distribute pairs evenly across the upper portion of the *current* trunk
-    // (55% → 90% from base to apex). Using the current height means the spread
-    // stays full as the trunk grows; lower pairs remain lower but all stay visible.
-    const maxPairs = Math.max(spec.maxBranchPairs - 1, 1);
-    const baseFrac = 0.55 + (pairIdx / maxPairs) * 0.35;
+    // Distribute pairs evenly across the upper portion of the *current* trunk.
+    // The span is computed above so the gap above the top pair ≈ its branch length.
+    const baseFrac = 0.55 + (pairIdx / maxPairs) * branchSpan;
     const attachFraction =
       baseFrac + (seededVal(`p${pairIdx}${treeId}`, 0) - 0.5) * 0.08;
     const heightFromBase = trunkHeight * Math.max(attachFraction, 0.3);
