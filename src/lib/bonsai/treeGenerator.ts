@@ -65,6 +65,11 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * Math.min(Math.max(t, 0), 1);
 }
 
+/** Round to 1 decimal place — reduces SVG path string size without visible loss. */
+function r(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
 /** Random integer in [min, max] using seededVal. */
 function seededInt(
   key: string,
@@ -112,7 +117,7 @@ function taperedPath(
   const cp2x = mx - px * (w1 * 0.85);
   const cp2y = my - py * (w1 * 0.85);
 
-  return `M ${ax} ${ay} Q ${cp1x} ${cp1y} ${cx} ${cy} L ${dx2} ${dy2} Q ${cp2x} ${cp2y} ${bx} ${by} Z`;
+  return `M ${r(ax)} ${r(ay)} Q ${r(cp1x)} ${r(cp1y)} ${r(cx)} ${r(cy)} L ${r(dx2)} ${r(dy2)} Q ${r(cp2x)} ${r(cp2y)} ${r(bx)} ${r(by)} Z`;
 }
 
 /** Quadratic bezier point at parameter t. */
@@ -144,21 +149,23 @@ function buildAncestors(id: string): string[] {
 
 function isSelfPruned(
   id: string,
-  pruned: PrunedBranch[],
+  prunedMap: Map<string, PrunedBranch>,
   day: number,
   regrowth: number,
 ): boolean {
-  const e = pruned.find((p) => p.branchId === id);
+  const e = prunedMap.get(id);
   return !!e && day < e.prunedAtDay + regrowth;
 }
 
 function isAncestorPruned(
   id: string,
-  pruned: PrunedBranch[],
+  prunedMap: Map<string, PrunedBranch>,
   day: number,
   regrowth: number,
 ): boolean {
-  return buildAncestors(id).some((a) => isSelfPruned(a, pruned, day, regrowth));
+  return buildAncestors(id).some((a) =>
+    isSelfPruned(a, prunedMap, day, regrowth),
+  );
 }
 
 function growProgress(appearsAt: number, day: number): number {
@@ -175,14 +182,14 @@ function growProgress(appearsAt: number, day: number): number {
  */
 function effectiveRegrowthProgress(
   s: BranchSpec,
-  prunedBranches: PrunedBranch[],
+  prunedMap: Map<string, PrunedBranch>,
   day: number,
   regrowthDays: number,
 ): number | null {
   // Walk from root ancestor down to self; find the first regrowing entry.
   const fromRootToSelf = [...buildAncestors(s.id), s.id];
   for (let i = 0; i < fromRootToSelf.length; i++) {
-    const entry = prunedBranches.find((p) => p.branchId === fromRootToSelf[i]);
+    const entry = prunedMap.get(fromRootToSelf[i]);
     if (entry && day >= entry.prunedAtDay + regrowthDays) {
       // Each level below the pruned root adds SPLIT_DELAY before it appears.
       const stepsBelow = fromRootToSelf.length - 1 - i;
@@ -358,6 +365,7 @@ export function generateTree(
 ): TreeSVGData {
   const trunkBaseX = VIEWBOX_WIDTH / 2;
   const trunkBaseY = VIEWBOX_HEIGHT - 30;
+  const prunedMap = new Map(prunedBranches.map((p) => [p.branchId, p]));
 
   // ─── Trunk ────────────────────────────────────────────────────────────────
 
@@ -400,8 +408,8 @@ export function generateTree(
 
   const trunkPathData =
     trunkHeight > 0
-      ? `M ${lP0x} ${lP0y} Q ${lP1x} ${lP1y} ${lP2x} ${lP2y} ` +
-        `L ${rP2x} ${rP2y} Q ${rP1x} ${rP1y} ${rP0x} ${rP0y} Z`
+      ? `M ${r(lP0x)} ${r(lP0y)} Q ${r(lP1x)} ${r(lP1y)} ${r(lP2x)} ${r(lP2y)} ` +
+        `L ${r(rP2x)} ${r(rP2y)} Q ${r(rP1x)} ${r(rP1y)} ${r(rP0x)} ${r(rP0y)} Z`
       : "";
 
   // ─── Branch Specs ─────────────────────────────────────────────────────────
@@ -483,16 +491,14 @@ export function generateTree(
   // Collect IDs of branches that will be visible (for terminal-leaf detection).
   const visibleIds = new Set<string>();
   for (const s of allSpecs) {
-    if (isSelfPruned(s.id, prunedBranches, activeDaysCount, spec.regrowthDays))
+    if (isSelfPruned(s.id, prunedMap, activeDaysCount, spec.regrowthDays))
       continue;
-    if (
-      isAncestorPruned(s.id, prunedBranches, activeDaysCount, spec.regrowthDays)
-    )
+    if (isAncestorPruned(s.id, prunedMap, activeDaysCount, spec.regrowthDays))
       continue;
     const prog = growProgress(s.appearsAtDay, activeDaysCount);
     const regrowProg = effectiveRegrowthProgress(
       s,
-      prunedBranches,
+      prunedMap,
       activeDaysCount,
       spec.regrowthDays,
     );
@@ -503,17 +509,15 @@ export function generateTree(
   const rendered: RenderedBranch[] = [];
 
   for (const s of allSpecs) {
-    if (isSelfPruned(s.id, prunedBranches, activeDaysCount, spec.regrowthDays))
+    if (isSelfPruned(s.id, prunedMap, activeDaysCount, spec.regrowthDays))
       continue;
-    if (
-      isAncestorPruned(s.id, prunedBranches, activeDaysCount, spec.regrowthDays)
-    )
+    if (isAncestorPruned(s.id, prunedMap, activeDaysCount, spec.regrowthDays))
       continue;
 
     const prog = growProgress(s.appearsAtDay, activeDaysCount);
     const regrowProg = effectiveRegrowthProgress(
       s,
-      prunedBranches,
+      prunedMap,
       activeDaysCount,
       spec.regrowthDays,
     );
@@ -553,13 +557,12 @@ export function generateTree(
   }
 
   // Pruned stubs — render a tiny stub so the user sees where the branch was
+  const specsById = new Map(allSpecs.map((s) => [s.id, s]));
   for (const p of prunedBranches) {
     if (activeDaysCount >= p.prunedAtDay + spec.regrowthDays) continue;
-    const s = allSpecs.find((b) => b.id === p.branchId);
+    const s = specsById.get(p.branchId);
     if (!s) continue;
-    if (
-      isAncestorPruned(s.id, prunedBranches, activeDaysCount, spec.regrowthDays)
-    )
+    if (isAncestorPruned(s.id, prunedMap, activeDaysCount, spec.regrowthDays))
       continue;
 
     const stubLen = Math.min(s.baseWidth * 1.5, 4);

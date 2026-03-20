@@ -1,6 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
+import { useMemo } from "react";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, PotId, StandId } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
@@ -162,11 +163,10 @@ function clamp(v: number, lo: number, hi: number) {
 function TreeSVG({ tree }: { tree: BonsaiTree }) {
   const { pruneBranch } = useBonsai();
   const config = SPECIES_CONFIG[tree.speciesId];
-  const svgData = generateTree(
-    tree.activeDaysCount,
-    config,
-    tree.prunedBranches,
-    tree.id,
+  const svgData = useMemo(
+    () =>
+      generateTree(tree.activeDaysCount, config, tree.prunedBranches, tree.id),
+    [tree.activeDaysCount, config, tree.prunedBranches, tree.id],
   );
 
   const handleBranchClick = (branchId: string) => {
