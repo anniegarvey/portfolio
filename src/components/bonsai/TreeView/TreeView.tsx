@@ -247,13 +247,12 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
 
             {/* Small leaf cluster at terminal tips — clicks bubble to branch hit area */}
             {branch.leaves.map((leaf) => {
-              const leafKey = `${leaf.cx.toFixed(1)},${leaf.cy.toFixed(1)}`;
               if (config.leafShape === "palmate") {
                 return (
                   <path
                     d={PALMATE_LEAF_PATH}
                     fill={config.foliageColor}
-                    key={leafKey}
+                    key={leaf.id}
                     transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
                   />
                 );
@@ -263,7 +262,7 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
                   <path
                     d={LOBED_LEAF_PATH}
                     fill={config.foliageColor}
-                    key={leafKey}
+                    key={leaf.id}
                     transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
                   />
                 );
@@ -274,7 +273,7 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
                   cx={leaf.cx}
                   cy={leaf.cy}
                   fill={config.foliageColor}
-                  key={leafKey}
+                  key={leaf.id}
                   rx={leaf.rx}
                   ry={leaf.ry}
                   transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}
@@ -286,13 +285,12 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
 
       {/* Foliage at the trunk apex */}
       {svgData.apexLeaves.map((leaf) => {
-        const leafKey = `apex-${leaf.cx.toFixed(1)},${leaf.cy.toFixed(1)}`;
         if (config.leafShape === "palmate") {
           return (
             <path
               d={PALMATE_LEAF_PATH}
               fill={config.foliageColor}
-              key={leafKey}
+              key={leaf.id}
               transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
             />
           );
@@ -302,7 +300,7 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
             <path
               d={LOBED_LEAF_PATH}
               fill={config.foliageColor}
-              key={leafKey}
+              key={leaf.id}
               transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
             />
           );
@@ -312,7 +310,7 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
             cx={leaf.cx}
             cy={leaf.cy}
             fill={config.foliageColor}
-            key={leafKey}
+            key={leaf.id}
             rx={leaf.rx}
             ry={leaf.ry}
             transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}

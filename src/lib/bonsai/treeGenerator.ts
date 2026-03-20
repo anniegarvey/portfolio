@@ -3,6 +3,8 @@ import type { PrunedBranch, SpeciesConfig } from "./schema";
 // ─── Output Types ─────────────────────────────────────────────────────────────
 
 export interface Leaf {
+  /** Stable React key — unique within this branch's leaf cluster. */
+  id: string;
   cx: number;
   cy: number;
   /** For needles: half-length. For ovals/scale: half-width. For palmate/lobed: overall scale. */
@@ -224,6 +226,7 @@ function generateLeaves(
       const baseDeg = (i / count) * 360;
       const jitter = (seededVal(branchId + treeId, i + 200) - 0.5) * 18;
       leaves.push({
+        id: `${branchId}-${i}`,
         cx: tipX,
         cy: tipY,
         rx: 0.4, // very thin
@@ -238,6 +241,7 @@ function generateLeaves(
       const angle = seededVal(branchId + treeId, i * 2 + 50) * Math.PI * 2;
       const dist = seededVal(branchId + treeId, i * 2 + 51) * spread;
       leaves.push({
+        id: `${branchId}-${i}`,
         cx: tipX + Math.cos(angle) * dist,
         cy: tipY + Math.sin(angle) * dist,
         rx: size * 0.7,
@@ -253,6 +257,7 @@ function generateLeaves(
       const dist = seededVal(branchId + treeId, i * 3 + 11) * spread;
       const tilt = seededVal(branchId + treeId, i * 3 + 12) * 360;
       leaves.push({
+        id: `${branchId}-${i}`,
         cx: tipX + Math.cos(angle) * dist,
         cy: tipY + Math.sin(angle) * dist,
         rx: size,
