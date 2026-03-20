@@ -51,6 +51,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Home" },
   { href: "/colour-palette", label: "Colour Palette" },
   { href: "/energy-planner", label: "Energy Planner" },
+  { href: "/bonsai", label: "Bonsai" },
 ] as const;
 
 export function Navigation() {

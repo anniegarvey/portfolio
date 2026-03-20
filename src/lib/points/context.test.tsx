@@ -21,10 +21,24 @@ function AwardButton({ amount }: { amount: number }) {
   );
 }
 
+function SpendButton({ amount }: { amount: number }) {
+  const { spendPoints } = usePoints();
+  return (
+    <button
+      data-testid={`spend-${amount}`}
+      onClick={() => spendPoints(amount)}
+      type="button"
+    >
+      Spend
+    </button>
+  );
+}
+
 describe("PointsProvider", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     localStorage.removeItem("energy-planner-points");
+    localStorage.removeItem("energy-planner-last-active-date");
   });
 
   it("provides initial zero points", async () => {
@@ -96,6 +110,59 @@ describe("PointsProvider", () => {
     await waitFor(() =>
       expect(screen.getByTestId("points")).toHaveTextContent("5"),
     );
+  });
+});
+
+describe("spendPoints", () => {
+  afterEach(() => {
+    localStorage.removeItem("energy-planner-points");
+  });
+
+  it("deducts points and persists when sufficient balance", async () => {
+    localStorage.setItem("energy-planner-points", "50");
+
+    render(
+      <PointsProvider>
+        <PointsReadout />
+        <SpendButton amount={20} />
+      </PointsProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("points")).toHaveTextContent("50"),
+    );
+
+    await act(async () => {
+      screen.getByTestId("spend-20").click();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("points")).toHaveTextContent("30"),
+    );
+    expect(localStorage.getItem("energy-planner-points")).toBe("30");
+  });
+
+  it("does not deduct points when balance is insufficient", async () => {
+    localStorage.setItem("energy-planner-points", "10");
+
+    render(
+      <PointsProvider>
+        <PointsReadout />
+        <SpendButton amount={50} />
+      </PointsProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("points")).toHaveTextContent("10"),
+    );
+
+    await act(async () => {
+      screen.getByTestId("spend-50").click();
+    });
+
+    // Points should remain unchanged
+    expect(screen.getByTestId("points")).toHaveTextContent("10");
+    expect(localStorage.getItem("energy-planner-points")).toBe("10");
   });
 });
 
