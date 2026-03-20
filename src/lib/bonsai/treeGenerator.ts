@@ -491,6 +491,38 @@ export function generateTree(
     }
   }
 
+  // ─── Apex Branches ────────────────────────────────────────────────────────
+  // A pair of upward-forking branches from the trunk tip crowns the tree.
+  // Using the full sub-branch pipeline means they gain the same foliage
+  // density as lateral branches, and their terminal tips extend visibly
+  // above the topmost lateral pair — resolving the stubby-apex look.
+  if (trunkHeight > 0 && activeDaysCount >= spec.branchFrequency) {
+    const apexAppearsAtDay = spec.branchFrequency;
+    const apexLength = Math.max(8, finalTopBranchLen * 0.7);
+    const apexBaseWidth = Math.max(0.6, trunkTopW * 1.4);
+    const apexHalfSpread = spec.splitDiverge * 0.8;
+
+    for (const [apexId, sign] of [
+      ["apex-L", -1],
+      ["apex-R", 1],
+    ] as [string, number][]) {
+      buildBranchTree(
+        apexId,
+        trunkTopX,
+        trunkTopY,
+        -(Math.PI / 2) + sign * apexHalfSpread,
+        apexLength,
+        apexAppearsAtDay,
+        0,
+        apexBaseWidth,
+        spec,
+        activeDaysCount,
+        treeId,
+        allSpecs,
+      );
+    }
+  }
+
   // ─── Render Branches ──────────────────────────────────────────────────────
 
   // Collect IDs of branches that will be visible (for terminal-leaf detection).
