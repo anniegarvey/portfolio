@@ -71,14 +71,27 @@ function cleanRegrownBranches(state: BonsaiGameState): BonsaiGameState {
   return { ...state, trees };
 }
 
+// ─── Empty state used for the initial SSR render ──────────────────────────────
+// This constant is the same on both server and client, so there is no
+// hydration mismatch.  The real state (from localStorage) is loaded in the
+// mount effect below.
+
+const EMPTY_STATE: BonsaiGameState = {
+  trees: [],
+  inventory: {
+    ownedSpeciesIds: [],
+    ownedToolIds: [],
+    ownedFertiliserIds: [],
+    ownedPotIds: [],
+    ownedStandIds: [],
+  },
+};
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function BonsaiProvider({ children }: { children: ReactNode }) {
   const { spendPoints } = usePoints();
-  const [state, setStateRaw] = useState<BonsaiGameState>(() => {
-    const loaded = loadBonsaiState();
-    return loaded ?? createInitialState();
-  });
+  const [state, setStateRaw] = useState<BonsaiGameState>(EMPTY_STATE);
 
   // Persist every state change
   const setState = useCallback(
@@ -92,17 +105,17 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  // Growth check on mount
+  // Load from localStorage and apply growth check on mount (client-only).
+  // Using useEffect instead of the useState initialiser avoids a hydration
+  // mismatch between the server render (no localStorage) and the client.
   useEffect(() => {
-    const lastActiveDateEP =
-      typeof window !== "undefined"
-        ? localStorage.getItem(LAST_ACTIVE_DATE_KEY)
-        : null;
+    const loaded = loadBonsaiState();
+    const lastActiveDateEP = localStorage.getItem(LAST_ACTIVE_DATE_KEY);
     const todayStr = today();
 
-    setState((prev) => {
+    setState((_prev) => {
       // Clean regrown branches first
-      let next = cleanRegrownBranches(prev);
+      let next = cleanRegrownBranches(loaded ?? createInitialState());
 
       // Apply daily growth if energy planner was used today and we haven't grown yet
       if (

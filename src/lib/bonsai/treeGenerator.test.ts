@@ -143,13 +143,15 @@ describe("generateTree", () => {
       expect(regrowingBranch).toBeDefined();
       expect(matureBranch).toBeDefined();
 
+      if (!(regrowingBranch && matureBranch)) return;
+
       const regrowLen = Math.hypot(
-        regrowingBranch?.x2 - regrowingBranch?.x1,
-        regrowingBranch?.y2 - regrowingBranch?.y1,
+        regrowingBranch.x2 - regrowingBranch.x1,
+        regrowingBranch.y2 - regrowingBranch.y1,
       );
       const matureLen = Math.hypot(
-        matureBranch?.x2 - matureBranch?.x1,
-        matureBranch?.y2 - matureBranch?.y1,
+        matureBranch.x2 - matureBranch.x1,
+        matureBranch.y2 - matureBranch.y1,
       );
 
       expect(regrowLen).toBeLessThan(matureLen);
