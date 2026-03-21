@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SPECIES_CONFIG } from "./schema";
 import { BRANCH_GROW_DURATION, generateTree } from "./treeGenerator";
 
-const PINE = SPECIES_CONFIG.pine; // branchFrequency: 5, regrowthDays: 14
+const PINE = SPECIES_CONFIG.pine; // branchFrequency: 6, regrowthDays: 14
 const TREE_ID = "test-tree-id";
 
 // ─── BRANCH_GROW_DURATION ─────────────────────────────────────────────────────
@@ -47,16 +47,16 @@ describe("generateTree", () => {
       expect(data.apexLeaves.length).toBeGreaterThan(0);
     });
 
-    it("has no primary branches yet (pine branchFrequency = 5)", () => {
+    it("has no primary branches yet (pine branchFrequency = 6)", () => {
       const live = data.branches.filter((b) => !b.isPruned);
       expect(live).toHaveLength(0);
     });
   });
 
-  describe("day 10 — early branches", () => {
-    const data = generateTree(10, PINE, [], TREE_ID);
+  describe("day 15 — early branches", () => {
+    const data = generateTree(15, PINE, [], TREE_ID);
 
-    it("has at least two branches (one left, one right)", () => {
+    it("has at least two branches", () => {
       expect(data.branches.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -99,7 +99,7 @@ describe("generateTree", () => {
   // ─── Pruning ───────────────────────────────────────────────────────────────
 
   describe("pruning", () => {
-    // Pine branchFrequency=5: L0 appears at day 5. Pruned at day 20.
+    // Pine branchFrequency=6: L0 appears at day 6. Pruned at day 20.
     // At day 20: 20 < 20 + 14 = 34, so still pruned.
     const pruned = [{ branchId: "L0", prunedAtDay: 20 }];
 

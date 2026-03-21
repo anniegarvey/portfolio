@@ -180,6 +180,29 @@ function growProgress(appearsAt: number, day: number): number {
 }
 
 /**
+ * Computes branch attachment heights using the bonsai "1/3 rule":
+ * first branch at firstFrac of trunk, each subsequent at 1/3 of remaining distance
+ * up to maxFrac. This produces natural clustering — wide gaps at the base tapering
+ * to tighter spacing near the apex.
+ */
+function computeBranchHeights(
+  trunkHeight: number,
+  numBranches: number,
+  firstFrac: number,
+  maxFrac: number,
+): number[] {
+  const maxH = trunkHeight * maxFrac;
+  const out: number[] = [];
+  let h = trunkHeight * firstFrac;
+  for (let i = 0; i < numBranches; i++) {
+    if (h >= maxH) break;
+    out.push(h);
+    h = h + (maxH - h) / 3;
+  }
+  return out;
+}
+
+/**
  * If a branch (or any of its ancestors) is currently regrowing after being
  * pruned, returns a [0,1] progress relative to when regrowth started —
  * with child branches offset by SPLIT_DELAY per level below the pruned root.
@@ -433,65 +456,67 @@ export function generateTree(
   // ─── Branch Specs ─────────────────────────────────────────────────────────
 
   const allSpecs: BranchSpec[] = [];
-  // Total number of individual branches (no longer generated in symmetric pairs).
-  // Branches alternate L/R loosely; each has its own seeded appearance day.
-  const maxBranches = spec.maxBranchPairs * 2;
 
-  // Reserve headroom above the topmost branch ≈ one full top-branch length above.
-  const finalTopBranchLen = Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
-  const maxAttachFrac =
-    trunkHeight > 0
-      ? Math.max(
-          0.55,
-          Math.min(0.82, 1 - (finalTopBranchLen * 1.4) / trunkHeight),
-        )
-      : 0.68;
-  const branchSpan = Math.max(0.05, maxAttachFrac - 0.5);
-  const maxSlots = Math.max(maxBranches - 1, 1);
+  // Cascade species (drooping branches): cluster branches in the upper portion of the trunk.
+  // Upright species: distribute from firstBranchFrac upward using the "1/3 rule".
+  const isCascade = spec.branchAngleBase < -0.05;
+  const maxAttachFrac = isCascade ? 0.96 : 0.9;
 
-  for (let branchIdx = 0; branchIdx < maxBranches; branchIdx++) {
-    // Alternate L/R but give each branch its own seeded timing jitter
+  const branchHeights = computeBranchHeights(
+    trunkHeight,
+    spec.maxBranchPairs,
+    spec.firstBranchFrac,
+    maxAttachFrac,
+  );
+  const numActualBranches = branchHeights.length;
+
+  for (let branchIdx = 0; branchIdx < numActualBranches; branchIdx++) {
     const side = branchIdx % 2 === 0 ? "L" : "R";
-    const sideIdx = Math.floor(branchIdx / 2); // 0-based index within each side
+    const sideIdx = Math.floor(branchIdx / 2);
     const id = `${side}${sideIdx}`;
 
-    // Independent appearance day with ±70% of branchFrequency jitter
+    // Appearance day: lower branches appear earlier
     const baseDay = (sideIdx + 1) * spec.branchFrequency;
-    const jitter =
-      (seededVal(`${id}t${treeId}`, 0) - 0.5) * spec.branchFrequency * 0.7;
-    const appearsAtDay = Math.max(1, Math.round(baseDay + jitter));
+    const dayJitter =
+      (seededVal(`${id}t${treeId}`, 0) - 0.5) * spec.branchFrequency * 0.5;
+    const appearsAtDay = Math.max(1, Math.round(baseDay + dayJitter));
     if (activeDaysCount < appearsAtDay) continue;
 
-    // Height fraction: distribute across the trunk with extra per-branch randomness
-    const baseFrac = 0.5 + (branchIdx / maxSlots) * branchSpan;
-    const attachFraction =
-      baseFrac + (seededVal(`p${branchIdx}${treeId}`, 0) - 0.5) * 0.12;
-    const heightFromBase = trunkHeight * Math.max(attachFraction, 0.28);
+    // Height with small per-branch jitter for naturalness (±3% of trunk)
+    const hJitter =
+      (seededVal(`${id}h${treeId}`, 0) - 0.5) * trunkHeight * 0.03;
+    const heightFromBase = Math.max(
+      trunkHeight * spec.firstBranchFrac * 0.85,
+      Math.min(
+        trunkHeight * maxAttachFrac * 0.99,
+        branchHeights[branchIdx] + hJitter,
+      ),
+    );
 
-    // Position on the curved trunk centreline
     const t = trunkHeight > 0 ? Math.min(heightFromBase / trunkHeight, 1) : 0;
     const attachX = trunkCentreX(t, trunkBaseX, trunkCpX, trunkTopX);
     const attachY = trunkBaseY - heightFromBase;
 
-    // Angle: lower branches more horizontal/drooping, upper more ascending
-    const midBranch = maxBranches / 2;
-    const droop = (midBranch - branchIdx) * spec.branchAngleDroop * 0.5;
-    // Extra per-branch angle randomness (±10°)
-    const angleVar = (seededVal(`pa${branchIdx}${treeId}`, 0) - 0.5) * 0.18;
-    const effectiveBase = spec.branchAngleBase - droop + angleVar;
+    // Zone fraction: 0 = lowest branch in this tree, 1 = highest
+    const zoneFrac =
+      numActualBranches > 1 ? branchIdx / (numActualBranches - 1) : 0.5;
+
+    // Angle: linear progression from bottom to top controlled by branchAngleRamp
+    const angleProgression = spec.branchAngleRamp * (zoneFrac - 0.5);
+    const angleJitter = (seededVal(`pa${branchIdx}${treeId}`, 0) - 0.5) * 0.14;
+    const effectiveBase = spec.branchAngleBase + angleProgression + angleJitter;
 
     const angle = side === "L" ? -(Math.PI - effectiveBase) : -effectiveBase;
 
-    // Thickness: based on trunk width at the attachment point — upper/shorter
-    // branches are naturally thinner since the trunk has tapered by then.
+    // Thickness from trunk width at attachment point — upper branches naturally thinner
     const attachTrunkW = lerp(trunkBaseW, trunkTopW, t);
     const primaryBaseW = Math.max(
       0.5,
       attachTrunkW * spec.branchThicknessFactor,
     );
 
-    // Length: lower/older branches longer; add per-branch variation (±20%)
-    const lengthBase = 34 - sideIdx * 3;
+    // Length: lower branches longer (wide silhouette), upper branches shorter
+    const lengthBase = 38 - zoneFrac * 16;
     const lengthVar = (seededVal(`pl${branchIdx}${treeId}`, 0) - 0.5) * 8;
     const primaryLength = Math.max(10, lengthBase + lengthVar);
 
@@ -516,7 +541,12 @@ export function generateTree(
   // Using the full sub-branch pipeline means they gain the same foliage
   // density as lateral branches, and their terminal tips extend visibly
   // above the topmost lateral pair — resolving the stubby-apex look.
-  if (trunkHeight > 0 && activeDaysCount >= spec.branchFrequency) {
+  const finalTopBranchLen = Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
+  if (
+    trunkHeight > 0 &&
+    activeDaysCount >= spec.branchFrequency &&
+    !isCascade
+  ) {
     const apexAppearsAtDay = spec.branchFrequency;
     const apexLength = Math.max(8, finalTopBranchLen * 0.7);
     const apexBaseWidth = Math.max(0.6, trunkTopW * 1.4);
