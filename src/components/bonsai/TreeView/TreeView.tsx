@@ -397,10 +397,10 @@ const TreeLabel = styled.h2`
 
 const SVGContainer = styled.div`
   width: 100%;
-  background: light-dark(#f0ebe3, #1e3248);
+  background: light-dark(#f0ebe3, #3d6e99);
   border-radius: 12px;
   padding: 1rem;
-  border: 1px solid light-dark(#d4c9b8, #3a5578);
+  border: 1px solid light-dark(#d4c9b8, #5a8ab8);
 `;
 
 const Hint = styled.p`
