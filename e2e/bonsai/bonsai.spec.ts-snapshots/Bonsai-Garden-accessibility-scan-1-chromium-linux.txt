@@ -1,0 +1,43 @@
+[
+  {
+    "rule": "color-contrast",
+    "targets": [
+      [
+        ".BonsaiPage_AdvanceDayButton_JRmhCC"
+      ],
+      [
+        "#radix-[id]"
+      ],
+      [
+        "#radix-[id]"
+      ],
+      [
+        "#radix-[id]"
+      ],
+      [
+        "#radix-[id]"
+      ],
+      [
+        ".BonsaiShop_Card_r3oOvy:nth-child(1) > .BonsaiShop_CardHeader_r3oOvy > .BonsaiShop_Cost_r3oOvy"
+      ],
+      [
+        ".BonsaiShop_Card_r3oOvy:nth-child(2) > .BonsaiShop_CardHeader_r3oOvy > .BonsaiShop_Cost_r3oOvy"
+      ],
+      [
+        ".BonsaiShop_Card_r3oOvy:nth-child(3) > .BonsaiShop_CardHeader_r3oOvy > .BonsaiShop_Cost_r3oOvy"
+      ],
+      [
+        ".BonsaiShop_Card_r3oOvy:nth-child(4) > .BonsaiShop_CardHeader_r3oOvy > .BonsaiShop_Cost_r3oOvy"
+      ],
+      [
+        ".BonsaiShop_Card_r3oOvy:nth-child(5) > .BonsaiShop_CardHeader_r3oOvy > .BonsaiShop_Cost_r3oOvy"
+      ],
+      [
+        ".BonsaiShop_Card_r3oOvy:nth-child(6) > .BonsaiShop_CardHeader_r3oOvy > .BonsaiShop_Cost_r3oOvy"
+      ],
+      [
+        ".BonsaiShop_Card_r3oOvy:nth-child(7) > .BonsaiShop_CardHeader_r3oOvy > .BonsaiShop_Cost_r3oOvy"
+      ]
+    ]
+  }
+]

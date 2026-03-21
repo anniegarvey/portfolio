@@ -1,0 +1,464 @@
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { usePoints } from "@/lib/points/context";
+import { LAST_ACTIVE_DATE_KEY } from "@/lib/points/keys";
+import { BonsaiProvider, useBonsai } from "./context";
+import { createInitialState } from "./storage";
+import { BRANCH_GROW_DURATION } from "./treeGenerator";
+
+vi.mock("@/lib/points/context", () => ({
+  usePoints: vi.fn(),
+}));
+
+const BONSAI_KEY = "bonsai-game-state";
+const TODAY = new Date().toISOString().split("T")[0];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function setupMockPoints(points = 200, spendResult = true) {
+  const mockSpend = vi.fn().mockReturnValue(spendResult);
+  vi.mocked(usePoints).mockReturnValue({
+    points,
+    spendPoints: mockSpend,
+    awardPoints: vi.fn(),
+  });
+  return mockSpend;
+}
+
+function seedLocalStorage(overrides?: object) {
+  const base = createInitialState();
+  const merged = { ...base, ...overrides };
+  localStorage.setItem(BONSAI_KEY, JSON.stringify(merged));
+}
+
+// ─── Test Components ──────────────────────────────────────────────────────────
+
+function BonsaiDebug() {
+  const ctx = useBonsai();
+  const tree = ctx.activePlantedTree;
+  return (
+    <div>
+      <span data-testid="day">{tree?.activeDaysCount ?? "none"}</span>
+      <span data-testid="pruned">{tree?.prunedBranches.length ?? 0}</span>
+      <span data-testid="pot">{tree?.equippedPotId ?? "none"}</span>
+      <span data-testid="stand">{tree?.equippedStandId ?? "none"}</span>
+      <span data-testid="tools">{ctx.state.inventory.ownedToolIds.length}</span>
+      <span data-testid="seeds">
+        {ctx.state.inventory.ownedSpeciesIds.length}
+      </span>
+      <span data-testid="fertilisers">
+        {ctx.state.inventory.ownedFertiliserIds.length}
+      </span>
+      <span data-testid="pots-inv">
+        {ctx.state.inventory.ownedPotIds.length}
+      </span>
+      <span data-testid="stands-inv">
+        {ctx.state.inventory.ownedStandIds.length}
+      </span>
+      <span data-testid="tree-count">{ctx.state.trees.length}</span>
+      <button onClick={ctx.advanceDay} type="button">
+        Advance
+      </button>
+      <button
+        onClick={() => tree && ctx.pruneBranch(tree.id, "L0")}
+        type="button"
+      >
+        Prune L0
+      </button>
+      <button onClick={() => ctx.buyItem("watering-can")} type="button">
+        Buy Can
+      </button>
+      <button onClick={() => ctx.buyItem("maple")} type="button">
+        Buy Maple Seed
+      </button>
+      <button onClick={() => ctx.buyItem("basic")} type="button">
+        Buy Fertiliser
+      </button>
+      <button onClick={() => ctx.buyItem("simple-clay")} type="button">
+        Buy Pot
+      </button>
+      <button onClick={() => ctx.buyItem("bamboo-mat")} type="button">
+        Buy Stand
+      </button>
+      <button
+        onClick={() => tree && ctx.equipPot(tree.id, "simple-clay")}
+        type="button"
+      >
+        Equip Pot
+      </button>
+      <button
+        onClick={() => tree && ctx.equipStand(tree.id, "bamboo-mat")}
+        type="button"
+      >
+        Equip Stand
+      </button>
+      <button onClick={() => ctx.plantTree("maple")} type="button">
+        Plant Maple
+      </button>
+      {ctx.state.trees.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => ctx.switchActiveTree(t.id)}
+          type="button"
+        >
+          Switch {t.speciesId}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── useBonsai ────────────────────────────────────────────────────────────────
+
+describe("useBonsai", () => {
+  it("throws when used outside BonsaiProvider", () => {
+    vi.mocked(console.error).mockImplementation(() => {});
+    expect(() => render(<BonsaiDebug />)).toThrow(
+      "useBonsai must be used within a BonsaiProvider",
+    );
+  });
+});
+
+// ─── BonsaiProvider ───────────────────────────────────────────────────────────
+
+describe("BonsaiProvider", () => {
+  beforeEach(() => {
+    setupMockPoints();
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  function renderBonsai() {
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+  }
+
+  it("starts with a pine tree as the active tree at day 0", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+  });
+
+  it("advanceDay increments activeDaysCount", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+  });
+
+  it("pruneBranch adds a prunedBranch entry", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("pruned")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Prune L0").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("pruned")).toHaveTextContent("1"),
+    );
+  });
+
+  it("equipPot sets equippedPotId on the active tree", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("pot")).toHaveTextContent("none"),
+    );
+    await act(async () => {
+      screen.getByText("Equip Pot").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("pot")).toHaveTextContent("simple-clay"),
+    );
+  });
+
+  it("equipStand sets equippedStandId on the active tree", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("stand")).toHaveTextContent("none"),
+    );
+    await act(async () => {
+      screen.getByText("Equip Stand").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("stand")).toHaveTextContent("bamboo-mat"),
+    );
+  });
+
+  it("buyItem adds to inventory and spends points on success", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("tools")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Buy Can").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("tools")).toHaveTextContent("1"),
+    );
+  });
+
+  it("buyItem does not update inventory when spendPoints fails", async () => {
+    setupMockPoints(0, false);
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("tools")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Buy Can").click();
+    });
+    expect(screen.getByTestId("tools")).toHaveTextContent("0");
+  });
+
+  it("buyItem adds a species seed to ownedSpeciesIds", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("seeds")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Buy Maple Seed").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("seeds")).toHaveTextContent("1"),
+    );
+  });
+
+  it("buyItem adds a fertiliser to ownedFertiliserIds", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("fertilisers")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Buy Fertiliser").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("fertilisers")).toHaveTextContent("1"),
+    );
+  });
+
+  it("buyItem adds a pot to ownedPotIds", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("pots-inv")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Buy Pot").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("pots-inv")).toHaveTextContent("1"),
+    );
+  });
+
+  it("buyItem adds a stand to ownedStandIds", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("stands-inv")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Buy Stand").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("stands-inv")).toHaveTextContent("1"),
+    );
+  });
+
+  it("pruneBranch replacing an existing prune entry updates prunedAtDay", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("pruned")).toHaveTextContent("0"),
+    );
+    // Prune L0 at day 0
+    await act(async () => {
+      screen.getByText("Prune L0").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("pruned")).toHaveTextContent("1"),
+    );
+    // Advance then prune the same branch again — count should stay at 1
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await act(async () => {
+      screen.getByText("Prune L0").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("pruned")).toHaveTextContent("1"),
+    );
+  });
+
+  it("plantTree moves a species from inventory to trees", async () => {
+    // Seed a state that already has a maple seed in inventory
+    const base = createInitialState();
+    seedLocalStorage({
+      ...base,
+      inventory: {
+        ...base.inventory,
+        ownedSpeciesIds: ["maple"],
+      },
+    });
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("seeds")).toHaveTextContent("1"),
+    );
+    await act(async () => {
+      screen.getByText("Plant Maple").click();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("seeds")).toHaveTextContent("0");
+      expect(screen.getByTestId("tree-count")).toHaveTextContent("2");
+    });
+  });
+
+  it("plantTree is a no-op when the species is not in inventory", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("tree-count")).toHaveTextContent("1"),
+    );
+    await act(async () => {
+      screen.getByText("Plant Maple").click();
+    });
+    expect(screen.getByTestId("tree-count")).toHaveTextContent("1");
+  });
+
+  it("switchActiveTree changes the active tree", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+
+    // Advance pine to day 1 so it has a distinct day count
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+
+    // Buy and plant a maple seed — maple becomes the active tree at day 0
+    await act(async () => {
+      screen.getByText("Buy Maple Seed").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("seeds")).toHaveTextContent("1"),
+    );
+    await act(async () => {
+      screen.getByText("Plant Maple").click();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("day")).toHaveTextContent("0");
+      expect(screen.getByTestId("tree-count")).toHaveTextContent("2");
+    });
+
+    // Switch back to pine — day count should return to 1
+    await act(async () => {
+      screen.getByText("Switch pine").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+  });
+});
+
+// ─── Growth check ─────────────────────────────────────────────────────────────
+
+describe("BonsaiProvider — daily growth check", () => {
+  beforeEach(() => {
+    setupMockPoints();
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  it("increments activeDaysCount when energy planner was used today", async () => {
+    localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+  });
+
+  it("does not increment when energy planner was not used today", async () => {
+    // No LAST_ACTIVE_DATE_KEY set
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+  });
+
+  it("cleans up a fully regrown pruned branch on mount", async () => {
+    // Pine regrowthDays=14, BRANCH_GROW_DURATION=6. Prune at day 0.
+    // Fully regrown when activeDaysCount >= 0 + 14 + 6 = 20.
+    const base = createInitialState();
+    const fullyRegrownDay = BRANCH_GROW_DURATION + 14; // 20
+    seedLocalStorage({
+      ...base,
+      trees: [
+        {
+          ...base.trees[0],
+          activeDaysCount: fullyRegrownDay,
+          prunedBranches: [{ branchId: "L0", prunedAtDay: 0 }],
+        },
+      ],
+    });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    // The pruned branch entry should be cleaned up on mount
+    await waitFor(() =>
+      expect(screen.getByTestId("pruned")).toHaveTextContent("0"),
+    );
+  });
+
+  it("does not double-increment if growth check already ran today", async () => {
+    localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+    // Seed a state that has already been grown today
+    const base = createInitialState();
+    seedLocalStorage({ ...base, lastGrowthCheckDate: TODAY });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    // Should remain at 0, not increment to 1
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+  });
+});

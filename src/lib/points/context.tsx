@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { LAST_ACTIVE_DATE_KEY } from "./keys";
 import { playCollectSound, playDepositSound } from "./sounds";
 
 const POINTS_STORAGE_KEY = "energy-planner-points";
@@ -117,6 +118,7 @@ function Particle({
 export interface PointsContextType {
   points: number;
   awardPoints: (amount: number, rect: DOMRect) => void;
+  spendPoints: (amount: number) => boolean;
 }
 
 const PointsContext = createContext<PointsContextType | undefined>(undefined);
@@ -152,8 +154,25 @@ export function PointsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const spendPoints = useCallback(
+    (amount: number): boolean => {
+      if (points < amount) return false;
+      setPoints((pts) => {
+        const next = pts - amount;
+        localStorage.setItem(POINTS_STORAGE_KEY, String(next));
+        return next;
+      });
+      return true;
+    },
+    [points],
+  );
+
   const awardPoints = useCallback((amount: number, rect: DOMRect) => {
     if (typeof window === "undefined") return;
+    localStorage.setItem(
+      LAST_ACTIVE_DATE_KEY,
+      new Date().toISOString().split("T")[0],
+    );
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
 
@@ -193,7 +212,7 @@ export function PointsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <PointsContext.Provider value={{ points, awardPoints }}>
+    <PointsContext.Provider value={{ points, awardPoints, spendPoints }}>
       {children}
       {mounted && particles.length > 0
         ? createPortal(
