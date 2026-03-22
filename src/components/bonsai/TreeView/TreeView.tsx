@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets, Scissors } from "lucide-react";
+import { Scissors } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
 import { useBonsai } from "@/lib/bonsai/context";
@@ -31,11 +31,140 @@ const SHEARS_CURSOR = makeSvgCursor(
 );
 
 const WATER_CURSOR = makeSvgCursor(
-  '<path d="M12 3c0 0-7 8-7 13a7 7 0 0 0 14 0C19 11 12 3 12 3z" fill="#4a90d9" stroke="#336699" stroke-width="1"/>',
-  12,
-  20,
+  // Body
+  '<rect x="9" y="5" width="12" height="9" rx="2.5" fill="#4a90d9"/>' +
+    // Handle
+    '<path d="M 20 6.5 Q 24 6.5 24 9.5 Q 24 12.5 20 12.5" fill="none" stroke="#4a90d9" stroke-width="2" stroke-linecap="round"/>' +
+    // Spout
+    '<path d="M 10 9.5 Q 5 9.5 2 17" stroke="#4a90d9" stroke-width="2.5" stroke-linecap="round" fill="none"/>' +
+    // Rose
+    '<circle cx="1.5" cy="17.5" r="3" fill="#4a90d9"/>',
+  2,
+  18,
   "pointer",
 );
+
+// ─── Watering Can Icon (toolbar) ──────────────────────────────────────────────
+
+function WateringCanIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <rect fill="currentColor" height="9" rx="2.5" width="12" x="9" y="5" />
+      <path
+        d="M 20 6.5 Q 24 6.5 24 9.5 Q 24 12.5 20 12.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+      <path
+        d="M 10 9.5 Q 5 9.5 2 17"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2.5"
+      />
+      <circle cx="1.5" cy="17.5" fill="currentColor" r="3" />
+    </svg>
+  );
+}
+
+// ─── Watering Can Overlay ─────────────────────────────────────────────────────
+
+const DROP_X_OFFSETS = [-5, 1, 7, -2, 4] as const;
+const DROP_DELAYS_MS = [0, 140, 280, 420, 560] as const;
+
+function WateringCanDisplay({ isPouring }: { isPouring: boolean }) {
+  return (
+    <CanOverlay>
+      <CanBodyWrapper data-pouring={isPouring || undefined}>
+        {/* The can SVG — rotates with CanBodyWrapper */}
+        <svg aria-hidden="true" height="80" viewBox="0 0 100 80" width="100">
+          {/* Body */}
+          <rect
+            fill="#5b9fc9"
+            height="36"
+            rx="7"
+            stroke="#3d7a9b"
+            strokeWidth="1.5"
+            width="50"
+            x="35"
+            y="18"
+          />
+          {/* Lid opening */}
+          <ellipse
+            cx="60"
+            cy="18"
+            fill="#4a8ab8"
+            rx="14"
+            ry="4"
+            stroke="#3d7a9b"
+            strokeWidth="1"
+          />
+          {/* Handle */}
+          <path
+            d="M 83 25 Q 98 25 98 36 Q 98 47 83 47"
+            fill="none"
+            stroke="#3d7a9b"
+            strokeLinecap="round"
+            strokeWidth="4"
+          />
+          {/* Spout outer */}
+          <path
+            d="M 37 35 Q 22 35 8 70"
+            fill="none"
+            stroke="#3d7a9b"
+            strokeLinecap="round"
+            strokeWidth="8"
+          />
+          {/* Spout inner (lighter) */}
+          <path
+            d="M 37 35 Q 22 35 8 70"
+            fill="none"
+            stroke="#5b9fc9"
+            strokeLinecap="round"
+            strokeWidth="5"
+          />
+          {/* Rose */}
+          <circle cx="6" cy="72" fill="#3d7a9b" r="8" />
+          {/* Rose holes */}
+          <circle cx="3" cy="70" fill="#8ec8e8" r="1.4" />
+          <circle cx="7" cy="68" fill="#8ec8e8" r="1.4" />
+          <circle cx="10" cy="70" fill="#8ec8e8" r="1.4" />
+          <circle cx="5" cy="73" fill="#8ec8e8" r="1.4" />
+          <circle cx="9" cy="74" fill="#8ec8e8" r="1.4" />
+          {/* Body highlight */}
+          <ellipse
+            cx="54"
+            cy="28"
+            fill="rgba(255,255,255,0.18)"
+            rx="12"
+            ry="6"
+            transform="rotate(-10 54 28)"
+          />
+        </svg>
+        {/* Drops are children of the rotated wrapper so they follow the can */}
+        <DropsGroup>
+          {DROP_X_OFFSETS.map((offsetX, i) => (
+            <WaterDrop
+              key={offsetX}
+              style={{
+                left: `${offsetX + 3}px`,
+                animationDelay: `${DROP_DELAYS_MS[i]}ms`,
+                animationPlayState: isPouring ? "running" : "paused",
+              }}
+            />
+          ))}
+        </DropsGroup>
+      </CanBodyWrapper>
+    </CanOverlay>
+  );
+}
 
 // ─── Pot & Stand Labels ───────────────────────────────────────────────────────
 
@@ -212,8 +341,7 @@ function TreeSVG({
   // Show seed/sprout overlay for first few days
   const showSeed = tree.activeDaysCount < 6;
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const isWateredToday = tree.lastWateredDate === todayStr;
+  const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
 
   const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
 
@@ -413,6 +541,7 @@ function TreeSVG({
 
 export function TreeView({ tree }: { tree: BonsaiTree | null }) {
   const [activeTool, setActiveTool] = useState<ActiveTool>("pruning-shears");
+  const [isPouring, setIsPouring] = useState(false);
   const { waterTree } = useBonsai();
 
   if (!tree) {
@@ -425,8 +554,7 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
   }
 
   const config = SPECIES_CONFIG[tree.speciesId];
-  const todayStr = new Date().toISOString().split("T")[0];
-  const isWateredToday = tree.lastWateredDate === todayStr;
+  const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
 
   return (
     <TreeViewWrapper>
@@ -450,7 +578,7 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
           title="Watering Can"
           type="button"
         >
-          <Droplets size={15} />
+          <WateringCanIcon size={15} />
           Watering Can
         </ToolBtn>
       </ToolBar>
@@ -459,15 +587,24 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
         onClick={
           activeTool === "watering-can" ? () => waterTree(tree.id) : undefined
         }
+        onPointerCancel={() => setIsPouring(false)}
+        onPointerDown={
+          activeTool === "watering-can" ? () => setIsPouring(true) : undefined
+        }
+        onPointerLeave={() => setIsPouring(false)}
+        onPointerUp={() => setIsPouring(false)}
         style={{
           cursor: activeTool === "watering-can" ? WATER_CURSOR : undefined,
         }}
       >
+        {activeTool === "watering-can" && (
+          <WateringCanDisplay isPouring={isPouring} />
+        )}
         <TreeSVG activeTool={activeTool} tree={tree} />
       </SVGContainer>
 
       <WaterStatus data-watered={isWateredToday || undefined}>
-        <Droplets aria-hidden="true" size={13} />
+        <WateringCanIcon size={13} />
         {isWateredToday
           ? "Watered today — tree will grow tomorrow"
           : "Not watered today"}
@@ -551,11 +688,64 @@ const ToolBtn = styled.button`
 `;
 
 const SVGContainer = styled.div`
+  position: relative;
   width: 100%;
   background: light-dark(#f0ebe3, #3d6e99);
   border-radius: 12px;
   padding: 1rem;
   border: 1px solid light-dark(#d4c9b8, #5a8ab8);
+`;
+
+const CanOverlay = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  pointer-events: none;
+  z-index: 1;
+`;
+
+const CanBodyWrapper = styled.div`
+  position: relative;
+  transform-origin: 87% 44%;
+  transform: rotate(-8deg);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &[data-pouring] {
+    transform: rotate(10deg);
+  }
+`;
+
+const DropsGroup = styled.div`
+  position: absolute;
+  top: 70px;
+  left: 2px;
+  pointer-events: none;
+`;
+
+const WaterDrop = styled.span`
+  position: absolute;
+  width: 4px;
+  height: 8px;
+  border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;
+  background: linear-gradient(to bottom, #7ec8f0, #3d7abf);
+  opacity: 0;
+
+  @keyframes water-drop {
+    0% {
+      opacity: 0;
+      transform: translateY(0) scale(0.5);
+    }
+    12% {
+      opacity: 0.88;
+      transform: translateY(5px) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(48px) translateX(-3px) scale(0.85);
+    }
+  }
+
+  animation: water-drop 0.62s ease-in infinite;
 `;
 
 const WaterStatus = styled.div`
