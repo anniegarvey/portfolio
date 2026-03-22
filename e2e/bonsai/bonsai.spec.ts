@@ -56,8 +56,12 @@ test.describe("Bonsai Garden", () => {
     // Switch to the Tools sub-tab
     await page.getByRole("tab", { name: "Tools" }).click();
 
-    // Buy the Watering Can (20 pts)
-    const wateringCanCard = page.locator("text=Watering Can").first();
+    // Buy the Watering Can (20 pts) — scope to the tab panel to avoid matching
+    // the "Watering Can" tool button in the tree toolbar
+    const wateringCanCard = page
+      .getByRole("tabpanel")
+      .locator("text=Watering Can")
+      .first();
     await wateringCanCard
       .locator("xpath=ancestor::*[2]")
       .getByRole("button", { name: "Buy" })
@@ -65,7 +69,9 @@ test.describe("Bonsai Garden", () => {
 
     // Check it appears in the Inventory tab
     await page.getByRole("tab", { name: "Inventory" }).click();
-    await expect(page.getByText("Watering Can")).toBeVisible();
+    await expect(
+      page.getByRole("tabpanel").getByText("Watering Can"),
+    ).toBeVisible();
   });
 
   test("clicking a branch prunes it and shows regrowth hint", async ({

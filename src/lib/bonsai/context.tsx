@@ -40,6 +40,7 @@ export interface BonsaiContextType {
   equipPot: (treeId: string, potId: PotId) => void;
   equipStand: (treeId: string, standId: StandId) => void;
   pruneBranch: (treeId: string, branchId: string) => void;
+  waterTree: (treeId: string) => void;
   advanceDay: () => void;
 }
 
@@ -49,6 +50,12 @@ const BonsaiContext = createContext<BonsaiContextType | undefined>(undefined);
 
 function today(): string {
   return new Date().toISOString().split("T")[0];
+}
+
+function yesterday(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
 }
 
 /**
@@ -117,25 +124,31 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
       // Clean regrown branches first
       let next = cleanRegrownBranches(loaded ?? createInitialState());
 
-      // Apply daily growth if energy planner was used today and we haven't grown yet
+      // Apply daily growth if energy planner was used today, tree was watered
+      // yesterday, and we haven't grown yet today.
       if (
         lastActiveDateEP === todayStr &&
         next.lastGrowthCheckDate !== todayStr &&
         next.activePlantedTreeId
       ) {
-        next = {
-          ...next,
-          trees: next.trees.map((tree) =>
-            tree.id === next.activePlantedTreeId
-              ? {
-                  ...tree,
-                  activeDaysCount: tree.activeDaysCount + 1,
-                  lastGrownDate: todayStr,
-                }
-              : tree,
-          ),
-          lastGrowthCheckDate: todayStr,
-        };
+        const activePlantedTree = next.trees.find(
+          (t) => t.id === next.activePlantedTreeId,
+        );
+        if (activePlantedTree?.lastWateredDate === yesterday()) {
+          next = {
+            ...next,
+            trees: next.trees.map((tree) =>
+              tree.id === next.activePlantedTreeId
+                ? {
+                    ...tree,
+                    activeDaysCount: tree.activeDaysCount + 1,
+                    lastGrownDate: todayStr,
+                  }
+                : tree,
+            ),
+            lastGrowthCheckDate: todayStr,
+          };
+        }
       }
 
       return next;
@@ -259,6 +272,19 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  const waterTree = useCallback(
+    (treeId: string) => {
+      const todayStr = today();
+      setState((prev) => ({
+        ...prev,
+        trees: prev.trees.map((t) =>
+          t.id === treeId ? { ...t, lastWateredDate: todayStr } : t,
+        ),
+      }));
+    },
+    [setState],
+  );
+
   const advanceDay = useCallback(() => {
     const todayStr = today();
     setState((prev) => {
@@ -290,6 +316,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         equipPot,
         equipStand,
         pruneBranch,
+        waterTree,
         advanceDay,
       }}
     >

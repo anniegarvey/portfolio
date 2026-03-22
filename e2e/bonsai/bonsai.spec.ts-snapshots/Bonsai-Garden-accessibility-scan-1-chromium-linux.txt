@@ -6,6 +6,9 @@
         ".BonsaiPage_AdvanceDayButton_JRmhCC"
       ],
       [
+        ".TreeView_WaterStatus_Z7Qq5m"
+      ],
+      [
         "#radix-[id]"
       ],
       [

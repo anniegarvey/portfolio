@@ -12,6 +12,11 @@ vi.mock("@/lib/points/context", () => ({
 
 const BONSAI_KEY = "bonsai-game-state";
 const TODAY = new Date().toISOString().split("T")[0];
+const YESTERDAY = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+})();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,6 +44,7 @@ function BonsaiDebug() {
   return (
     <div>
       <span data-testid="day">{tree?.activeDaysCount ?? "none"}</span>
+      <span data-testid="watered">{tree?.lastWateredDate ?? "none"}</span>
       <span data-testid="pruned">{tree?.prunedBranches.length ?? 0}</span>
       <span data-testid="pot">{tree?.equippedPotId ?? "none"}</span>
       <span data-testid="stand">{tree?.equippedStandId ?? "none"}</span>
@@ -58,6 +64,9 @@ function BonsaiDebug() {
       <span data-testid="tree-count">{ctx.state.trees.length}</span>
       <button onClick={ctx.advanceDay} type="button">
         Advance
+      </button>
+      <button onClick={() => tree && ctx.waterTree(tree.id)} type="button">
+        Water
       </button>
       <button
         onClick={() => tree && ctx.pruneBranch(tree.id, "L0")}
@@ -277,6 +286,19 @@ describe("BonsaiProvider", () => {
     );
   });
 
+  it("waterTree sets lastWateredDate to today on the active tree", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent("none"),
+    );
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent(TODAY),
+    );
+  });
+
   it("pruneBranch replacing an existing prune entry updates prunedAtDay", async () => {
     renderBonsai();
     await waitFor(() =>
@@ -388,8 +410,13 @@ describe("BonsaiProvider — daily growth check", () => {
     localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
   });
 
-  it("increments activeDaysCount when energy planner was used today", async () => {
+  it("increments activeDaysCount when energy planner was used today and tree was watered yesterday", async () => {
     localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+    const base = createInitialState();
+    seedLocalStorage({
+      ...base,
+      trees: [{ ...base.trees[0], lastWateredDate: YESTERDAY }],
+    });
 
     render(
       <BonsaiProvider>
@@ -399,6 +426,21 @@ describe("BonsaiProvider — daily growth check", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+  });
+
+  it("does not increment when tree was not watered yesterday", async () => {
+    localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+    // lastWateredDate is undefined (never watered)
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
     );
   });
 
