@@ -52,12 +52,6 @@ function today(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-function yesterday(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
-}
-
 /**
  * Remove pruned-branch entries only once the regrowth *animation* has finished
  * (regrowthDays to start regrowing + BRANCH_GROW_DURATION to fully regrow).
@@ -134,7 +128,10 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         const activePlantedTree = next.trees.find(
           (t) => t.id === next.activePlantedTreeId,
         );
-        if (activePlantedTree?.lastWateredDate === yesterday()) {
+        if (
+          activePlantedTree?.lastWateredDay ===
+          activePlantedTree?.activeDaysCount
+        ) {
           next = {
             ...next,
             trees: next.trees.map((tree) =>
@@ -274,11 +271,10 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
 
   const waterTree = useCallback(
     (treeId: string) => {
-      const todayStr = today();
       setState((prev) => ({
         ...prev,
         trees: prev.trees.map((t) =>
-          t.id === treeId ? { ...t, lastWateredDate: todayStr } : t,
+          t.id === treeId ? { ...t, lastWateredDay: t.activeDaysCount } : t,
         ),
       }));
     },
@@ -289,6 +285,13 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     const todayStr = today();
     setState((prev) => {
       if (!prev.activePlantedTreeId) return prev;
+      const activeTree = prev.trees.find(
+        (t) => t.id === prev.activePlantedTreeId,
+      );
+      // Only grow if the tree was watered today (lastWateredDay matches current count).
+      // This lets the cheat button properly demonstrate the watering requirement.
+      if (activeTree?.lastWateredDay !== activeTree?.activeDaysCount)
+        return prev;
       return {
         ...prev,
         trees: prev.trees.map((t) =>
@@ -297,7 +300,6 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
                 ...t,
                 activeDaysCount: t.activeDaysCount + 1,
                 lastGrownDate: todayStr,
-                lastWateredDate: todayStr,
               }
             : t,
         ),

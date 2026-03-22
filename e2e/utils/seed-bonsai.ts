@@ -7,7 +7,9 @@ const FIXED_TREE_ID = "00000000-0000-4000-8000-000000000001";
 
 export interface BonsaiSeedOptions {
   activeDaysCount?: number;
+  lastWateredDay?: number;
   ownedSpeciesIds?: string[];
+  ownedToolIds?: string[];
   points?: number;
 }
 
@@ -22,6 +24,9 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
         id: FIXED_TREE_ID,
         speciesId: "pine",
         activeDaysCount: opts.activeDaysCount ?? 0,
+        ...(opts.lastWateredDay != null
+          ? { lastWateredDay: opts.lastWateredDay }
+          : {}),
         acquiredAt: "2025-01-01",
         prunedBranches: [],
       },
@@ -29,7 +34,7 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
     activePlantedTreeId: FIXED_TREE_ID,
     inventory: {
       ownedSpeciesIds: opts.ownedSpeciesIds ?? [],
-      ownedToolIds: [],
+      ownedToolIds: opts.ownedToolIds ?? [],
       ownedFertiliserIds: [],
       ownedPotIds: [],
       ownedStandIds: [],

@@ -212,8 +212,7 @@ function TreeSVG({
   // Show seed/sprout overlay for first few days
   const showSeed = tree.activeDaysCount < 6;
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const isWateredToday = tree.lastWateredDate === todayStr;
+  const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
 
   const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
 
@@ -425,8 +424,7 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
   }
 
   const config = SPECIES_CONFIG[tree.speciesId];
-  const todayStr = new Date().toISOString().split("T")[0];
-  const isWateredToday = tree.lastWateredDate === todayStr;
+  const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
 
   return (
     <TreeViewWrapper>
