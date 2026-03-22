@@ -157,6 +157,19 @@ describe("BonsaiProvider", () => {
     );
   });
 
+  it("advanceDay also sets lastWateredDate to today", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent("none"),
+    );
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent(TODAY),
+    );
+  });
+
   it("advanceDay increments activeDaysCount", async () => {
     renderBonsai();
     await waitFor(() =>

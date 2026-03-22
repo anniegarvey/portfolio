@@ -297,6 +297,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
                 ...t,
                 activeDaysCount: t.activeDaysCount + 1,
                 lastGrownDate: todayStr,
+                lastWateredDate: todayStr,
               }
             : t,
         ),
