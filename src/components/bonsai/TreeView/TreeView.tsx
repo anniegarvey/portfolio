@@ -2,7 +2,7 @@
 
 import { Droplets, Scissors } from "lucide-react";
 import { styled } from "next-yak";
-import { useMemo, useState } from "react";
+import { type KeyboardEvent, useCallback, useMemo, useState } from "react";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, PotId, StandId } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
@@ -227,13 +227,12 @@ function TreeSVG({
       </title>
 
       {/* Soil — colour reflects today's watering state */}
-      <ellipse
+      <SoilEllipse
         cx={svgData.trunkX}
         cy={svgData.trunkBaseY + 4}
         fill={soilFill}
         rx={22}
         ry={7}
-        style={{ transition: "fill 0.8s ease" }}
       />
 
       {/* Ground line */}
@@ -408,11 +407,45 @@ function TreeSVG({
   );
 }
 
+function onWaterKeyDown(e: KeyboardEvent, waterFn: () => void) {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    waterFn();
+  }
+}
+
+function WaterableSVGContainer({
+  tree,
+  activeTool,
+}: {
+  tree: BonsaiTree;
+  activeTool: ActiveTool;
+}) {
+  const { waterTree } = useBonsai();
+  const isWatering = activeTool === "watering-can";
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => onWaterKeyDown(e, () => waterTree(tree.id)),
+    [tree.id, waterTree],
+  );
+
+  return (
+    <SVGContainer
+      aria-label={isWatering ? "Water the tree" : undefined}
+      onClick={isWatering ? () => waterTree(tree.id) : undefined}
+      onKeyDown={isWatering ? handleKeyDown : undefined}
+      role={isWatering ? "button" : undefined}
+      style={{ cursor: isWatering ? WATER_CURSOR : undefined }}
+      tabIndex={isWatering ? 0 : undefined}
+    >
+      <TreeSVG activeTool={activeTool} tree={tree} />
+    </SVGContainer>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function TreeView({ tree }: { tree: BonsaiTree | null }) {
   const [activeTool, setActiveTool] = useState<ActiveTool>("pruning-shears");
-  const { waterTree } = useBonsai();
 
   if (!tree) {
     return (
@@ -453,16 +486,7 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
         </ToolBtn>
       </ToolBar>
 
-      <SVGContainer
-        onClick={
-          activeTool === "watering-can" ? () => waterTree(tree.id) : undefined
-        }
-        style={{
-          cursor: activeTool === "watering-can" ? WATER_CURSOR : undefined,
-        }}
-      >
-        <TreeSVG activeTool={activeTool} tree={tree} />
-      </SVGContainer>
+      <WaterableSVGContainer activeTool={activeTool} tree={tree} />
 
       <WaterStatus data-watered={isWateredToday || undefined}>
         <Droplets aria-hidden="true" size={13} />
@@ -535,6 +559,10 @@ const ToolBtn = styled.button`
   color: light-dark(#6a6058, #a09888);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   &[data-active] {
     border-color: light-dark(#7a9e6a, #5a8a4a);
@@ -611,4 +639,12 @@ const EmptyState = styled.div`
 
 const EmptyEmoji = styled.span`
   font-size: 4rem;
+`;
+
+const SoilEllipse = styled.ellipse`
+  transition: fill 0.8s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;

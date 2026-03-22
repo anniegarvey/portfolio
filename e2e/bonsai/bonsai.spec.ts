@@ -64,6 +64,20 @@ test.describe("Bonsai Garden", () => {
     await expect(page.getByText("Not watered today")).not.toBeVisible();
   });
 
+  test("tree can be watered via keyboard when watering can is active", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
+
+    await page.getByRole("button", { name: /watering can/i }).click();
+
+    // Focus the SVG container and press Enter to water
+    await page.getByRole("button", { name: "Water the tree" }).focus();
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByText("Watered today")).toBeVisible();
+  });
+
   test("Advance Day does nothing when tree has not been watered", async ({
     page,
   }) => {
