@@ -43,10 +43,25 @@ export interface TreeSVGData {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const VIEWBOX_WIDTH = 200;
-const VIEWBOX_HEIGHT = 300;
+export const VIEWBOX_HEIGHT = 300;
 const SPLIT_DELAY = 7; // days from parent appearing to children appearing
 const MAX_DEPTH = 2; // 0 = primary, 1 = secondary, 2 = tertiary
 export const BRANCH_GROW_DURATION = 6; // days from first appearance to full length
+
+/** Returns the trunk height (in SVG units) for a given tree — mirrors the
+ *  growth formula inside generateTree so callers can compute glow sizes etc.
+ *  without running the full generator. */
+export function computeTrunkHeight(
+  activeDaysCount: number,
+  spec: SpeciesConfig,
+  treeId: string,
+): number {
+  const growthRate = 5.5 * (0.88 + seededVal(treeId, 3) * 0.24);
+  const rawGrowth =
+    activeDaysCount > 0 ? activeDaysCount ** 0.72 * growthRate : 0;
+  const maxH = spec.maxTrunkHeight;
+  return maxH > 0 ? (maxH * rawGrowth) / (maxH + rawGrowth) : 0;
+}
 
 // ─── Seeded Randomness ────────────────────────────────────────────────────────
 

@@ -177,10 +177,13 @@ function renderLeaves(
 export function TreeSVG({
   tree,
   activeTool,
+  cropTop,
   style,
 }: {
   tree: BonsaiTree;
   activeTool?: ActiveTool;
+  /** Crop the SVG viewBox so there's equal vertical space above and below the tree. */
+  cropTop?: boolean;
   style?: React.CSSProperties;
 }) {
   const { pruneBranch } = useBonsai();
@@ -199,11 +202,21 @@ export function TreeSVG({
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
   const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
 
+  // Space below trunk base to viewbox bottom = 300 - 270 = 30 SVG units.
+  // Match that same margin above the trunk top when cropTop is set.
+  const bottomMargin = 30;
+  const viewBox = cropTop
+    ? (() => {
+        const minY = Math.max(0, svgData.trunkTopY - bottomMargin);
+        return `0 ${minY} 200 ${300 - minY}`;
+      })()
+    : svgData.viewBox;
+
   return (
     <svg
       aria-label={`${config.label} bonsai tree, day ${tree.activeDaysCount}`}
       style={{ width: "100%", height: "auto", ...style }}
-      viewBox={svgData.viewBox}
+      viewBox={viewBox}
     >
       <title>
         {config.label} bonsai tree, day {tree.activeDaysCount}

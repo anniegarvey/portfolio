@@ -2,6 +2,7 @@
 
 import { Droplets, Leaf, MousePointer2 } from "lucide-react";
 import { styled } from "next-yak";
+import type React from "react";
 import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
@@ -13,6 +14,7 @@ import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
 
 // Trees positioned near an edge get clamped so they stay fully visible.
 // The mini tree container is ~90px wide and the garden uses percentage coords,
@@ -55,6 +57,18 @@ function MiniTree({
 
   const pos = tree.gardenPosition ?? { x: 50, y: 50 };
   const config = SPECIES_CONFIG[tree.speciesId];
+
+  // Compute glow ellipse size proportional to the tree's current trunk height.
+  // trunkBaseY = VIEWBOX_HEIGHT - 30 = 270; trunkTopY = trunkBaseY - trunkHeight.
+  // We add a small pad so the glow extends slightly beyond the trunk tip.
+  const trunkBaseY = VIEWBOX_HEIGHT - 30;
+  const trunkHeight = computeTrunkHeight(tree.activeDaysCount, config, tree.id);
+  const glowPad = 30; // extra SVG units above trunk tip
+  const glowHeightSvg = Math.max(trunkHeight + glowPad, 40);
+  const glowH = `${Math.round((glowHeightSvg / VIEWBOX_HEIGHT) * 100)}%`;
+  // Centre of the ellipse at the trunk top — canopy spreads above this point
+  const gloyCentreSvg = trunkBaseY - trunkHeight;
+  const glowY = `${Math.round((gloyCentreSvg / VIEWBOX_HEIGHT) * 100)}%`;
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (isPlacing) return;
@@ -145,7 +159,14 @@ function MiniTree({
       }}
       tabIndex={isPlacing ? -1 : 0}
     >
-      <MiniSVGWrapper>
+      <MiniSVGWrapper
+        style={
+          {
+            "--glow-h": glowH,
+            "--glow-y": glowY,
+          } as React.CSSProperties
+        }
+      >
         <TreeSVG tree={tree} />
       </MiniSVGWrapper>
       <TreeNameTag>
@@ -376,9 +397,9 @@ const MiniSVGWrapper = styled.div`
   width: 90px;
   pointer-events: none;
   background: radial-gradient(
-    ellipse at 50% 50%,
+    ellipse 40% var(--glow-h) at 50% var(--glow-y),
     light-dark(transparent, rgba(220, 255, 200, 0.22)) 0%,
-    transparent 70%
+    transparent 100%
   );
 `;
 

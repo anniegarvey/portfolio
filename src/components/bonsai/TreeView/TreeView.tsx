@@ -59,7 +59,7 @@ function WaterableSVGContainer({
       style={{ cursor: isWatering ? WATER_CURSOR : undefined }}
       tabIndex={isWatering ? 0 : undefined}
     >
-      <TreeSVG activeTool={activeTool} tree={tree} />
+      <TreeSVG activeTool={activeTool} cropTop tree={tree} />
     </SVGContainer>
   );
 }
