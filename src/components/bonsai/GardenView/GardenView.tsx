@@ -57,7 +57,7 @@ function MiniTree({
   const config = SPECIES_CONFIG[tree.speciesId];
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (isPlacing) return;
+      if (isPlacing || gardenTool === "water") return;
       e.stopPropagation();
       dragState.current = {
         startX: e.clientX,
@@ -66,7 +66,7 @@ function MiniTree({
       };
       (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
     },
-    [isPlacing],
+    [isPlacing, gardenTool],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: gardenRef is a stable ref object
