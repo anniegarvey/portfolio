@@ -22,18 +22,17 @@ export function saveBonsaiState(state: BonsaiGameState): void {
 }
 
 export function createInitialState(): BonsaiGameState {
-  const treeId = uuidv4();
   return {
     trees: [
       {
-        id: treeId,
+        id: uuidv4(),
         speciesId: "pine",
         activeDaysCount: 0,
         acquiredAt: new Date().toISOString().split("T")[0],
         prunedBranches: [],
+        gardenPosition: { x: 50, y: 50 },
       },
     ],
-    activePlantedTreeId: treeId,
     inventory: {
       ownedSpeciesIds: [],
       ownedToolIds: [],

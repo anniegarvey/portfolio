@@ -2,56 +2,57 @@
 
 import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
+import { useState } from "react";
 import { BonsaiShop } from "@/components/bonsai/BonsaiShop";
+import { GardenView } from "@/components/bonsai/GardenView";
 import { InventoryPanel } from "@/components/bonsai/InventoryPanel";
+import { TendingModal } from "@/components/bonsai/TendingModal";
 import { TreeCollection } from "@/components/bonsai/TreeCollection";
-import { TreeView } from "@/components/bonsai/TreeView";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { useBonsai } from "@/lib/bonsai/context";
-import { QUERIES } from "@/lib/constants";
+import type { BonsaiTree } from "@/lib/bonsai/schema";
 
 export function BonsaiPage() {
-  const { activePlantedTree, advanceDay } = useBonsai();
+  const { state } = useBonsai();
+  const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
+
+  const tendingTree =
+    tendingTreeId !== null
+      ? (state.trees.find((t) => t.id === tendingTreeId) ?? null)
+      : null;
 
   return (
     <MaxWidthWrapper as="main">
       <PageHeader>
         <PageTitle>Bonsai Garden</PageTitle>
-        <AdvanceDayButton
-          onClick={advanceDay}
-          title="Advance the active tree by one day"
-          type="button"
-        >
-          ⏩ Advance Day
-        </AdvanceDayButton>
       </PageHeader>
 
       <Layout>
-        <LeftColumn>
-          <TreeView tree={activePlantedTree} />
-        </LeftColumn>
+        <GardenView
+          onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
+        />
 
-        <RightColumn>
-          <PageTabs defaultValue="shop">
-            <PageTabsList aria-label="Bonsai sections">
-              <PageTab value="shop">Shop</PageTab>
-              <PageTab value="collection">Collection</PageTab>
-              <PageTab value="inventory">Inventory</PageTab>
-            </PageTabsList>
+        <PageTabs defaultValue="collection">
+          <PageTabsList aria-label="Bonsai sections">
+            <PageTab value="collection">Collection</PageTab>
+            <PageTab value="shop">Shop</PageTab>
+            <PageTab value="inventory">Inventory</PageTab>
+          </PageTabsList>
 
-            <Tabs.Content value="shop">
-              <BonsaiShop />
-            </Tabs.Content>
-            <Tabs.Content value="collection">
-              <TreeCollection />
-            </Tabs.Content>
-            <Tabs.Content value="inventory">
-              <InventoryPanel />
-            </Tabs.Content>
-          </PageTabs>
-        </RightColumn>
+          <Tabs.Content value="collection">
+            <TreeCollection />
+          </Tabs.Content>
+          <Tabs.Content value="shop">
+            <BonsaiShop />
+          </Tabs.Content>
+          <Tabs.Content value="inventory">
+            <InventoryPanel />
+          </Tabs.Content>
+        </PageTabs>
       </Layout>
+
+      <TendingModal onClose={() => setTendingTreeId(null)} tree={tendingTree} />
     </MaxWidthWrapper>
   );
 }
@@ -63,56 +64,6 @@ const Layout = styled.div`
   flex-direction: column;
   gap: 2rem;
   padding-bottom: 3rem;
-
-  @media (${QUERIES.TABLET_UP}) {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 2rem;
-  }
-`;
-
-const LeftColumn = styled.div`
-  display: flex;
-  justify-content: center;
-
-  @media (${QUERIES.TABLET_UP}) {
-    flex: 1 1 0;
-  }
-
-  @media (${QUERIES.DESKTOP_UP}) {
-    position: sticky;
-    top: 2rem;
-  }
-`;
-
-const RightColumn = styled.div`
-  flex: 1 1 0;
-  min-width: 0;
-`;
-
-const AdvanceDayButton = styled.button`
-  background: none;
-  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-  border-radius: 6px;
-  color: light-dark(var(--color-grey-500), var(--color-grey-400));
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0.4rem 0.75rem;
-  transition: border-color 150ms ease, color 150ms ease;
-
-  &:hover {
-    border-color: light-dark(var(--color-primary-400), var(--color-primary-500));
-    color: light-dark(var(--color-primary-600), var(--color-primary-400));
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-primary-400);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
 `;
 
 const PageTabs = styled(Tabs.Root)`

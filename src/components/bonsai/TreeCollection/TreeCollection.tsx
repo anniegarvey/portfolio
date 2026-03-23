@@ -7,7 +7,7 @@ import type { SpeciesId } from "@/lib/bonsai/schema";
 import { getGrowthLabel, SPECIES_CONFIG } from "@/lib/bonsai/schema";
 
 export function TreeCollection() {
-  const { state, switchActiveTree, plantTree } = useBonsai();
+  const { state, beginPlanting } = useBonsai();
 
   const ownedSeeds = state.inventory.ownedSpeciesIds;
 
@@ -19,9 +19,9 @@ export function TreeCollection() {
           <TreeGrid>
             {state.trees.map((tree) => {
               const config = SPECIES_CONFIG[tree.speciesId];
-              const isActive = tree.id === state.activePlantedTreeId;
+              const isWatered = tree.lastWateredDay === tree.activeDaysCount;
               return (
-                <TreeCard data-active={isActive} key={tree.id}>
+                <TreeCard key={tree.id}>
                   <TreeEmoji aria-hidden="true">{config.emoji}</TreeEmoji>
                   <TreeInfo>
                     <TreeName>{config.label}</TreeName>
@@ -31,17 +31,11 @@ export function TreeCollection() {
                       {tree.activeDaysCount === 1 ? "day" : "days"}
                     </TreeStage>
                   </TreeInfo>
-                  {!isActive && (
-                    <Button
-                      intent="secondary"
-                      onClick={() => switchActiveTree(tree.id)}
-                      size="sm"
-                      variant="outline"
-                    >
-                      Set Active
-                    </Button>
+                  {isWatered ? (
+                    <WateredBadge>💧 Watered</WateredBadge>
+                  ) : (
+                    <DryBadge>Needs water</DryBadge>
                   )}
-                  {isActive && <ActiveBadge>Active</ActiveBadge>}
                 </TreeCard>
               );
             })}
@@ -63,11 +57,11 @@ export function TreeCollection() {
                   </SeedLabel>
                   <Button
                     intent="primary"
-                    onClick={() => plantTree(speciesId as SpeciesId)}
+                    onClick={() => beginPlanting(speciesId as SpeciesId)}
                     size="sm"
                     variant="solid"
                   >
-                    Plant
+                    Place in garden
                   </Button>
                 </SeedRow>
               );
@@ -123,16 +117,6 @@ const TreeCard = styled.div`
   border-radius: 8px;
   border: 2px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   background: light-dark(var(--color-grey-50), var(--color-grey-900));
-  transition: border-color 150ms ease;
-
-  &[data-active="true"] {
-    border-color: light-dark(var(--color-primary-400), var(--color-primary-500));
-    background: light-dark(var(--color-primary-50), var(--color-grey-800));
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
 `;
 
 const TreeEmoji = styled.span`
@@ -158,10 +142,16 @@ const TreeStage = styled.p`
   margin: 0;
 `;
 
-const ActiveBadge = styled.span`
+const WateredBadge = styled.span`
   font-size: 1.1rem;
   font-weight: 600;
-  color: light-dark(var(--color-primary-600), var(--color-primary-400));
+  color: light-dark(#4a7a3a, #6ab860);
+  flex-shrink: 0;
+`;
+
+const DryBadge = styled.span`
+  font-size: 1.1rem;
+  color: light-dark(var(--color-grey-400), var(--color-grey-500));
   flex-shrink: 0;
 `;
 

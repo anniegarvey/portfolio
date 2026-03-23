@@ -15,6 +15,7 @@ import type {
   BonsaiGameState,
   BonsaiTree,
   FertiliserId,
+  GardenPosition,
   PotId,
   ShopItemId,
   SpeciesId,
@@ -33,9 +34,12 @@ import { BRANCH_GROW_DURATION } from "./treeGenerator";
 
 export interface BonsaiContextType {
   state: BonsaiGameState;
-  activePlantedTree: BonsaiTree | null;
-  plantTree: (speciesId: SpeciesId) => void;
-  switchActiveTree: (treeId: string) => void;
+  /** The species being placed right now, or null when not in placement mode. */
+  placingSpeciesId: SpeciesId | null;
+  beginPlanting: (speciesId: SpeciesId) => void;
+  cancelPlanting: () => void;
+  confirmPlantAt: (speciesId: SpeciesId, position: GardenPosition) => void;
+  updateTreePosition: (treeId: string, position: GardenPosition) => void;
   buyItem: (itemId: ShopItemId) => boolean;
   equipPot: (treeId: string, potId: PotId) => void;
   equipStand: (treeId: string, standId: StandId) => void;
@@ -72,6 +76,26 @@ function cleanRegrownBranches(state: BonsaiGameState): BonsaiGameState {
   return { ...state, trees };
 }
 
+/** Grow all trees that were watered (lastWateredDay === activeDaysCount). */
+function growWateredTrees(
+  state: BonsaiGameState,
+  todayStr: string,
+): BonsaiGameState {
+  return {
+    ...state,
+    trees: state.trees.map((tree) =>
+      tree.lastWateredDay === tree.activeDaysCount
+        ? {
+            ...tree,
+            activeDaysCount: tree.activeDaysCount + 1,
+            lastGrownDate: todayStr,
+          }
+        : tree,
+    ),
+    lastGrowthCheckDate: todayStr,
+  };
+}
+
 // ─── Empty state used for the initial SSR render ──────────────────────────────
 // This constant is the same on both server and client, so there is no
 // hydration mismatch.  The real state (from localStorage) is loaded in the
@@ -93,6 +117,9 @@ const EMPTY_STATE: BonsaiGameState = {
 export function BonsaiProvider({ children }: { children: ReactNode }) {
   const { spendPoints } = usePoints();
   const [state, setStateRaw] = useState<BonsaiGameState>(EMPTY_STATE);
+  const [placingSpeciesId, setPlacingSpeciesId] = useState<SpeciesId | null>(
+    null,
+  );
 
   // Persist every state change
   const setState = useCallback(
@@ -118,48 +145,31 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
       // Clean regrown branches first
       let next = cleanRegrownBranches(loaded ?? createInitialState());
 
-      // Apply daily growth if energy planner was used today, tree was watered
-      // yesterday, and we haven't grown yet today.
+      // Apply daily growth if energy planner was used today and we haven't
+      // grown yet today. All trees that were watered grow independently.
       if (
         lastActiveDateEP === todayStr &&
-        next.lastGrowthCheckDate !== todayStr &&
-        next.activePlantedTreeId
+        next.lastGrowthCheckDate !== todayStr
       ) {
-        const activePlantedTree = next.trees.find(
-          (t) => t.id === next.activePlantedTreeId,
-        );
-        if (
-          activePlantedTree?.lastWateredDay ===
-          activePlantedTree?.activeDaysCount
-        ) {
-          next = {
-            ...next,
-            trees: next.trees.map((tree) =>
-              tree.id === next.activePlantedTreeId
-                ? {
-                    ...tree,
-                    activeDaysCount: tree.activeDaysCount + 1,
-                    lastGrownDate: todayStr,
-                  }
-                : tree,
-            ),
-            lastGrowthCheckDate: todayStr,
-          };
-        }
+        next = growWateredTrees(next, todayStr);
       }
 
       return next;
     });
   }, [setState]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activePlantedTree = state.activePlantedTreeId
-    ? (state.trees.find((t) => t.id === state.activePlantedTreeId) ?? null)
-    : null;
-
   // ─── Actions ──────────────────────────────────────────────────────────────
 
-  const plantTree = useCallback(
-    (speciesId: SpeciesId) => {
+  const beginPlanting = useCallback((speciesId: SpeciesId) => {
+    setPlacingSpeciesId(speciesId);
+  }, []);
+
+  const cancelPlanting = useCallback(() => {
+    setPlacingSpeciesId(null);
+  }, []);
+
+  const confirmPlantAt = useCallback(
+    (speciesId: SpeciesId, position: GardenPosition) => {
       setState((prev) => {
         if (!prev.inventory.ownedSpeciesIds.includes(speciesId)) return prev;
         const newTree: BonsaiTree = {
@@ -168,6 +178,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
           activeDaysCount: 0,
           acquiredAt: today(),
           prunedBranches: [],
+          gardenPosition: position,
         };
         const ownedSpeciesIds = [...prev.inventory.ownedSpeciesIds];
         const idx = ownedSpeciesIds.indexOf(speciesId);
@@ -175,17 +186,22 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         return {
           ...prev,
           trees: [newTree, ...prev.trees],
-          activePlantedTreeId: newTree.id,
           inventory: { ...prev.inventory, ownedSpeciesIds },
         };
       });
+      setPlacingSpeciesId(null);
     },
     [setState],
   );
 
-  const switchActiveTree = useCallback(
-    (treeId: string) => {
-      setState((prev) => ({ ...prev, activePlantedTreeId: treeId }));
+  const updateTreePosition = useCallback(
+    (treeId: string, position: GardenPosition) => {
+      setState((prev) => ({
+        ...prev,
+        trees: prev.trees.map((t) =>
+          t.id === treeId ? { ...t, gardenPosition: position } : t,
+        ),
+      }));
     },
     [setState],
   );
@@ -283,38 +299,18 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
 
   const advanceDay = useCallback(() => {
     const todayStr = today();
-    setState((prev) => {
-      if (!prev.activePlantedTreeId) return prev;
-      const activeTree = prev.trees.find(
-        (t) => t.id === prev.activePlantedTreeId,
-      );
-      // Only grow if the tree was watered today (lastWateredDay matches current count).
-      // This lets the cheat button properly demonstrate the watering requirement.
-      if (activeTree?.lastWateredDay !== activeTree?.activeDaysCount)
-        return prev;
-      return {
-        ...prev,
-        trees: prev.trees.map((t) =>
-          t.id === prev.activePlantedTreeId
-            ? {
-                ...t,
-                activeDaysCount: t.activeDaysCount + 1,
-                lastGrownDate: todayStr,
-              }
-            : t,
-        ),
-        lastGrowthCheckDate: todayStr,
-      };
-    });
+    setState((prev) => growWateredTrees(prev, todayStr));
   }, [setState]);
 
   return (
     <BonsaiContext.Provider
       value={{
         state,
-        activePlantedTree,
-        plantTree,
-        switchActiveTree,
+        placingSpeciesId,
+        beginPlanting,
+        cancelPlanting,
+        confirmPlantAt,
+        updateTreePosition,
         buyItem,
         equipPot,
         equipStand,

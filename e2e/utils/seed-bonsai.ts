@@ -29,9 +29,9 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
           : {}),
         acquiredAt: "2025-01-01",
         prunedBranches: [],
+        gardenPosition: { x: 50, y: 50 },
       },
     ],
-    activePlantedTreeId: FIXED_TREE_ID,
     inventory: {
       ownedSpeciesIds: opts.ownedSpeciesIds ?? [],
       ownedToolIds: opts.ownedToolIds ?? [],

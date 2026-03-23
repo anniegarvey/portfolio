@@ -5,12 +5,24 @@ import {
 } from "../utils/accessibility-test";
 import { goToBonsaiWithSeed } from "../utils/seed-bonsai";
 
+// Helper: open the tending modal by clicking the pine tree in the garden
+async function openTendingModal(
+  page: Parameters<typeof goToBonsaiWithSeed>[0],
+) {
+  await page.getByRole("button", { name: /pine.*click to tend/i }).click();
+  // Wait for the modal content to appear
+  await expect(page.getByRole("dialog")).toBeVisible();
+}
+
 test.describe("Bonsai Garden", () => {
-  test("page loads with heading and SVG tree", async ({ page }) => {
+  test("page loads with heading and SVG tree in the garden", async ({
+    page,
+  }) => {
     await page.goto("/bonsai");
     await expect(
       page.getByRole("heading", { name: "Bonsai Garden" }),
     ).toBeVisible();
+    // The mini tree SVG in the garden
     await expect(
       page.getByRole("img", { name: /bonsai tree/i }).first(),
     ).toBeVisible();
@@ -22,17 +34,20 @@ test.describe("Bonsai Garden", () => {
   });
 
   test("Advance Day button grows the tree when watered", async ({ page }) => {
-    // Start at day 10, already watered, so branches and the pruning hint are visible
+    // Start at day 10, already watered
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 10,
       lastWateredDay: 10,
     });
 
+    await openTendingModal(page);
+
+    // The pruning hint is visible because the tree has branches
     await expect(page.getByText(/click any branch to prune it/i)).toBeVisible();
 
     await page.getByRole("button", { name: /advance day/i }).click();
 
-    // Tree and SVG remain visible after advancing
+    // Tree SVG remains visible after advancing
     await expect(
       page.getByRole("img", { name: /bonsai tree/i }).first(),
     ).toBeVisible();
@@ -42,6 +57,8 @@ test.describe("Bonsai Garden", () => {
     page,
   }) => {
     await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
+
+    await openTendingModal(page);
 
     // Tree starts unwatered
     await expect(page.getByText("Not watered today")).toBeVisible();
@@ -68,6 +85,8 @@ test.describe("Bonsai Garden", () => {
   }) => {
     await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
 
+    await openTendingModal(page);
+
     await page.getByRole("button", { name: /watering can/i }).click();
 
     // Focus the SVG container and press Enter to water
@@ -82,10 +101,11 @@ test.describe("Bonsai Garden", () => {
   }) => {
     await goToBonsaiWithSeed(page, { activeDaysCount: 5 });
 
-    // Advance Day without watering — day count should not change
+    await openTendingModal(page);
+
+    // Advance Day without watering — tree status unchanged
     await page.getByRole("button", { name: /advance day/i }).click();
 
-    // Tree remains visible and still shows "Not watered today"
     await expect(
       page.getByRole("img", { name: /bonsai tree/i }).first(),
     ).toBeVisible();
@@ -96,6 +116,9 @@ test.describe("Bonsai Garden", () => {
     page,
   }) => {
     await goToBonsaiWithSeed(page, { points: 500 });
+
+    // Navigate to the Shop tab
+    await page.getByRole("tab", { name: "Shop" }).click();
 
     // Seeds sub-tab should be the default view
     await expect(page.getByRole("tab", { name: "Seeds" })).toBeVisible();
@@ -110,10 +133,11 @@ test.describe("Bonsai Garden", () => {
   }) => {
     await goToBonsaiWithSeed(page, { points: 500 });
 
-    // Switch to the Tools sub-tab
+    // Navigate to Shop → Tools
+    await page.getByRole("tab", { name: "Shop" }).click();
     await page.getByRole("tab", { name: "Tools" }).click();
 
-    // Buy the Watering Can (20 pts) — scope to the tab panel to avoid matching
+    // Buy the Watering Can — scope to the tab panel to avoid matching
     // the "Watering Can" tool button in the tree toolbar
     const wateringCanCard = page
       .getByRole("tabpanel")
@@ -137,15 +161,21 @@ test.describe("Bonsai Garden", () => {
     // Day 20 ensures several branch pairs are visible
     await goToBonsaiWithSeed(page, { activeDaysCount: 20 });
 
+    await openTendingModal(page);
+
     await expect(page.getByText(/click any branch to prune it/i)).toBeVisible();
 
-    // Dispatch a click directly on the first branch path (bypasses SVG hit-area overlap issues)
-    await page.locator("[data-branch-id]").first().dispatchEvent("click");
+    // Dispatch a click directly on the first branch path (scoped to modal)
+    await page
+      .getByRole("dialog")
+      .locator("[data-branch-id]")
+      .first()
+      .dispatchEvent("click");
 
     await expect(page.getByText(/branch.*regrowing/i)).toBeVisible();
   });
 
-  test("can plant a seed from inventory and see it in the collection", async ({
+  test("can place a seed in the garden from the collection tab", async ({
     page,
   }) => {
     await goToBonsaiWithSeed(page, { ownedSpeciesIds: ["maple"] });
@@ -155,9 +185,18 @@ test.describe("Bonsai Garden", () => {
     // The Maple Seed should appear in the "Plant a Seed" section
     await expect(page.getByText(/maple seed/i)).toBeVisible();
 
-    await page.getByRole("button", { name: "Plant" }).click();
+    // Click "Place in garden" — enters placement mode
+    await page.getByRole("button", { name: /place in garden/i }).click();
 
-    // After planting, a Maple tree should appear in the tree list
+    // The garden should enter placement mode (cancel button appears)
+    await expect(page.getByRole("button", { name: /cancel/i })).toBeVisible();
+
+    // Click in the garden to place the tree
+    const garden = page.locator("[data-placing]");
+    await garden.click({ position: { x: 100, y: 100 } });
+
+    // After placing, a Maple tree should appear in the collection list
+    await page.getByRole("tab", { name: "Collection" }).click();
     await expect(
       page.getByText("Maple", { exact: true }).first(),
     ).toBeVisible();
@@ -165,7 +204,7 @@ test.describe("Bonsai Garden", () => {
 
   test("accessibility scan", async ({ page, makeAxeBuilder }) => {
     await page.goto("/bonsai");
-    // Wait for the tree to render before scanning
+    // Wait for the garden tree to render before scanning
     await expect(
       page.getByRole("img", { name: /bonsai tree/i }).first(),
     ).toBeVisible();

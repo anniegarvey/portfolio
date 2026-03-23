@@ -48,6 +48,16 @@ export const PrunedBranchSchema = z.object({
 });
 export type PrunedBranch = z.infer<typeof PrunedBranchSchema>;
 
+// ─── Garden Position ──────────────────────────────────────────────────────────
+
+export const GardenPositionSchema = z.object({
+  /** Percentage (0–100) from left edge of the garden canvas. */
+  x: z.number().min(0).max(100),
+  /** Percentage (0–100) from top edge of the garden canvas. */
+  y: z.number().min(0).max(100),
+});
+export type GardenPosition = z.infer<typeof GardenPositionSchema>;
+
 // ─── Tree ─────────────────────────────────────────────────────────────────────
 
 export const BonsaiTreeSchema = z.object({
@@ -60,6 +70,7 @@ export const BonsaiTreeSchema = z.object({
   equippedPotId: PotIdSchema.optional(),
   equippedStandId: StandIdSchema.optional(),
   prunedBranches: z.array(PrunedBranchSchema),
+  gardenPosition: GardenPositionSchema.optional(),
 });
 export type BonsaiTree = z.infer<typeof BonsaiTreeSchema>;
 
@@ -78,7 +89,6 @@ export type BonsaiInventory = z.infer<typeof BonsaiInventorySchema>;
 
 export const BonsaiGameStateSchema = z.object({
   trees: z.array(BonsaiTreeSchema),
-  activePlantedTreeId: z.string().uuid().optional(),
   inventory: BonsaiInventorySchema,
   lastGrowthCheckDate: z.string().optional(),
 });
