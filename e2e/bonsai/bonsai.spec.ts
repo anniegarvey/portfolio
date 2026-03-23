@@ -26,7 +26,6 @@ test.describe("Bonsai Garden", () => {
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 10,
       lastWateredDay: 10,
-      ownedToolIds: ["watering-can"],
     });
 
     await expect(page.getByText(/click any branch to prune it/i)).toBeVisible();

@@ -345,10 +345,16 @@ describe("BonsaiProvider", () => {
     await waitFor(() =>
       expect(screen.getByTestId("pruned")).toHaveTextContent("1"),
     );
-    // Advance then prune the same branch again — count should stay at 1
+    // Water, advance to day 1, then prune the same branch again — count should stay at 1
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
     await act(async () => {
       screen.getByText("Advance").click();
     });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
     await act(async () => {
       screen.getByText("Prune L0").click();
     });
