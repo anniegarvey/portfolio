@@ -112,6 +112,31 @@ test.describe("Bonsai Garden", () => {
     await expect(page.getByText("Watered today")).toBeVisible();
   });
 
+  test("dragging a tree in water mode does not move it", async ({ page }) => {
+    await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
+
+    await page.getByRole("button", { name: "Water" }).click();
+
+    const tree = page.getByRole("button", { name: /pine.*click to water/i });
+    const before = await tree.boundingBox();
+    if (!before) throw new Error("tree not found");
+
+    // Drag the tree a significant distance
+    await page.mouse.move(
+      before.x + before.width / 2,
+      before.y + before.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(before.x + 200, before.y + 100, { steps: 10 });
+    await page.mouse.up();
+
+    const after = await tree.boundingBox();
+    if (!after) throw new Error("tree not found after drag");
+
+    expect(Math.abs(after.x - before.x)).toBeLessThan(10);
+    expect(Math.abs(after.y - before.y)).toBeLessThan(10);
+  });
+
   test("D key advances day from inside the tending modal", async ({ page }) => {
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 3,

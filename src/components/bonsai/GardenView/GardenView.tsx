@@ -75,7 +75,8 @@ function MiniTree({
   // biome-ignore lint/correctness/useExhaustiveDependencies: gardenRef is a stable ref object
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!(dragState.current && gardenRef.current)) return;
+      if (!(dragState.current && gardenRef.current) || gardenTool === "water")
+        return;
       const dx = e.clientX - dragState.current.startX;
       const dy = e.clientY - dragState.current.startY;
       if (!dragState.current.moved && Math.hypot(dx, dy) < 5) return;
@@ -94,7 +95,7 @@ function MiniTree({
       );
       onPositionChange(tree.id, { x, y });
     },
-    [tree.id, onPositionChange],
+    [tree.id, onPositionChange, gardenTool],
   );
 
   const handlePointerUp = useCallback(
