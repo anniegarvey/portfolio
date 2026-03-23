@@ -55,8 +55,6 @@ function MiniTree({
 
   const pos = tree.gardenPosition ?? { x: 50, y: 50 };
   const config = SPECIES_CONFIG[tree.speciesId];
-  const isWatered = tree.lastWateredDay === tree.activeDaysCount;
-
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (isPlacing) return;
@@ -119,7 +117,6 @@ function MiniTree({
   return (
     <MiniTreeContainer
       aria-label={label}
-      data-watered={isWatered || undefined}
       onKeyDown={(e) => {
         if ((e.key === "Enter" || e.key === " ") && !isPlacing) {
           e.preventDefault();
@@ -147,9 +144,6 @@ function MiniTree({
       <TreeNameTag>
         {config.emoji} {config.label}
       </TreeNameTag>
-      {isWatered && (
-        <WateredDot aria-label="Watered today" title="Watered today" />
-      )}
     </MiniTreeContainer>
   );
 }
@@ -375,18 +369,6 @@ const TreeNameTag = styled.span`
   padding: 1px 6px;
   border-radius: 4px;
   white-space: nowrap;
-  pointer-events: none;
-`;
-
-const WateredDot = styled.span`
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #4a90d9;
-  border: 1.5px solid white;
   pointer-events: none;
 `;
 
