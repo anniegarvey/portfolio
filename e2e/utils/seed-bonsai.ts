@@ -23,15 +23,16 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
       {
         id: FIXED_TREE_ID,
         speciesId: "pine",
+        name: "Pine 1",
         activeDaysCount: opts.activeDaysCount ?? 0,
         ...(opts.lastWateredDay != null
           ? { lastWateredDay: opts.lastWateredDay }
           : {}),
         acquiredAt: "2025-01-01",
         prunedBranches: [],
+        gardenPosition: { x: 50, y: 50 },
       },
     ],
-    activePlantedTreeId: FIXED_TREE_ID,
     inventory: {
       ownedSpeciesIds: opts.ownedSpeciesIds ?? [],
       ownedToolIds: opts.ownedToolIds ?? [],

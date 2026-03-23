@@ -70,9 +70,6 @@ describe("Navigation", () => {
     // Use within() to scope queries to desktop navigation
     const { within } = require("@testing-library/dom");
     expect(
-      within(desktopNav).getByRole("link", { name: /^Home$/ }),
-    ).toBeInTheDocument();
-    expect(
       within(desktopNav).getByRole("link", { name: "Colour Palette" }),
     ).toBeInTheDocument();
   });
@@ -142,9 +139,11 @@ describe("Navigation", () => {
     // Let's use `within`
     const { within } = require("@testing-library/dom");
 
-    const mobileHomeLink = within(dialog).getByRole("link", { name: /^Home$/ });
+    const mobileNavLink = within(dialog).getByRole("link", {
+      name: /^Colour Palette$/,
+    });
 
-    await user.click(mobileHomeLink);
+    await user.click(mobileNavLink);
 
     // Verify dialog is closed
     await waitFor(() => {

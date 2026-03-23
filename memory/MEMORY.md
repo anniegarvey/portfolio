@@ -1,9 +1,7 @@
 # Portfolio Project Memory
 
-## Always run `pnpm validate` before committing
+## Precommit hook runs `pnpm validate`
 Runs: `tsc --noEmit && pnpm lint --fix && pnpm test && pnpm playwright test`
-- Playwright needs a dev server on port 3000. `playwright.config.ts` tries to start `pnpm dev` with a 60s timeout — **start `pnpm dev` in the background first** to avoid timeout failures.
-- Run this even for small changes — tsc catches type errors across the whole codebase that vitest alone won't surface.
 
 ## Linting (Biome)
 - `--error-on-warnings` is set, so warnings are treated as errors

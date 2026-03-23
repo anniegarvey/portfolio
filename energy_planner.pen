@@ -38,7 +38,7 @@
               "fill": {
                 "type": "image",
                 "enabled": true,
-                "url": "public/AnnieGarveyLogo.png",
+                "url": "public/AG_Overlap_Logo_512.svg",
                 "mode": "fit"
               },
               "cornerRadius": 8

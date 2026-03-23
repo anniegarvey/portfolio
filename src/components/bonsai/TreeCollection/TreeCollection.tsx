@@ -3,11 +3,15 @@
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
-import type { SpeciesId } from "@/lib/bonsai/schema";
+import type { BonsaiTree, SpeciesId } from "@/lib/bonsai/schema";
 import { getGrowthLabel, SPECIES_CONFIG } from "@/lib/bonsai/schema";
 
-export function TreeCollection() {
-  const { state, switchActiveTree, plantTree } = useBonsai();
+interface TreeCollectionProps {
+  onOpenTree: (tree: BonsaiTree) => void;
+}
+
+export function TreeCollection({ onOpenTree }: TreeCollectionProps) {
+  const { state, beginPlanting } = useBonsai();
 
   const ownedSeeds = state.inventory.ownedSpeciesIds;
 
@@ -19,29 +23,27 @@ export function TreeCollection() {
           <TreeGrid>
             {state.trees.map((tree) => {
               const config = SPECIES_CONFIG[tree.speciesId];
-              const isActive = tree.id === state.activePlantedTreeId;
+              const isWatered = tree.lastWateredDay === tree.activeDaysCount;
               return (
-                <TreeCard data-active={isActive} key={tree.id}>
+                <TreeCard
+                  key={tree.id}
+                  onClick={() => onOpenTree(tree)}
+                  type="button"
+                >
                   <TreeEmoji aria-hidden="true">{config.emoji}</TreeEmoji>
                   <TreeInfo>
-                    <TreeName>{config.label}</TreeName>
+                    <TreeName>{tree.name ?? config.label}</TreeName>
                     <TreeStage>
                       {getGrowthLabel(tree.activeDaysCount)} ·{" "}
                       {tree.activeDaysCount}{" "}
                       {tree.activeDaysCount === 1 ? "day" : "days"}
                     </TreeStage>
                   </TreeInfo>
-                  {!isActive && (
-                    <Button
-                      intent="secondary"
-                      onClick={() => switchActiveTree(tree.id)}
-                      size="sm"
-                      variant="outline"
-                    >
-                      Set Active
-                    </Button>
+                  {isWatered ? (
+                    <WateredBadge>💧 Watered</WateredBadge>
+                  ) : (
+                    <DryBadge>Needs water</DryBadge>
                   )}
-                  {isActive && <ActiveBadge>Active</ActiveBadge>}
                 </TreeCard>
               );
             })}
@@ -63,11 +65,11 @@ export function TreeCollection() {
                   </SeedLabel>
                   <Button
                     intent="primary"
-                    onClick={() => plantTree(speciesId as SpeciesId)}
+                    onClick={() => beginPlanting(speciesId as SpeciesId)}
                     size="sm"
                     variant="solid"
                   >
-                    Plant
+                    Place in garden
                   </Button>
                 </SeedRow>
               );
@@ -115,7 +117,7 @@ const TreeGrid = styled.div`
   gap: 0.5rem;
 `;
 
-const TreeCard = styled.div`
+const TreeCard = styled.button`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -123,11 +125,20 @@ const TreeCard = styled.div`
   border-radius: 8px;
   border: 2px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   background: light-dark(var(--color-grey-50), var(--color-grey-900));
-  transition: border-color 150ms ease;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
 
-  &[data-active="true"] {
-    border-color: light-dark(var(--color-primary-400), var(--color-primary-500));
-    background: light-dark(var(--color-primary-50), var(--color-grey-800));
+  &:hover {
+    border-color: light-dark(var(--color-primary-400), var(--color-primary-600));
+    background: light-dark(var(--color-grey-100), var(--color-grey-800));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -158,10 +169,16 @@ const TreeStage = styled.p`
   margin: 0;
 `;
 
-const ActiveBadge = styled.span`
+const WateredBadge = styled.span`
   font-size: 1.1rem;
   font-weight: 600;
-  color: light-dark(var(--color-primary-600), var(--color-primary-400));
+  color: light-dark(#4a7a3a, #6ab860);
+  flex-shrink: 0;
+`;
+
+const DryBadge = styled.span`
+  font-size: 1.1rem;
+  color: light-dark(var(--color-grey-400), var(--color-grey-500));
   flex-shrink: 0;
 `;
 

@@ -5,12 +5,7 @@ import { styled } from "next-yak";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
-import type {
-  ShopCategory,
-  ShopItem,
-  ShopItemId,
-  SpeciesId,
-} from "@/lib/bonsai/schema";
+import type { ShopCategory, ShopItem, ShopItemId } from "@/lib/bonsai/schema";
 import { SHOP_CATALOG } from "@/lib/bonsai/schema";
 import { usePoints } from "@/lib/points/context";
 
@@ -39,31 +34,20 @@ function useOwnedCount(itemId: ShopItemId, category: ShopCategory) {
   }
 }
 
-function isSpeciesFullyOwned(
-  itemId: ShopItemId,
-  state: ReturnType<typeof useBonsai>["state"],
-) {
-  const alreadyPlanted = state.trees.some((t) => t.speciesId === itemId);
-  const inInventory = state.inventory.ownedSpeciesIds.includes(
-    itemId as SpeciesId,
-  );
-  return alreadyPlanted || inInventory;
-}
-
 function ShopCard({ item }: { item: ShopItem }) {
   const { buyItem, state } = useBonsai();
   const { points } = usePoints();
   const [feedback, setFeedback] = useState<"insufficient" | null>(null);
   const ownedCount = useOwnedCount(item.id, item.category);
 
-  const speciesOwned =
-    item.category === "species" && isSpeciesFullyOwned(item.id, state);
+  const plantedCount =
+    item.category === "species"
+      ? state.trees.filter((t) => t.speciesId === item.id).length
+      : 0;
+  const totalOwned = ownedCount + plantedCount;
   const canAfford = points >= item.cost;
 
-  const isDisabled = !canAfford || speciesOwned;
-
   const handleBuy = () => {
-    if (speciesOwned) return;
     const success = buyItem(item.id);
     if (!success) {
       setFeedback("insufficient");
@@ -82,26 +66,16 @@ function ShopCard({ item }: { item: ShopItem }) {
       </CardHeader>
       <ItemDescription>{item.description}</ItemDescription>
       <CardFooter>
-        {speciesOwned ? (
-          <OwnedBadge>
-            {state.trees.some((t) => t.speciesId === item.id)
-              ? "Planted"
-              : "In inventory"}
-          </OwnedBadge>
-        ) : ownedCount > 0 ? (
-          <OwnedBadge>Owned: {ownedCount}</OwnedBadge>
-        ) : null}
-        {!speciesOwned && (
-          <Button
-            disabled={isDisabled}
-            intent="primary"
-            onClick={handleBuy}
-            size="sm"
-            variant="outline"
-          >
-            Buy
-          </Button>
-        )}
+        {totalOwned > 0 && <OwnedBadge>Owned: {totalOwned}</OwnedBadge>}
+        <Button
+          disabled={!canAfford}
+          intent="primary"
+          onClick={handleBuy}
+          size="sm"
+          variant="outline"
+        >
+          Buy
+        </Button>
       </CardFooter>
       {feedback === "insufficient" && (
         <FeedbackMsg aria-live="polite">Not enough points</FeedbackMsg>

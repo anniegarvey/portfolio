@@ -23,9 +23,9 @@ describe("createInitialState", () => {
     expect(state.trees[0].prunedBranches).toHaveLength(0);
   });
 
-  it("sets activePlantedTreeId to the tree's id", () => {
+  it("places the starter pine at the garden center", () => {
     const state = createInitialState();
-    expect(state.activePlantedTreeId).toBe(state.trees[0].id);
+    expect(state.trees[0].gardenPosition).toEqual({ x: 50, y: 50 });
   });
 
   it("returns empty inventory across all categories", () => {
@@ -57,7 +57,6 @@ describe("saveBonsaiState / loadBonsaiState", () => {
     const loaded = loadBonsaiState();
     expect(loaded).not.toBeNull();
     expect(loaded?.trees[0].id).toBe(state.trees[0].id);
-    expect(loaded?.activePlantedTreeId).toBe(state.activePlantedTreeId);
   });
 
   it("persists inventory state", () => {

@@ -48,7 +48,6 @@ function ThemeToggle() {
 }
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home" },
   { href: "/colour-palette", label: "Colour Palette" },
   { href: "/energy-planner", label: "Energy Planner" },
   { href: "/bonsai", label: "Bonsai" },
@@ -65,9 +64,9 @@ export function Navigation() {
         <LogoLink aria-label="Home" href="/">
           <StyledImage
             alt="Annie Garvey Girl Coding"
-            height={180}
-            src="/AnnieGarveyLogo.png"
-            width={320}
+            height={512}
+            src="/AG_Overlap_Logo_512.svg"
+            width={512}
           />
         </LogoLink>
       </Side>
@@ -170,6 +169,9 @@ const MobileNav = styled.div`
 const LogoLink = styled(Link)`
   transition: opacity 600ms ease;
   animation: fadeFromTransparent 600ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     opacity: 0.8;
@@ -183,10 +185,12 @@ const LogoLink = styled(Link)`
 `;
 
 const StyledImage = styled(Image)`
-  height: 5rem;
+  height: 4rem;
   width: auto;
-  margin-top: -5px;
-  margin-bottom: -13px;
+  margin-top: 0.25rem;
+  margin-left: -0.5rem;
+  margin-bottom: -0.625rem;
+  filter: drop-shadow(-3px 3px 6px #444444);
 `;
 
 const NavList = styled.ul`
@@ -200,7 +204,7 @@ const NavItem = styled.li``;
 
 const NavLink = styled(Link)`
   color: var(--color-grey-100);
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1.6rem;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -218,7 +222,9 @@ const HamburgerButton = styled.button`
   border: none;
   color: var(--color-grey-100);
   cursor: pointer;
-  padding: 0.5rem;
+  padding-inline: 0.5rem;
+  padding-top: 0.6rem;
+  padding-bottom: 0.4rem;
   touch-action: manipulation;
 
   &:hover {

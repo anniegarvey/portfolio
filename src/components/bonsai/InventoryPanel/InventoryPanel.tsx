@@ -1,9 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
-import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
-import type { PotId, StandId } from "@/lib/bonsai/schema";
 import { SHOP_CATALOG } from "@/lib/bonsai/schema";
 
 function getItemLabel(id: string): string {
@@ -11,7 +9,7 @@ function getItemLabel(id: string): string {
 }
 
 export function InventoryPanel() {
-  const { state, activePlantedTree, equipPot, equipStand } = useBonsai();
+  const { state } = useBonsai();
   const inv = state.inventory;
 
   const hasAnything =
@@ -74,29 +72,11 @@ export function InventoryPanel() {
         <Section>
           <SectionTitle>Pots</SectionTitle>
           <ItemList>
-            {[...new Set(inv.ownedPotIds)].map((potId) => {
-              const isEquipped = activePlantedTree?.equippedPotId === potId;
-              return (
-                <ItemRow key={potId}>
-                  <ItemLabel>
-                    {getItemLabel(potId)}
-                    {isEquipped && <EquippedBadge>Equipped</EquippedBadge>}
-                  </ItemLabel>
-                  {!isEquipped && activePlantedTree && (
-                    <Button
-                      intent="secondary"
-                      onClick={() =>
-                        equipPot(activePlantedTree.id, potId as PotId)
-                      }
-                      size="sm"
-                      variant="outline"
-                    >
-                      Equip
-                    </Button>
-                  )}
-                </ItemRow>
-              );
-            })}
+            {[...new Set(inv.ownedPotIds)].map((potId) => (
+              <ItemRow key={potId}>
+                <ItemLabel>{getItemLabel(potId)}</ItemLabel>
+              </ItemRow>
+            ))}
           </ItemList>
         </Section>
       )}
@@ -105,29 +85,11 @@ export function InventoryPanel() {
         <Section>
           <SectionTitle>Stands</SectionTitle>
           <ItemList>
-            {[...new Set(inv.ownedStandIds)].map((standId) => {
-              const isEquipped = activePlantedTree?.equippedStandId === standId;
-              return (
-                <ItemRow key={standId}>
-                  <ItemLabel>
-                    {getItemLabel(standId)}
-                    {isEquipped && <EquippedBadge>Equipped</EquippedBadge>}
-                  </ItemLabel>
-                  {!isEquipped && activePlantedTree && (
-                    <Button
-                      intent="secondary"
-                      onClick={() =>
-                        equipStand(activePlantedTree.id, standId as StandId)
-                      }
-                      size="sm"
-                      variant="outline"
-                    >
-                      Equip
-                    </Button>
-                  )}
-                </ItemRow>
-              );
-            })}
+            {[...new Set(inv.ownedStandIds)].map((standId) => (
+              <ItemRow key={standId}>
+                <ItemLabel>{getItemLabel(standId)}</ItemLabel>
+              </ItemRow>
+            ))}
           </ItemList>
         </Section>
       )}
@@ -186,12 +148,6 @@ const ItemLabel = styled.span`
 const QuantityBadge = styled.span`
   font-size: 1.1rem;
   color: light-dark(var(--color-grey-500), var(--color-grey-400));
-`;
-
-const EquippedBadge = styled.span`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: light-dark(var(--color-primary-600), var(--color-primary-400));
 `;
 
 const EmptyState = styled.div`
