@@ -203,11 +203,16 @@ export function TreeSVG({
   const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
 
   // Space below trunk base to viewbox bottom = 300 - 270 = 30 SVG units.
-  // Match that same margin above the trunk top when cropTop is set.
+  // When cropping, find the topmost branch endpoint so leaves/branches that
+  // extend above trunkTopY aren't clipped, then apply the same 30-unit margin.
   const bottomMargin = 30;
   const viewBox = cropTop
     ? (() => {
-        const minY = Math.max(0, svgData.trunkTopY - bottomMargin);
+        const contentTopY = svgData.branches.reduce(
+          (min, b) => Math.min(min, b.y1, b.y2),
+          svgData.trunkTopY,
+        );
+        const minY = Math.max(0, contentTopY - bottomMargin);
         return `0 ${minY} 200 ${300 - minY}`;
       })()
     : svgData.viewBox;
