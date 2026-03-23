@@ -57,14 +57,17 @@ function MiniTree({
   const config = SPECIES_CONFIG[tree.speciesId];
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (isPlacing || gardenTool === "water") return;
+      if (isPlacing) return;
       e.stopPropagation();
       dragState.current = {
         startX: e.clientX,
         startY: e.clientY,
         moved: false,
       };
-      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+      // Only capture the pointer in move mode — water mode doesn't drag
+      if (gardenTool !== "water") {
+        (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+      }
     },
     [isPlacing, gardenTool],
   );
