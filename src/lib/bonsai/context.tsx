@@ -172,9 +172,13 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     (speciesId: SpeciesId, position: GardenPosition) => {
       setState((prev) => {
         if (!prev.inventory.ownedSpeciesIds.includes(speciesId)) return prev;
+        const sameSp = prev.trees.filter(
+          (t) => t.speciesId === speciesId,
+        ).length;
         const newTree: BonsaiTree = {
           id: uuidv4(),
           speciesId,
+          name: `${SPECIES_CONFIG[speciesId].label} ${sameSp + 1}`,
           activeDaysCount: 0,
           acquiredAt: today(),
           prunedBranches: [],

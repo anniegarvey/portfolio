@@ -75,7 +75,7 @@ export function TreeView({ tree }: { tree: BonsaiTree }) {
   return (
     <TreeViewWrapper>
       <TreeLabel>
-        {config.emoji} {config.label}
+        {config.emoji} {tree.name ?? config.label}
       </TreeLabel>
 
       <ToolBar>

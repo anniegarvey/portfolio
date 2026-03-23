@@ -111,12 +111,13 @@ function MiniTree({
     [tree, onOpen, onWater, gardenTool],
   );
 
+  const displayName = tree.name ?? config.label;
   const label =
     gardenTool === "water"
-      ? `${config.label}, day ${tree.activeDaysCount}. Click to water.`
+      ? `${displayName}, day ${tree.activeDaysCount}. Click to water.`
       : gardenTool === "move"
-        ? `${config.label}, day ${tree.activeDaysCount}. Drag to move.`
-        : `${config.label}, day ${tree.activeDaysCount}. Click to tend.`;
+        ? `${displayName}, day ${tree.activeDaysCount}. Drag to move.`
+        : `${displayName}, day ${tree.activeDaysCount}. Click to tend.`;
 
   return (
     <MiniTreeContainer
@@ -148,7 +149,7 @@ function MiniTree({
         <TreeSVG tree={tree} />
       </MiniSVGWrapper>
       <TreeNameTag>
-        {config.emoji} {config.label}
+        {config.emoji} {displayName}
       </TreeNameTag>
     </MiniTreeContainer>
   );

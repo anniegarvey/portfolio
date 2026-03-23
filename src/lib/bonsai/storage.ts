@@ -27,6 +27,7 @@ export function createInitialState(): BonsaiGameState {
       {
         id: uuidv4(),
         speciesId: "pine",
+        name: "Pine 1",
         activeDaysCount: 0,
         acquiredAt: new Date().toISOString().split("T")[0],
         prunedBranches: [],

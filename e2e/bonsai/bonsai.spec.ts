@@ -252,7 +252,7 @@ test.describe("Bonsai Garden", () => {
     // After placing, a Maple tree should appear in the collection list
     await page.getByRole("tab", { name: "Collection" }).click();
     await expect(
-      page.getByText("Maple", { exact: true }).first(),
+      page.getByText("Maple 1", { exact: true }).first(),
     ).toBeVisible();
   });
 

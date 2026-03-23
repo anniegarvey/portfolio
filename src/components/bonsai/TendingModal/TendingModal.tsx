@@ -25,7 +25,7 @@ export function TendingModal({ tree, onClose }: TendingModalProps) {
           <VisuallyHidden.Root asChild>
             <Dialog.Title>
               {tree
-                ? `Tending ${SPECIES_CONFIG[tree.speciesId].label}`
+                ? `Tending ${tree.name ?? SPECIES_CONFIG[tree.speciesId].label}`
                 : "Tending tree"}
             </Dialog.Title>
           </VisuallyHidden.Root>

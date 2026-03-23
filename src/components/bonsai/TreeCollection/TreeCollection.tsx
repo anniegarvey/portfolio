@@ -32,7 +32,7 @@ export function TreeCollection({ onOpenTree }: TreeCollectionProps) {
                 >
                   <TreeEmoji aria-hidden="true">{config.emoji}</TreeEmoji>
                   <TreeInfo>
-                    <TreeName>{config.label}</TreeName>
+                    <TreeName>{tree.name ?? config.label}</TreeName>
                     <TreeStage>
                       {getGrowthLabel(tree.activeDaysCount)} ·{" "}
                       {tree.activeDaysCount}{" "}

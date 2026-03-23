@@ -63,6 +63,7 @@ export type GardenPosition = z.infer<typeof GardenPositionSchema>;
 export const BonsaiTreeSchema = z.object({
   id: z.string().uuid(),
   speciesId: SpeciesIdSchema,
+  name: z.string().optional(),
   activeDaysCount: z.number().int().min(0),
   lastGrownDate: z.string().optional(),
   lastWateredDay: z.number().int().min(0).optional(),

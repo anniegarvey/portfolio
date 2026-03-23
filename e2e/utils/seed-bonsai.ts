@@ -23,6 +23,7 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
       {
         id: FIXED_TREE_ID,
         speciesId: "pine",
+        name: "Pine 1",
         activeDaysCount: opts.activeDaysCount ?? 0,
         ...(opts.lastWateredDay != null
           ? { lastWateredDay: opts.lastWateredDay }
