@@ -33,23 +33,18 @@ test.describe("Bonsai Garden", () => {
     await expect(page.getByRole("link", { name: "Bonsai" })).toBeVisible();
   });
 
-  test("Advance Day button grows the tree when watered", async ({ page }) => {
+  test("D key advances day when tree is watered", async ({ page }) => {
     // Start at day 10, already watered
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 10,
       lastWateredDay: 10,
     });
 
-    await openTendingModal(page);
+    // Press D from the garden — tree should grow to day 11
+    await page.keyboard.press("d");
 
-    // The pruning hint is visible because the tree has branches
-    await expect(page.getByText(/click any branch to prune it/i)).toBeVisible();
-
-    await page.getByRole("button", { name: /advance day/i }).click();
-
-    // Tree SVG remains visible after advancing
     await expect(
-      page.getByRole("img", { name: /bonsai tree/i }).first(),
+      page.getByRole("img", { name: /bonsai tree, day 11/i }).first(),
     ).toBeVisible();
   });
 
@@ -96,20 +91,54 @@ test.describe("Bonsai Garden", () => {
     await expect(page.getByText("Watered today")).toBeVisible();
   });
 
-  test("Advance Day does nothing when tree has not been watered", async ({
+  test("garden water tool waters a tree without opening the modal", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
+
+    // Switch garden tool to Water
+    await page.getByRole("button", { name: "Water" }).click();
+
+    // Click the tree in water mode
+    await page.getByRole("button", { name: /pine.*click to water/i }).click();
+
+    // No dialog should have opened
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+
+    // Switch back to move mode and open modal to verify watered status
+    await page.getByRole("button", { name: "Move" }).click();
+    await page.getByRole("button", { name: /pine.*click to tend/i }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText("Watered today")).toBeVisible();
+  });
+
+  test("D key advances day from inside the tending modal", async ({ page }) => {
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 3,
+      lastWateredDay: 3,
+    });
+
+    await openTendingModal(page);
+
+    // Press D while the modal is open
+    await page.keyboard.press("d");
+
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 4/i }).first(),
+    ).toBeVisible();
+  });
+
+  test("D key does nothing when tree has not been watered", async ({
     page,
   }) => {
     await goToBonsaiWithSeed(page, { activeDaysCount: 5 });
 
-    await openTendingModal(page);
-
-    // Advance Day without watering — tree status unchanged
-    await page.getByRole("button", { name: /advance day/i }).click();
+    // Press D without watering — tree should stay at day 5
+    await page.keyboard.press("d");
 
     await expect(
-      page.getByRole("img", { name: /bonsai tree/i }).first(),
+      page.getByRole("img", { name: /bonsai tree, day 5/i }).first(),
     ).toBeVisible();
-    await expect(page.getByText("Not watered today")).toBeVisible();
   });
 
   test("shop tab is visible and contains items with a Buy button", async ({

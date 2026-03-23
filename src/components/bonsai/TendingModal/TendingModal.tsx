@@ -5,7 +5,6 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { X } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { TreeView } from "@/components/bonsai/TreeView";
-import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
 
@@ -15,8 +14,6 @@ interface TendingModalProps {
 }
 
 export function TendingModal({ tree, onClose }: TendingModalProps) {
-  const { advanceDay } = useBonsai();
-
   return (
     <Dialog.Root
       onOpenChange={(open) => !open && onClose()}
@@ -34,13 +31,6 @@ export function TendingModal({ tree, onClose }: TendingModalProps) {
           </VisuallyHidden.Root>
 
           <Header>
-            <AdvanceDayButton
-              onClick={advanceDay}
-              title="Advance this tree by one day (requires watering)"
-              type="button"
-            >
-              ⏩ Advance Day
-            </AdvanceDayButton>
             <Dialog.Close asChild>
               <CloseButton aria-label="Close" type="button">
                 <X size={20} />
@@ -48,7 +38,10 @@ export function TendingModal({ tree, onClose }: TendingModalProps) {
             </Dialog.Close>
           </Header>
 
-          <Body>{tree && <TreeView tree={tree} />}</Body>
+          <Body>
+            {tree && <TreeView tree={tree} />}
+            <DayShortcutHint>Press D to advance day</DayShortcutHint>
+          </Body>
         </Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -146,27 +139,10 @@ const CloseButton = styled.button`
   }
 `;
 
-const AdvanceDayButton = styled.button`
-  background: none;
-  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-  border-radius: 6px;
-  color: light-dark(var(--color-grey-500), var(--color-grey-400));
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0.3rem 0.6rem;
-  transition: border-color 150ms ease, color 150ms ease;
-
-  &:hover {
-    border-color: light-dark(var(--color-primary-400), var(--color-primary-500));
-    color: light-dark(var(--color-primary-600), var(--color-primary-400));
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-primary-400);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
+const DayShortcutHint = styled.p`
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: light-dark(var(--color-grey-400), var(--color-grey-500));
+  font-style: italic;
+  text-align: center;
 `;

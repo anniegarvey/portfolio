@@ -2,7 +2,7 @@
 
 import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BonsaiShop } from "@/components/bonsai/BonsaiShop";
 import { GardenView } from "@/components/bonsai/GardenView";
 import { InventoryPanel } from "@/components/bonsai/InventoryPanel";
@@ -14,8 +14,23 @@ import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 
 export function BonsaiPage() {
-  const { state } = useBonsai();
+  const { state, advanceDay } = useBonsai();
   const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (
+        e.target instanceof HTMLElement &&
+        (e.target.matches("input, textarea, select") ||
+          e.target.isContentEditable)
+      )
+        return;
+      if (e.key.toLowerCase() === "d") advanceDay();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [advanceDay]);
 
   const tendingTree =
     tendingTreeId !== null

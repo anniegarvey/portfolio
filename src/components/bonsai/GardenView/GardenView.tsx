@@ -1,13 +1,15 @@
 "use client";
 
+import { Droplets, MousePointer2 } from "lucide-react";
 import { styled } from "next-yak";
 import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
   useRef,
+  useState,
 } from "react";
-import { TreeSVG } from "@/components/bonsai/TreeSVG";
+import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
@@ -24,20 +26,26 @@ function clamp(v: number, lo: number, hi: number) {
 
 // ─── Mini Tree ────────────────────────────────────────────────────────────────
 
+type GardenTool = "move" | "water";
+
 interface MiniTreeProps {
   tree: BonsaiTree;
   isPlacing: boolean;
+  gardenTool: GardenTool;
   gardenRef: RefObject<HTMLDivElement | null>;
   onOpen: (tree: BonsaiTree) => void;
   onPositionChange: (treeId: string, pos: GardenPosition) => void;
+  onWater: (treeId: string) => void;
 }
 
 function MiniTree({
   tree,
   isPlacing,
+  gardenTool,
   gardenRef,
   onOpen,
   onPositionChange,
+  onWater,
 }: MiniTreeProps) {
   const dragState = useRef<{
     startX: number;
@@ -92,28 +100,45 @@ function MiniTree({
     (_e: ReactPointerEvent<HTMLDivElement>) => {
       if (!dragState.current) return;
       if (!dragState.current.moved) {
-        onOpen(tree);
+        if (gardenTool === "water") {
+          onWater(tree.id);
+        } else {
+          onOpen(tree);
+        }
       }
       dragState.current = null;
     },
-    [tree, onOpen],
+    [tree, onOpen, onWater, gardenTool],
   );
+
+  const label =
+    gardenTool === "water"
+      ? `${config.label}, day ${tree.activeDaysCount}. Click to water.`
+      : `${config.label}, day ${tree.activeDaysCount}. Click to tend, drag to move.`;
 
   return (
     <MiniTreeContainer
-      aria-label={`${config.label}, day ${tree.activeDaysCount}. Click to tend, drag to move.`}
+      aria-label={label}
       data-watered={isWatered || undefined}
       onKeyDown={(e) => {
         if ((e.key === "Enter" || e.key === " ") && !isPlacing) {
           e.preventDefault();
-          onOpen(tree);
+          if (gardenTool === "water") {
+            onWater(tree.id);
+          } else {
+            onOpen(tree);
+          }
         }
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       role="button"
-      style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+      style={{
+        left: `${pos.x}%`,
+        top: `${pos.y}%`,
+        cursor: gardenTool === "water" ? WATER_CURSOR : undefined,
+      }}
       tabIndex={isPlacing ? -1 : 0}
     >
       <MiniSVGWrapper>
@@ -142,8 +167,10 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
     cancelPlanting,
     confirmPlantAt,
     updateTreePosition,
+    waterTree,
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
+  const [gardenTool, setGardenTool] = useState<GardenTool>("move");
 
   const handleGardenClick = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -168,6 +195,27 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
 
   return (
     <GardenWrapper>
+      <GardenToolbar>
+        <ToolBtn
+          data-active={gardenTool === "move" || undefined}
+          onClick={() => setGardenTool("move")}
+          title="Move trees"
+          type="button"
+        >
+          <MousePointer2 size={15} />
+          Move
+        </ToolBtn>
+        <ToolBtn
+          data-active={gardenTool === "water" || undefined}
+          onClick={() => setGardenTool("water")}
+          title="Water trees"
+          type="button"
+        >
+          <Droplets size={15} />
+          Water
+        </ToolBtn>
+        <ShortcutHint>Press D to advance day</ShortcutHint>
+      </GardenToolbar>
       <Garden
         data-placing={isPlacing || undefined}
         onPointerUp={isPlacing ? handleGardenClick : undefined}
@@ -186,10 +234,12 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
         {state.trees.map((tree) => (
           <MiniTree
             gardenRef={gardenRef}
+            gardenTool={gardenTool}
             isPlacing={isPlacing}
             key={tree.id}
             onOpen={onOpenTree}
             onPositionChange={updateTreePosition}
+            onWater={waterTree}
             tree={tree}
           />
         ))}
@@ -214,6 +264,52 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
 
 const GardenWrapper = styled.div`
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const GardenToolbar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const ToolBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1.5px solid light-dark(#c8c0b4, #4a5060);
+  background: transparent;
+  color: light-dark(#6a6058, #a09888);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &[data-active] {
+    border-color: light-dark(#7a9e6a, #5a8a4a);
+    background: light-dark(#f0f5ed, #1e3020);
+    color: light-dark(#3a5a2a, #8ab870);
+    font-weight: 600;
+  }
+
+  &:hover:not([data-active]) {
+    background: light-dark(#f5f3f0, #2a3040);
+  }
+`;
+
+const ShortcutHint = styled.span`
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+  font-style: italic;
 `;
 
 const Garden = styled.div`
