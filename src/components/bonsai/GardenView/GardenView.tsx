@@ -375,8 +375,11 @@ const MiniTreeContainer = styled.div`
 const MiniSVGWrapper = styled.div`
   width: 90px;
   pointer-events: none;
-  border-radius: 50%;
-  box-shadow: 0 0 36px 18px light-dark(transparent, rgba(220, 255, 200, 0.13));
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    light-dark(transparent, rgba(220, 255, 200, 0.22)) 0%,
+    transparent 70%
+  );
 `;
 
 const TreeNameTag = styled.span`
