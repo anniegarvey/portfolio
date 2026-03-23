@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets, MousePointer2 } from "lucide-react";
+import { Droplets, Leaf, MousePointer2 } from "lucide-react";
 import { styled } from "next-yak";
 import {
   type PointerEvent as ReactPointerEvent,
@@ -26,7 +26,7 @@ function clamp(v: number, lo: number, hi: number) {
 
 // ─── Mini Tree ────────────────────────────────────────────────────────────────
 
-type GardenTool = "move" | "water";
+type GardenTool = "tend" | "move" | "water";
 
 interface MiniTreeProps {
   tree: BonsaiTree;
@@ -64,8 +64,8 @@ function MiniTree({
         startY: e.clientY,
         moved: false,
       };
-      // Only capture the pointer in move mode — water mode doesn't drag
-      if (gardenTool !== "water") {
+      // Only capture the pointer in move mode — tend and water don't drag
+      if (gardenTool === "move") {
         (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
       }
     },
@@ -75,7 +75,7 @@ function MiniTree({
   // biome-ignore lint/correctness/useExhaustiveDependencies: gardenRef is a stable ref object
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!(dragState.current && gardenRef.current) || gardenTool === "water")
+      if (!(dragState.current && gardenRef.current) || gardenTool !== "move")
         return;
       const dx = e.clientX - dragState.current.startX;
       const dy = e.clientY - dragState.current.startY;
@@ -102,11 +102,9 @@ function MiniTree({
     (_e: ReactPointerEvent<HTMLDivElement>) => {
       if (!dragState.current) return;
       if (!dragState.current.moved) {
-        if (gardenTool === "water") {
-          onWater(tree.id);
-        } else {
-          onOpen(tree);
-        }
+        if (gardenTool === "tend") onOpen(tree);
+        else if (gardenTool === "water") onWater(tree.id);
+        // move: click without drag does nothing
       }
       dragState.current = null;
     },
@@ -116,7 +114,9 @@ function MiniTree({
   const label =
     gardenTool === "water"
       ? `${config.label}, day ${tree.activeDaysCount}. Click to water.`
-      : `${config.label}, day ${tree.activeDaysCount}. Click to tend, drag to move.`;
+      : gardenTool === "move"
+        ? `${config.label}, day ${tree.activeDaysCount}. Drag to move.`
+        : `${config.label}, day ${tree.activeDaysCount}. Click to tend.`;
 
   return (
     <MiniTreeContainer
@@ -124,11 +124,8 @@ function MiniTree({
       onKeyDown={(e) => {
         if ((e.key === "Enter" || e.key === " ") && !isPlacing) {
           e.preventDefault();
-          if (gardenTool === "water") {
-            onWater(tree.id);
-          } else {
-            onOpen(tree);
-          }
+          if (gardenTool === "tend") onOpen(tree);
+          else if (gardenTool === "water") onWater(tree.id);
         }
       }}
       onPointerDown={handlePointerDown}
@@ -138,7 +135,12 @@ function MiniTree({
       style={{
         left: `${pos.x}%`,
         top: `${pos.y}%`,
-        cursor: gardenTool === "water" ? WATER_CURSOR : undefined,
+        cursor:
+          gardenTool === "water"
+            ? WATER_CURSOR
+            : gardenTool === "tend"
+              ? "pointer"
+              : undefined,
       }}
       tabIndex={isPlacing ? -1 : 0}
     >
@@ -168,7 +170,7 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
     waterTree,
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
-  const [gardenTool, setGardenTool] = useState<GardenTool>("move");
+  const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
 
   const handleGardenClick = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -194,6 +196,15 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
   return (
     <GardenWrapper>
       <GardenToolbar>
+        <ToolBtn
+          data-active={gardenTool === "tend" || undefined}
+          onClick={() => setGardenTool("tend")}
+          title="Tend trees"
+          type="button"
+        >
+          <Leaf size={15} />
+          Tend
+        </ToolBtn>
         <ToolBtn
           data-active={gardenTool === "move" || undefined}
           onClick={() => setGardenTool("move")}

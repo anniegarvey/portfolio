@@ -97,7 +97,7 @@ test.describe("Bonsai Garden", () => {
     await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
 
     // Switch garden tool to Water
-    await page.getByRole("button", { name: "Water" }).click();
+    await page.getByRole("button", { name: "Water", exact: true }).click();
 
     // Click the tree in water mode
     await page.getByRole("button", { name: /pine.*click to water/i }).click();
@@ -105,8 +105,8 @@ test.describe("Bonsai Garden", () => {
     // No dialog should have opened
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    // Switch back to move mode and open modal to verify watered status
-    await page.getByRole("button", { name: "Move" }).click();
+    // Switch back to tend mode and open modal to verify watered status
+    await page.getByRole("button", { name: "Tend" }).click();
     await page.getByRole("button", { name: /pine.*click to tend/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByText("Watered today")).toBeVisible();
@@ -115,7 +115,7 @@ test.describe("Bonsai Garden", () => {
   test("dragging a tree in water mode does not move it", async ({ page }) => {
     await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
 
-    await page.getByRole("button", { name: "Water" }).click();
+    await page.getByRole("button", { name: "Water", exact: true }).click();
 
     const tree = page.getByRole("button", { name: /pine.*click to water/i });
     const before = await tree.boundingBox();
@@ -254,6 +254,20 @@ test.describe("Bonsai Garden", () => {
     await expect(
       page.getByText("Maple", { exact: true }).first(),
     ).toBeVisible();
+  });
+
+  test("clicking a tree card in the collection opens the tending modal", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, { activeDaysCount: 5 });
+
+    await page.getByRole("tab", { name: "Collection" }).click();
+
+    // Click the Pine tree card in the Your Trees section
+    await page.getByRole("button", { name: /pine/i }).first().click();
+
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText(/Watering Can/i)).toBeVisible();
   });
 
   test("accessibility scan", async ({ page, makeAxeBuilder }) => {

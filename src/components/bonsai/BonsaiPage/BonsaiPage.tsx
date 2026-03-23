@@ -56,7 +56,9 @@ export function BonsaiPage() {
           </PageTabsList>
 
           <Tabs.Content value="collection">
-            <TreeCollection />
+            <TreeCollection
+              onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
+            />
           </Tabs.Content>
           <Tabs.Content value="shop">
             <BonsaiShop />

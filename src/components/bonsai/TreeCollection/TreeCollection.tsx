@@ -3,10 +3,14 @@
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
-import type { SpeciesId } from "@/lib/bonsai/schema";
+import type { BonsaiTree, SpeciesId } from "@/lib/bonsai/schema";
 import { getGrowthLabel, SPECIES_CONFIG } from "@/lib/bonsai/schema";
 
-export function TreeCollection() {
+interface TreeCollectionProps {
+  onOpenTree: (tree: BonsaiTree) => void;
+}
+
+export function TreeCollection({ onOpenTree }: TreeCollectionProps) {
   const { state, beginPlanting } = useBonsai();
 
   const ownedSeeds = state.inventory.ownedSpeciesIds;
@@ -21,7 +25,11 @@ export function TreeCollection() {
               const config = SPECIES_CONFIG[tree.speciesId];
               const isWatered = tree.lastWateredDay === tree.activeDaysCount;
               return (
-                <TreeCard key={tree.id}>
+                <TreeCard
+                  key={tree.id}
+                  onClick={() => onOpenTree(tree)}
+                  type="button"
+                >
                   <TreeEmoji aria-hidden="true">{config.emoji}</TreeEmoji>
                   <TreeInfo>
                     <TreeName>{config.label}</TreeName>
@@ -109,7 +117,7 @@ const TreeGrid = styled.div`
   gap: 0.5rem;
 `;
 
-const TreeCard = styled.div`
+const TreeCard = styled.button`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -117,6 +125,25 @@ const TreeCard = styled.div`
   border-radius: 8px;
   border: 2px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   background: light-dark(var(--color-grey-50), var(--color-grey-900));
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: light-dark(var(--color-primary-400), var(--color-primary-600));
+    background: light-dark(var(--color-grey-100), var(--color-grey-800));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const TreeEmoji = styled.span`
