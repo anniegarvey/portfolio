@@ -1,11 +1,41 @@
 "use client";
 
+import { Droplets, Scissors } from "lucide-react";
 import { styled } from "next-yak";
-import { useMemo } from "react";
+import { type KeyboardEvent, useCallback, useMemo, useState } from "react";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, PotId, StandId } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
 import { generateTree } from "@/lib/bonsai/treeGenerator";
+
+// ─── Tool Type ────────────────────────────────────────────────────────────────
+
+type ActiveTool = "pruning-shears" | "watering-can";
+
+// ─── Cursor SVGs ──────────────────────────────────────────────────────────────
+
+function makeSvgCursor(body: string, hx: number, hy: number, fallback: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">${body}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${hx} ${hy}, ${fallback}`;
+}
+
+const SHEARS_CURSOR = makeSvgCursor(
+  '<circle cx="6" cy="6" r="3" fill="none" stroke="#333" stroke-width="1.5"/>' +
+    '<circle cx="6" cy="18" r="3" fill="none" stroke="#333" stroke-width="1.5"/>' +
+    '<line x1="20" y1="4" x2="8.12" y2="12" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="14.47" y1="14.48" x2="20" y2="20" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="8.12" y1="12" x2="14.47" y2="14.48" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>',
+  12,
+  12,
+  "crosshair",
+);
+
+const WATER_CURSOR = makeSvgCursor(
+  '<path d="M12 3c0 0-7 8-7 13a7 7 0 0 0 14 0C19 11 12 3 12 3z" fill="#4a90d9" stroke="#336699" stroke-width="1"/>',
+  12,
+  20,
+  "pointer",
+);
 
 // ─── Pot & Stand Labels ───────────────────────────────────────────────────────
 
@@ -160,7 +190,13 @@ function clamp(v: number, lo: number, hi: number) {
 
 // ─── Tree SVG ─────────────────────────────────────────────────────────────────
 
-function TreeSVG({ tree }: { tree: BonsaiTree }) {
+function TreeSVG({
+  tree,
+  activeTool,
+}: {
+  tree: BonsaiTree;
+  activeTool: ActiveTool;
+}) {
   const { pruneBranch } = useBonsai();
   const config = SPECIES_CONFIG[tree.speciesId];
   const svgData = useMemo(
@@ -176,6 +212,10 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
   // Show seed/sprout overlay for first few days
   const showSeed = tree.activeDaysCount < 6;
 
+  const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
+
+  const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
+
   return (
     <svg
       aria-label={`${config.label} bonsai tree, day ${tree.activeDaysCount}`}
@@ -185,6 +225,16 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
       <title>
         {config.label} bonsai tree, day {tree.activeDaysCount}
       </title>
+
+      {/* Soil — colour reflects today's watering state */}
+      <SoilEllipse
+        cx={svgData.trunkX}
+        cy={svgData.trunkBaseY + 4}
+        fill={soilFill}
+        rx={22}
+        ry={7}
+      />
+
       {/* Ground line */}
       <line
         stroke="rgba(120, 90, 50, 0.3)"
@@ -211,32 +261,58 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
               d={branch.pathData}
               data-branch-id={branch.id}
               fill={config.trunkColor}
-              onClick={() => !branch.isPruned && handleBranchClick(branch.id)}
-              onKeyDown={(e) =>
-                e.key === "Enter" &&
-                !branch.isPruned &&
-                handleBranchClick(branch.id)
+              onClick={(e) => {
+                if (activeTool !== "pruning-shears" || branch.isPruned) return;
+                e.stopPropagation();
+                handleBranchClick(branch.id);
+              }}
+              onKeyDown={(e) => {
+                if (
+                  e.key !== "Enter" ||
+                  activeTool !== "pruning-shears" ||
+                  branch.isPruned
+                )
+                  return;
+                handleBranchClick(branch.id);
+              }}
+              role={
+                activeTool === "pruning-shears" && !branch.isPruned
+                  ? "button"
+                  : undefined
               }
-              role={branch.isPruned ? undefined : "button"}
-              style={{ cursor: branch.isPruned ? "default" : "pointer" }}
-              tabIndex={branch.isPruned ? undefined : 0}
+              style={{
+                cursor:
+                  activeTool === "pruning-shears" && !branch.isPruned
+                    ? SHEARS_CURSOR
+                    : "inherit",
+              }}
+              tabIndex={
+                activeTool === "pruning-shears" && !branch.isPruned
+                  ? 0
+                  : undefined
+              }
             >
-              {!branch.isPruned && <title>Click to prune</title>}
+              {activeTool === "pruning-shears" && !branch.isPruned && (
+                <title>Click to prune</title>
+              )}
               {branch.isPruned && <title>Pruned (regrowing…)</title>}
             </path>
 
-            {/* Invisible wider hit area for easier clicking */}
-            {!branch.isPruned && (
+            {/* Invisible wider hit area — only active when pruning shears selected */}
+            {activeTool === "pruning-shears" && !branch.isPruned && (
               // biome-ignore lint/a11y/useSemanticElements: SVG line cannot be replaced with <button>
               <line
-                onClick={() => handleBranchClick(branch.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBranchClick(branch.id);
+                }}
                 onKeyDown={(e) =>
                   e.key === "Enter" && handleBranchClick(branch.id)
                 }
                 role="button"
                 stroke="transparent"
                 strokeWidth={10}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: SHEARS_CURSOR }}
                 tabIndex={-1}
                 x1={branch.x1}
                 x2={branch.x2}
@@ -331,9 +407,46 @@ function TreeSVG({ tree }: { tree: BonsaiTree }) {
   );
 }
 
+function onWaterKeyDown(e: KeyboardEvent, waterFn: () => void) {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    waterFn();
+  }
+}
+
+function WaterableSVGContainer({
+  tree,
+  activeTool,
+}: {
+  tree: BonsaiTree;
+  activeTool: ActiveTool;
+}) {
+  const { waterTree } = useBonsai();
+  const isWatering = activeTool === "watering-can";
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => onWaterKeyDown(e, () => waterTree(tree.id)),
+    [tree.id, waterTree],
+  );
+
+  return (
+    <SVGContainer
+      aria-label={isWatering ? "Water the tree" : undefined}
+      onClick={isWatering ? () => waterTree(tree.id) : undefined}
+      onKeyDown={isWatering ? handleKeyDown : undefined}
+      role={isWatering ? "button" : undefined}
+      style={{ cursor: isWatering ? WATER_CURSOR : undefined }}
+      tabIndex={isWatering ? 0 : undefined}
+    >
+      <TreeSVG activeTool={activeTool} tree={tree} />
+    </SVGContainer>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function TreeView({ tree }: { tree: BonsaiTree | null }) {
+  const [activeTool, setActiveTool] = useState<ActiveTool>("pruning-shears");
+
   if (!tree) {
     return (
       <EmptyState>
@@ -344,6 +457,7 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
   }
 
   const config = SPECIES_CONFIG[tree.speciesId];
+  const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
 
   return (
     <TreeViewWrapper>
@@ -351,20 +465,52 @@ export function TreeView({ tree }: { tree: BonsaiTree | null }) {
         {config.emoji} {config.label}
       </TreeLabel>
 
-      <SVGContainer>
-        <TreeSVG tree={tree} />
-      </SVGContainer>
+      <ToolBar>
+        <ToolBtn
+          data-active={activeTool === "pruning-shears" || undefined}
+          onClick={() => setActiveTool("pruning-shears")}
+          title="Pruning Shears"
+          type="button"
+        >
+          <Scissors size={15} />
+          Pruning Shears
+        </ToolBtn>
+        <ToolBtn
+          data-active={activeTool === "watering-can" || undefined}
+          onClick={() => setActiveTool("watering-can")}
+          title="Watering Can"
+          type="button"
+        >
+          <Droplets size={15} />
+          Watering Can
+        </ToolBtn>
+      </ToolBar>
 
-      {tree.prunedBranches.length > 0 && (
+      <WaterableSVGContainer activeTool={activeTool} tree={tree} />
+
+      <WaterStatus data-watered={isWateredToday || undefined}>
+        <Droplets aria-hidden="true" size={13} />
+        {isWateredToday
+          ? "Watered today — tree will grow tomorrow"
+          : "Not watered today"}
+      </WaterStatus>
+
+      {activeTool === "watering-can" && !isWateredToday && (
+        <Hint>Click the tree to water it</Hint>
+      )}
+
+      {activeTool === "pruning-shears" && tree.prunedBranches.length > 0 && (
         <Hint>
           {tree.prunedBranches.length} branch
           {tree.prunedBranches.length > 1 ? "es" : ""} regrowing…
         </Hint>
       )}
 
-      {tree.activeDaysCount >= 5 && tree.prunedBranches.length === 0 && (
-        <Hint>Click any branch to prune it</Hint>
-      )}
+      {activeTool === "pruning-shears" &&
+        tree.activeDaysCount >= 5 &&
+        tree.prunedBranches.length === 0 && (
+          <Hint>Click any branch to prune it</Hint>
+        )}
 
       {/* Pot & Stand display */}
       <DisplayBase>
@@ -395,12 +541,59 @@ const TreeLabel = styled.h2`
   margin: 0;
 `;
 
+const ToolBar = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const ToolBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1.5px solid light-dark(#c8c0b4, #4a5060);
+  background: transparent;
+  color: light-dark(#6a6058, #a09888);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &[data-active] {
+    border-color: light-dark(#7a9e6a, #5a8a4a);
+    background: light-dark(#f0f5ed, #1e3020);
+    color: light-dark(#3a5a2a, #8ab870);
+    font-weight: 600;
+  }
+
+  &:hover:not([data-active]) {
+    background: light-dark(#f5f3f0, #2a3040);
+  }
+`;
+
 const SVGContainer = styled.div`
   width: 100%;
   background: light-dark(#f0ebe3, #3d6e99);
   border-radius: 12px;
   padding: 1rem;
   border: 1px solid light-dark(#d4c9b8, #5a8ab8);
+`;
+
+const WaterStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: light-dark(#9a8878, #7a8898);
+
+  &[data-watered] {
+    color: light-dark(#4a7a3a, #6ab860);
+  }
 `;
 
 const Hint = styled.p`
@@ -446,4 +639,12 @@ const EmptyState = styled.div`
 
 const EmptyEmoji = styled.span`
   font-size: 4rem;
+`;
+
+const SoilEllipse = styled.ellipse`
+  transition: fill 0.8s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;

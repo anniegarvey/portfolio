@@ -40,6 +40,7 @@ export interface BonsaiContextType {
   equipPot: (treeId: string, potId: PotId) => void;
   equipStand: (treeId: string, standId: StandId) => void;
   pruneBranch: (treeId: string, branchId: string) => void;
+  waterTree: (treeId: string) => void;
   advanceDay: () => void;
 }
 
@@ -117,25 +118,34 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
       // Clean regrown branches first
       let next = cleanRegrownBranches(loaded ?? createInitialState());
 
-      // Apply daily growth if energy planner was used today and we haven't grown yet
+      // Apply daily growth if energy planner was used today, tree was watered
+      // yesterday, and we haven't grown yet today.
       if (
         lastActiveDateEP === todayStr &&
         next.lastGrowthCheckDate !== todayStr &&
         next.activePlantedTreeId
       ) {
-        next = {
-          ...next,
-          trees: next.trees.map((tree) =>
-            tree.id === next.activePlantedTreeId
-              ? {
-                  ...tree,
-                  activeDaysCount: tree.activeDaysCount + 1,
-                  lastGrownDate: todayStr,
-                }
-              : tree,
-          ),
-          lastGrowthCheckDate: todayStr,
-        };
+        const activePlantedTree = next.trees.find(
+          (t) => t.id === next.activePlantedTreeId,
+        );
+        if (
+          activePlantedTree?.lastWateredDay ===
+          activePlantedTree?.activeDaysCount
+        ) {
+          next = {
+            ...next,
+            trees: next.trees.map((tree) =>
+              tree.id === next.activePlantedTreeId
+                ? {
+                    ...tree,
+                    activeDaysCount: tree.activeDaysCount + 1,
+                    lastGrownDate: todayStr,
+                  }
+                : tree,
+            ),
+            lastGrowthCheckDate: todayStr,
+          };
+        }
       }
 
       return next;
@@ -259,10 +269,29 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  const waterTree = useCallback(
+    (treeId: string) => {
+      setState((prev) => ({
+        ...prev,
+        trees: prev.trees.map((t) =>
+          t.id === treeId ? { ...t, lastWateredDay: t.activeDaysCount } : t,
+        ),
+      }));
+    },
+    [setState],
+  );
+
   const advanceDay = useCallback(() => {
     const todayStr = today();
     setState((prev) => {
       if (!prev.activePlantedTreeId) return prev;
+      const activeTree = prev.trees.find(
+        (t) => t.id === prev.activePlantedTreeId,
+      );
+      // Only grow if the tree was watered today (lastWateredDay matches current count).
+      // This lets the cheat button properly demonstrate the watering requirement.
+      if (activeTree?.lastWateredDay !== activeTree?.activeDaysCount)
+        return prev;
       return {
         ...prev,
         trees: prev.trees.map((t) =>
@@ -290,6 +319,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         equipPot,
         equipStand,
         pruneBranch,
+        waterTree,
         advanceDay,
       }}
     >

@@ -39,6 +39,7 @@ function BonsaiDebug() {
   return (
     <div>
       <span data-testid="day">{tree?.activeDaysCount ?? "none"}</span>
+      <span data-testid="watered">{tree?.lastWateredDay ?? "none"}</span>
       <span data-testid="pruned">{tree?.prunedBranches.length ?? 0}</span>
       <span data-testid="pot">{tree?.equippedPotId ?? "none"}</span>
       <span data-testid="stand">{tree?.equippedStandId ?? "none"}</span>
@@ -58,6 +59,9 @@ function BonsaiDebug() {
       <span data-testid="tree-count">{ctx.state.trees.length}</span>
       <button onClick={ctx.advanceDay} type="button">
         Advance
+      </button>
+      <button onClick={() => tree && ctx.waterTree(tree.id)} type="button">
+        Water
       </button>
       <button
         onClick={() => tree && ctx.pruneBranch(tree.id, "L0")}
@@ -148,11 +152,49 @@ describe("BonsaiProvider", () => {
     );
   });
 
-  it("advanceDay increments activeDaysCount", async () => {
+  it("advanceDay does not grow the tree if it has not been watered", async () => {
     renderBonsai();
     await waitFor(() =>
       expect(screen.getByTestId("day")).toHaveTextContent("0"),
     );
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    // Without watering, day count should remain 0
+    expect(screen.getByTestId("day")).toHaveTextContent("0");
+  });
+
+  it("advanceDay grows the tree and resets to unwatered when watered first", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+    // Water at day 0
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent("0"),
+    );
+    // Advance — tree was watered at day 0, so it grows
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+    // Watered state is now stale (lastWateredDay 0 ≠ activeDaysCount 1)
+    expect(screen.getByTestId("watered")).toHaveTextContent("0");
+  });
+
+  it("advanceDay increments activeDaysCount when tree is watered", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
     await act(async () => {
       screen.getByText("Advance").click();
     });
@@ -277,6 +319,20 @@ describe("BonsaiProvider", () => {
     );
   });
 
+  it("waterTree sets lastWateredDay to activeDaysCount on the active tree", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent("none"),
+    );
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
+    // Tree starts at day 0, so lastWateredDay should be 0
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent("0"),
+    );
+  });
+
   it("pruneBranch replacing an existing prune entry updates prunedAtDay", async () => {
     renderBonsai();
     await waitFor(() =>
@@ -289,10 +345,16 @@ describe("BonsaiProvider", () => {
     await waitFor(() =>
       expect(screen.getByTestId("pruned")).toHaveTextContent("1"),
     );
-    // Advance then prune the same branch again — count should stay at 1
+    // Water, advance to day 1, then prune the same branch again — count should stay at 1
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
     await act(async () => {
       screen.getByText("Advance").click();
     });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
     await act(async () => {
       screen.getByText("Prune L0").click();
     });
@@ -341,7 +403,10 @@ describe("BonsaiProvider", () => {
       expect(screen.getByTestId("day")).toHaveTextContent("0"),
     );
 
-    // Advance pine to day 1 so it has a distinct day count
+    // Advance pine to day 1 so it has a distinct day count (water first)
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
     await act(async () => {
       screen.getByText("Advance").click();
     });
@@ -388,8 +453,14 @@ describe("BonsaiProvider — daily growth check", () => {
     localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
   });
 
-  it("increments activeDaysCount when energy planner was used today", async () => {
+  it("increments activeDaysCount when energy planner was used today and tree was watered", async () => {
     localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+    const base = createInitialState();
+    // Tree starts at day 0; seed lastWateredDay: 0 (watered at current day)
+    seedLocalStorage({
+      ...base,
+      trees: [{ ...base.trees[0], lastWateredDay: 0 }],
+    });
 
     render(
       <BonsaiProvider>
@@ -399,6 +470,21 @@ describe("BonsaiProvider — daily growth check", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+  });
+
+  it("does not increment when tree was not watered", async () => {
+    localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+    // lastWateredDay is undefined (never watered)
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
     );
   });
 

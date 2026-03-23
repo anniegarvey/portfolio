@@ -55,6 +55,7 @@ export const BonsaiTreeSchema = z.object({
   speciesId: SpeciesIdSchema,
   activeDaysCount: z.number().int().min(0),
   lastGrownDate: z.string().optional(),
+  lastWateredDay: z.number().int().min(0).optional(),
   acquiredAt: z.string(),
   equippedPotId: PotIdSchema.optional(),
   equippedStandId: StandIdSchema.optional(),

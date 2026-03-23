@@ -21,9 +21,12 @@ test.describe("Bonsai Garden", () => {
     await expect(page.getByRole("link", { name: "Bonsai" })).toBeVisible();
   });
 
-  test("Advance Day button grows the tree", async ({ page }) => {
-    // Start at day 10 so branches and the pruning hint are visible
-    await goToBonsaiWithSeed(page, { activeDaysCount: 10 });
+  test("Advance Day button grows the tree when watered", async ({ page }) => {
+    // Start at day 10, already watered, so branches and the pruning hint are visible
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 10,
+      lastWateredDay: 10,
+    });
 
     await expect(page.getByText(/click any branch to prune it/i)).toBeVisible();
 
@@ -33,6 +36,60 @@ test.describe("Bonsai Garden", () => {
     await expect(
       page.getByRole("img", { name: /bonsai tree/i }).first(),
     ).toBeVisible();
+  });
+
+  test("watering can tool shows hint and marks tree as watered", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
+
+    // Tree starts unwatered
+    await expect(page.getByText("Not watered today")).toBeVisible();
+
+    // Select the watering can tool
+    await page.getByRole("button", { name: /watering can/i }).click();
+
+    // Hint should appear prompting the user to click the tree
+    await expect(page.getByText(/click the tree to water it/i)).toBeVisible();
+
+    // Click the tree to water it
+    await page
+      .getByRole("img", { name: /bonsai tree/i })
+      .first()
+      .click();
+
+    // Status should update to watered
+    await expect(page.getByText("Watered today")).toBeVisible();
+    await expect(page.getByText("Not watered today")).not.toBeVisible();
+  });
+
+  test("tree can be watered via keyboard when watering can is active", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
+
+    await page.getByRole("button", { name: /watering can/i }).click();
+
+    // Focus the SVG container and press Enter to water
+    await page.getByRole("button", { name: "Water the tree" }).focus();
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByText("Watered today")).toBeVisible();
+  });
+
+  test("Advance Day does nothing when tree has not been watered", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, { activeDaysCount: 5 });
+
+    // Advance Day without watering — day count should not change
+    await page.getByRole("button", { name: /advance day/i }).click();
+
+    // Tree remains visible and still shows "Not watered today"
+    await expect(
+      page.getByRole("img", { name: /bonsai tree/i }).first(),
+    ).toBeVisible();
+    await expect(page.getByText("Not watered today")).toBeVisible();
   });
 
   test("shop tab is visible and contains items with a Buy button", async ({
@@ -56,8 +113,12 @@ test.describe("Bonsai Garden", () => {
     // Switch to the Tools sub-tab
     await page.getByRole("tab", { name: "Tools" }).click();
 
-    // Buy the Watering Can (20 pts)
-    const wateringCanCard = page.locator("text=Watering Can").first();
+    // Buy the Watering Can (20 pts) — scope to the tab panel to avoid matching
+    // the "Watering Can" tool button in the tree toolbar
+    const wateringCanCard = page
+      .getByRole("tabpanel")
+      .locator("text=Watering Can")
+      .first();
     await wateringCanCard
       .locator("xpath=ancestor::*[2]")
       .getByRole("button", { name: "Buy" })
@@ -65,7 +126,9 @@ test.describe("Bonsai Garden", () => {
 
     // Check it appears in the Inventory tab
     await page.getByRole("tab", { name: "Inventory" }).click();
-    await expect(page.getByText("Watering Can")).toBeVisible();
+    await expect(
+      page.getByRole("tabpanel").getByText("Watering Can"),
+    ).toBeVisible();
   });
 
   test("clicking a branch prunes it and shows regrowth hint", async ({
