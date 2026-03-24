@@ -94,7 +94,9 @@ test.describe("Points System", () => {
   });
 
   test("awards 5 points when creating a new activity", async ({ page }) => {
-    await goToEnergyPlannerWithSeed(page, {dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },});
+    await goToEnergyPlannerWithSeed(page, {
+      dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },
+    });
     await createActivity(page, testActivity);
 
     await expect(pointsDisplay(page)).toContainText("5");

@@ -179,3 +179,37 @@ a {
     transform: translateX(0);
   }
 }
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll-triggered fade-in — controlled by FadeIn client component */
+.fade-in-element {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.6s ease-out var(--fade-delay, 0ms),
+    transform 0.6s ease-out var(--fade-delay, 0ms);
+}
+
+.fade-in-element[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-element,
+  .fade-in-element[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
