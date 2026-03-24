@@ -12,8 +12,6 @@ import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
 
-const CAPACITY_MODAL_SHOWN_KEY = "energy-planner-capacity-modal-shown";
-
 export function EnergyPlanner() {
   const { currentDate, dailyCapacity, isLoading } = useEnergyPlanner();
 
@@ -36,19 +34,13 @@ export function EnergyPlanner() {
 
   const viewingToday = isToday(currentDate);
 
-  // Auto-open capacity modal only once per session if visiting today with no capacities set.
-  // We use sessionStorage so retains the "shown" flag while the user navigates around
-  // but resets if they close the tab/window.
+  // Auto-open capacity modal if no capacities have been set yet for today
   useEffect(() => {
     if (isLoading || !viewingToday) return;
-
-    const alreadyShown = sessionStorage.getItem(CAPACITY_MODAL_SHOWN_KEY);
-    if (alreadyShown) return;
 
     const hasCapacities = Object.values(dailyCapacity).some((val) => val > 0);
     if (!hasCapacities) {
       setIsCapacityModalOpen(true);
-      sessionStorage.setItem(CAPACITY_MODAL_SHOWN_KEY, "1");
     }
   }, [viewingToday, dailyCapacity, isLoading]);
 
@@ -112,7 +104,6 @@ export function EnergyPlanner() {
         <EnergyCapacityModal
           isOpen={isCapacityModalOpen}
           onClose={() => {
-            sessionStorage.setItem(CAPACITY_MODAL_SHOWN_KEY, "1");
             setIsCapacityModalOpen(false);
           }}
         />

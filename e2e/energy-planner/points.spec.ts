@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "../utils/accessibility-test";
 import { createActivity, testActivity } from "../utils/activity-test-helpers";
 import {
+  DEFAULT_CAPACITY,
   mockOneOffActivity,
   mockPlannedInstance,
   mockStoredDayPlan,
@@ -79,6 +80,7 @@ test.describe("Points System", () => {
   }) => {
     await goToEnergyPlannerWithSeed(page, {
       activities: [mockOneOffActivity],
+      dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },
     });
 
     await page.getByRole("button", { name: "Manage Activities" }).click();
@@ -92,7 +94,7 @@ test.describe("Points System", () => {
   });
 
   test("awards 5 points when creating a new activity", async ({ page }) => {
-    await goToEnergyPlannerWithSeed(page, {});
+    await goToEnergyPlannerWithSeed(page, {dayPlans: { [TODAY]: { dailyCapacity: DEFAULT_CAPACITY } },});
     await createActivity(page, testActivity);
 
     await expect(pointsDisplay(page)).toContainText("5");

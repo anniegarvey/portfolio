@@ -64,22 +64,12 @@ export async function seedEnergyPlannerStorage(
 
 /**
  * Navigate to the energy planner with seeded state.
- *
- * Handles the auto-opening Daily Energy Capacity modal that appears on first
- * load: saves whatever capacity was seeded rather than fighting the modal.
  */
 export async function goToEnergyPlannerWithSeed(
   page: Page,
   data: SeedData,
 ): Promise<void> {
   await seedEnergyPlannerStorage(page, data);
-
-  // Suppress the auto-opening capacity modal. The app's effect checks
-  // sessionStorage on load. Setting it here (before reload) ensures it's
-  // present when React's useEffect runs after the seeded page loads.
-  await page.evaluate(() => {
-    sessionStorage.setItem("energy-planner-capacity-modal-shown", "1");
-  });
 
   await page.reload();
 }

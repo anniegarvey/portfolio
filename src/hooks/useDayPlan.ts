@@ -541,18 +541,22 @@ export function useDayPlan(
   );
 
   const navigateToDate = useCallback((date: string) => {
+    setIsLoading(true);
     setCurrentDate(date);
   }, []);
 
   const goToPreviousDay = useCallback(() => {
+    setIsLoading(true);
     setCurrentDate((prev) => getPreviousDay(prev));
   }, []);
 
   const goToNextDay = useCallback(() => {
+    setIsLoading(true);
     setCurrentDate((prev) => getNextDay(prev));
   }, []);
 
   const goToToday = useCallback(() => {
+    setIsLoading(true);
     setCurrentDate(getTodayDateString());
   }, []);
 

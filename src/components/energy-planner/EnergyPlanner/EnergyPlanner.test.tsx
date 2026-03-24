@@ -163,7 +163,6 @@ describe("EnergyPlanner", () => {
   });
 
   test("auto-opens capacity modal if viewing today and no capacity set", () => {
-    sessionStorage.clear();
     // Override standard mock to return no capacity
     (useEnergyPlanner as unknown as Mock).mockReturnValue({
       currentDate: new Date().toISOString().split("T")[0], // Today
