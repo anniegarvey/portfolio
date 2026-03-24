@@ -707,40 +707,55 @@ describe("useDayPlan", () => {
 
     it("projected instances maintain user-selected order across navigation away and back", async () => {
       // Regression: projected instances got a new random UUID on every load, so
-      // activityOrder entries never matched them — they were always appended at the
-      // end regardless of user-configured position. Now they use a deterministic ID
-      // (uuidv5 keyed on sourceActivityId + date) so order survives reloads.
+      // activityOrder entries never matched them — they were always appended at
+      // the end regardless of user-configured position. Now they use a
+      // deterministic ID (uuidv5 keyed on sourceActivityId + date) so order
+      // survives reloads.
+      //
+      // Two of each type are interleaved (p1, o1, p2, o2) to prevent the test
+      // from passing accidentally because one type happens to default to last.
       const today = new Date().toISOString().split("T")[0];
-      const repeatingActivity = {
-        ...mockActivity("rep-order", "Repeating Activity"),
+      const rep1 = {
+        ...mockActivity("rep-order-1", "Repeating 1"),
         repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
       } as const;
-      const oneOffActivity = mockActivity("oneoff-order", "One-off Activity");
-      const stableList = [repeatingActivity];
+      const rep2 = {
+        ...mockActivity("rep-order-2", "Repeating 2"),
+        repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
+      } as const;
+      const oneOff1 = mockActivity("oneoff-order-1", "One-off 1");
+      const oneOff2 = mockActivity("oneoff-order-2", "One-off 2");
+      const stableList = [rep1, rep2];
 
       const { result } = renderHook(() => useDayPlan(stableList));
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      // Add the one-off; projected repeating instance is already present
+      // Add one-offs; both projected repeating instances are already present
       await act(async () => {
-        result.current.addActivityToDayPlan(oneOffActivity);
+        result.current.addActivityToDayPlan(oneOff1);
+        result.current.addActivityToDayPlan(oneOff2);
       });
 
-      const projectedId = result.current.dayPlan.plannedInstances.find(
-        (i) => i.sourceActivityId === "rep-order",
-      )?.id;
-      const oneOffId = result.current.dayPlan.plannedInstances.find(
-        (i) => i.sourceActivityId === "oneoff-order",
-      )?.id;
-      if (!projectedId || !oneOffId) throw new Error("Missing instances");
+      const getId = (sourceId: string) =>
+        result.current.dayPlan.plannedInstances.find(
+          (i) => i.sourceActivityId === sourceId,
+        )?.id;
 
-      // Reorder: one-off first, projected second
+      const p1Id = getId("rep-order-1");
+      const p2Id = getId("rep-order-2");
+      const o1Id = getId("oneoff-order-1");
+      const o2Id = getId("oneoff-order-2");
+      if (!(p1Id && p2Id && o1Id && o2Id)) throw new Error("Missing instances");
+
+      // Interleave: projected, one-off, projected, one-off
       await act(async () => {
-        result.current.reorderPlannedActivities([oneOffId, projectedId]);
+        result.current.reorderPlannedActivities([p1Id, o1Id, p2Id, o2Id]);
       });
       expect(result.current.dayPlan.plannedInstances.map((i) => i.id)).toEqual([
-        oneOffId,
-        projectedId,
+        p1Id,
+        o1Id,
+        p2Id,
+        o2Id,
       ]);
 
       // Simulate a reload by navigating away then back
@@ -754,11 +769,14 @@ describe("useDayPlan", () => {
       });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      // Order must be preserved: one-off first, projected second
-      const reloadedIds = result.current.dayPlan.plannedInstances.map(
-        (i) => i.id,
-      );
-      expect(reloadedIds).toEqual([oneOffId, projectedId]);
+      // Interleaved order must survive: projected instances must not have
+      // collapsed to the end (which would happen with random UUIDs)
+      expect(result.current.dayPlan.plannedInstances.map((i) => i.id)).toEqual([
+        p1Id,
+        o1Id,
+        p2Id,
+        o2Id,
+      ]);
     });
 
     it("skipping a daily activity with a past nextDueDate sets nextDueDate to tomorrow, not past date + 1", async () => {
