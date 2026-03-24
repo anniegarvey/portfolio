@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
 import type {
   Activity,
   DayPlan,
@@ -53,6 +53,14 @@ function checkIsActivityDue(activity: Activity, date: string): boolean {
     return years % frequency === 0;
   }
   return false;
+}
+
+// UUID v5 URL namespace — gives projected instances a stable, deterministic ID
+// so activityOrder entries survive page reloads.
+const PROJECTED_INSTANCE_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+
+function projectedInstanceId(sourceActivityId: string, date: string): string {
+  return uuidv5(`${sourceActivityId}:${date}`, PROJECTED_INSTANCE_NAMESPACE);
 }
 
 /**
@@ -178,7 +186,7 @@ export function useDayPlan(
         .filter((ra) => isActivityDueOnDate(ra, currentDate))
         .map(
           (ra): PlannedInstance => ({
-            id: uuidv4(),
+            id: projectedInstanceId(ra.id, currentDate),
             sourceActivityId: ra.id,
             zoneId: ra.repeatConfig?.defaultZoneId,
             completed: false,
