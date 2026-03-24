@@ -25,7 +25,7 @@ test.describe("Energy Types - Stats", () => {
     page,
     makeAxeBuilder,
   }) => {
-    const usageSummary = page.getByRole("heading", {
+    const usageSummary = page.getByRole("table", {
       name: "Energy Usage vs Capacity",
     });
     await expect(usageSummary).toBeVisible();

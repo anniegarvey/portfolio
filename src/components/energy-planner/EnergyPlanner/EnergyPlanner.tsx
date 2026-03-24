@@ -86,12 +86,11 @@ export function EnergyPlanner() {
       <PageHeader>
         <PageTitle>Energy Planner</PageTitle>
         <ImportExport />
+        <p>
+          Plan your day according to your energy levels. Based on extended Spoon
+          Theory.
+        </p>
       </PageHeader>
-
-      <p>
-        Plan your day according to your energy levels. Based on extended Spoon
-        Theory.
-      </p>
 
       <Layout>
         {/* DateSelector is now a property passed down or rendered inside DayPlanner per design */}
@@ -126,5 +125,5 @@ const Layout = styled.div`
   display: flex;
   gap: 32px;
   flex-direction: column;
-  padding-block: 32px;
+  padding-block: 16px;
 `;

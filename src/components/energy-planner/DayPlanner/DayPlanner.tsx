@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Pencil, Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
@@ -258,8 +259,18 @@ export function DayPlanner({
       </Header>
 
       <UsageSection>
-        <UsageHeader>Energy Usage vs Capacity</UsageHeader>
-        <UsageGrid>
+        <VisuallyHidden asChild>
+          <caption>Energy Usage vs Capacity</caption>
+        </VisuallyHidden>
+        <VisuallyHidden asChild>
+          <thead>
+            <tr>
+              <th scope="col">Energy Type</th>
+              <th scope="col">Usage</th>
+            </tr>
+          </thead>
+        </VisuallyHidden>
+        <tbody>
           {energyTypes.map((type) => {
             const used = usage[type.id] || 0;
             const cap = dailyCapacity[type.id] || 0;
@@ -271,22 +282,24 @@ export function DayPlanner({
             return (
               <UsageRow key={type.id}>
                 <UsageLabel>{type.label}</UsageLabel>
-                <Track>
-                  {/* Capacity bar — subtler, behind usage */}
-                  <CapacityFill
-                    $color={type.color}
-                    $percent={capacityPercent}
-                  />
-                  {/* Usage bar — solid, on top */}
-                  <Fill $color={type.color} $percent={usagePercent} />
-                </Track>
-                <UsageText $isOver={isOver}>
-                  {used} / {cap}
-                </UsageText>
+                <UsageValue>
+                  <Track>
+                    {/* Capacity bar — subtler, behind usage */}
+                    <CapacityFill
+                      $color={type.color}
+                      $percent={capacityPercent}
+                    />
+                    {/* Usage bar — solid, on top */}
+                    <Fill $color={type.color} $percent={usagePercent} />
+                  </Track>
+                  <UsageText $isOver={isOver}>
+                    {used} / {cap}
+                  </UsageText>
+                </UsageValue>
               </UsageRow>
             );
           })}
-        </UsageGrid>
+        </tbody>
       </UsageSection>
 
       {viewingToday && warning.exceeded ? (
@@ -389,37 +402,33 @@ const DateSelectorRow = styled.div`
   margin-bottom: 8px;
 `;
 
-const UsageSection = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 16px;
+const UsageSection = styled.table`
   isolation: isolate;
 `;
 
-const UsageHeader = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: light-dark(var(--color-grey-700), var(--color-grey-300));
-`;
-
-const UsageGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const UsageRow = styled.div`
+const UsageRow = styled.tr`
   display: flex;
   align-items: center;
   gap: 12px;
+  
+  &:not(:last-child) {
+    margin-bottom: 12px;
+  }
 `;
 
-const UsageLabel = styled.div`
+const UsageLabel = styled.td`
+  display: inline-block;
   width: 80px;
   font-size: 0.875rem;
   font-weight: 500;
   color: light-dark(var(--color-grey-600), var(--color-grey-300));
+`;
+
+const UsageValue = styled.td`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
 `;
 
 const Track = styled.div`
@@ -507,14 +516,13 @@ const Container = styled.section`
 
 const Header = styled.div`
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 8px;
+  gap: 8px;
 
-  h2 {
-    color: light-dark(var(--color-grey-900), var(--color-grey-50));
+  @media (${QUERIES.TABLET_UP}) {
+    flex-direction: row;
   }
 `;
 
