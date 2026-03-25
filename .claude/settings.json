@@ -1,5 +1,29 @@
 {
   "enabledPlugins": {
     "playwright-skill@playwright-skill": true
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f .port ] && lsof -ti:$(cat .port) 2>/dev/null | xargs -r kill || true"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f .port ] && lsof -ti:$(cat .port) 2>/dev/null | xargs -r kill || true"
+          }
+        ]
+      }
+    ]
   }
 }
