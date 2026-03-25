@@ -215,7 +215,7 @@ const HeroTitle = styled.h1`
   font-size: clamp(3rem, 8vw, 5rem);
   font-weight: 700;
   line-height: 1;
-  animation: fadeSlideUp 0.6s var(--ease-out) 0ms both;
+  animation: fadeSlideUp 0.6s var(--ease-out) 200ms both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -228,7 +228,7 @@ const HeroSubtitle = styled.p`
   color: var(--color-primary-300);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  animation: fadeSlideUp 0.6s var(--ease-out) 100ms both;
+  animation: fadeSlideUp 0.8s var(--ease-out) 400ms both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -239,7 +239,7 @@ const HeroTagline = styled.p`
   font-size: 1.1rem;
   line-height: 1.6;
   color: var(--color-primary-200);
-  animation: fadeSlideUp 0.6s var(--ease-out) 200ms both;
+  animation: fadeSlideUp 0.8s var(--ease-out) 600ms both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -250,7 +250,7 @@ const ContactLinks = styled.div`
   display: flex;
   gap: 16px;
   margin-top: 8px;
-  animation: fadeSlideUp 0.6s var(--ease-out) 300ms both;
+  animation: fadeSlideUp 0.8s var(--ease-out) 800ms both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -266,7 +266,7 @@ const ContactLink = styled.a`
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-primary-950);
-  background-color: var(--color-primary-300);
+  background-color: var(--color-primary-200);
   text-decoration: none;
   transition:
     background-color 0.2s var(--ease-out),
@@ -283,7 +283,7 @@ const HeroImage = styled(Image)`
   max-height: clamp(100px, 50vw, 66vh);
   filter: drop-shadow(2px 4px 32px rgba(0, 0, 0, 0.8));
   object-fit: contain;
-  animation: fadeSlideUp 0.6s var(--ease-out) 150ms both;
+  animation: fadeSlideUp 1s var(--ease-out) 10ms both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
