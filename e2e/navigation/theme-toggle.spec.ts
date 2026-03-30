@@ -132,7 +132,8 @@ test.describe("Theme Toggle", () => {
     ).toBeVisible();
   });
 
-  test("meets accessibility standards", async ({ makeAxeBuilder }) => {
+  test("meets accessibility standards", async ({ page, makeAxeBuilder }) => {
+    await page.waitForTimeout(1000); // Wait for loading animations to complete
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   });
@@ -151,6 +152,7 @@ test.describe("Theme Toggle", () => {
       .first()
       .click();
 
+    await page.waitForTimeout(1000); // Wait for loading animations to complete
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   });
