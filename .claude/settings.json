@@ -3,7 +3,7 @@
     "playwright-skill@playwright-skill": true
   },
   "hooks": {
-    "Stop": [
+    "SessionEnd": [
       {
         "matcher": "",
         "hooks": [
