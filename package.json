@@ -58,7 +58,6 @@
     "jsdom": "27.4.0",
     "new-component": "6.0.0",
     "next-yak": "9.1.0",
-    "ngrok": "5.0.0-beta.2",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
   }
