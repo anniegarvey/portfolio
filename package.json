@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "PORT=$(node scripts/pick-port.js) next dev",
     "build": "next build",
     "start": "next start",
     "lint": "biome check --error-on-warnings",
     "format": "biome format --write",
     "test": "vitest run",
     "prepare": "husky",
-    "ngrok": "ngrok http 3000",
+    "ngrok": "ngrok http $(cat .port 2>/dev/null || echo 3000)",
     "validate": "tsc --noEmit && pnpm lint --fix && pnpm test && pnpm playwright test"
   },
   "dependencies": {
@@ -58,7 +58,6 @@
     "jsdom": "27.4.0",
     "new-component": "6.0.0",
     "next-yak": "9.1.0",
-    "ngrok": "5.0.0-beta.2",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
   }
