@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f .port ] && lsof -ti:$(cat .port) 2>/dev/null | xargs -r kill || true"
+            "command": "[ -f .port ] && PORT=$(cat .port) && PID=$(ss -tlnp \"sport = :$PORT\" 2>/dev/null | grep -oP 'pid=\\K[0-9]+' | head -1) && [ -n \"$PID\" ] && kill -- -$(ps -o pgid= -p $PID 2>/dev/null | tr -d ' ') 2>/dev/null || true"
           }
         ]
       }
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f .port ] && lsof -ti:$(cat .port) 2>/dev/null | xargs -r kill || true"
+            "command": "[ -f .port ] && PORT=$(cat .port) && PID=$(ss -tlnp \"sport = :$PORT\" 2>/dev/null | grep -oP 'pid=\\K[0-9]+' | head -1) && [ -n \"$PID\" ] && kill -- -$(ps -o pgid= -p $PID 2>/dev/null | tr -d ' ') 2>/dev/null || true"
           }
         ]
       }
