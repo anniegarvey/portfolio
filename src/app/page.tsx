@@ -330,8 +330,8 @@ const ContactLink = styled.a`
   border-radius: 6px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-grey-950);
-  background-color: var(--color-orange-400);
+  color: var(--color-primary-950);
+  background-color: var(--color-primary-200);
   text-decoration: none;
   transition:
     filter 0.2s var(--ease-out),
