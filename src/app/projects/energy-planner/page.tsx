@@ -72,6 +72,8 @@ export default function EnergyPlannerProjectPage() {
         "Claude Code",
       ]}
       title="Energy Planner"
+      headerColor="oklch(28.3% 0.141 291.089)"
+      accentColor="oklch(81.1% 0.111 293.571)"
     />
   );
 }

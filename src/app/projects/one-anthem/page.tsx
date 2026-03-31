@@ -63,6 +63,8 @@ export default function OneAnthemProjectPage() {
         "Scripting",
       ]}
       title="One Anthem"
+      headerColor="oklch(27.7% 0.046 192.524)"
+      accentColor="oklch(85.5% 0.138 181.071)"
     />
   );
 }

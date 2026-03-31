@@ -69,6 +69,8 @@ export default function BonsaiProjectPage() {
         "localStorage",
       ]}
       title="Bonsai Garden"
+      headerColor="oklch(26.2% 0.051 172.552)"
+      accentColor="oklch(71.37% 0.118 144.54)"
     />
   );
 }

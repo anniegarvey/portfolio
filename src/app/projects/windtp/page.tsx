@@ -55,6 +55,8 @@ export default function WindTPProjectPage() {
         "UI Customisation",
       ]}
       title="WindTP"
+      headerColor="oklch(26.6% 0.079 36.259)"
+      accentColor="oklch(83.7% 0.128 66.29)"
     />
   );
 }
