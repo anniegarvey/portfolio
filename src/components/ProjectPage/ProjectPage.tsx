@@ -1,8 +1,8 @@
-import type React from "react";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
+import type React from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { QUERIES } from "@/lib/constants";

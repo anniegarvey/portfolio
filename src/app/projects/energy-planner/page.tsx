@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default function EnergyPlannerProjectPage() {
   return (
     <ProjectPage
+      accentColor="oklch(81.1% 0.111 293.571)"
       description={
         <>
           <p>
@@ -46,6 +47,7 @@ export default function EnergyPlannerProjectPage() {
           </p>
         </>
       }
+      headerColor="oklch(28.3% 0.141 291.089)"
       highlights={[
         "First major project built primarily with AI coding agents",
         "Explored the balance between directing vs delegating to an AI agent",
@@ -72,8 +74,6 @@ export default function EnergyPlannerProjectPage() {
         "Claude Code",
       ]}
       title="Energy Planner"
-      headerColor="oklch(28.3% 0.141 291.089)"
-      accentColor="oklch(81.1% 0.111 293.571)"
     />
   );
 }
