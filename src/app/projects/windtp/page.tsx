@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default function WindTPProjectPage() {
   return (
     <ProjectPage
+      accentColor="oklch(83.7% 0.128 66.29)"
       description={
         <>
           <p>
@@ -35,6 +36,7 @@ export default function WindTPProjectPage() {
           </p>
         </>
       }
+      headerColor="oklch(26.6% 0.079 36.259)"
       highlights={[
         "Investor-facing site — quality and professionalism were paramount",
         "Significant theme customisation beyond the design system's original scope",

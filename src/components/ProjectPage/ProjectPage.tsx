@@ -2,6 +2,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
+import type React from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { QUERIES } from "@/lib/constants";
@@ -26,6 +27,17 @@ export interface ProjectPageProps {
   imageAlt?: string;
   /** Gradient for the first section visual when no screenshot is available */
   placeholderGradient?: string;
+  /**
+   * Dark background colour for the project header.
+   * Defaults to --color-primary-950 (deep violet).
+   */
+  headerColor?: string;
+  /**
+   * Light accent colour used for the back-link, highlight arrows,
+   * and "Tech & Tools" heading.
+   * Defaults to --color-primary-400.
+   */
+  accentColor?: string;
 }
 
 export function ProjectPage({
@@ -40,9 +52,18 @@ export function ProjectPage({
   imageSrc,
   imageAlt,
   placeholderGradient = "linear-gradient(135deg, var(--color-primary-950) 0%, var(--color-secondary-950) 100%)",
+  headerColor = "var(--color-primary-950)",
+  accentColor = "var(--color-primary-400)",
 }: ProjectPageProps) {
   return (
-    <article>
+    <article
+      style={
+        {
+          "--project-header-bg": headerColor,
+          "--project-accent": accentColor,
+        } as React.CSSProperties
+      }
+    >
       {/* ── Header ────────────────────────────────────────────────── */}
       <ProjectHeader>
         <MaxWidthWrapper padding="48px">
@@ -136,9 +157,13 @@ export function ProjectPage({
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 const ProjectHeader = styled.div`
-  background-color: var(--color-primary-950);
+  background-color: var(--project-header-bg, var(--color-primary-950));
   color: var(--color-primary-100);
-  padding-block: 56px;
+  padding-top: 56px;
+  /* Extra bottom padding to accommodate the diagonal wave clip */
+  padding-bottom: calc(56px + 56px);
+  /* Diagonal wave: full-height on the left, 56px short on the right */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 56px), 0 100%);
 `;
 
 const BackLink = styled(Link)`
@@ -146,7 +171,7 @@ const BackLink = styled(Link)`
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
-  color: var(--color-primary-400);
+  color: var(--project-accent, var(--color-primary-400));
   text-decoration: none;
   margin-bottom: 32px;
   transition: color 0.2s;
@@ -168,7 +193,7 @@ const ProjectSubtitle = styled.p`
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-primary-400);
+  color: var(--project-accent, var(--color-primary-400));
   animation: fadeSlideUp 0.5s var(--ease-out) 0ms both;
 
   @media (prefers-reduced-motion: reduce) {
@@ -208,8 +233,8 @@ const LiveLink = styled.a`
   border-radius: 6px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-primary-950);
-  background-color: var(--color-primary-300);
+  color: var(--color-grey-950);
+  background-color: var(--project-accent, var(--color-primary-300));
   text-decoration: none;
   width: fit-content;
   margin-top: 8px;
@@ -223,7 +248,7 @@ const LiveLink = styled.a`
   }
 
   &:hover {
-    background-color: var(--color-primary-100);
+    filter: brightness(1.15);
     transform: translateY(-2px);
   }
 `;
@@ -231,7 +256,10 @@ const LiveLink = styled.a`
 // ─── Content sections ─────────────────────────────────────────────────────────
 
 const ContentSection = styled.section`
-  padding-block: 80px;
+  padding-top: calc(80px + 56px); /* compensate for header wave overlap */
+  padding-bottom: 80px;
+  margin-top: -56px;
+  position: relative;
   background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
 `;
 
@@ -318,7 +346,7 @@ const HighlightItem = styled.li`
     content: "→";
     position: absolute;
     left: 0;
-    color: var(--color-primary-500);
+    color: var(--project-accent, var(--color-primary-500));
     font-weight: 700;
   }
 `;
@@ -331,8 +359,8 @@ const TagsVisual = styled.div`
   border-radius: 12px;
   background: linear-gradient(
     135deg,
-    var(--color-primary-950) 0%,
-    var(--color-secondary-950) 100%
+    var(--project-header-bg, var(--color-primary-950)) 0%,
+    color-mix(in oklch, var(--project-header-bg, var(--color-primary-950)) 60%, var(--color-secondary-950) 40%) 100%
   );
   padding: 32px;
   display: flex;
@@ -346,7 +374,7 @@ const TagsVisualHeading = styled.p`
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-primary-400);
+  color: var(--project-accent, var(--color-primary-400));
 `;
 
 const TagsGrid = styled.ul`

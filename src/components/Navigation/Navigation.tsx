@@ -135,6 +135,24 @@ const Header = styled.header`
   border-bottom: 1px solid var(--color-grey-700);
   position: relative;
   align-items: center;
+
+  /* Rainbow brand accent line along the top */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      var(--color-primary-400),
+      var(--color-teal-400),
+      var(--color-secondary-400),
+      var(--color-orange-400),
+      var(--color-rose-400)
+    );
+  }
 `;
 
 const Side = styled.div`

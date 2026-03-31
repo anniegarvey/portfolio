@@ -2,6 +2,7 @@ import { Github, Linkedin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
+import type React from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { QUERIES } from "@/lib/constants";
@@ -15,28 +16,40 @@ const projects = [
     title: "Energy Planner",
     description:
       "An extended spoon theory tool for managing daily energy and activities",
-    color: "oklch(28.3% 0.141 291.089)",
+    // Lightened to primary-700→500; diagonal planner-grid pattern on top
+    background:
+      "repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 16px), linear-gradient(135deg, oklch(49.1% 0.27 292.581) 0%, oklch(60.6% 0.25 292.717) 100%)",
+    accent: "oklch(81.1% 0.111 293.571)", // primary-300
   },
   {
     slug: "bonsai",
     title: "Bonsai Garden",
     description:
       "A gamified bonsai growing simulation with realistic procedural tree generation",
-    color: "oklch(26.2% 0.051 172.552)",
+    // Secondary green-700→500; scattered dot pattern (organic/earthy)
+    background:
+      "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(135deg, oklch(51.02% 0.143 144.23) 0%, oklch(60.41% 0.161 144.17) 100%)",
+    accent: "oklch(71.37% 0.118 144.54)", // secondary-300
   },
   {
     slug: "one-anthem",
     title: "One Anthem",
     description:
       "A multilingual song of unity created in response to the invasion of Ukraine",
-    color: "oklch(27.7% 0.046 192.524)",
+    // Teal-700→500; horizontal staff-line pattern (music)
+    background:
+      "repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 20px), linear-gradient(135deg, oklch(51.1% 0.096 186.391) 0%, oklch(70.4% 0.14 182.503) 100%)",
+    accent: "oklch(85.5% 0.138 181.071)", // teal-300
   },
   {
     slug: "windtp",
     title: "WindTP",
     description:
       "A WordPress site for a wind energy startup — still live today",
-    color: "oklch(26.6% 0.079 36.259)",
+    // Orange-700→500; diagonal ray pattern (wind turbine)
+    background:
+      "repeating-linear-gradient(60deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 20px), linear-gradient(135deg, oklch(55.3% 0.195 38.402) 0%, oklch(70.5% 0.213 47.604) 100%)",
+    accent: "oklch(83.7% 0.128 66.29)", // orange-300
   },
 ] as const;
 
@@ -72,18 +85,20 @@ export default function Home() {
             </ContactLink>
           </ContactLinks>
         </HeroContent>
-        <HeroImage
-          alt="Annie — independent, curious, professional"
-          height={550}
-          src="/IndependentCuriousProfessional.png"
-          width={550}
-        />
+        <HeroImageWrapper>
+          <HeroImage
+            alt="Annie — independent, curious, professional"
+            height={550}
+            src="/IndependentCuriousProfessional.png"
+            width={550}
+          />
+        </HeroImageWrapper>
       </Hero>
 
       <AboutSection>
         <MaxWidthWrapper padding="48px">
           <FadeIn>
-            <SectionTitle>About Me</SectionTitle>
+            <SectionTitle data-ghost="About Me">About Me</SectionTitle>
           </FadeIn>
           <AboutRows>
             <FadeIn>
@@ -148,8 +163,32 @@ export default function Home() {
                     by Josh Comeau.
                   </p>
                 </AboutText>
-                {/* TODO: replace with a real image */}
-                <AboutImagePlaceholder aria-hidden="true" />
+                <HobbyBoard>
+                  <HobbyChip $bg="var(--color-rose-400)" $rotate="-2deg">
+                    🎵 Singing
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-teal-500)" $rotate="1.5deg">
+                    🛶 Kayaking
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-orange-400)" $rotate="-1deg">
+                    🍰 Baking
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-secondary-500)" $rotate="2deg">
+                    ☘️ Irish Heritage
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-primary-500)" $rotate="-1.5deg">
+                    🐉 Sci-fi & Fantasy
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-teal-600)" $rotate="1deg">
+                    🌍 Environment
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-rose-500)" $rotate="2.5deg">
+                    🕺 Dancing
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-secondary-600)" $rotate="-2deg">
+                    🧁 Crafts
+                  </HobbyChip>
+                </HobbyBoard>
               </AboutRow>
             </FadeIn>
           </AboutRows>
@@ -159,15 +198,20 @@ export default function Home() {
       <ProjectsSection>
         <MaxWidthWrapper padding="48px">
           <FadeIn>
-            <SectionTitle>Projects</SectionTitle>
+            <SectionTitle data-ghost="Projects">Projects</SectionTitle>
           </FadeIn>
         </MaxWidthWrapper>
         <ProjectsGrid>
           {projects.map((project, i) => (
             <FadeIn delay={i * 80} key={project.slug}>
-              <ProjectCard href={`/projects/${project.slug}`}>
+              <ProjectCard
+                href={`/projects/${project.slug}`}
+                style={
+                  { "--project-accent": project.accent } as React.CSSProperties
+                }
+              >
                 {/* TODO: replace with screenshot — public/projects/{slug}.png */}
-                <ProjectBackground style={{ background: project.color }} />
+                <ProjectBackground style={{ background: project.background }} />
                 <ProjectOverlay>
                   <ProjectCardTitle>{project.title}</ProjectCardTitle>
                   <ProjectCardDescription>
@@ -195,6 +239,25 @@ const Hero = styled.section`
   background-color: var(--color-primary-950);
   color: var(--color-primary-100);
   overflow: clip;
+  position: relative;
+
+  /* Animated aurora gradient mesh */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -50%;
+    background:
+      radial-gradient(ellipse at 20% 80%, oklch(43.2% 0.232 292.759 / 0.7) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 20%, oklch(35.88% 0.114 144.5 / 0.5) 0%, transparent 55%),
+      radial-gradient(ellipse at 60% 55%, oklch(38.6% 0.063 188.416 / 0.4) 0%, transparent 50%);
+    animation: aurora 14s ease-in-out infinite alternate;
+    z-index: 0;
+    pointer-events: none;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
 
   @media (${QUERIES.TABLET_UP}) {
     flex-direction: row;
@@ -208,6 +271,8 @@ const HeroContent = styled.div`
   flex-direction: column;
   gap: 16px;
   max-width: 55ch;
+  position: relative;
+  z-index: 1;
 `;
 
 const HeroTitle = styled.h1`
@@ -226,7 +291,7 @@ const HeroSubtitle = styled.p`
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--color-primary-300);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   animation: fadeSlideUp 0.8s var(--ease-out) 400ms both;
 
@@ -265,16 +330,38 @@ const ContactLink = styled.a`
   border-radius: 6px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-primary-950);
-  background-color: var(--color-primary-200);
+  color: var(--color-grey-950);
+  background-color: var(--color-orange-400);
   text-decoration: none;
   transition:
-    background-color 0.2s var(--ease-out),
+    filter 0.2s var(--ease-out),
     transform 0.2s var(--ease-out);
 
   &:hover {
-    background-color: var(--color-primary-100);
+    filter: brightness(1.12);
     transform: translateY(-2px);
+  }
+`;
+
+/**
+ * Wrapper carries the float animation and is nudged 12 px downward so
+ * the image base always sits at or below the Hero clip boundary.
+ * float peak = translateY(-12px) → base exactly at the boundary.
+ * float trough = translateY(0)   → base 12 px below (clipped by overflow:clip).
+ */
+const HeroImageWrapper = styled.div`
+  position: relative;
+  z-index: 1;
+  margin-bottom: -12px;
+  animation: float 5s ease-in-out 1.2s infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    margin-bottom: 0;
+  }
+
+  @media (${QUERIES.TABLET_UP}) {
+    margin-right: -48px;
   }
 `;
 
@@ -288,17 +375,17 @@ const HeroImage = styled(Image)`
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
-
-  @media (${QUERIES.TABLET_UP}) {
-    margin-right: -48px;
-  }
 `;
 
 // ─── About ────────────────────────────────────────────────────────────────────
 
 const AboutSection = styled.section`
-  padding-block: 80px;
+  padding-top: calc(80px + 60px);
+  padding-bottom: 80px;
   background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
+  /* Diagonal slash from Hero: high on left, low on right */
+  clip-path: polygon(0 0, 100% 60px, 100% 100%, 0 100%);
+  margin-top: -60px;
 `;
 
 const SectionTitle = styled.h2`
@@ -307,6 +394,25 @@ const SectionTitle = styled.h2`
   font-weight: 700;
   margin-bottom: 48px;
   color: light-dark(var(--color-primary-800), var(--color-primary-300));
+  position: relative;
+
+  /* Giant ghost watermark behind the heading */
+  &::before {
+    content: attr(data-ghost);
+    position: absolute;
+    top: 50%;
+    left: -0.05em;
+    transform: translateY(-50%);
+    font-family: var(--font-tangerine), cursive;
+    font-size: clamp(8rem, 22vw, 18rem);
+    font-weight: 700;
+    line-height: 1;
+    color: light-dark(var(--color-primary-700), var(--color-primary-300));
+    opacity: 0.055;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 0;
+  }
 `;
 
 const AboutRows = styled.div`
@@ -345,10 +451,12 @@ const AboutText = styled.div`
 `;
 
 const AboutSubtitle = styled.h3`
-  font-size: 1.4rem;
+  font-family: var(--font-tangerine), cursive;
+  font-size: 2.2rem;
   font-weight: 700;
   color: light-dark(var(--color-primary-800), var(--color-primary-300));
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+  line-height: 1.1;
 `;
 
 const AboutImageWrapper = styled.div`
@@ -360,29 +468,52 @@ const AboutImageWrapper = styled.div`
   }
 `;
 
-const AboutImagePlaceholder = styled.div`
+const HobbyBoard = styled.div`
   flex: 0 0 auto;
   width: min(320px, 100%);
-  height: 320px;
-  border-radius: 12px;
-  background: linear-gradient(
-    135deg,
-    var(--color-teal-800) 0%,
-    var(--color-secondary-800) 100%
-  );
-  opacity: 0.8;
+  min-height: 280px;
+  border-radius: 16px;
+  background: light-dark(var(--color-grey-100), var(--color-grey-900));
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-content: center;
 
   @media (${QUERIES.TABLET_UP}) {
     width: 340px;
-    height: 340px;
+  }
+`;
+
+const HobbyChip = styled.span<{ $bg: string; $rotate: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  background: ${({ $bg }) => $bg};
+  transform: rotate(${({ $rotate }) => $rotate});
+  transition: transform 0.2s var(--ease-out);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+  &:hover {
+    transform: rotate(0deg) scale(1.06);
   }
 `;
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
 const ProjectsSection = styled.section`
+  padding-top: 60px;
   padding-bottom: 80px;
   background-color: light-dark(var(--color-grey-100), var(--color-grey-900));
+  /* Opposite diagonal from About: low on left, high on right */
+  clip-path: polygon(0 60px, 100% 0, 100% 100%, 0 100%);
+  margin-top: -60px;
 `;
 
 const ProjectsGrid = styled.div`
@@ -410,32 +541,13 @@ const ProjectOverlay = styled.div`
   align-items: center;
   text-align: center;
   padding: 32px;
-  background-color: rgba(0, 0, 0, 0.35);
-  transition: background-color 0.3s var(--ease-out);
-`;
-
-const ProjectCard = styled(Link)`
-  position: relative;
-  display: block;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  text-decoration: none;
-  color: white;
-
-  &:hover ${ProjectBackground},
-  &:focus-visible ${ProjectBackground} {
-    transform: scale(1.07);
-  }
-
-  &:hover ${ProjectOverlay},
-  &:focus-visible ${ProjectOverlay} {
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-
-  &:focus-visible {
-    outline: 3px solid var(--color-primary-400);
-    outline-offset: -3px;
-  }
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.65) 0%,
+    rgba(0, 0, 0, 0.15) 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+  transition: background 0.3s var(--ease-out);
 `;
 
 const ProjectCardTitle = styled.h3`
@@ -451,4 +563,56 @@ const ProjectCardDescription = styled.p`
   color: rgba(255, 255, 255, 0.9);
   max-width: 32ch;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out);
+`;
+
+const ProjectCard = styled(Link)`
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  text-decoration: none;
+  color: white;
+
+  /* Per-project coloured accent bar */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--project-accent);
+    z-index: 2;
+  }
+
+  &:hover ${ProjectBackground},
+  &:focus-visible ${ProjectBackground} {
+    transform: scale(1.07);
+  }
+
+  &:hover ${ProjectOverlay},
+  &:focus-visible ${ProjectOverlay} {
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.08) 50%,
+      rgba(0, 0, 0, 0.05) 100%
+    );
+  }
+
+  &:hover ${ProjectCardDescription},
+  &:focus-visible ${ProjectCardDescription} {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--color-primary-400);
+    outline-offset: -3px;
+  }
 `;

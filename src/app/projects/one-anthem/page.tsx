@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default function OneAnthemProjectPage() {
   return (
     <ProjectPage
+      accentColor="oklch(85.5% 0.138 181.071)"
       description={
         <>
           <p>
@@ -42,6 +43,7 @@ export default function OneAnthemProjectPage() {
           </p>
         </>
       }
+      headerColor="oklch(27.7% 0.046 192.524)"
       highlights={[
         "Multilingual platform with translations in dozens of languages",
         "Right-to-left language support (Arabic, Hebrew, etc.)",
