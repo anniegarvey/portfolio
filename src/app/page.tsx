@@ -195,6 +195,25 @@ const Hero = styled.section`
   background-color: var(--color-primary-950);
   color: var(--color-primary-100);
   overflow: clip;
+  position: relative;
+
+  /* Animated aurora gradient mesh */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -50%;
+    background:
+      radial-gradient(ellipse at 20% 80%, oklch(43.2% 0.232 292.759 / 0.7) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 20%, oklch(35.88% 0.114 144.5 / 0.5) 0%, transparent 55%),
+      radial-gradient(ellipse at 60% 55%, oklch(38.6% 0.063 188.416 / 0.4) 0%, transparent 50%);
+    animation: aurora 14s ease-in-out infinite alternate;
+    z-index: 0;
+    pointer-events: none;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
 
   @media (${QUERIES.TABLET_UP}) {
     flex-direction: row;
@@ -208,6 +227,8 @@ const HeroContent = styled.div`
   flex-direction: column;
   gap: 16px;
   max-width: 55ch;
+  position: relative;
+  z-index: 1;
 `;
 
 const HeroTitle = styled.h1`
@@ -283,7 +304,9 @@ const HeroImage = styled(Image)`
   max-height: clamp(100px, 50vw, 66vh);
   filter: drop-shadow(2px 4px 32px rgba(0, 0, 0, 0.8));
   object-fit: contain;
-  animation: fadeSlideUp 1s var(--ease-out) 10ms both;
+  position: relative;
+  z-index: 1;
+  animation: fadeSlideUp 1s var(--ease-out) 10ms both, float 5s ease-in-out 1.2s infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
