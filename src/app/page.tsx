@@ -96,7 +96,7 @@ export default function Home() {
       <AboutSection>
         <MaxWidthWrapper padding="48px">
           <FadeIn>
-            <SectionTitle>About Me</SectionTitle>
+            <SectionTitle data-ghost="About Me">About Me</SectionTitle>
           </FadeIn>
           <AboutRows>
             <FadeIn>
@@ -180,7 +180,7 @@ export default function Home() {
       <ProjectsSection>
         <MaxWidthWrapper padding="48px">
           <FadeIn>
-            <SectionTitle>Projects</SectionTitle>
+            <SectionTitle data-ghost="Projects">Projects</SectionTitle>
           </FadeIn>
         </MaxWidthWrapper>
         <ProjectsGrid>
@@ -273,7 +273,7 @@ const HeroSubtitle = styled.p`
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--color-primary-300);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   animation: fadeSlideUp 0.8s var(--ease-out) 400ms both;
 
@@ -312,15 +312,15 @@ const ContactLink = styled.a`
   border-radius: 6px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-primary-950);
-  background-color: var(--color-primary-200);
+  color: var(--color-grey-950);
+  background-color: var(--color-orange-400);
   text-decoration: none;
   transition:
-    background-color 0.2s var(--ease-out),
+    filter 0.2s var(--ease-out),
     transform 0.2s var(--ease-out);
 
   &:hover {
-    background-color: var(--color-primary-100);
+    filter: brightness(1.12);
     transform: translateY(-2px);
   }
 `;
@@ -360,6 +360,25 @@ const SectionTitle = styled.h2`
   font-weight: 700;
   margin-bottom: 48px;
   color: light-dark(var(--color-primary-800), var(--color-primary-300));
+  position: relative;
+
+  /* Giant ghost watermark behind the heading */
+  &::before {
+    content: attr(data-ghost);
+    position: absolute;
+    top: 50%;
+    left: -0.05em;
+    transform: translateY(-50%);
+    font-family: var(--font-tangerine), cursive;
+    font-size: clamp(8rem, 22vw, 18rem);
+    font-weight: 700;
+    line-height: 1;
+    color: light-dark(var(--color-primary-700), var(--color-primary-300));
+    opacity: 0.055;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 0;
+  }
 `;
 
 const AboutRows = styled.div`
