@@ -148,8 +148,16 @@ export default function Home() {
                     by Josh Comeau.
                   </p>
                 </AboutText>
-                {/* TODO: replace with a real image */}
-                <AboutImagePlaceholder aria-hidden="true" />
+                <HobbyBoard>
+                  <HobbyChip $bg="var(--color-rose-400)" $rotate="-2deg">🎵 Singing</HobbyChip>
+                  <HobbyChip $bg="var(--color-teal-500)" $rotate="1.5deg">🛶 Kayaking</HobbyChip>
+                  <HobbyChip $bg="var(--color-orange-400)" $rotate="-1deg">🍰 Baking</HobbyChip>
+                  <HobbyChip $bg="var(--color-secondary-500)" $rotate="2deg">☘️ Irish Heritage</HobbyChip>
+                  <HobbyChip $bg="var(--color-primary-500)" $rotate="-1.5deg">🐉 Sci-fi & Fantasy</HobbyChip>
+                  <HobbyChip $bg="var(--color-teal-600)" $rotate="1deg">🌍 Environment</HobbyChip>
+                  <HobbyChip $bg="var(--color-rose-500)" $rotate="2.5deg">🕺 Dancing</HobbyChip>
+                  <HobbyChip $bg="var(--color-secondary-600)" $rotate="-2deg">🧁 Crafts</HobbyChip>
+                </HobbyBoard>
               </AboutRow>
             </FadeIn>
           </AboutRows>
@@ -372,10 +380,12 @@ const AboutText = styled.div`
 `;
 
 const AboutSubtitle = styled.h3`
-  font-size: 1.4rem;
+  font-family: var(--font-tangerine), cursive;
+  font-size: 2.2rem;
   font-weight: 700;
   color: light-dark(var(--color-primary-800), var(--color-primary-300));
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+  line-height: 1.1;
 `;
 
 const AboutImageWrapper = styled.div`
@@ -387,21 +397,40 @@ const AboutImageWrapper = styled.div`
   }
 `;
 
-const AboutImagePlaceholder = styled.div`
+const HobbyBoard = styled.div`
   flex: 0 0 auto;
   width: min(320px, 100%);
-  height: 320px;
-  border-radius: 12px;
-  background: linear-gradient(
-    135deg,
-    var(--color-teal-800) 0%,
-    var(--color-secondary-800) 100%
-  );
-  opacity: 0.8;
+  min-height: 280px;
+  border-radius: 16px;
+  background: light-dark(var(--color-grey-100), var(--color-grey-900));
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-content: center;
 
   @media (${QUERIES.TABLET_UP}) {
     width: 340px;
-    height: 340px;
+  }
+`;
+
+const HobbyChip = styled.span<{ $bg: string; $rotate: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  background: ${({ $bg }) => $bg};
+  transform: rotate(${({ $rotate }) => $rotate});
+  transition: transform 0.2s var(--ease-out);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+  &:hover {
+    transform: rotate(0deg) scale(1.06);
   }
 `;
 
