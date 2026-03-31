@@ -85,12 +85,14 @@ export default function Home() {
             </ContactLink>
           </ContactLinks>
         </HeroContent>
-        <HeroImage
-          alt="Annie — independent, curious, professional"
-          height={550}
-          src="/IndependentCuriousProfessional.png"
-          width={550}
-        />
+        <HeroImageWrapper>
+          <HeroImage
+            alt="Annie — independent, curious, professional"
+            height={550}
+            src="/IndependentCuriousProfessional.png"
+            width={550}
+          />
+        </HeroImageWrapper>
       </Hero>
 
       <AboutSection>
@@ -341,21 +343,37 @@ const ContactLink = styled.a`
   }
 `;
 
+/**
+ * Wrapper carries the float animation and is nudged 12 px downward so
+ * the image base always sits at or below the Hero clip boundary.
+ * float peak = translateY(-12px) → base exactly at the boundary.
+ * float trough = translateY(0)   → base 12 px below (clipped by overflow:clip).
+ */
+const HeroImageWrapper = styled.div`
+  position: relative;
+  z-index: 1;
+  margin-bottom: -12px;
+  animation: float 5s ease-in-out 1.2s infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    margin-bottom: 0;
+  }
+
+  @media (${QUERIES.TABLET_UP}) {
+    margin-right: -48px;
+  }
+`;
+
 const HeroImage = styled(Image)`
   display: block;
   max-height: clamp(100px, 50vw, 66vh);
   filter: drop-shadow(2px 4px 32px rgba(0, 0, 0, 0.8));
   object-fit: contain;
-  position: relative;
-  z-index: 1;
-  animation: fadeSlideUp 1s var(--ease-out) 10ms both, float 5s ease-in-out 1.2s infinite;
+  animation: fadeSlideUp 1s var(--ease-out) 10ms both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-  }
-
-  @media (${QUERIES.TABLET_UP}) {
-    margin-right: -48px;
   }
 `;
 
