@@ -1,8 +1,8 @@
-import type React from "react";
 import { Github, Linkedin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
+import type React from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { QUERIES } from "@/lib/constants";
@@ -162,14 +162,30 @@ export default function Home() {
                   </p>
                 </AboutText>
                 <HobbyBoard>
-                  <HobbyChip $bg="var(--color-rose-400)" $rotate="-2deg">🎵 Singing</HobbyChip>
-                  <HobbyChip $bg="var(--color-teal-500)" $rotate="1.5deg">🛶 Kayaking</HobbyChip>
-                  <HobbyChip $bg="var(--color-orange-400)" $rotate="-1deg">🍰 Baking</HobbyChip>
-                  <HobbyChip $bg="var(--color-secondary-500)" $rotate="2deg">☘️ Irish Heritage</HobbyChip>
-                  <HobbyChip $bg="var(--color-primary-500)" $rotate="-1.5deg">🐉 Sci-fi & Fantasy</HobbyChip>
-                  <HobbyChip $bg="var(--color-teal-600)" $rotate="1deg">🌍 Environment</HobbyChip>
-                  <HobbyChip $bg="var(--color-rose-500)" $rotate="2.5deg">🕺 Dancing</HobbyChip>
-                  <HobbyChip $bg="var(--color-secondary-600)" $rotate="-2deg">🧁 Crafts</HobbyChip>
+                  <HobbyChip $bg="var(--color-rose-400)" $rotate="-2deg">
+                    🎵 Singing
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-teal-500)" $rotate="1.5deg">
+                    🛶 Kayaking
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-orange-400)" $rotate="-1deg">
+                    🍰 Baking
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-secondary-500)" $rotate="2deg">
+                    ☘️ Irish Heritage
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-primary-500)" $rotate="-1.5deg">
+                    🐉 Sci-fi & Fantasy
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-teal-600)" $rotate="1deg">
+                    🌍 Environment
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-rose-500)" $rotate="2.5deg">
+                    🕺 Dancing
+                  </HobbyChip>
+                  <HobbyChip $bg="var(--color-secondary-600)" $rotate="-2deg">
+                    🧁 Crafts
+                  </HobbyChip>
                 </HobbyBoard>
               </AboutRow>
             </FadeIn>
@@ -516,6 +532,26 @@ const ProjectOverlay = styled.div`
   transition: background 0.3s var(--ease-out);
 `;
 
+const ProjectCardTitle = styled.h3`
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+`;
+
+const ProjectCardDescription = styled.p`
+  font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 32ch;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out);
+`;
+
 const ProjectCard = styled(Link)`
   position: relative;
   display: block;
@@ -561,24 +597,4 @@ const ProjectCard = styled(Link)`
     outline: 3px solid var(--color-primary-400);
     outline-offset: -3px;
   }
-`;
-
-const ProjectCardTitle = styled.h3`
-  font-size: clamp(1.1rem, 3vw, 1.5rem);
-  font-weight: 700;
-  margin-bottom: 8px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-`;
-
-const ProjectCardDescription = styled.p`
-  font-size: clamp(0.8rem, 1.5vw, 0.95rem);
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.9);
-  max-width: 32ch;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 0.3s var(--ease-out),
-    transform 0.3s var(--ease-out);
 `;
