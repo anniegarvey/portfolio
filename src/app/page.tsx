@@ -320,8 +320,12 @@ const HeroImage = styled(Image)`
 // ─── About ────────────────────────────────────────────────────────────────────
 
 const AboutSection = styled.section`
-  padding-block: 80px;
+  padding-top: calc(80px + 60px);
+  padding-bottom: 80px;
   background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
+  /* Diagonal slash from Hero: high on left, low on right */
+  clip-path: polygon(0 0, 100% 60px, 100% 100%, 0 100%);
+  margin-top: -60px;
 `;
 
 const SectionTitle = styled.h2`
@@ -404,8 +408,12 @@ const AboutImagePlaceholder = styled.div`
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
 const ProjectsSection = styled.section`
+  padding-top: 60px;
   padding-bottom: 80px;
   background-color: light-dark(var(--color-grey-100), var(--color-grey-900));
+  /* Opposite diagonal from About: low on left, high on right */
+  clip-path: polygon(0 60px, 100% 0, 100% 100%, 0 100%);
+  margin-top: -60px;
 `;
 
 const ProjectsGrid = styled.div`
