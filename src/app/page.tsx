@@ -369,9 +369,6 @@ const HeroImageWrapper = styled.div`
     margin-bottom: 0;
   }
 
-  @media (${QUERIES.DESKTOP_UP}) {
-    margin-right: -48px;
-  }
 `;
 
 const HeroImage = styled(Image)`
