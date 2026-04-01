@@ -21,6 +21,10 @@ Runs: `tsc --noEmit && pnpm lint --fix && pnpm test && pnpm playwright test`
 - FOUC prevention: inline `<script>` in `<head>` reads localStorage and sets `data-theme` before paint
 - `ThemeProvider` at `src/components/ThemeProvider/` — context, provider, hook in separate files
 
+## Flaky Tests
+- Known flaky tests are logged in `e2e/FLAKY_TESTS.md` with symptom, suspected root cause, and failure count
+- Use the `/log-flaky-test` skill whenever a Playwright test fails intermittently — even if it passes on retry
+
 ## Testing Patterns
 - Clear `localStorage` and `document.documentElement.removeAttribute("data-theme")` in `beforeEach` when testing theme-related components
 - Navigation tests use `renderWithTheme()` helper that wraps with `ThemeProvider`

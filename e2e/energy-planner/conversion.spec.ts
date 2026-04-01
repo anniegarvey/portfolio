@@ -10,7 +10,10 @@ import {
   testActivity,
 } from "../utils/activity-test-helpers";
 import { DEFAULT_CAPACITY, TODAY } from "../utils/mocks";
-import { goToEnergyPlannerWithSeed } from "../utils/seed-storage";
+import {
+  goToEnergyPlannerWithSeed,
+  reloadEnergyPlanner,
+} from "../utils/seed-storage";
 
 test.describe("Activity Conversion", () => {
   test.beforeEach(async ({ page }) => {
@@ -51,7 +54,7 @@ test.describe("Activity Conversion", () => {
     await expect(selectedActivities.getByText(activityName)).toBeVisible();
 
     // 6. Reload and verify persistence
-    await page.reload();
+    await reloadEnergyPlanner(page);
     await expect(selectedActivities.getByText(activityName)).toBeVisible();
 
     // 7. Check repeating tab in management modal
@@ -101,7 +104,7 @@ test.describe("Activity Conversion", () => {
 
     // 6. Reload and verify persistence
     // Energy planner resets to Today on reload. Since the activity was explicitly scheduled for today, it should be visible.
-    await page.reload();
+    await reloadEnergyPlanner(page);
     await expect(selectedActivities.getByText(activityName)).toBeVisible();
 
     // 7. Remove it from today's day plan
