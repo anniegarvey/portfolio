@@ -63,15 +63,18 @@ export async function seedEnergyPlannerStorage(
 }
 
 /**
- * Waits for the DayPlannerSkeleton (aria-busy) to disappear, indicating that
- * all IndexedDB reads have resolved and the app is interactive.
+ * Waits for the energy planner to be fully ready after a navigation or reload.
  *
- * Use this after any page.goto or page.reload to avoid asserting before the
- * app has finished hydrating — bare page.reload() only waits for the load
- * event, which fires before React hydration and IndexedDB reads complete.
+ * Waits for [data-testid="selected-activities"] to appear — this element only
+ * renders once isLoading is false and the DayPlanner has replaced the skeleton.
+ * Waiting for aria-busy to detach is insufficient because waitFor({ state:
+ * 'detached' }) returns immediately if the element was never in the DOM (e.g.
+ * React hasn't rendered yet when the load event fires under a slow dev server).
  */
 async function waitForEnergyPlannerReady(page: Page): Promise<void> {
-  await page.locator("[aria-busy='true']").waitFor({ state: "detached" });
+  await page
+    .getByTestId("selected-activities")
+    .waitFor({ state: "visible" });
 }
 
 /**
