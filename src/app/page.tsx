@@ -263,11 +263,7 @@ const Hero = styled.section`
   @media (${QUERIES.TABLET_UP}) {
     flex-direction: row;
     justify-content: space-between;
-    /* padding-bottom keeps HeroContent text above the diagonal clip-path.
-       The clip cuts up to 60px at the far right; left-side text can still
-       be caught by the diagonal at smaller desktop widths, so we reserve
-       enough clearance for the contact-links row. */
-    padding-bottom: 80px;
+    padding-bottom: 0;
     align-items: center;
   }
 `;
@@ -279,6 +275,13 @@ const HeroContent = styled.div`
   max-width: 55ch;
   position: relative;
   z-index: 1;
+
+  @media (${QUERIES.TABLET_UP}) {
+    /* Keep contact links above the diagonal clip at all viewport widths.
+       The diagonal cuts at most ~30px from the hero bottom at the left-side
+       x-positions HeroContent occupies; 40px gives comfortable clearance. */
+    padding-bottom: 40px;
+  }
 `;
 
 const HeroTitle = styled.h1`
@@ -368,9 +371,6 @@ const HeroImageWrapper = styled.div`
   }
 
   @media (${QUERIES.TABLET_UP}) {
-    /* Cancel the hero's 80px padding-bottom and add back the original 12px dip
-       so the image base still sits at the diagonal clip boundary */
-    margin-bottom: -92px;
     margin-right: -48px;
   }
 `;
