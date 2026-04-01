@@ -3,7 +3,7 @@
     "rule": "color-contrast",
     "targets": [
       [
-        ".TreeCollection_DryBadge_gBcycW"
+        ".TreeCollection_DryBadge_[hash]"
       ]
     ]
   }
