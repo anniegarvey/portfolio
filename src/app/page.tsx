@@ -20,6 +20,7 @@ const projects = [
     background:
       "repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 16px), linear-gradient(135deg, oklch(49.1% 0.27 292.581) 0%, oklch(60.6% 0.25 292.717) 100%)",
     accent: "oklch(81.1% 0.111 293.571)", // primary-300
+    glow: "var(--glow-accent-primary)",
   },
   {
     slug: "bonsai",
@@ -30,6 +31,7 @@ const projects = [
     background:
       "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(135deg, oklch(51.02% 0.143 144.23) 0%, oklch(60.41% 0.161 144.17) 100%)",
     accent: "oklch(71.37% 0.118 144.54)", // secondary-300
+    glow: "var(--glow-accent-secondary)",
   },
   {
     slug: "one-anthem",
@@ -40,6 +42,7 @@ const projects = [
     background:
       "repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 20px), linear-gradient(135deg, oklch(51.1% 0.096 186.391) 0%, oklch(70.4% 0.14 182.503) 100%)",
     accent: "oklch(85.5% 0.138 181.071)", // teal-300
+    glow: "var(--glow-accent-teal)",
   },
   {
     slug: "windtp",
@@ -50,6 +53,7 @@ const projects = [
     background:
       "repeating-linear-gradient(60deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 20px), linear-gradient(135deg, oklch(55.3% 0.195 38.402) 0%, oklch(70.5% 0.213 47.604) 100%)",
     accent: "oklch(83.7% 0.128 66.29)", // orange-300
+    glow: "var(--glow-accent-orange)",
   },
 ] as const;
 
@@ -207,7 +211,10 @@ export default function Home() {
               <ProjectCard
                 href={`/projects/${project.slug}`}
                 style={
-                  { "--project-accent": project.accent } as React.CSSProperties
+                  {
+                    "--project-accent": project.accent,
+                    "--project-glow": project.glow,
+                  } as React.CSSProperties
                 }
               >
                 {/* TODO: replace with screenshot — public/projects/{slug}.png */}
@@ -588,6 +595,8 @@ const ProjectCard = styled(Link)`
   overflow: hidden;
   text-decoration: none;
   color: white;
+  box-shadow: light-dark(var(--shadow-sm), var(--project-glow));
+  transition: box-shadow 0.3s var(--ease-out);
 
   /* Per-project coloured accent bar */
   &::before {
@@ -599,6 +608,11 @@ const ProjectCard = styled(Link)`
     height: 4px;
     background: var(--project-accent);
     z-index: 2;
+  }
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: light-dark(var(--shadow-md), var(--project-glow));
   }
 
   &:hover ${ProjectBackground},
