@@ -89,7 +89,7 @@ export default function Home() {
           <HeroImage
             alt="Annie — independent, curious, professional"
             height={550}
-            src="/IndependentCuriousProfessional.png"
+            src="/IndependentCuriousProfessional2.png"
             width={550}
           />
         </HeroImageWrapper>
@@ -263,7 +263,12 @@ const Hero = styled.section`
   @media (${QUERIES.TABLET_UP}) {
     flex-direction: row;
     justify-content: space-between;
-    padding-bottom: 0;
+    /* padding-bottom keeps HeroContent text above the diagonal clip-path.
+       The clip cuts up to 60px at the far right; left-side text can still
+       be caught by the diagonal at smaller desktop widths, so we reserve
+       enough clearance for the contact-links row. */
+    padding-bottom: 80px;
+    align-items: center;
   }
 `;
 
@@ -353,6 +358,7 @@ const ContactLink = styled.a`
 const HeroImageWrapper = styled.div`
   position: relative;
   z-index: 1;
+  /* On mobile, dip slightly below clip so image base doesn't show a gap */
   margin-bottom: -12px;
   animation: float 5s ease-in-out 1.2s infinite;
 
@@ -362,6 +368,9 @@ const HeroImageWrapper = styled.div`
   }
 
   @media (${QUERIES.TABLET_UP}) {
+    /* Cancel the hero's 80px padding-bottom and add back the original 12px dip
+       so the image base still sits at the diagonal clip boundary */
+    margin-bottom: -92px;
     margin-right: -48px;
   }
 `;
