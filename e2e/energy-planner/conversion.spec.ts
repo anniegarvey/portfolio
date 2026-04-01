@@ -52,6 +52,7 @@ test.describe("Activity Conversion", () => {
 
     // 6. Reload and verify persistence
     await page.reload();
+    await page.locator("[aria-busy='true']").waitFor({ state: "detached" });
     await expect(selectedActivities.getByText(activityName)).toBeVisible();
 
     // 7. Check repeating tab in management modal
@@ -102,6 +103,7 @@ test.describe("Activity Conversion", () => {
     // 6. Reload and verify persistence
     // Energy planner resets to Today on reload. Since the activity was explicitly scheduled for today, it should be visible.
     await page.reload();
+    await page.locator("[aria-busy='true']").waitFor({ state: "detached" });
     await expect(selectedActivities.getByText(activityName)).toBeVisible();
 
     // 7. Remove it from today's day plan

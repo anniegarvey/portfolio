@@ -19,9 +19,9 @@ export async function seedEnergyPlannerStorage(
   data: SeedData,
 ): Promise<void> {
   // Navigate to the app first so we're in the correct origin for IndexedDB.
-  // Wait for domcontentloaded so the app's initial DB open has completed before
-  // we write seed data on top of it.
-  await page.goto("/energy-planner", { waitUntil: "domcontentloaded" });
+  // Wait for load so scripts have executed and the app's initial DB open has
+  // completed before we write seed data on top of it.
+  await page.goto("/energy-planner", { waitUntil: "load" });
 
   await page.evaluate(
     (seedData) => {
@@ -71,5 +71,6 @@ export async function goToEnergyPlannerWithSeed(
 ): Promise<void> {
   await seedEnergyPlannerStorage(page, data);
 
-  await page.reload();
+  await page.goto("/energy-planner", { waitUntil: "load" });
+  await page.locator("[aria-busy='true']").waitFor({ state: "detached" });
 }
