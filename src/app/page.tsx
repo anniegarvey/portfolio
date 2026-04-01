@@ -369,7 +369,7 @@ const HeroImageWrapper = styled.div`
     margin-bottom: 0;
   }
 
-  @media (${QUERIES.TABLET_UP}) {
+  @media (${QUERIES.DESKTOP_UP}) {
     margin-right: -48px;
   }
 `;
