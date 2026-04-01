@@ -88,9 +88,9 @@ export default function Home() {
         <HeroImageWrapper>
           <HeroImage
             alt="Annie — independent, curious, professional"
-            height={550}
+            height={523}
             src="/IndependentCuriousProfessional2.png"
-            width={550}
+            width={378}
           />
         </HeroImageWrapper>
       </Hero>
