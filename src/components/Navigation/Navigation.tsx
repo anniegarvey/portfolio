@@ -208,7 +208,7 @@ const StyledImage = styled(Image)`
   margin-top: 0.25rem;
   margin-left: -0.5rem;
   margin-bottom: -0.625rem;
-  filter: drop-shadow(-3px 3px 6px #444444);
+  filter: drop-shadow(calc(var(--shadow-unit) * -0.75) calc(var(--shadow-unit) * 0.75) calc(var(--shadow-unit) * 1.5) oklch(20% 0.04 270 / 0.5));
 `;
 
 const NavList = styled.ul`
@@ -275,7 +275,7 @@ const StyledContent = styled.div`
   bottom: 0;
   width: 75%;
   padding: 2rem;
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--elevation-lg);
   animation: slideInFromRight 300ms ease;
 
   @media (prefers-reduced-motion: reduce) {
