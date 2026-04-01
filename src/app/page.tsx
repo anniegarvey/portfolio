@@ -88,9 +88,9 @@ export default function Home() {
         <HeroImageWrapper>
           <HeroImage
             alt="Annie — independent, curious, professional"
-            height={550}
-            src="/IndependentCuriousProfessional.png"
-            width={550}
+            height={523}
+            src="/IndependentCuriousProfessional2.png"
+            width={378}
           />
         </HeroImageWrapper>
       </Hero>
@@ -264,6 +264,7 @@ const Hero = styled.section`
     flex-direction: row;
     justify-content: space-between;
     padding-bottom: 0;
+    align-items: center;
   }
 `;
 
@@ -274,6 +275,13 @@ const HeroContent = styled.div`
   max-width: 55ch;
   position: relative;
   z-index: 1;
+
+  @media (${QUERIES.TABLET_UP}) {
+    /* Keep contact links above the diagonal clip at all viewport widths.
+       The diagonal cuts at most ~30px from the hero bottom at the left-side
+       x-positions HeroContent occupies; 52px gives comfortable clearance. */
+    padding-bottom: 52px;
+  }
 `;
 
 const HeroTitle = styled.h1`
@@ -345,15 +353,15 @@ const ContactLink = styled.a`
 `;
 
 /**
- * Wrapper carries the float animation and is nudged 12 px downward so
+ * Wrapper carries the float animation and is nudged 6 px downward so
  * the image base always sits at or below the Hero clip boundary.
- * float peak = translateY(-12px) → base exactly at the boundary.
- * float trough = translateY(0)   → base 12 px below (clipped by overflow:clip).
+ * float peak = translateY(-6px) → base exactly at the boundary.
+ * float trough = translateY(0)  → base 6 px below (clipped by overflow:clip).
  */
 const HeroImageWrapper = styled.div`
   position: relative;
   z-index: 1;
-  margin-bottom: -12px;
+  margin-bottom: -6px;
   animation: float 5s ease-in-out 1.2s infinite;
 
   @media (prefers-reduced-motion: reduce) {
@@ -361,14 +369,16 @@ const HeroImageWrapper = styled.div`
     margin-bottom: 0;
   }
 
-  @media (${QUERIES.TABLET_UP}) {
-    margin-right: -48px;
-  }
 `;
 
 const HeroImage = styled(Image)`
   display: block;
   max-height: clamp(100px, 50vw, 66vh);
+  /* width: auto lets the element shrink to match the height-constrained
+     proportions. Without it the element box stays at the intrinsic width
+     (378px) even when max-height scales the visible image down, leaving
+     invisible extra space that crowds HeroContent. */
+  width: auto;
   filter: drop-shadow(2px 4px 32px rgba(0, 0, 0, 0.8));
   object-fit: contain;
   animation: fadeSlideUp 1s var(--ease-out) 10ms both;
