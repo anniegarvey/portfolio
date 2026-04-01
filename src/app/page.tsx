@@ -374,6 +374,11 @@ const HeroImageWrapper = styled.div`
 const HeroImage = styled(Image)`
   display: block;
   max-height: clamp(100px, 50vw, 66vh);
+  /* width: auto lets the element shrink to match the height-constrained
+     proportions. Without it the element box stays at the intrinsic width
+     (378px) even when max-height scales the visible image down, leaving
+     invisible extra space that crowds HeroContent. */
+  width: auto;
   filter: drop-shadow(2px 4px 32px rgba(0, 0, 0, 0.8));
   object-fit: contain;
   animation: fadeSlideUp 1s var(--ease-out) 10ms both;
