@@ -63,6 +63,18 @@ export async function seedEnergyPlannerStorage(
 }
 
 /**
+ * Waits for the DayPlannerSkeleton (aria-busy) to disappear, indicating that
+ * all IndexedDB reads have resolved and the app is interactive.
+ *
+ * Use this after any page.goto or page.reload to avoid asserting before the
+ * app has finished hydrating — bare page.reload() only waits for the load
+ * event, which fires before React hydration and IndexedDB reads complete.
+ */
+async function waitForEnergyPlannerReady(page: Page): Promise<void> {
+  await page.locator("[aria-busy='true']").waitFor({ state: "detached" });
+}
+
+/**
  * Navigate to the energy planner with seeded state.
  */
 export async function goToEnergyPlannerWithSeed(
@@ -72,5 +84,16 @@ export async function goToEnergyPlannerWithSeed(
   await seedEnergyPlannerStorage(page, data);
 
   await page.goto("/energy-planner", { waitUntil: "load" });
-  await page.locator("[aria-busy='true']").waitFor({ state: "detached" });
+  await waitForEnergyPlannerReady(page);
+}
+
+/**
+ * Reload the energy planner and wait for the app to be fully ready.
+ *
+ * Prefer this over bare page.reload() — the load event fires before React
+ * hydration and IndexedDB reads complete, causing flaky assertions.
+ */
+export async function reloadEnergyPlanner(page: Page): Promise<void> {
+  await page.reload();
+  await waitForEnergyPlannerReady(page);
 }
