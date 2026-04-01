@@ -42,13 +42,15 @@ export function violationFingerprints(accessibilityScanResults: AxeResults) {
 
   const jsonString = JSON.stringify(violationFingerprints, null, 2);
   // Mask dynamic Radix IDs to ensure deterministic snapshots
-  return jsonString
-    .replace(/#radix-[a-zA-Z0-9_:-]+/g, "#radix-[id]")
-    // Mask next-yak/CSS-module build hashes (e.g. .TreeCollection_DryBadge_gBcycW)
-    .replace(
-      /(\.[A-Za-z][A-Za-z0-9]*_[A-Za-z][A-Za-z0-9]*)_[a-zA-Z0-9]{4,10}/g,
-      "$1_[hash]",
-    );
+  return (
+    jsonString
+      .replace(/#radix-[a-zA-Z0-9_:-]+/g, "#radix-[id]")
+      // Mask next-yak/CSS-module build hashes (e.g. .TreeCollection_DryBadge_gBcycW)
+      .replace(
+        /(\.[A-Za-z][A-Za-z0-9]*_[A-Za-z][A-Za-z0-9]*)_[a-zA-Z0-9]{4,10}/g,
+        "$1_[hash]",
+      )
+  );
 }
 
 export { expect } from "@playwright/test";
