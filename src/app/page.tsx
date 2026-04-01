@@ -238,7 +238,8 @@ const Hero = styled.section`
   padding: 64px 48px 0;
   background-color: var(--color-primary-950);
   color: var(--color-primary-100);
-  overflow: clip;
+  /* Diagonal bottom matching the About section's top: high on left, low on right */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), 0 100%);
   position: relative;
 
   /* Animated aurora gradient mesh */
