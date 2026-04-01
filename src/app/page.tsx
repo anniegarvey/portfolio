@@ -279,8 +279,8 @@ const HeroContent = styled.div`
   @media (${QUERIES.TABLET_UP}) {
     /* Keep contact links above the diagonal clip at all viewport widths.
        The diagonal cuts at most ~30px from the hero bottom at the left-side
-       x-positions HeroContent occupies; 40px gives comfortable clearance. */
-    padding-bottom: 40px;
+       x-positions HeroContent occupies; 52px gives comfortable clearance. */
+    padding-bottom: 52px;
   }
 `;
 
@@ -353,16 +353,15 @@ const ContactLink = styled.a`
 `;
 
 /**
- * Wrapper carries the float animation and is nudged 12 px downward so
+ * Wrapper carries the float animation and is nudged 6 px downward so
  * the image base always sits at or below the Hero clip boundary.
- * float peak = translateY(-12px) → base exactly at the boundary.
- * float trough = translateY(0)   → base 12 px below (clipped by overflow:clip).
+ * float peak = translateY(-6px) → base exactly at the boundary.
+ * float trough = translateY(0)  → base 6 px below (clipped by overflow:clip).
  */
 const HeroImageWrapper = styled.div`
   position: relative;
   z-index: 1;
-  /* On mobile, dip slightly below clip so image base doesn't show a gap */
-  margin-bottom: -12px;
+  margin-bottom: -6px;
   animation: float 5s ease-in-out 1.2s infinite;
 
   @media (prefers-reduced-motion: reduce) {
