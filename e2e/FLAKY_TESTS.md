@@ -26,3 +26,16 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 |------|----------|
 | `e2e/energy-planner/manage-activities-tab-switch.spec.ts` > "should switch to repeating tab after creating a repeating activity" | 1 |
 | `e2e/energy-planner/zones/manage-zones.spec.ts` > "should allow adding, renaming, and removing zones" | 1 |
+
+---
+
+## Parallel load race: modal overlay intercepts pointer events in uncompleted-activities
+
+**Symptom:** Click on "Mark as complete" (or similar action button) fails because a Radix Dialog overlay (`data-state="open"`, `aria-hidden="true"`) is still mounted and intercepting pointer events. The overlay should not be present at that point — suggests a modal from a prior test in the parallel run was not fully torn down before the next test began. Passes reliably in isolation (4/4 when run alone); only fails under the full 70-test parallel suite.
+
+**Root cause (suspected):** Same parallel load race as the existing entry above — a previous test's dialog teardown hasn't completed before the next test's page interactions begin. May need an explicit `waitFor` on modal absence in `beforeEach`, or reduced worker concurrency for this spec file.
+
+| Test | Failures |
+|------|----------|
+| `e2e/energy-planner/uncompleted-activities/workflow.spec.ts` > "should mark uncompleted activity as complete" | 2 |
+| `e2e/energy-planner/uncompleted-activities/workflow.spec.ts` > "should return uncompleted activity to unplanned" | 1 |

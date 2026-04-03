@@ -72,9 +72,7 @@ export async function seedEnergyPlannerStorage(
  * React hasn't rendered yet when the load event fires under a slow dev server).
  */
 async function waitForEnergyPlannerReady(page: Page): Promise<void> {
-  await page
-    .getByTestId("selected-activities")
-    .waitFor({ state: "visible" });
+  await page.getByTestId("selected-activities").waitFor({ state: "visible" });
 }
 
 /**
