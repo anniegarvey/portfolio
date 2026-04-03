@@ -39,3 +39,15 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 |------|----------|
 | `e2e/energy-planner/uncompleted-activities/workflow.spec.ts` > "should mark uncompleted activity as complete" | 2 |
 | `e2e/energy-planner/uncompleted-activities/workflow.spec.ts` > "should return uncompleted activity to unplanned" | 1 |
+
+---
+
+## Snapshot mismatch: conversion from one-off to repeating
+
+**Symptom:** `toMatchSnapshot` fails on the activity card after converting a one-off activity to repeating. Observed failing 1 out of 3 runs even in isolation with no parallel load — suggests a timing issue where the UI hasn't fully settled before the snapshot is taken.
+
+**Root cause (suspected):** Async state update (storage write + re-render) not awaited before snapshot assertion. The projected activity may not yet be visible in the planner when the snapshot fires.
+
+| Test | Failures |
+|------|----------|
+| `e2e/energy-planner/conversion.spec.ts` > "should persist and project when converting from one-off to repeating" | 1 |

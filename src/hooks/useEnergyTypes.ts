@@ -15,12 +15,17 @@ export function useEnergyTypes() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     fetchEnergyTypes().then((stored) => {
+      if (cancelled) return;
       if (stored) {
         setEnergyTypes(stored);
       }
       setIsLoading(false);
     });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

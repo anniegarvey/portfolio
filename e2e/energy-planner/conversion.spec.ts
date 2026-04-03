@@ -64,6 +64,7 @@ test.describe("Activity Conversion", () => {
     await expect(modal.getByText(activityName)).toBeVisible();
 
     // Accessibility check
+    await page.waitForTimeout(350); // wait for modal animation to settle
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
   });
