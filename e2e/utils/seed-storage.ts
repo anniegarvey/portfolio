@@ -18,10 +18,15 @@ export async function seedEnergyPlannerStorage(
   page: Page,
   data: SeedData,
 ): Promise<void> {
-  // Navigate to the app first so we're in the correct origin for IndexedDB.
-  // Wait for load so scripts have executed and the app's initial DB open has
-  // completed before we write seed data on top of it.
-  await page.goto("/energy-planner", { waitUntil: "load" });
+  // Navigate to the app first to establish the correct origin for IndexedDB.
+  // We go to "/" rather than "/energy-planner" to avoid a race where the
+  // energy planner's own save effect (triggered by its initial empty-state
+  // load) completes *after* our seed write and overwrites the seeded capacity
+  // with all-zeros — which would cause the auto-open capacity modal to fire
+  // on the real navigation, blocking pointer events in subsequent tests.
+  // The seed code's onupgradeneeded handler creates the object store if the
+  // DB doesn't exist yet, so the energy planner doesn't need to open it first.
+  await page.goto("/", { waitUntil: "load" });
 
   await page.evaluate(
     (seedData) => {

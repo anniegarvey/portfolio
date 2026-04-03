@@ -37,6 +37,7 @@ test.describe("Repeating Activities - Deletion", () => {
       confirmModal.getByText("Are you sure you want to delete"),
     ).toBeVisible();
 
+    await page.waitForTimeout(350); // wait for modal animation to settle
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toMatchSnapshot();
 
