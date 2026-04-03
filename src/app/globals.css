@@ -95,6 +95,101 @@
   --color-grey-900: oklch(21% 0.006 285.885);
   --color-grey-950: oklch(14.1% 0.005 285.823);
 
+  /* ── Shadow system ─────────────────────────────────────────────── */
+  /*    Base unit: 4px  |  Ratio: 2  |  Layers: form + ambient       */
+
+  --shadow-unit: 4px;
+
+  /* Slightly violet-tinted dark — coheres with primary palette */
+  --shadow-color: oklch(20% 0.04 270);
+
+  /* Primary glow color (dark mode) */
+  --glow-color: var(--color-primary-400); /* oklch(70.2% 0.183 293.541) */
+
+  /* ── Elevation levels (light mode: shadow, dark mode: glow) ───── */
+
+  /* xs  — subtle lift: cards at rest, inputs */
+  --shadow-xs:
+    0 calc(var(--shadow-unit) * 0.25) calc(var(--shadow-unit) * 0.5)
+    oklch(20% 0.04 270 / 0.05),
+    0 calc(var(--shadow-unit) * 0.5) var(--shadow-unit)
+    oklch(20% 0.04 270 / 0.07);
+  --glow-xs:
+    0 0 calc(var(--shadow-unit) * 1.5) oklch(70.2% 0.183 293.541 / 0.18),
+    0 0 calc(var(--shadow-unit) * 3) oklch(70.2% 0.183 293.541 / 0.1);
+
+  /* sm  — card hover, focused inputs, badges */
+  --shadow-sm:
+    0 calc(var(--shadow-unit) * 0.5) var(--shadow-unit)
+    oklch(20% 0.04 270 / 0.06),
+    0 calc(var(--shadow-unit) * 1) calc(var(--shadow-unit) * 2)
+    oklch(20% 0.04 270 / 0.09);
+  --glow-sm:
+    0 0 calc(var(--shadow-unit) * 3) oklch(70.2% 0.183 293.541 / 0.22),
+    0 0 calc(var(--shadow-unit) * 6) oklch(70.2% 0.183 293.541 / 0.12);
+
+  /* md  — modals, dropdowns, popovers */
+  --shadow-md:
+    0 calc(var(--shadow-unit) * 1) calc(var(--shadow-unit) * 2)
+    oklch(20% 0.04 270 / 0.07),
+    0 calc(var(--shadow-unit) * 2) calc(var(--shadow-unit) * 4)
+    oklch(20% 0.04 270 / 0.1);
+  --glow-md:
+    0 0 calc(var(--shadow-unit) * 6) oklch(70.2% 0.183 293.541 / 0.26),
+    0 0 calc(var(--shadow-unit) * 12) oklch(70.2% 0.183 293.541 / 0.14);
+
+  /* lg  — navigation sidebar, feature panels */
+  --shadow-lg:
+    0 calc(var(--shadow-unit) * 2) calc(var(--shadow-unit) * 4)
+    oklch(20% 0.04 270 / 0.08),
+    0 calc(var(--shadow-unit) * 4) calc(var(--shadow-unit) * 8)
+    oklch(20% 0.04 270 / 0.11);
+  --glow-lg:
+    0 0 calc(var(--shadow-unit) * 12) oklch(70.2% 0.183 293.541 / 0.28),
+    0 0 calc(var(--shadow-unit) * 24) oklch(70.2% 0.183 293.541 / 0.15);
+
+  /* xl  — hero elements, full-screen overlays */
+  --shadow-xl:
+    0 calc(var(--shadow-unit) * 4) calc(var(--shadow-unit) * 8)
+    oklch(20% 0.04 270 / 0.09),
+    0 calc(var(--shadow-unit) * 8) calc(var(--shadow-unit) * 16)
+    oklch(20% 0.04 270 / 0.12);
+  --glow-xl:
+    0 0 calc(var(--shadow-unit) * 24) oklch(70.2% 0.183 293.541 / 0.3),
+    0 0 calc(var(--shadow-unit) * 48) oklch(70.2% 0.183 293.541 / 0.16);
+
+  /* ── Unified elevation tokens (swap shadow ↔ glow via light-dark) */
+  --elevation-xs: light-dark(var(--shadow-xs), var(--glow-xs));
+  --elevation-sm: light-dark(var(--shadow-sm), var(--glow-sm));
+  --elevation-md: light-dark(var(--shadow-md), var(--glow-md));
+  --elevation-lg: light-dark(var(--shadow-lg), var(--glow-lg));
+  --elevation-xl: light-dark(var(--shadow-xl), var(--glow-xl));
+
+  /* ── Accent glow variants (dark mode project cards) ─────────────
+     Same ratio geometry as --glow-*, swapping in each project color.
+     In light mode these fall back to the neutral shadow-sm / shadow-md
+     so no extra light-mode styling is needed.                        */
+
+  --glow-accent-primary:
+    0 0 calc(var(--shadow-unit) * 6) oklch(70.2% 0.183 293.541 / 0.3),
+    0 0 calc(var(--shadow-unit) * 12) oklch(70.2% 0.183 293.541 / 0.16);
+
+  --glow-accent-secondary:
+    0 0 calc(var(--shadow-unit) * 6) oklch(60.41% 0.161 144.17 / 0.3),
+    0 0 calc(var(--shadow-unit) * 12) oklch(60.41% 0.161 144.17 / 0.16);
+
+  --glow-accent-teal:
+    0 0 calc(var(--shadow-unit) * 6) oklch(70% 0.12 192 / 0.3),
+    0 0 calc(var(--shadow-unit) * 12) oklch(70% 0.12 192 / 0.16);
+
+  --glow-accent-orange:
+    0 0 calc(var(--shadow-unit) * 6) oklch(72% 0.15 55 / 0.3),
+    0 0 calc(var(--shadow-unit) * 12) oklch(72% 0.15 55 / 0.16);
+
+  --glow-accent-rose:
+    0 0 calc(var(--shadow-unit) * 6) oklch(68% 0.18 12 / 0.3),
+    0 0 calc(var(--shadow-unit) * 12) oklch(68% 0.18 12 / 0.16);
+
   /* Souped up easing functions */
   --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
   --ease-in: cubic-bezier(0.75, 0, 1, 1);

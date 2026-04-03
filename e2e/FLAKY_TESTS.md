@@ -13,3 +13,16 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 | Test | Failures |
 |------|----------|
 | `e2e/energy-planner/one-off-activities/complete.spec.ts` > "should allow marking an activity as complete" | 3 |
+
+---
+
+## Parallel load race: Energy Planner content fails to render in time
+
+**Symptom:** Test times out waiting for Energy Planner UI to become interactive after navigation. Error context shows only the top-level nav rendered — the planner content never appeared. Passes reliably in isolation; only fails when the full 70-test suite runs in parallel.
+
+**Root cause (suspected):** Dev server under parallel load is too slow to serve the Energy Planner page within the default timeout. Same class of problem as the entry above.
+
+| Test | Failures |
+|------|----------|
+| `e2e/energy-planner/manage-activities-tab-switch.spec.ts` > "should switch to repeating tab after creating a repeating activity" | 1 |
+| `e2e/energy-planner/zones/manage-zones.spec.ts` > "should allow adding, renaming, and removing zones" | 1 |

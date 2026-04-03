@@ -109,7 +109,7 @@ const Content = styled(Dialog.Content)`
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elevation-md);
   animation: ${slideIn} 0.3s ease-out;
   border: 1px solid var(--color-grey-200);
 

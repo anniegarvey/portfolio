@@ -239,10 +239,13 @@ const StyledButton = styled.button<{
           background-color: var(--btn-bg);
           border-color: var(--btn-border);
           color: var(--btn-text);
+          box-shadow: var(--elevation-xs);
 
-          &:hover:not(:disabled):not([aria-disabled="true"]) {
+          &:hover:not(:disabled):not([aria-disabled="true"]),
+          &:focus-visible:not(:disabled):not([aria-disabled="true"]) {
             background-color: var(--btn-bg-hover);
             border-color: var(--btn-bg-hover);
+            box-shadow: var(--elevation-sm);
           }
         `;
     }
