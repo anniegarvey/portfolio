@@ -26,6 +26,7 @@
     "*.md",
     "*.pen",
     ".husky/**",
+    "scripts/**",
     "images/**",
     "public/**",
     "docs/**",
