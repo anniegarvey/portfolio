@@ -1,9 +1,9 @@
 ---
-name: new-feature
-description: Guidelines for implementing and reviewing new features in the codebase. Use when adding new functionality
+name: new-worktree
+description: Guidelines for creating and managing new worktrees in the codebase
 ---
 
-# New Feature
+# New Worktree
 
 - Start from up-to-date main branch
 - Create a new worktree in .claude/worktrees. Keep all changes inside this worktree
