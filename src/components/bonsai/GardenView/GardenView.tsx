@@ -67,8 +67,8 @@ function MiniTree({
   const glowHeightSvg = Math.max(trunkHeight + glowPad, 40);
   const glowH = `${Math.round((glowHeightSvg / VIEWBOX_HEIGHT) * 100)}%`;
   // Centre of the ellipse at the trunk top — canopy spreads above this point
-  const gloyCentreSvg = trunkBaseY - trunkHeight;
-  const glowY = `${Math.round((gloyCentreSvg / VIEWBOX_HEIGHT) * 100)}%`;
+  const glowCentreSvg = trunkBaseY - trunkHeight;
+  const glowY = `${Math.round((glowCentreSvg / VIEWBOX_HEIGHT) * 100)}%`;
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (isPlacing) return;
