@@ -10,18 +10,6 @@
     "e2e/bonsai/**": "e2e/bonsai",
     "e2e/navigation/**": "e2e/navigation"
   },
-  "runAll": [
-    "package.json",
-    "pnpm-lock.yaml",
-    "tsconfig.json",
-    "next.config.ts",
-    "vitest.config.ts",
-    "playwright.config.ts",
-    "biome.json",
-    "src/app/layout.tsx",
-    "src/app/globals.css",
-    "src/app/page.tsx"
-  ],
   "skip": [
     "*.md",
     "*.pen",
