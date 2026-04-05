@@ -114,7 +114,6 @@ for (const file of staged) {
 
   const isSrc = file.startsWith("src/");
   const isUnitTest = /\.test\.(ts|tsx)$/.test(file);
-  const isE2ESpec = file.startsWith("e2e/") && file.endsWith(".spec.ts");
 
   if (isUnitTest) {
     // Changed unit test → run it directly, no e2e needed
@@ -122,7 +121,7 @@ for (const file of staged) {
     continue;
   }
 
-  if (isE2ESpec || file.startsWith("e2e/")) {
+  if (file.startsWith("e2e/")) {
     // Changed e2e file → find its area
     let matched = false;
     for (const [pattern, dir] of Object.entries(map.areas)) {
