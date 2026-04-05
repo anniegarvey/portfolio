@@ -25,6 +25,7 @@
   "skip": [
     "*.md",
     "*.pen",
+    ".husky/**",
     "images/**",
     "public/**",
     "docs/**",
