@@ -1,0 +1,24 @@
+{
+  "areas": {
+    "src/**/energy-planner/**": "e2e/energy-planner",
+    "src/lib/points/**": "e2e/energy-planner",
+    "src/hooks/**": "e2e/energy-planner",
+    "src/**/bonsai/**": "e2e/bonsai",
+    "src/components/Navigation/**": "e2e/navigation",
+    "src/components/ThemeToggle/**": "e2e/navigation",
+    "e2e/energy-planner/**": "e2e/energy-planner",
+    "e2e/bonsai/**": "e2e/bonsai",
+    "e2e/navigation/**": "e2e/navigation"
+  },
+  "skip": [
+    "*.md",
+    "*.pen",
+    ".husky/**",
+    "scripts/**",
+    "images/**",
+    "public/**",
+    "docs/**",
+    "plans/**",
+    "reports/**"
+  ]
+}
