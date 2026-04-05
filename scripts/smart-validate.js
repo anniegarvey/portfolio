@@ -1,6 +1,29 @@
 #!/usr/bin/env node
 // smart-validate.js — runs only the validations relevant to staged changes.
 // Falls back to full suite for config/shared/unrecognised files.
+//
+// Mapping config: scripts/validate-map.json
+// ──────────────────────────────��──────────
+// "areas": maps source glob patterns to the e2e directory to run when those
+//   files change. For each changed source file, smart-validate also looks for
+//   a co-located unit test (e.g. Foo.tsx → Foo.test.tsx) and runs it with
+//   vitest. tsc always runs regardless of which area is matched.
+//   Add a new entry here whenever a new feature area is introduced:
+//     "src/**/my-feature/**": "e2e/my-feature"
+//
+// "runAll": files that trigger the full `pnpm validate` suite. Use this for
+//   anything whose change could affect every part of the app — config files,
+//   shared layouts, lockfiles, etc.
+//
+// "skip": files that need no validation at all — assets, docs, design files,
+//   tooling scripts. Changes to these are silently ignored.
+//
+// Default behaviour for unrecognised files
+// ─────────────────────────────────────────
+// Any staged file that doesn't match "areas", "runAll", or "skip" triggers
+// the full suite as a safe fallback. This means adding new source directories
+// without updating "areas" will be slow but never silently skip tests.
+// Fix it by adding the new path to "areas" (or "skip" if it needs no tests).
 
 const { execSync } = require("node:child_process");
 const fs = require("node:fs");
