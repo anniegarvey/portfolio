@@ -1,0 +1,34 @@
+{
+  "areas": {
+    "src/**/energy-planner/**": "e2e/energy-planner",
+    "src/lib/points/**": "e2e/energy-planner",
+    "src/hooks/**": "e2e/energy-planner",
+    "src/**/bonsai/**": "e2e/bonsai",
+    "src/components/Navigation/**": "e2e/navigation",
+    "src/components/ThemeToggle/**": "e2e/navigation",
+    "e2e/energy-planner/**": "e2e/energy-planner",
+    "e2e/bonsai/**": "e2e/bonsai",
+    "e2e/navigation/**": "e2e/navigation"
+  },
+  "runAll": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "tsconfig.json",
+    "next.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "biome.json",
+    "src/app/layout.tsx",
+    "src/app/globals.css",
+    "src/app/page.tsx"
+  ],
+  "skip": [
+    "*.md",
+    "*.pen",
+    "images/**",
+    "public/**",
+    "docs/**",
+    "plans/**",
+    "reports/**"
+  ]
+}
