@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // smart-validate.js — runs only the validations relevant to staged changes.
-// Falls back to full `pnpm validate` for config/shared/unrecognised files.
+// Falls back to full suite for config/shared/unrecognised files.
 
 const { execSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -15,13 +15,11 @@ const map = JSON.parse(
 function matchGlob(pattern, file) {
   const re = new RegExp(
     "^" +
-      pattern
-        .replace(/\./g, "\\.")
-        .replace(/\*+\/|\*+/g, (m) => {
-          if (m === "**/") return "(.+/)?";
-          if (m === "**") return ".*";
-          return "[^/]*";
-        }) +
+      pattern.replace(/\./g, "\\.").replace(/\*+\/|\*+/g, (m) => {
+        if (m === "**/") return "(.+/)?";
+        if (m === "**") return ".*";
+        return "[^/]*";
+      }) +
       "$",
   );
   return re.test(file);
@@ -33,6 +31,41 @@ function matchesAny(file, patterns) {
 
 function run(cmd) {
   execSync(cmd, { stdio: "inherit", cwd: ROOT });
+}
+
+/**
+ * Run biome on the given files (or all files if none specified), then
+ * re-stage any of those files that were already staged. This ensures lint
+ * auto-fixes are included in the commit rather than left unstaged.
+ */
+function lintAndRestage(files) {
+  const codeFiles = files.filter(
+    (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
+  );
+  if (codeFiles.length === 0) return;
+  run(
+    `pnpm exec biome check --error-on-warnings --fix ${codeFiles.join(" ")}`,
+  );
+  run(`git add ${codeFiles.join(" ")}`);
+}
+
+/**
+ * Full-suite fallback: lint all files, restage touched staged files, then
+ * run tsc + all tests + all e2e in parallel. Equivalent to `pnpm validate`
+ * but with the restage step in between.
+ */
+function runFullValidate() {
+  run("pnpm exec biome check --error-on-warnings --fix");
+  const stagedCodeFiles = changed.filter(
+    (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
+  );
+  if (stagedCodeFiles.length > 0) {
+    run(`git add ${stagedCodeFiles.join(" ")}`);
+  }
+  run(
+    `pnpm exec concurrently --kill-others-on-fail --names "tsc,test,e2e"` +
+      ` "pnpm exec tsc --noEmit" "pnpm test" "pnpm exec playwright test"`,
+  );
 }
 
 // --- Collect staged files ---
@@ -62,8 +95,10 @@ for (const file of changed) {
 
   // Config/layout changes → run everything
   if (matchesAny(file, map.runAll)) {
-    console.log(`Config/shared file changed (${file}) — running full validate.`);
-    run("pnpm validate");
+    console.log(
+      `Config/shared file changed (${file}) — running full validate.`,
+    );
+    runFullValidate();
     process.exit(0);
   }
 
@@ -88,7 +123,7 @@ for (const file of changed) {
     }
     if (!matched) {
       console.log(`Unrecognised e2e file (${file}) — running full validate.`);
-      run("pnpm validate");
+      runFullValidate();
       process.exit(0);
     }
     continue;
@@ -122,7 +157,7 @@ for (const file of changed) {
   // Anything else outside src/ and e2e/ that isn't in skip/runAll
   // (e.g. types/, scripts/) — safe fallback
   console.log(`Unrecognised file (${file}) — running full validate.`);
-  run("pnpm validate");
+  runFullValidate();
   process.exit(0);
 }
 
@@ -130,7 +165,7 @@ if (unmatchedSrc.length > 0) {
   console.log(
     `Unrecognised source file(s): ${unmatchedSrc.join(", ")} — running full validate.`,
   );
-  run("pnpm validate");
+  runFullValidate();
   process.exit(0);
 }
 
@@ -139,20 +174,14 @@ if (unmatchedSrc.length > 0) {
 const hasVitest = vitestFiles.length > 0;
 const hasE2E = e2eDirs.size > 0;
 
-if (!hasVitest && !hasE2E) {
+if (!(hasVitest || hasE2E)) {
   console.log("Only non-code files changed — skipping validation.");
   process.exit(0);
 }
 
-// --- Scoped lint (biome accepts file paths as positional arguments) ---
+// --- Scoped lint + restage ---
 
-const lintTargets = changed
-  .filter((f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f))
-  .join(" ");
-
-if (lintTargets) {
-  run(`pnpm exec biome check --error-on-warnings --fix ${lintTargets}`);
-}
+lintAndRestage(changed);
 
 // --- Build parallel commands ---
 
@@ -174,6 +203,4 @@ if (hasE2E) {
 
 const names = parallel.map((p) => p.name).join(",");
 const cmds = parallel.map((p) => `"${p.cmd}"`).join(" ");
-run(
-  `pnpm exec concurrently --kill-others-on-fail --names "${names}" ${cmds}`,
-);
+run(`pnpm exec concurrently --kill-others-on-fail --names "${names}" ${cmds}`);
