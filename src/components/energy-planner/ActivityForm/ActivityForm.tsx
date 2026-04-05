@@ -17,6 +17,7 @@ import { usePoints } from "@/lib/points/context";
 import { ActivityFactorFields } from "../ActivityFactorFields";
 import { EnergyCostFields } from "../EnergyCostFields";
 
+//test
 interface ActivityFormProps {
   initialData?: Activity;
   initialContext?: {

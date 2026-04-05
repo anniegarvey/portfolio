@@ -43,9 +43,7 @@ function lintAndRestage(files) {
     (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
   );
   if (codeFiles.length === 0) return;
-  run(
-    `pnpm exec biome check --error-on-warnings --fix ${codeFiles.join(" ")}`,
-  );
+  run(`pnpm exec biome check --error-on-warnings --fix ${codeFiles.join(" ")}`);
   run(`git add ${codeFiles.join(" ")}`);
 }
 
@@ -188,9 +186,12 @@ lintAndRestage(changed);
 const parallel = [{ name: "tsc", cmd: "pnpm exec tsc --noEmit" }];
 
 if (hasVitest) {
+  // Disable coverage for scoped runs — thresholds rely on cross-file
+  // coverage from the full suite and produce false failures in isolation.
+  // Coverage is still enforced by `pnpm validate` on the full suite.
   parallel.push({
     name: "test",
-    cmd: `pnpm exec vitest run ${vitestFiles.join(" ")}`,
+    cmd: `pnpm exec vitest run --coverage.enabled=false ${vitestFiles.join(" ")}`,
   });
 }
 
