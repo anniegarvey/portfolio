@@ -5,7 +5,7 @@
 // Mapping config: scripts/validate-map.json
 // ─────────────────────────────────────────
 // "areas": maps source glob patterns to the e2e directory to run when those
-//   files change. For each changed source file, smart-validate also looks for
+//   files change. For each staged source file, smart-validate also looks for
 //   a co-located unit test (e.g. Foo.tsx → Foo.test.tsx) and runs it with
 //   vitest. tsc always runs regardless of which area is matched.
 //   Add a new entry here whenever a new feature area is introduced:
@@ -75,7 +75,7 @@ function lintAndRestage(files) {
  */
 function runFullValidate() {
   run("pnpm exec biome check --error-on-warnings --fix");
-  const stagedCodeFiles = changed.filter(
+  const stagedCodeFiles = staged.filter(
     (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
   );
   if (stagedCodeFiles.length > 0) {
@@ -89,7 +89,7 @@ function runFullValidate() {
 
 // --- Collect staged files ---
 
-const changed = execSync("git diff --cached --name-only", {
+const staged = execSync("git diff --cached --name-only", {
   cwd: ROOT,
   encoding: "utf8",
 })
@@ -97,18 +97,18 @@ const changed = execSync("git diff --cached --name-only", {
   .split("\n")
   .filter(Boolean);
 
-if (changed.length === 0) {
+if (staged.length === 0) {
   console.log("No staged changes — skipping validation.");
   process.exit(0);
 }
 
-// --- Categorise each changed file ---
+// --- Categorise each staged file ---
 
 const e2eDirs = new Set();
 const vitestFiles = [];
 const unmatchedSrc = [];
 
-for (const file of changed) {
+for (const file of staged) {
   // Files that never need validation (assets, docs, design files)
   if (matchesAny(file, map.skip)) continue;
 
@@ -179,19 +179,19 @@ if (unmatchedSrc.length > 0) {
   process.exit(0);
 }
 
-// --- Nothing to validate (only skipped files changed) ---
+// --- Nothing to validate (only skipped files staged) ---
 
 const hasVitest = vitestFiles.length > 0;
 const hasE2E = e2eDirs.size > 0;
 
 if (!(hasVitest || hasE2E)) {
-  console.log("Only non-code files changed — skipping validation.");
+  console.log("Only non-code files staged — skipping validation.");
   process.exit(0);
 }
 
 // --- Scoped lint + restage ---
 
-lintAndRestage(changed);
+lintAndRestage(staged);
 
 // --- Build parallel commands ---
 
