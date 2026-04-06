@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BonsaiTimelapse } from "@/components/bonsai/BonsaiTimelapse";
 import { ProjectPage } from "@/components/ProjectPage";
 
 // biome-ignore lint/style/useComponentExportOnlyModules: Next.js metadata must be exported from layout
@@ -56,7 +57,6 @@ export default function BonsaiProjectPage() {
       ]}
       liveLabel="Visit the garden"
       liveUrl="/bonsai"
-      placeholderGradient="linear-gradient(135deg, oklch(26.2% 0.051 172.552) 0%, oklch(35.88% 0.114 144.5) 100%)"
       subtitle="Personal Project"
       tagline="Getting AI to grow convincing trees turned out to be far trickier than expected — and far more entertaining."
       tags={[
@@ -71,6 +71,7 @@ export default function BonsaiProjectPage() {
         "localStorage",
       ]}
       title="Bonsai Garden"
+      visualElement={<BonsaiTimelapse speciesId="maple" />}
     />
   );
 }
