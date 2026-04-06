@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Github } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
@@ -22,9 +22,12 @@ export interface ProjectPageProps {
   liveUrl?: string;
   /** Label for the live URL button (default: "Try it out") */
   liveLabel?: string;
+  /** Optional URL to the code repository, shown as a secondary link in the header */
+  codeUrl?: string;
   /** Path to a screenshot image in /public */
   imageSrc?: string;
   imageAlt?: string;
+  imageRatio?: string;
   /** Gradient for the first section visual when no screenshot is available */
   placeholderGradient?: string;
   /**
@@ -56,9 +59,11 @@ export function ProjectPage({
   liveLabel = "Try it out",
   imageSrc,
   imageAlt,
+  imageRatio,
   placeholderGradient = "linear-gradient(135deg, var(--color-primary-950) 0%, var(--color-secondary-950) 100%)",
   headerColor = "var(--color-primary-950)",
   accentColor = "var(--color-primary-400)",
+  codeUrl,
   visualElement,
 }: ProjectPageProps) {
   return (
@@ -81,20 +86,33 @@ export function ProjectPage({
             <ProjectSubtitle>{subtitle}</ProjectSubtitle>
             <ProjectTitle>{title}</ProjectTitle>
             <ProjectTagline>{tagline}</ProjectTagline>
-            {liveUrl && (
-              <LiveLink
-                href={liveUrl}
-                rel={
-                  liveUrl.startsWith("/") ? undefined : "noopener noreferrer"
-                }
-                target={liveUrl.startsWith("/") ? undefined : "_blank"}
-              >
-                {liveLabel}
-                {!liveUrl.startsWith("/") && (
-                  <ExternalLink aria-hidden="true" size={16} />
-                )}
-              </LiveLink>
-            )}
+            <Links>
+              {liveUrl && (
+                <LiveLink
+                  href={liveUrl}
+                  rel={
+                    liveUrl.startsWith("/") ? undefined : "noopener noreferrer"
+                  }
+                  target={liveUrl.startsWith("/") ? undefined : "_blank"}
+                >
+                  {liveLabel}
+                  {!liveUrl.startsWith("/") && (
+                    <ExternalLink aria-hidden="true" size={16} />
+                  )}
+                </LiveLink>
+              )}
+              {codeUrl && (
+                <LiveLink
+                  href={codeUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <Github aria-hidden="true" size={20} />
+                  Codebase
+                  {<ExternalLink aria-hidden="true" size={16} />}
+                </LiveLink>
+              )}
+            </Links>
           </HeaderText>
         </MaxWidthWrapper>
       </ProjectHeader>
@@ -107,9 +125,12 @@ export function ProjectPage({
               <VisualColumn>
                 <VisualArea
                   style={
-                    visualElement || imageSrc
-                      ? undefined
-                      : { background: placeholderGradient }
+                    {
+                      "--imageRatio": imageRatio ?? String(4 / 3),
+                      ...(visualElement || imageSrc
+                        ? undefined
+                        : { background: placeholderGradient }),
+                    } as React.CSSProperties
                   }
                 >
                   {visualElement ??
@@ -169,10 +190,7 @@ const ProjectHeader = styled.div`
   background-color: var(--project-header-bg, var(--color-primary-950));
   color: var(--color-primary-100);
   padding-top: 56px;
-  /* Extra bottom padding to accommodate the diagonal wave clip */
-  padding-bottom: calc(56px + 56px);
-  /* Diagonal wave: full-height on the left, 56px short on the right */
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 56px), 0 100%);
+  padding-bottom: 56px;
 `;
 
 const BackLink = styled(Link)`
@@ -234,6 +252,12 @@ const ProjectTagline = styled.p`
   }
 `;
 
+const Links = styled.div`
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+`;
+
 const LiveLink = styled.a`
   display: inline-flex;
   align-items: center;
@@ -265,26 +289,25 @@ const LiveLink = styled.a`
 // ─── Content sections ─────────────────────────────────────────────────────────
 
 const ContentSection = styled.section`
-  padding-top: calc(80px + 56px); /* compensate for header wave overlap */
-  padding-bottom: 80px;
-  margin-top: -56px;
+  padding-top: 56px;
+  padding-bottom: 56px;
   position: relative;
   background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
 `;
 
 const ContentSectionAlt = styled.section`
-  padding-block: 80px;
+  padding-block: 56px;
   background-color: light-dark(var(--color-grey-100), var(--color-grey-900));
 `;
 
 const ContentRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 56px;
 
-  @media (${QUERIES.TABLET_UP}) {
+  @media (${QUERIES.DESKTOP_UP}) {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
   }
 `;
 
@@ -292,7 +315,7 @@ const VisualColumn = styled.div`
   flex: 0 0 auto;
   width: 100%;
 
-  @media (${QUERIES.TABLET_UP}) {
+  @media (${QUERIES.DESKTOP_UP}) {
     width: 380px;
   }
 `;
@@ -300,9 +323,10 @@ const VisualColumn = styled.div`
 const VisualArea = styled.div`
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: var(--imageRatio);
   border-radius: 12px;
   overflow: hidden;
+  margin-top: 0.5rem;
 `;
 
 const TextColumn = styled.div`
@@ -354,7 +378,7 @@ const HighlightItem = styled.li`
   &::before {
     content: "→";
     position: absolute;
-    left: 0;
+    left: -0.3rem;
     color: var(--project-accent, var(--color-primary-500));
     font-weight: 700;
   }
@@ -364,7 +388,6 @@ const HighlightItem = styled.li`
 
 const TagsVisual = styled.div`
   width: 100%;
-  aspect-ratio: 4 / 3;
   border-radius: 12px;
   background: linear-gradient(
     135deg,

@@ -17,10 +17,6 @@ const STAGES = [
   { days: 100, label: "Ancient Tree" },
 ] as const;
 
-const FRAME_COUNT = STAGES.length;
-/** Total animation cycle in seconds (2 s per stage). */
-const CYCLE_DURATION = FRAME_COUNT * 2;
-
 // Fixed tree IDs per species — deterministic shape, consistent across renders.
 const TIMELAPSE_TREE_IDS: Record<SpeciesId, string> = {
   maple: "timelapse-maple",
@@ -54,7 +50,10 @@ export function BonsaiTimelapse({ speciesId }: { speciesId: SpeciesId }) {
       >
         {STAGES.map(({ days }, i) => (
           <Frame $index={i} data-frame={i} key={days}>
-            <StaticTreeSVG tree={makeTimelapseTree(speciesId, days)} />
+            <StaticTreeSVG
+              style={{ width: "auto", height: "100%", maxWidth: "100%" }}
+              tree={makeTimelapseTree(speciesId, days)}
+            />
           </Frame>
         ))}
       </FrameStack>
@@ -71,19 +70,15 @@ export function BonsaiTimelapse({ speciesId }: { speciesId: SpeciesId }) {
 
 // ─── Animation ────────────────────────────────────────────────────────────────
 
-// Each frame is visible for 1/FRAME_COUNT of the cycle.
-// Fast fade in at start, hold, fast fade out before next frame begins.
-const frameDurationPct = 100 / FRAME_COUNT; // ~16.67%
-const fadeInPct = frameDurationPct * 0.04; // 4% of the frame slot
-const fadeOutStart = frameDurationPct * 0.82; // fade-out begins at 82%
-const fadeOutEnd = frameDurationPct * 0.98; // fully gone by 98%
-
+// Each frame is visible for 1/FRAME_COUNT of the cycle (~16.67%).
+// Fast fade in at start (0.67%), hold, fast fade out before next frame.
+// Percentages are pre-computed: frameDurationPct=16.67%, *0.04=0.67%, *0.82=13.67%, *0.98=16.33%
 const showFrame = keyframes`
-  0%                    { opacity: 0; }
-  ${fadeInPct}%         { opacity: 1; }
-  ${fadeOutStart}%      { opacity: 1; }
-  ${fadeOutEnd}%        { opacity: 0; }
-  100%                  { opacity: 0; }
+  0%      { opacity: 0; }
+  0.67%   { opacity: 1; }
+  13.67%  { opacity: 1; }
+  16.33%  { opacity: 0; }
+  100%    { opacity: 0; }
 `;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -117,7 +112,7 @@ const Frame = styled.div<{ $index: number }>`
   align-items: center;
   justify-content: center;
   opacity: 0;
-  animation: ${showFrame} ${CYCLE_DURATION}s ease-in-out infinite;
+  animation: ${showFrame} 12s ease-in-out infinite;
   animation-delay: calc(${(p) => p.$index} * 2s);
   /* both: frame 0 starts visible; backwards: delay frames start hidden */
   animation-fill-mode: both;
@@ -150,7 +145,7 @@ const Caption = styled.span<{ $index: number }>`
   text-transform: uppercase;
   color: oklch(45% 0.08 130);
   opacity: 0;
-  animation: ${showFrame} ${CYCLE_DURATION}s ease-in-out infinite;
+  animation: ${showFrame} 12s ease-in-out infinite;
   animation-delay: calc(${(p) => p.$index} * 2s);
   animation-fill-mode: both;
 

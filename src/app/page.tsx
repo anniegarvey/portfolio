@@ -26,7 +26,7 @@ const projects = [
     slug: "bonsai",
     title: "Bonsai Garden",
     description:
-      "A gamified bonsai growing simulation with realistic procedural tree generation",
+      "A bonsai growing simulation with realistic procedural tree generation, gamification providing rewards for Energy Planner interaction",
     // Secondary green-700→500; scattered dot pattern (organic/earthy)
     background:
       "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(135deg, oklch(51.02% 0.143 144.23) 0%, oklch(60.41% 0.161 144.17) 100%)",
@@ -48,7 +48,7 @@ const projects = [
     slug: "windtp",
     title: "WindTP",
     description:
-      "A WordPress site for a wind energy startup — still live today",
+      "A WordPress site for a Wind Energy Storage startup — still live today",
     // Orange-700→500; diagonal ray pattern (wind turbine)
     background:
       "repeating-linear-gradient(60deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 20px), linear-gradient(135deg, oklch(55.3% 0.195 38.402) 0%, oklch(70.5% 0.213 47.604) 100%)",

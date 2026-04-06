@@ -12,6 +12,7 @@ export default function OneAnthemProjectPage() {
   return (
     <ProjectPage
       accentColor="oklch(85.5% 0.138 181.071)"
+      codeUrl="https://github.com/one-anthem/one-anthem"
       description={
         <>
           <p>
@@ -39,7 +40,7 @@ export default function OneAnthemProjectPage() {
             The project also included a time-sync feature that would play the
             song simultaneously across all connected devices anywhere in the
             world — a small but meaningful gesture of collective unity. That
-            synchronisation challenge was particularly satisfying to solve.
+            synchronisation challenge was particularly interesting to explore.
           </p>
         </>
       }
@@ -52,15 +53,19 @@ export default function OneAnthemProjectPage() {
         "Global time-sync feature to play the song simultaneously across devices",
         "Built in response to a real-world humanitarian crisis",
       ]}
+      imageAlt="One Anthem homepage, showing intro, events, videos and translation section with Arabic selected"
+      imageRatio="0.8"
+      imageSrc="/one-anthem.png"
       placeholderGradient="linear-gradient(135deg, oklch(27.7% 0.046 192.524) 0%, oklch(38.6% 0.063 188.416) 100%)"
       subtitle="Collaborative Project"
       tagline="A small group wanted to do something meaningful in response to the Russian invasion of Ukraine. They wrote a song of unity — and I helped bring it to the world."
       tags={[
         "React",
-        "TypeScript",
+        "Tailwind CSS",
+        "Daisy UI",
+        "Reach UI",
         "Internationalisation",
         "RTL Languages",
-        "WebSockets",
         "UI Design",
         "Scripting",
       ]}
