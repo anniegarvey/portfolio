@@ -5,19 +5,21 @@ import { ProjectPage } from "@/components/ProjectPage";
 export const metadata: Metadata = {
   title: "Bonsai Garden",
   description:
-    "A gamified bonsai growing simulation with realistic procedural tree generation",
+    "A bonsai growing simulation with realistic procedural tree generation, gamification providing rewards for Energy Planner interaction",
 };
 
 export default function BonsaiProjectPage() {
   return (
     <ProjectPage
       accentColor="oklch(71.37% 0.118 144.54)"
+      codeUrl="https://github.com/anniegarvey/portfolio/tree/main/src/components/bonsai"
       description={
         <>
           <p>
-            Bonsai Garden is a gamified tree-growing simulation where you tend
-            to miniature trees, earn points, and watch them grow over time.
-            Making the trees look convincingly real — with authentic branching
+            Bonsai Garden is a gamified tree-growing simulation where you can
+            spend your points earned from Energy Planner interactions to tend to
+            miniature trees, and watch them grow over time. Making the trees
+            look anything like the real thing — with authentic branching
             patterns, trunk shapes, and species-specific characteristics —
             turned out to be a fascinating design challenge.
           </p>
@@ -54,6 +56,9 @@ export default function BonsaiProjectPage() {
         "Gamified loop with points, watering, and timelapse growth",
         "Funny early screenshots document the AI going off-script",
       ]}
+      imageAlt="Tend view of a Maple Bonsai tree, with options to water and prune"
+      imageRatio="0.8"
+      imageSrc="/bonsai-garden.png"
       liveLabel="Visit the garden"
       liveUrl="/bonsai"
       placeholderGradient="linear-gradient(135deg, oklch(26.2% 0.051 172.552) 0%, oklch(35.88% 0.114 144.5) 100%)"

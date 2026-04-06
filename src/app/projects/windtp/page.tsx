@@ -4,7 +4,8 @@ import { ProjectPage } from "@/components/ProjectPage";
 // biome-ignore lint/style/useComponentExportOnlyModules: Next.js metadata must be exported from layout
 export const metadata: Metadata = {
   title: "WindTP",
-  description: "A WordPress site for a wind energy startup — still live today",
+  description:
+    "A WordPress site for a Wind Energy Storage startup — still live today",
 };
 
 export default function WindTPProjectPage() {
@@ -15,9 +16,9 @@ export default function WindTPProjectPage() {
         <>
           <p>
             WindTP needed a professional online presence to help investors
-            discover and evaluate the company. I took on the full project:
-            domain management, hosting setup, and building the site in
-            WordPress.
+            discover and evaluate the company. I took on all engineering aspects
+            of the project: domain management, hosting setup, and building the
+            site in WordPress.
           </p>
           <p>
             The UI designer had selected a theme but called for significant
@@ -44,9 +45,14 @@ export default function WindTPProjectPage() {
         "Collaborated closely with a UI designer",
         "Still live and in use today",
       ]}
+      imageAlt="WindTP website homepage, showing a hero image of wind turbines and sections for technology, team, and contact information"
+      imageRatio="1.1"
+      imageSrc="/wind-tp.png"
+      liveLabel="Take a look"
+      liveUrl="https://windtp.com/"
       placeholderGradient="linear-gradient(135deg, oklch(26.6% 0.079 36.259) 0%, oklch(40.8% 0.123 38.172) 100%)"
       subtitle="Professional Project"
-      tagline="A polished investor-facing website for a wind energy startup — built with WordPress, customised beyond what any theme was designed to do, and still live today."
+      tagline="A polished investor-facing website for a wind energy startup — built with WordPress, customised beyond what the theme was designed to do, and still live today."
       tags={[
         "WordPress",
         "PHP",
