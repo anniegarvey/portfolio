@@ -213,9 +213,7 @@ export function StaticTreeSVG({
       style={{ width: "100%", height: "auto", ...style }}
       viewBox={viewBox}
     >
-      <title>
-        {config.label} bonsai tree, day {tree.activeDaysCount}
-      </title>
+      <title>{`${config.label} bonsai tree, day ${tree.activeDaysCount}`}</title>
 
       <SoilEllipse
         cx={svgData.trunkX}

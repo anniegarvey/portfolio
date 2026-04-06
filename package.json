@@ -12,7 +12,8 @@
     "prepare": "husky",
     "ngrok": "ngrok http $(cat .port 2>/dev/null || echo 3000)",
     "validate": "pnpm lint --fix && concurrently --kill-others-on-fail --names \"tsc,test,e2e\" \"tsc --noEmit\" \"pnpm test\" \"pnpm playwright test\"",
-    "validate:smart": "node scripts/smart-validate.js"
+    "validate:smart": "node scripts/smart-validate.js",
+    "generate-snapshots": "tsx scripts/generate-bonsai-snapshots.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
@@ -37,7 +38,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
-    "concurrently": "9.1.0",
     "@biomejs/biome": "2.3.12",
     "@playwright/test": "1.58.0",
     "@stryker-mutator/core": "9.4.0",
@@ -54,12 +54,14 @@
     "@vitejs/plugin-react": "5.1.2",
     "@vitest/coverage-v8": "4.0.18",
     "babel-plugin-react-compiler": "1.0.0",
+    "concurrently": "9.1.0",
     "fake-indexeddb": "6.2.5",
     "husky": "9.1.7",
     "jest-axe": "10.0.0",
     "jsdom": "27.4.0",
     "new-component": "6.0.0",
     "next-yak": "9.1.0",
+    "tsx": "4.21.0",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
   }
