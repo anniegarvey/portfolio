@@ -153,4 +153,28 @@ describe("ProjectPage", () => {
     render(<ProjectPage {...defaultProps} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
+
+  it("renders visualElement instead of image or gradient placeholder", () => {
+    render(
+      <ProjectPage
+        {...defaultProps}
+        visualElement={<div data-testid="custom-visual">Live content</div>}
+      />,
+    );
+    expect(screen.getByTestId("custom-visual")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("visualElement takes precedence over imageSrc", () => {
+    render(
+      <ProjectPage
+        {...defaultProps}
+        imageAlt="Should not appear"
+        imageSrc="/projects/test.png"
+        visualElement={<div data-testid="custom-visual">Live content</div>}
+      />,
+    );
+    expect(screen.getByTestId("custom-visual")).toBeInTheDocument();
+    expect(screen.queryByAltText("Should not appear")).not.toBeInTheDocument();
+  });
 });

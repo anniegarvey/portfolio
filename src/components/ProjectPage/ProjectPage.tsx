@@ -31,6 +31,11 @@ export interface ProjectPageProps {
   /** Gradient for the first section visual when no screenshot is available */
   placeholderGradient?: string;
   /**
+   * Live React element to display in the visual column (overrides imageSrc and placeholderGradient).
+   * Use for interactive or animated content, e.g. BonsaiTimelapse.
+   */
+  visualElement?: React.ReactNode;
+  /**
    * Dark background colour for the project header.
    * Defaults to --color-primary-950 (deep violet).
    */
@@ -59,6 +64,7 @@ export function ProjectPage({
   headerColor = "var(--color-primary-950)",
   accentColor = "var(--color-primary-400)",
   codeUrl,
+  visualElement,
 }: ProjectPageProps) {
   return (
     <article
@@ -120,21 +126,22 @@ export function ProjectPage({
                 <VisualArea
                   style={
                     {
-                      "--imageRatio": imageRatio ? imageRatio : String(4 / 3),
-                      ...(imageSrc
+                      "--imageRatio": imageRatio ?? String(4 / 3),
+                      ...(visualElement || imageSrc
                         ? undefined
                         : { background: placeholderGradient }),
                     } as React.CSSProperties
                   }
                 >
-                  {imageSrc && (
-                    <Image
-                      alt={imageAlt ?? title}
-                      fill
-                      src={imageSrc}
-                      style={{ objectFit: "cover" }}
-                    />
-                  )}
+                  {visualElement ??
+                    (imageSrc && (
+                      <Image
+                        alt={imageAlt ?? title}
+                        fill
+                        src={imageSrc}
+                        style={{ objectFit: "cover" }}
+                      />
+                    ))}
                 </VisualArea>
               </VisualColumn>
               <TextColumn>
