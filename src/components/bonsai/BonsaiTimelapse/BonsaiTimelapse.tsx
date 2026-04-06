@@ -47,9 +47,10 @@ function makeTimelapseTree(speciesId: SpeciesId, days: number): BonsaiTree {
 export function BonsaiTimelapse({ speciesId }: { speciesId: SpeciesId }) {
   const speciesLabel = SPECIES_CONFIG[speciesId].label;
   return (
-    <Wrapper>
+    <Wrapper data-light-mode="true">
       <FrameStack
         aria-label={`${speciesLabel} bonsai growing from seed to ancient tree`}
+        role="img"
       >
         {STAGES.map(({ days }, i) => (
           <Frame $index={i} data-frame={i} key={days}>

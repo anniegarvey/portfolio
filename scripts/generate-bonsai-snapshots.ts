@@ -11,14 +11,14 @@
  * Reusability: add any SpeciesId to the --species flag to export any tree type.
  */
 
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import fs from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { StaticTreeSVG } from "../src/components/bonsai/TreeSVG/StaticTreeSVG";
+import type { SpeciesId } from "../src/lib/bonsai/schema";
 // Relative imports — scripts/ is outside the Next.js @/* alias resolution scope.
 import { SPECIES_CONFIG } from "../src/lib/bonsai/schema";
-import type { SpeciesId } from "../src/lib/bonsai/schema";
-import { StaticTreeSVG } from "../src/components/bonsai/TreeSVG/StaticTreeSVG";
 
 // ─── Growth stages (matches GROWTH_LABEL_THRESHOLDS in schema.ts) ─────────────
 
@@ -67,7 +67,9 @@ for (const speciesId of speciesToRun) {
       prunedBranches: [] as [],
     };
 
-    const svgString = renderToStaticMarkup(createElement(StaticTreeSVG, { tree }));
+    const svgString = renderToStaticMarkup(
+      createElement(StaticTreeSVG, { tree }),
+    );
     const filename = `${speciesId}-${label}.svg`;
     fs.writeFileSync(path.join(outDir, filename), svgString);
     console.log(`  ✓  ${filename}`);
