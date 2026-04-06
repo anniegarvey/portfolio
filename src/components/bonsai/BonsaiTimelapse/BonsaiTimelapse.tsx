@@ -51,6 +51,7 @@ export function BonsaiTimelapse({ speciesId }: { speciesId: SpeciesId }) {
         {STAGES.map(({ days }, i) => (
           <Frame $index={i} data-frame={i} key={days}>
             <StaticTreeSVG
+              cropTop
               style={{ width: "auto", height: "100%", maxWidth: "100%" }}
               tree={makeTimelapseTree(speciesId, days)}
             />
