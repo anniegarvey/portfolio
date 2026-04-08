@@ -110,7 +110,14 @@ export function PlannedActivityCard({
             intent={completed ? "danger" : "secondary"}
             onClick={(e) => {
               if (!completed) {
-                awardPoints(10, e.currentTarget.getBoundingClientRect());
+                const energySum = Object.values(activity.energyCost).reduce(
+                  (sum, cost) => sum + cost,
+                  0,
+                );
+                awardPoints(
+                  3 + energySum,
+                  e.currentTarget.getBoundingClientRect(),
+                );
               }
               onToggleCompletion(instance.id);
             }}

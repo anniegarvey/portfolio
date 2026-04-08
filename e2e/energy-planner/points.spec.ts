@@ -41,7 +41,9 @@ test.describe("Points System", () => {
     await expect(pointsDisplay(page)).toContainText("75");
   });
 
-  test("awards 10 points when completing an activity", async ({ page }) => {
+  test("awards 3 + energy sum points when completing an activity", async ({
+    page,
+  }) => {
     const instance = mockPlannedInstance(mockOneOffActivity.id);
     await goToEnergyPlannerWithSeed(page, {
       activities: [mockOneOffActivity],
@@ -53,7 +55,8 @@ test.describe("Points System", () => {
       .getByRole("button", { name: "Mark as done", exact: true })
       .click();
 
-    await expect(pointsDisplay(page)).toContainText("10");
+    // mockOneOffActivity: physical=30, social=5, executive=10 → 3 + 45 = 48
+    await expect(pointsDisplay(page)).toContainText("48");
   });
 
   test("does not award points when un-completing an activity", async ({
@@ -109,25 +112,25 @@ test.describe("Points System", () => {
       dayPlans: { [TODAY]: mockStoredDayPlan([instance]) },
     });
 
-    // +10 for completing
+    // +48 for completing (3 + 45 energy)
     await page
       .getByTestId("selected-activities")
       .getByRole("button", { name: "Mark as done", exact: true })
       .click();
-    await expect(pointsDisplay(page)).toContainText("10");
+    await expect(pointsDisplay(page)).toContainText("48");
 
     // +0 for un-completing (no regression)
     await page
       .getByTestId("selected-activities")
       .getByRole("button", { name: "Mark as not done", exact: true })
       .click();
-    await expect(pointsDisplay(page)).toContainText("10");
+    await expect(pointsDisplay(page)).toContainText("48");
 
-    // +10 again for re-completing
+    // +48 again for re-completing
     await page
       .getByTestId("selected-activities")
       .getByRole("button", { name: "Mark as done", exact: true })
       .click();
-    await expect(pointsDisplay(page)).toContainText("20");
+    await expect(pointsDisplay(page)).toContainText("96");
   });
 });
