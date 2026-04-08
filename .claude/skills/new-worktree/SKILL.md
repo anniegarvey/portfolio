@@ -9,4 +9,4 @@ description: Guidelines for creating and managing new worktrees in the codebase
 - Create a new worktree in .claude/worktrees. Keep all changes inside this worktree
 - Run `pnpm i` then `pnpm dev` and share the port number from the `.port` file
 - Implement the feature, breaking work into small, focused commits
-- Create a PR using the github CLI once the feature is complete and ready for review
+- Create a PR using the github CLI once the feature is complete and ready for review, include a screenshot of UX changes if applicable
