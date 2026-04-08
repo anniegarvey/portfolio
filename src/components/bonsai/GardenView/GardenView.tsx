@@ -206,23 +206,24 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
 
   const handleGardenClick = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (gardenTool === "hose") {
-        for (const tree of state.trees) waterTree(tree.id);
+      if (placingSpeciesId) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = clamp(
+          ((e.clientX - rect.left) / rect.width) * 100,
+          CLAMP_MIN,
+          CLAMP_MAX,
+        );
+        const y = clamp(
+          ((e.clientY - rect.top) / rect.height) * 100,
+          CLAMP_MIN,
+          CLAMP_MAX,
+        );
+        confirmPlantAt(placingSpeciesId, { x, y });
         return;
       }
-      if (!placingSpeciesId) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = clamp(
-        ((e.clientX - rect.left) / rect.width) * 100,
-        CLAMP_MIN,
-        CLAMP_MAX,
-      );
-      const y = clamp(
-        ((e.clientY - rect.top) / rect.height) * 100,
-        CLAMP_MIN,
-        CLAMP_MAX,
-      );
-      confirmPlantAt(placingSpeciesId, { x, y });
+      if (gardenTool === "hose") {
+        for (const tree of state.trees) waterTree(tree.id);
+      }
     },
     [placingSpeciesId, confirmPlantAt, gardenTool, state.trees, waterTree],
   );
