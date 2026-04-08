@@ -3,7 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
+import { PointsProvider } from "../../../lib/points/context";
 import { UncompletedActivityCard } from ".";
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <PointsProvider>
+      <EnergyPlannerProvider>{children}</EnergyPlannerProvider>
+    </PointsProvider>
+  );
+}
 
 const mockActivity: Activity = {
   id: "test-activity-1",
@@ -25,13 +34,13 @@ describe("UncompletedActivityCard", () => {
 
   it("renders activity title", () => {
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     expect(screen.getByText("Test Uncompleted Activity")).toBeInTheDocument();
@@ -39,13 +48,13 @@ describe("UncompletedActivityCard", () => {
 
   it("displays the original date", () => {
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     // Match partial date format - locale may vary
@@ -54,13 +63,13 @@ describe("UncompletedActivityCard", () => {
 
   it("displays energy badges", () => {
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     expect(screen.getByText(/10.*P/)).toBeInTheDocument();
@@ -75,13 +84,13 @@ describe("UncompletedActivityCard", () => {
     };
 
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={zeroEnergyActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     expect(screen.getByText(/10.*P/)).toBeInTheDocument();
@@ -91,13 +100,13 @@ describe("UncompletedActivityCard", () => {
 
   it("renders Complete button", () => {
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     expect(screen.getByLabelText("Mark as complete")).toBeInTheDocument();
@@ -105,13 +114,13 @@ describe("UncompletedActivityCard", () => {
 
   it("renders Move to Today button", () => {
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     expect(screen.getByLabelText("Move to today")).toBeInTheDocument();
@@ -119,13 +128,13 @@ describe("UncompletedActivityCard", () => {
 
   it("renders Unplan button", () => {
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     expect(screen.getByLabelText("Return to unplanned")).toBeInTheDocument();
@@ -146,13 +155,13 @@ describe("UncompletedActivityCard", () => {
     );
 
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     await user.click(screen.getByLabelText("Mark as complete"));
@@ -175,13 +184,13 @@ describe("UncompletedActivityCard", () => {
     );
 
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     await user.click(screen.getByLabelText("Move to today"));
@@ -204,13 +213,13 @@ describe("UncompletedActivityCard", () => {
     );
 
     render(
-      <EnergyPlannerProvider>
+      <Wrapper>
         <UncompletedActivityCard
           activity={mockActivity}
           fromDate="2026-01-13"
           instanceId="instance-test-1"
         />
-      </EnergyPlannerProvider>,
+      </Wrapper>,
     );
 
     await user.click(screen.getByLabelText("Return to unplanned"));

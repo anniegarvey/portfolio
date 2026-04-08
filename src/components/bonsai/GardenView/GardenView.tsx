@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets, Leaf, MousePointer2 } from "lucide-react";
+import { Coins, Droplets, Leaf, Lock, MousePointer2, Wind } from "lucide-react";
 import { styled } from "next-yak";
 import type React from "react";
 import {
@@ -13,7 +13,7 @@ import {
 import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
-import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import { SHOP_CATALOG, SPECIES_CONFIG } from "@/lib/bonsai/schema";
 import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
 
 // Trees positioned near an edge get clamped so they stay fully visible.
@@ -28,7 +28,11 @@ function clamp(v: number, lo: number, hi: number) {
 
 // ─── Mini Tree ────────────────────────────────────────────────────────────────
 
-type GardenTool = "tend" | "move" | "water";
+type GardenTool = "tend" | "move" | "water" | "hose";
+
+const TOOL_PRICES = Object.fromEntries(
+  SHOP_CATALOG.filter((i) => i.category === "tool").map((i) => [i.id, i.cost]),
+);
 
 interface MiniTreeProps {
   tree: BonsaiTree;
@@ -118,7 +122,7 @@ function MiniTree({
       if (!dragState.current.moved) {
         if (gardenTool === "tend") onOpen(tree);
         else if (gardenTool === "water") onWater(tree.id);
-        // move: click without drag does nothing
+        // move and hose: click on individual tree does nothing (hose waters all)
       }
       dragState.current = null;
     },
@@ -141,6 +145,7 @@ function MiniTree({
           e.preventDefault();
           if (gardenTool === "tend") onOpen(tree);
           else if (gardenTool === "water") onWater(tree.id);
+          // hose: keyboard on individual tree does nothing
         }
       }}
       onPointerDown={handlePointerDown}
@@ -156,6 +161,7 @@ function MiniTree({
             : gardenTool === "tend"
               ? "pointer"
               : undefined,
+        pointerEvents: gardenTool === "hose" ? "none" : undefined,
       }}
       tabIndex={isPlacing ? -1 : 0}
     >
@@ -180,9 +186,10 @@ function MiniTree({
 
 interface GardenViewProps {
   onOpenTree: (tree: BonsaiTree) => void;
+  onNavigateToShop: (itemId: string) => void;
 }
 
-export function GardenView({ onOpenTree }: GardenViewProps) {
+export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
   const {
     state,
     placingSpeciesId,
@@ -193,24 +200,32 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
+  const ownedTools = state.inventory.ownedToolIds;
+  const hasWateringCan = ownedTools.includes("watering-can");
+  const hasGardenHose = ownedTools.includes("garden-hose");
 
   const handleGardenClick = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!placingSpeciesId) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = clamp(
-        ((e.clientX - rect.left) / rect.width) * 100,
-        CLAMP_MIN,
-        CLAMP_MAX,
-      );
-      const y = clamp(
-        ((e.clientY - rect.top) / rect.height) * 100,
-        CLAMP_MIN,
-        CLAMP_MAX,
-      );
-      confirmPlantAt(placingSpeciesId, { x, y });
+      if (placingSpeciesId) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = clamp(
+          ((e.clientX - rect.left) / rect.width) * 100,
+          CLAMP_MIN,
+          CLAMP_MAX,
+        );
+        const y = clamp(
+          ((e.clientY - rect.top) / rect.height) * 100,
+          CLAMP_MIN,
+          CLAMP_MAX,
+        );
+        confirmPlantAt(placingSpeciesId, { x, y });
+        return;
+      }
+      if (gardenTool === "hose") {
+        for (const tree of state.trees) waterTree(tree.id);
+      }
     },
-    [placingSpeciesId, confirmPlantAt],
+    [placingSpeciesId, confirmPlantAt, gardenTool, state.trees, waterTree],
   );
 
   const isPlacing = placingSpeciesId !== null;
@@ -236,20 +251,61 @@ export function GardenView({ onOpenTree }: GardenViewProps) {
           <MousePointer2 size={15} />
           Move
         </ToolBtn>
-        <ToolBtn
-          data-active={gardenTool === "water" || undefined}
-          onClick={() => setGardenTool("water")}
-          title="Water trees"
-          type="button"
-        >
-          <Droplets size={15} />
-          Water
-        </ToolBtn>
+        {hasWateringCan ? (
+          <ToolBtn
+            data-active={gardenTool === "water" || undefined}
+            onClick={() => setGardenTool("water")}
+            title="Water trees"
+            type="button"
+          >
+            <Droplets size={15} />
+            Water
+          </ToolBtn>
+        ) : (
+          <LockedToolBtn
+            onClick={() => onNavigateToShop("watering-can")}
+            title="Watering Can (locked)"
+            type="button"
+          >
+            <Lock size={13} />
+            Water
+            <ToolPrice>
+              <Coins size={12} />
+              {TOOL_PRICES["watering-can"]}
+            </ToolPrice>
+          </LockedToolBtn>
+        )}
+        {hasGardenHose ? (
+          <ToolBtn
+            data-active={gardenTool === "hose" || undefined}
+            onClick={() => setGardenTool("hose")}
+            title="Garden Hose — water all trees"
+            type="button"
+          >
+            <Wind size={15} />
+            Hose
+          </ToolBtn>
+        ) : (
+          <LockedToolBtn
+            onClick={() => onNavigateToShop("garden-hose")}
+            title="Garden Hose (locked)"
+            type="button"
+          >
+            <Lock size={13} />
+            Hose
+            <ToolPrice>
+              <Coins size={12} />
+              {TOOL_PRICES["garden-hose"]}
+            </ToolPrice>
+          </LockedToolBtn>
+        )}
         <ShortcutHint>Press D to advance day</ShortcutHint>
       </GardenToolbar>
       <Garden
         data-placing={isPlacing || undefined}
-        onPointerUp={isPlacing ? handleGardenClick : undefined}
+        onPointerUp={
+          isPlacing || gardenTool === "hose" ? handleGardenClick : undefined
+        }
         ref={gardenRef}
         style={{ cursor: isPlacing ? "crosshair" : undefined }}
       >
@@ -334,6 +390,39 @@ const ToolBtn = styled.button`
   &:hover:not([data-active]) {
     background: light-dark(#f5f3f0, #2a3040);
   }
+`;
+
+const LockedToolBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1.5px solid light-dark(#e0d8d0, #3a3f4a);
+  background: transparent;
+  color: light-dark(#a09888, #6a7080);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &:hover {
+    background: light-dark(#f9f7f5, #242930);
+    border-color: #f59e0b99;
+  }
+`;
+
+const ToolPrice = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #f59e0b;
+  font-weight: 600;
+  margin-left: 0.15rem;
 `;
 
 const ShortcutHint = styled.span`

@@ -14,9 +14,9 @@ export const SpeciesIdSchema = z.enum([
 export type SpeciesId = z.infer<typeof SpeciesIdSchema>;
 
 export const ToolIdSchema = z.enum([
-  "pruning-shears",
   "watering-can",
-  "misting-bottle",
+  "pruning-shears",
+  "garden-hose",
 ]);
 export type ToolId = z.infer<typeof ToolIdSchema>;
 
@@ -372,40 +372,40 @@ export const SHOP_CATALOG: ShopItem[] = [
       "A classic bonsai. Tight, vertical growth with dark evergreen needles.",
   },
   {
-    id: "maple",
-    label: "Maple Seed",
-    category: "species",
-    cost: 75,
-    description: "Brilliant red foliage and graceful spreading branches.",
-  },
-  {
-    id: "cherry-blossom",
-    label: "Cherry Blossom Seed",
-    category: "species",
-    cost: 90,
-    description:
-      "Soft pink blooms and gentle arching branches. A timeless favourite.",
-  },
-  {
     id: "juniper",
     label: "Juniper Seed",
     category: "species",
-    cost: 60,
+    cost: 200,
     description:
       "Hardy and compact, with deep green foliage and slow, deliberate growth.",
+  },
+  {
+    id: "maple",
+    label: "Maple Seed",
+    category: "species",
+    cost: 500,
+    description: "Brilliant red foliage and graceful spreading branches.",
   },
   {
     id: "oak",
     label: "Oak Seed",
     category: "species",
-    cost: 80,
+    cost: 1200,
     description: "A broad, majestic canopy with wide-spreading branches.",
+  },
+  {
+    id: "cherry-blossom",
+    label: "Cherry Blossom Seed",
+    category: "species",
+    cost: 2500,
+    description:
+      "Soft pink blooms and gentle arching branches. A timeless favourite.",
   },
   {
     id: "wisteria",
     label: "Wisteria Seed",
     category: "species",
-    cost: 80,
+    cost: 5000,
     description:
       "Cascading purple blooms on twisted, gnarled branches. Hauntingly beautiful.",
   },
@@ -413,31 +413,32 @@ export const SHOP_CATALOG: ShopItem[] = [
     id: "flame-tree",
     label: "Flame Tree Seed",
     category: "species",
-    cost: 95,
+    cost: 10000,
     description: "Blazing red-orange canopy. A rare and dramatic showpiece.",
   },
   // Tools
   {
-    id: "pruning-shears",
-    label: "Pruning Shears",
-    category: "tool",
-    cost: 30,
-    description:
-      "Sharp blades for clean cuts. Improves the look of pruned branch stubs.",
-  },
-  {
     id: "watering-can",
     label: "Watering Can",
     category: "tool",
-    cost: 20,
+    cost: 30,
     description: "A fine-spout can for gentle, even watering.",
   },
   {
-    id: "misting-bottle",
-    label: "Misting Bottle",
+    id: "pruning-shears",
+    label: "Pruning Shears",
     category: "tool",
-    cost: 25,
-    description: "Keeps foliage humid and healthy between waterings.",
+    cost: 500,
+    description:
+      "Sharp blades for clean cuts. Shape and refine your tree once it has grown.",
+  },
+  {
+    id: "garden-hose",
+    label: "Garden Hose",
+    category: "tool",
+    cost: 4000,
+    description:
+      "Water every tree in your garden at once. A luxury for the dedicated gardener.",
   },
   // Fertiliser
   {

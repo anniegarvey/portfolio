@@ -2,7 +2,7 @@
 
 import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { ShopCategory, ShopItem, ShopItemId } from "@/lib/bonsai/schema";
@@ -34,7 +34,14 @@ function useOwnedCount(itemId: ShopItemId, category: ShopCategory) {
   }
 }
 
-function ShopCard({ item }: { item: ShopItem }) {
+function ShopCard({ item, focused }: { item: ShopItem; focused?: boolean }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (focused && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [focused]);
   const { buyItem, state } = useBonsai();
   const { points } = usePoints();
   const [feedback, setFeedback] = useState<"insufficient" | null>(null);
@@ -56,7 +63,7 @@ function ShopCard({ item }: { item: ShopItem }) {
   };
 
   return (
-    <Card>
+    <Card data-focused={focused || undefined} ref={cardRef}>
       <CardHeader>
         <ItemName>{item.label}</ItemName>
         <Cost>
@@ -84,11 +91,25 @@ function ShopCard({ item }: { item: ShopItem }) {
   );
 }
 
-export function BonsaiShop() {
+export function BonsaiShop({ focusItemId }: { focusItemId?: string }) {
   const items = SHOP_CATALOG;
+  const focusedCategory =
+    focusItemId != null
+      ? (items.find((i) => i.id === focusItemId)?.category ?? "species")
+      : null;
+  const [activeCategory, setActiveCategory] = useState<ShopCategory>("species");
+
+  useEffect(() => {
+    if (focusedCategory != null) {
+      setActiveCategory(focusedCategory);
+    }
+  }, [focusedCategory]);
 
   return (
-    <ShopRoot defaultValue="species">
+    <ShopRoot
+      onValueChange={(v) => setActiveCategory(v as ShopCategory)}
+      value={activeCategory}
+    >
       <ShopTabsList aria-label="Shop categories">
         {CATEGORIES.map(({ value, label }) => (
           <ShopTab key={value} value={value}>
@@ -103,7 +124,11 @@ export function BonsaiShop() {
             {items
               .filter((item) => item.category === value)
               .map((item) => (
-                <ShopCard item={item} key={item.id} />
+                <ShopCard
+                  focused={focusItemId === item.id}
+                  item={item}
+                  key={item.id}
+                />
               ))}
           </ShopGrid>
         </Tabs.Content>
@@ -173,6 +198,11 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+
+  &[data-focused] {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px #f59e0b44;
+  }
 `;
 
 const CardHeader = styled.div`

@@ -7,6 +7,7 @@ import { formatDateForDisplay } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
+import { usePoints } from "@/lib/points/context";
 
 interface UncompletedActivityCardProps {
   activity: Activity;
@@ -25,8 +26,14 @@ export function UncompletedActivityCard({
     moveActivityToToday,
     moveActivityToUnplanned,
   } = useEnergyPlanner();
+  const { awardPoints } = usePoints();
 
-  const handleMarkComplete = () => {
+  const handleMarkComplete = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const energySum = Object.values(activity.energyCost).reduce(
+      (sum, cost) => sum + cost,
+      0,
+    );
+    awardPoints(3 + energySum, e.currentTarget.getBoundingClientRect());
     markActivityCompleteOnDate(instanceId, fromDate);
   };
 
@@ -65,7 +72,7 @@ export function UncompletedActivityCard({
           aria-label="Mark as complete"
           intent="secondary"
           leftIcon={<Check size={16} />}
-          onClick={handleMarkComplete}
+          onClick={(e) => handleMarkComplete(e)}
           title="Mark as complete"
         >
           <ResponsiveSpan>Complete</ResponsiveSpan>

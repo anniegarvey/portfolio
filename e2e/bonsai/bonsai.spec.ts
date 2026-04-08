@@ -214,10 +214,16 @@ test.describe("Bonsai Garden", () => {
   test("clicking a branch prunes it and shows regrowth hint", async ({
     page,
   }) => {
-    // Day 20 ensures several branch pairs are visible
-    await goToBonsaiWithSeed(page, { activeDaysCount: 20 });
+    // Day 20 ensures several branch pairs are visible; pruning shears must be owned
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 20,
+      ownedToolIds: ["pruning-shears"],
+    });
 
     await openTendingModal(page);
+
+    // Select the pruning shears tool (watering can is the default now)
+    await page.getByRole("button", { name: /pruning shears/i }).click();
 
     await expect(page.getByText(/click any branch to prune it/i)).toBeVisible();
 
