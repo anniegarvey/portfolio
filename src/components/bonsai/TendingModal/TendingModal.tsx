@@ -11,9 +11,14 @@ import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
 interface TendingModalProps {
   tree: BonsaiTree | null;
   onClose: () => void;
+  onNavigateToShop: (itemId: string) => void;
 }
 
-export function TendingModal({ tree, onClose }: TendingModalProps) {
+export function TendingModal({
+  tree,
+  onClose,
+  onNavigateToShop,
+}: TendingModalProps) {
   return (
     <Dialog.Root
       onOpenChange={(open) => !open && onClose()}
@@ -39,7 +44,9 @@ export function TendingModal({ tree, onClose }: TendingModalProps) {
           </Header>
 
           <Body>
-            {tree && <TreeView tree={tree} />}
+            {tree && (
+              <TreeView onNavigateToShop={onNavigateToShop} tree={tree} />
+            )}
             <DayShortcutHint>Press D to advance day</DayShortcutHint>
           </Body>
         </Content>

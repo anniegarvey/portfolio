@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets, Scissors } from "lucide-react";
+import { Coins, Droplets, Lock, Scissors } from "lucide-react";
 import { styled } from "next-yak";
 import { type KeyboardEvent, useCallback, useState } from "react";
 import {
@@ -10,7 +10,7 @@ import {
 } from "@/components/bonsai/TreeSVG";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, PotId, StandId } from "@/lib/bonsai/schema";
-import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import { SHOP_CATALOG, SPECIES_CONFIG } from "@/lib/bonsai/schema";
 
 // ─── Pot & Stand Labels ───────────────────────────────────────────────────────
 
@@ -26,6 +26,10 @@ const STAND_LABELS: Record<StandId, string> = {
   "wooden-stand": "Wooden Stand",
   "carved-stone": "Stone Stand",
 };
+
+const TOOL_PRICES = Object.fromEntries(
+  SHOP_CATALOG.filter((i) => i.category === "tool").map((i) => [i.id, i.cost]),
+);
 
 // ─── Watering wrapper ─────────────────────────────────────────────────────────
 
@@ -66,11 +70,21 @@ function WaterableSVGContainer({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function TreeView({ tree }: { tree: BonsaiTree }) {
-  const [activeTool, setActiveTool] = useState<ActiveTool>("pruning-shears");
+export function TreeView({
+  tree,
+  onNavigateToShop,
+}: {
+  tree: BonsaiTree;
+  onNavigateToShop: (itemId: string) => void;
+}) {
+  const { state } = useBonsai();
+  const [activeTool, setActiveTool] = useState<ActiveTool>("watering-can");
 
   const config = SPECIES_CONFIG[tree.speciesId];
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
+  const ownedTools = state.inventory.ownedToolIds;
+  const hasWateringCan = ownedTools.includes("watering-can");
+  const hasPruningShears = ownedTools.includes("pruning-shears");
 
   return (
     <TreeViewWrapper>
@@ -79,24 +93,54 @@ export function TreeView({ tree }: { tree: BonsaiTree }) {
       </TreeLabel>
 
       <ToolBar>
-        <ToolBtn
-          data-active={activeTool === "pruning-shears" || undefined}
-          onClick={() => setActiveTool("pruning-shears")}
-          title="Pruning Shears"
-          type="button"
-        >
-          <Scissors size={15} />
-          Pruning Shears
-        </ToolBtn>
-        <ToolBtn
-          data-active={activeTool === "watering-can" || undefined}
-          onClick={() => setActiveTool("watering-can")}
-          title="Watering Can"
-          type="button"
-        >
-          <Droplets size={15} />
-          Watering Can
-        </ToolBtn>
+        {hasWateringCan ? (
+          <ToolBtn
+            data-active={activeTool === "watering-can" || undefined}
+            onClick={() => setActiveTool("watering-can")}
+            title="Watering Can"
+            type="button"
+          >
+            <Droplets size={15} />
+            Watering Can
+          </ToolBtn>
+        ) : (
+          <LockedToolBtn
+            onClick={() => onNavigateToShop("watering-can")}
+            title="Watering Can (locked)"
+            type="button"
+          >
+            <Lock size={13} />
+            Watering Can
+            <ToolPrice>
+              <Coins size={12} />
+              {TOOL_PRICES["watering-can"]}
+            </ToolPrice>
+          </LockedToolBtn>
+        )}
+        {hasPruningShears ? (
+          <ToolBtn
+            data-active={activeTool === "pruning-shears" || undefined}
+            onClick={() => setActiveTool("pruning-shears")}
+            title="Pruning Shears"
+            type="button"
+          >
+            <Scissors size={15} />
+            Pruning Shears
+          </ToolBtn>
+        ) : (
+          <LockedToolBtn
+            onClick={() => onNavigateToShop("pruning-shears")}
+            title="Pruning Shears (locked)"
+            type="button"
+          >
+            <Lock size={13} />
+            Pruning Shears
+            <ToolPrice>
+              <Coins size={12} />
+              {TOOL_PRICES["pruning-shears"]}
+            </ToolPrice>
+          </LockedToolBtn>
+        )}
       </ToolBar>
 
       <WaterableSVGContainer activeTool={activeTool} tree={tree} />
@@ -186,6 +230,39 @@ const ToolBtn = styled.button`
   &:hover:not([data-active]) {
     background: light-dark(#f5f3f0, #2a3040);
   }
+`;
+
+const LockedToolBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1.5px solid light-dark(#e0d8d0, #3a3f4a);
+  background: transparent;
+  color: light-dark(#a09888, #6a7080);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &:hover {
+    background: light-dark(#f9f7f5, #242930);
+    border-color: #f59e0b99;
+  }
+`;
+
+const ToolPrice = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #f59e0b;
+  font-weight: 600;
+  margin-left: 0.15rem;
 `;
 
 const SVGContainer = styled.div`

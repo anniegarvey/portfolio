@@ -16,6 +16,14 @@ import type { BonsaiTree } from "@/lib/bonsai/schema";
 export function BonsaiPage() {
   const { state, advanceDay } = useBonsai();
   const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("collection");
+  const [focusShopItemId, setFocusShopItemId] = useState<string | undefined>();
+
+  const handleNavigateToShop = (itemId: string) => {
+    setTendingTreeId(null);
+    setActiveTab("shop");
+    setFocusShopItemId(itemId);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,10 +53,11 @@ export function BonsaiPage() {
 
       <Layout>
         <GardenView
+          onNavigateToShop={handleNavigateToShop}
           onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
         />
 
-        <PageTabs defaultValue="collection">
+        <PageTabs onValueChange={setActiveTab} value={activeTab}>
           <PageTabsList aria-label="Bonsai sections">
             <PageTab value="collection">Collection</PageTab>
             <PageTab value="shop">Shop</PageTab>
@@ -61,7 +70,7 @@ export function BonsaiPage() {
             />
           </Tabs.Content>
           <Tabs.Content value="shop">
-            <BonsaiShop />
+            <BonsaiShop focusItemId={focusShopItemId} />
           </Tabs.Content>
           <Tabs.Content value="inventory">
             <InventoryPanel />
@@ -69,7 +78,11 @@ export function BonsaiPage() {
         </PageTabs>
       </Layout>
 
-      <TendingModal onClose={() => setTendingTreeId(null)} tree={tendingTree} />
+      <TendingModal
+        onClose={() => setTendingTreeId(null)}
+        onNavigateToShop={handleNavigateToShop}
+        tree={tendingTree}
+      />
     </MaxWidthWrapper>
   );
 }
