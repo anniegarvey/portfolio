@@ -508,19 +508,29 @@ function computePotGeometry(
   potScale: number,
   standStyle: string | null,
 ) {
-  const potCfgBase = potStyle ? POT_CONFIGS[potStyle] : null;
-  // Soil top anchored at trunkBaseY - 3; rim bottom sits exactly at soil top.
-  const soilTop = trunkBaseY - 3;
-  const soilRx = potCfgBase ? Math.round(potCfgBase.bodyTopRx * potScale) : 22;
-  const soilRy = Math.round(7 * potScale);
-  const soilCY = soilTop + soilRy;
-  const scaledRimRy = potCfgBase ? Math.round(potCfgBase.rimRy * potScale) : 4;
-  const rimY = soilTop - scaledRimRy;
-  const potHeight = potCfgBase ? Math.round(potCfgBase.height * potScale) : 0;
-  // Stand sits below pot bottom; if no pot, below the soil ellipse.
-  const standTopY =
-    potCfgBase && standStyle ? rimY + potHeight : soilCY + soilRy;
-  return { potCfgBase, soilRx, soilRy, soilCY, rimY, standTopY };
+  if (!potStyle) {
+    // No pot: soil at original ground position.
+    return {
+      soilRx: 22,
+      soilRy: 7,
+      soilCY: trunkBaseY + 4,
+      rimY: trunkBaseY,
+      standTopY: trunkBaseY + 11,
+    };
+  }
+  const potCfgBase = POT_CONFIGS[potStyle];
+  // Rim sits at the trunk base — the pot wraps the tree at soil level.
+  const rimY = trunkBaseY;
+  const scaledRimRy = Math.round(potCfgBase.rimRy * potScale);
+  // Soil fills the pot opening. It is drawn AFTER the rim so it appears as
+  // an inner disc — the rim collar shows around the edges (rimRx > soilRx).
+  const soilCY = rimY + 0.5;
+  const soilRy = Math.max(1, scaledRimRy - 1);
+  // Leave ~4 px of rim visible on each side.
+  const soilRx = Math.round(potCfgBase.bodyTopRx * potScale) - 2;
+  const potHeight = Math.round(potCfgBase.height * potScale);
+  const standTopY = standStyle ? rimY + potHeight : trunkBaseY + 11;
+  return { soilRx, soilRy, soilCY, rimY, standTopY };
 }
 
 // ─── Static Tree SVG ──────────────────────────────────────────────────────────
@@ -607,6 +617,15 @@ export function StaticTreeSVG({
         />
       )}
 
+      {potStyle && (
+        <PotRimSVG
+          cx={svgData.trunkX}
+          potStyle={potStyle}
+          rimY={rimY}
+          scale={potScale}
+        />
+      )}
+
       <SoilEllipse
         cx={svgData.trunkX}
         cy={soilCY}
@@ -616,16 +635,6 @@ export function StaticTreeSVG({
       />
 
       <FertiliserDots cx={svgData.trunkX} soilCY={soilCY} tree={tree} />
-
-      {/* Pot rim drawn after soil so it appears as a visible lip around the soil edge */}
-      {potStyle && (
-        <PotRimSVG
-          cx={svgData.trunkX}
-          potStyle={potStyle}
-          rimY={rimY}
-          scale={potScale}
-        />
-      )}
 
       <line
         stroke="rgba(120, 90, 50, 0.3)"
