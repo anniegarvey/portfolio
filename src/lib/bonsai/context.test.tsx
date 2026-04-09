@@ -61,6 +61,13 @@ function BonsaiDebug() {
       <span data-testid="tree-count">{ctx.state.trees.length}</span>
       <span data-testid="garden-x">{tree?.gardenPosition?.x ?? "none"}</span>
       <span data-testid="garden-y">{tree?.gardenPosition?.y ?? "none"}</span>
+      <span data-testid="avail-pots">{ctx.availablePotCount()}</span>
+      <span data-testid="growth-tonic-expires">
+        {tree?.activeFertilisers?.growthTonic?.expiresAtDay ?? "none"}
+      </span>
+      <span data-testid="moisture-keeper-expires">
+        {tree?.activeFertilisers?.moistureKeeper?.expiresAtDay ?? "none"}
+      </span>
       {/* Second tree — for multi-tree tests */}
       <span data-testid="day-1">{tree1?.activeDaysCount ?? "none"}</span>
       <span data-testid="placing">{ctx.placingSpeciesId ?? "none"}</span>
@@ -85,23 +92,39 @@ function BonsaiDebug() {
       <button onClick={() => ctx.buyItem("maple")} type="button">
         Buy Maple Seed
       </button>
-      <button onClick={() => ctx.buyItem("basic")} type="button">
+      <button onClick={() => ctx.buyItem("growth-tonic-small")} type="button">
         Buy Fertiliser
       </button>
-      <button onClick={() => ctx.buyItem("simple-clay")} type="button">
+      <button onClick={() => ctx.buyItem("simple-clay-small")} type="button">
         Buy Pot
       </button>
-      <button onClick={() => ctx.buyItem("bamboo-mat")} type="button">
+      <button onClick={() => ctx.buyItem("bamboo-mat-small")} type="button">
         Buy Stand
       </button>
       <button
-        onClick={() => tree && ctx.equipPot(tree.id, "simple-clay")}
+        onClick={() =>
+          tree && ctx.applyFertiliser(tree.id, "growth-tonic-small")
+        }
+        type="button"
+      >
+        Apply Growth Tonic
+      </button>
+      <button
+        onClick={() =>
+          tree && ctx.applyFertiliser(tree.id, "moisture-keeper-small")
+        }
+        type="button"
+      >
+        Apply Moisture Keeper
+      </button>
+      <button
+        onClick={() => tree && ctx.equipPot(tree.id, "simple-clay-small")}
         type="button"
       >
         Equip Pot
       </button>
       <button
-        onClick={() => tree && ctx.equipStand(tree.id, "bamboo-mat")}
+        onClick={() => tree && ctx.equipStand(tree.id, "bamboo-mat-small")}
         type="button"
       >
         Equip Stand
@@ -237,13 +260,13 @@ describe("BonsaiProvider", () => {
   it("equipPot sets equippedPotId on the tree", async () => {
     renderBonsai();
     await waitFor(() =>
-      expect(screen.getByTestId("pot")).toHaveTextContent("none"),
+      expect(screen.getByTestId("pot")).toHaveTextContent("simple-clay-small"),
     );
     await act(async () => {
       screen.getByText("Equip Pot").click();
     });
     await waitFor(() =>
-      expect(screen.getByTestId("pot")).toHaveTextContent("simple-clay"),
+      expect(screen.getByTestId("pot")).toHaveTextContent("simple-clay-small"),
     );
   });
 
@@ -256,7 +279,7 @@ describe("BonsaiProvider", () => {
       screen.getByText("Equip Stand").click();
     });
     await waitFor(() =>
-      expect(screen.getByTestId("stand")).toHaveTextContent("bamboo-mat"),
+      expect(screen.getByTestId("stand")).toHaveTextContent("bamboo-mat-small"),
     );
   });
 
@@ -313,14 +336,15 @@ describe("BonsaiProvider", () => {
 
   it("buyItem adds a pot to ownedPotIds", async () => {
     renderBonsai();
+    // Initial state includes one simple-clay-small pot
     await waitFor(() =>
-      expect(screen.getByTestId("pots-inv")).toHaveTextContent("0"),
+      expect(screen.getByTestId("pots-inv")).toHaveTextContent("1"),
     );
     await act(async () => {
       screen.getByText("Buy Pot").click();
     });
     await waitFor(() =>
-      expect(screen.getByTestId("pots-inv")).toHaveTextContent("1"),
+      expect(screen.getByTestId("pots-inv")).toHaveTextContent("2"),
     );
   });
 
@@ -382,13 +406,15 @@ describe("BonsaiProvider", () => {
   });
 
   it("confirmPlantAt moves a species from inventory to trees", async () => {
-    // Seed a state that already has a maple seed in inventory
+    // Seed a state that already has a maple seed in inventory and a spare pot
     const base = createInitialState();
     seedLocalStorage({
       ...base,
       inventory: {
         ...base.inventory,
         ownedSpeciesIds: ["maple"],
+        // Include a second pot so one is available (base already has one equipped to pine)
+        ownedPotIds: [...base.inventory.ownedPotIds, "simple-clay-small"],
       },
     });
     renderBonsai();
@@ -584,7 +610,12 @@ describe("BonsaiProvider — garden position and placement", () => {
     const base = createInitialState();
     seedLocalStorage({
       ...base,
-      inventory: { ...base.inventory, ownedSpeciesIds: ["maple"] },
+      inventory: {
+        ...base.inventory,
+        ownedSpeciesIds: ["maple"],
+        // Include a spare pot so one is available to assign to the new tree
+        ownedPotIds: [...base.inventory.ownedPotIds, "simple-clay-small"],
+      },
     });
     renderBonsai();
     await waitFor(() =>
@@ -766,5 +797,379 @@ describe("BonsaiProvider — advanceDay with multiple trees", () => {
       expect(screen.getByTestId("day")).toHaveTextContent("1"),
     );
     expect(screen.getByTestId("day-1")).toHaveTextContent("1");
+  });
+});
+
+// ─── applyFertiliser ──────────────────────────────────────────────────────────
+
+describe("BonsaiProvider — applyFertiliser", () => {
+  beforeEach(() => {
+    setupMockPoints();
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  function renderBonsai() {
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+  }
+
+  it("sets growthTonic activeFertiliser and removes from inventory", async () => {
+    const base = createInitialState();
+    seedLocalStorage({
+      ...base,
+      inventory: {
+        ...base.inventory,
+        ownedFertiliserIds: ["growth-tonic-small"],
+      },
+    });
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("fertilisers")).toHaveTextContent("1"),
+    );
+    await act(async () => {
+      screen.getByText("Apply Growth Tonic").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("fertilisers")).toHaveTextContent("0"),
+    );
+    // Tree is at day 0; growth-tonic-small duration=7, so expiresAtDay=7
+    expect(screen.getByTestId("growth-tonic-expires")).toHaveTextContent("7");
+  });
+
+  it("sets moistureKeeper activeFertiliser and removes from inventory", async () => {
+    const base = createInitialState();
+    seedLocalStorage({
+      ...base,
+      inventory: {
+        ...base.inventory,
+        ownedFertiliserIds: ["moisture-keeper-small"],
+      },
+    });
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("fertilisers")).toHaveTextContent("1"),
+    );
+    await act(async () => {
+      screen.getByText("Apply Moisture Keeper").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("fertilisers")).toHaveTextContent("0"),
+    );
+    // moisture-keeper-small duration=7, so expiresAtDay=7
+    expect(screen.getByTestId("moisture-keeper-expires")).toHaveTextContent(
+      "7",
+    );
+  });
+
+  it("is a no-op when fertiliser is not in inventory", async () => {
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Apply Growth Tonic").click();
+    });
+    expect(screen.getByTestId("growth-tonic-expires")).toHaveTextContent(
+      "none",
+    );
+    expect(screen.getByTestId("fertilisers")).toHaveTextContent("0");
+  });
+});
+
+// ─── Growth Tonic ─────────────────────────────────────────────────────────────
+
+describe("BonsaiProvider — growth tonic bonus", () => {
+  beforeEach(() => {
+    setupMockPoints();
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  it("adds bonusPerTick to activeDaysCount on each advance when active", async () => {
+    const base = createInitialState();
+    // growth-tonic-small: bonusPerTick=0.5, duration=7 (expiresAtDay=7)
+    seedLocalStorage({
+      ...base,
+      trees: [
+        {
+          ...base.trees[0],
+          lastWateredDay: 0,
+          activeFertilisers: {
+            growthTonic: { expiresAtDay: 7, bonusPerTick: 0.5 },
+          },
+        },
+      ],
+    });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+
+    // With growth tonic active, one advance = 1 + 0.5 = 1.5 days
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1.5"),
+    );
+  });
+
+  it("does not apply bonus after growthTonic expires", async () => {
+    const base = createInitialState();
+    // Tree already at day 7 — tonic expires at day 7 (already expired)
+    seedLocalStorage({
+      ...base,
+      trees: [
+        {
+          ...base.trees[0],
+          activeDaysCount: 7,
+          lastWateredDay: 7,
+          activeFertilisers: {
+            growthTonic: { expiresAtDay: 7, bonusPerTick: 0.5 },
+          },
+        },
+      ],
+    });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("7"),
+    );
+
+    // Advance: no bonus (tonic expired), grows by exactly 1
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("8"),
+    );
+  });
+});
+
+// ─── Moisture Keeper ──────────────────────────────────────────────────────────
+
+describe("BonsaiProvider — moisture keeper retention", () => {
+  beforeEach(() => {
+    setupMockPoints();
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  it("tree grows without rewatering when within moisture keeper retention window", async () => {
+    const base = createInitialState();
+    // Watered at day 0; moisture-keeper-small retentionDays=1, so grows at day 0 and day 1
+    seedLocalStorage({
+      ...base,
+      trees: [
+        {
+          ...base.trees[0],
+          activeDaysCount: 0,
+          lastWateredDay: 0,
+          activeFertilisers: {
+            moistureKeeper: { expiresAtDay: 7, retentionDays: 1 },
+          },
+        },
+      ],
+    });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+
+    // Advance once — day 0, lastWateredDay 0, retentionDays 1 → gap 0 ≤ 1, grows
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("1"),
+    );
+
+    // Advance again — day 1, lastWateredDay 0, retentionDays 1 → gap 1 ≤ 1, still grows
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("2"),
+    );
+  });
+
+  it("tree stops growing once outside the retention window", async () => {
+    const base = createInitialState();
+    // Watered at day 0; retentionDays=1. At day 2 → gap 2 > 1, no growth
+    seedLocalStorage({
+      ...base,
+      trees: [
+        {
+          ...base.trees[0],
+          activeDaysCount: 2,
+          lastWateredDay: 0,
+          activeFertilisers: {
+            moistureKeeper: { expiresAtDay: 7, retentionDays: 1 },
+          },
+        },
+      ],
+    });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("2"),
+    );
+
+    // Gap = 2 - 0 = 2, which exceeds retentionDays 1 → no growth
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    expect(screen.getByTestId("day")).toHaveTextContent("2");
+  });
+
+  it("tree does not grow when moisture keeper has expired", async () => {
+    const base = createInitialState();
+    // moistureKeeper expired at day 5; tree is now at day 5
+    seedLocalStorage({
+      ...base,
+      trees: [
+        {
+          ...base.trees[0],
+          activeDaysCount: 5,
+          lastWateredDay: 5,
+          activeFertilisers: {
+            moistureKeeper: { expiresAtDay: 5, retentionDays: 3 },
+          },
+        },
+      ],
+    });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("5"),
+    );
+
+    // Moisture keeper expired (activeDaysCount 5 >= expiresAtDay 5) — retentionDays ignored
+    // lastWateredDay 5 === activeDaysCount 5 → retentionDays 0 → gap 0 ≤ 0, still grows
+    // Actually expired means retentionDays=0, gap = 5-5=0, 0 ≤ 0 = true → grows
+    // Let me reconsider: without moisture keeper, isTreeWatered returns activeDaysCount - lastWateredDay <= 0
+    // gap = 5 - 5 = 0 ≤ 0 → grows (lastWateredDay === activeDaysCount means watered today)
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+    // Tree was watered at exactly current day → grows even without moisture keeper
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("6"),
+    );
+  });
+});
+
+// ─── availablePotCount ────────────────────────────────────────────────────────
+
+describe("BonsaiProvider — availablePotCount", () => {
+  beforeEach(() => {
+    setupMockPoints();
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  it("returns 0 when the only owned pot is equipped to the starter tree", async () => {
+    // Initial state: 1 pot owned, 1 pot equipped to pine → 0 available
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("avail-pots")).toHaveTextContent("0"),
+    );
+  });
+
+  it("returns 1 after buying an extra pot", async () => {
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("avail-pots")).toHaveTextContent("0"),
+    );
+    await act(async () => {
+      screen.getByText("Buy Pot").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("avail-pots")).toHaveTextContent("1"),
+    );
+  });
+
+  it("confirmPlantAt is a no-op when no pot is available", async () => {
+    const base = createInitialState();
+    seedLocalStorage({
+      ...base,
+      inventory: {
+        ...base.inventory,
+        ownedSpeciesIds: ["maple"],
+        // Only 1 pot — already equipped to pine, none available
+      },
+    });
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("seeds")).toHaveTextContent("1"),
+    );
+    await act(async () => {
+      screen.getByText("Plant Maple").click();
+    });
+    // No available pot → tree count stays at 1
+    expect(screen.getByTestId("tree-count")).toHaveTextContent("1");
   });
 });

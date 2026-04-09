@@ -31,13 +31,16 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
         acquiredAt: "2025-01-01",
         prunedBranches: [],
         gardenPosition: { x: 50, y: 50 },
+        equippedPotId: "simple-clay-small",
       },
     ],
     inventory: {
       ownedSpeciesIds: opts.ownedSpeciesIds ?? [],
       ownedToolIds: opts.ownedToolIds ?? [],
       ownedFertiliserIds: [],
-      ownedPotIds: [],
+      // All trees require a pot; initial state includes one for the starter pine
+      // plus a spare so new seeds can be planted without buying a pot first
+      ownedPotIds: ["simple-clay-small", "simple-clay-small"],
       ownedStandIds: [],
     },
   };

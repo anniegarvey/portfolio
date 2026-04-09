@@ -28,12 +28,12 @@ describe("createInitialState", () => {
     expect(state.trees[0].gardenPosition).toEqual({ x: 50, y: 50 });
   });
 
-  it("returns empty inventory across all categories", () => {
+  it("starts with one pot (free simple-clay-small for the first tree)", () => {
     const { inventory } = createInitialState();
     expect(inventory.ownedSpeciesIds).toHaveLength(0);
     expect(inventory.ownedToolIds).toHaveLength(0);
     expect(inventory.ownedFertiliserIds).toHaveLength(0);
-    expect(inventory.ownedPotIds).toHaveLength(0);
+    expect(inventory.ownedPotIds).toEqual(["simple-clay-small"]);
     expect(inventory.ownedStandIds).toHaveLength(0);
   });
 
