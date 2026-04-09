@@ -13,6 +13,8 @@
   "skip": [
     "*.md",
     "*.pen",
+    ".agent/**",
+    ".agents/**",
     ".claude/**",
     ".husky/**",
     "scripts/**",
