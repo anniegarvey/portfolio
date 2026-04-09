@@ -87,14 +87,29 @@ const POT_PREVIEW_CONFIGS: Record<
   },
 };
 
+const PREVIEW_SIZE_SCALE: Record<string, number> = {
+  small: 1,
+  medium: 1.25,
+  large: 1.5,
+};
+
 function PotShopPreview({ potId }: { potId: string }) {
-  const { style } = parsePotId(potId as PotId);
+  const { size, style } = parsePotId(potId as PotId);
   const v = POT_PREVIEW_CONFIGS[style] ?? POT_PREVIEW_CONFIGS["simple-clay"];
-  const cx = 30;
-  const rimY = 6;
-  const botY = rimY + v.height;
-  const midY = rimY + v.height / 2;
-  const soilY = rimY + v.rimRy + 1;
+  const scale = PREVIEW_SIZE_SCALE[size] ?? 1;
+
+  const rimRx = Math.round(v.rimRx * scale);
+  const rimRy = Math.round(v.rimRy * scale);
+  const bodyRx = Math.round(v.bodyRx * scale);
+  const botRx = Math.round(v.botRx * scale);
+  const height = Math.round(v.height * scale);
+
+  const svgW = rimRx * 2 + 10;
+  const cx = svgW / 2;
+  const rimY = rimRy + 2;
+  const botY = rimY + height;
+  const midY = rimY + height / 2;
+  const soilY = rimY + rimRy + 1;
   const viewH = botY + 5;
 
   return (
@@ -102,15 +117,15 @@ function PotShopPreview({ potId }: { potId: string }) {
       aria-hidden="true"
       height={viewH}
       style={{ display: "block", margin: "0 auto" }}
-      viewBox={`0 0 60 ${viewH}`}
-      width={60}
+      viewBox={`0 0 ${svgW} ${viewH}`}
+      width={svgW}
     >
       <path
-        d={`M ${cx - v.bodyRx},${rimY} C ${cx - v.bodyRx},${midY} ${cx - v.botRx},${botY - 2} ${cx - v.botRx},${botY} L ${cx + v.botRx},${botY} C ${cx + v.botRx},${botY - 2} ${cx + v.bodyRx},${midY} ${cx + v.bodyRx},${rimY} Z`}
+        d={`M ${cx - bodyRx},${rimY} C ${cx - bodyRx},${midY} ${cx - botRx},${botY - 2} ${cx - botRx},${botY} L ${cx + botRx},${botY} C ${cx + botRx},${botY - 2} ${cx + bodyRx},${midY} ${cx + bodyRx},${rimY} Z`}
         fill={v.bodyColor}
       />
       <path
-        d={`M ${cx - v.bodyRx},${rimY} C ${cx - v.bodyRx},${midY} ${cx - v.botRx},${botY - 2} ${cx - v.botRx},${botY} L ${cx - v.botRx + 5},${botY} C ${cx - v.bodyRx + 6},${midY} ${cx - v.bodyRx + 5},${rimY + 1} ${cx - v.bodyRx + 4},${rimY} Z`}
+        d={`M ${cx - bodyRx},${rimY} C ${cx - bodyRx},${midY} ${cx - botRx},${botY - 2} ${cx - botRx},${botY} L ${cx - botRx + 5},${botY} C ${cx - bodyRx + 6},${midY} ${cx - bodyRx + 5},${rimY + 1} ${cx - bodyRx + 4},${rimY} Z`}
         fill={v.shadowColor}
       />
       {v.glaze && (
@@ -119,21 +134,21 @@ function PotShopPreview({ potId }: { potId: string }) {
           cy={rimY + 5}
           fill="rgba(255,255,255,0.18)"
           rx={2}
-          ry={6}
+          ry={Math.round(6 * scale)}
           transform={`rotate(-20 ${cx - 5} ${rimY + 5})`}
         />
       )}
-      <ellipse cx={cx} cy={botY} fill={v.botColor} rx={v.botRx} ry={2} />
+      <ellipse cx={cx} cy={botY} fill={v.botColor} rx={botRx} ry={2} />
       {/* Soil surface inside pot */}
       <ellipse
         cx={cx}
         cy={soilY}
         fill="#8a6030"
-        rx={v.bodyRx - 1}
-        ry={v.rimRy - 0.5}
+        rx={bodyRx - 1}
+        ry={rimRy - 0.5}
       />
       {/* Rim drawn on top of soil */}
-      <ellipse cx={cx} cy={rimY} fill={v.rimColor} rx={v.rimRx} ry={v.rimRy} />
+      <ellipse cx={cx} cy={rimY} fill={v.rimColor} rx={rimRx} ry={rimRy} />
     </svg>
   );
 }
@@ -150,31 +165,36 @@ const STAND_PREVIEW_CONFIGS: Record<
 };
 
 function StandShopPreview({ standId }: { standId: string }) {
-  const { style } = parseStandId(standId as StandId);
+  const { size, style } = parseStandId(standId as StandId);
   const v = STAND_PREVIEW_CONFIGS[style] ?? STAND_PREVIEW_CONFIGS["bamboo-mat"];
-  const cx = 30;
+  const scale = PREVIEW_SIZE_SCALE[size] ?? 1;
+
+  const rx = Math.round(v.rx * scale);
+  const height = Math.round(v.height * scale);
+  const svgW = rx * 2 + 10;
+  const cx = svgW / 2;
   const topY = 4;
-  const botY = topY + v.height;
+  const botY = topY + height;
   const viewH = botY + 5;
 
   if (style === "wooden-stand") {
-    const platformH = 2;
-    const legW = 4;
-    const legH = v.height - platformH;
+    const platformH = Math.round(2 * scale);
+    const legW = Math.round(4 * scale);
+    const legH = height - platformH;
     return (
       <svg
         aria-hidden="true"
         height={viewH}
         style={{ display: "block", margin: "0 auto" }}
-        viewBox={`0 0 60 ${viewH}`}
-        width={60}
+        viewBox={`0 0 ${svgW} ${viewH}`}
+        width={svgW}
       >
         <rect
           fill={v.color}
           height={legH}
           rx={1}
           width={legW}
-          x={cx - v.rx}
+          x={cx - rx}
           y={topY + platformH}
         />
         <rect
@@ -182,17 +202,17 @@ function StandShopPreview({ standId }: { standId: string }) {
           height={legH}
           rx={1}
           width={legW}
-          x={cx + v.rx - legW}
+          x={cx + rx - legW}
           y={topY + platformH}
         />
         <rect
           fill={v.color}
           height={platformH}
-          width={v.rx * 2}
-          x={cx - v.rx}
+          width={rx * 2}
+          x={cx - rx}
           y={topY}
         />
-        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={v.rx} ry={2} />
+        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={rx} ry={2} />
       </svg>
     );
   }
@@ -203,26 +223,26 @@ function StandShopPreview({ standId }: { standId: string }) {
         aria-hidden="true"
         height={viewH}
         style={{ display: "block", margin: "0 auto" }}
-        viewBox={`0 0 60 ${viewH}`}
-        width={60}
+        viewBox={`0 0 ${svgW} ${viewH}`}
+        width={svgW}
       >
         <rect
           fill={v.color}
-          height={v.height}
+          height={height}
           rx={1}
-          width={v.rx * 2}
-          x={cx - v.rx}
+          width={rx * 2}
+          x={cx - rx}
           y={topY}
         />
         <line
           stroke={v.topColor}
           strokeWidth={0.5}
-          x1={cx - v.rx + 2}
-          x2={cx + v.rx - 2}
+          x1={cx - rx + 2}
+          x2={cx + rx - 2}
           y1={topY + 1}
           y2={topY + 1}
         />
-        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={v.rx} ry={1.5} />
+        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={rx} ry={1.5} />
       </svg>
     );
   }
@@ -233,18 +253,18 @@ function StandShopPreview({ standId }: { standId: string }) {
       aria-hidden="true"
       height={viewH}
       style={{ display: "block", margin: "0 auto" }}
-      viewBox={`0 0 60 ${viewH}`}
-      width={60}
+      viewBox={`0 0 ${svgW} ${viewH}`}
+      width={svgW}
     >
       <rect
         fill={v.color}
-        height={v.height}
-        width={v.rx * 2}
-        x={cx - v.rx}
+        height={height}
+        width={rx * 2}
+        x={cx - rx}
         y={topY}
       />
-      <ellipse cx={cx} cy={topY} fill={v.topColor} rx={v.rx} ry={2} />
-      <ellipse cx={cx} cy={botY} fill="rgba(0,0,0,0.2)" rx={v.rx} ry={1.5} />
+      <ellipse cx={cx} cy={topY} fill={v.topColor} rx={rx} ry={2} />
+      <ellipse cx={cx} cy={botY} fill="rgba(0,0,0,0.2)" rx={rx} ry={1.5} />
     </svg>
   );
 }

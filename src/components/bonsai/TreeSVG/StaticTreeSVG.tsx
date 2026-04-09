@@ -166,6 +166,14 @@ function renderLeaves(
   });
 }
 
+// ─── Size scaling ─────────────────────────────────────────────────────────────
+
+const SIZE_SCALE: Record<string, number> = {
+  small: 1,
+  medium: 1.35,
+  large: 1.7,
+};
+
 // ─── Pot SVG ──────────────────────────────────────────────────────────────────
 
 interface PotConfig {
@@ -238,24 +246,29 @@ function PotBodySVG({
   cx,
   rimY,
   potStyle,
+  scale,
 }: {
   cx: number;
   rimY: number;
   potStyle: string;
+  scale: number;
 }) {
   const cfg = POT_CONFIGS[potStyle] ?? POT_CONFIGS["simple-clay"];
-  const botY = rimY + cfg.height;
-  const midY = rimY + cfg.height / 2;
+  const bodyTopRx = Math.round(cfg.bodyTopRx * scale);
+  const bodyBotRx = Math.round(cfg.bodyBotRx * scale);
+  const height = Math.round(cfg.height * scale);
+  const botY = rimY + height;
+  const midY = rimY + height / 2;
 
   return (
     <g>
       <path
-        d={`M ${cx - cfg.bodyTopRx},${rimY} C ${cx - cfg.bodyTopRx},${midY} ${cx - cfg.bodyBotRx},${botY - 2} ${cx - cfg.bodyBotRx},${botY} L ${cx + cfg.bodyBotRx},${botY} C ${cx + cfg.bodyBotRx},${botY - 2} ${cx + cfg.bodyTopRx},${midY} ${cx + cfg.bodyTopRx},${rimY} Z`}
+        d={`M ${cx - bodyTopRx},${rimY} C ${cx - bodyTopRx},${midY} ${cx - bodyBotRx},${botY - 2} ${cx - bodyBotRx},${botY} L ${cx + bodyBotRx},${botY} C ${cx + bodyBotRx},${botY - 2} ${cx + bodyTopRx},${midY} ${cx + bodyTopRx},${rimY} Z`}
         fill={cfg.bodyColor}
       />
       {/* Left-side shadow */}
       <path
-        d={`M ${cx - cfg.bodyTopRx},${rimY} C ${cx - cfg.bodyTopRx},${midY} ${cx - cfg.bodyBotRx},${botY - 2} ${cx - cfg.bodyBotRx},${botY} L ${cx - cfg.bodyBotRx + 7},${botY} C ${cx - cfg.bodyTopRx + 8},${midY} ${cx - cfg.bodyTopRx + 7},${rimY + 2} ${cx - cfg.bodyTopRx + 5},${rimY} Z`}
+        d={`M ${cx - bodyTopRx},${rimY} C ${cx - bodyTopRx},${midY} ${cx - bodyBotRx},${botY - 2} ${cx - bodyBotRx},${botY} L ${cx - bodyBotRx + 7},${botY} C ${cx - bodyTopRx + 8},${midY} ${cx - bodyTopRx + 7},${rimY + 2} ${cx - bodyTopRx + 5},${rimY} Z`}
         fill={cfg.shadowColor}
       />
       {cfg.glaze && (
@@ -264,17 +277,11 @@ function PotBodySVG({
           cy={rimY + 7}
           fill="rgba(255,255,255,0.18)"
           rx={3}
-          ry={8}
+          ry={Math.round(8 * scale)}
           transform={`rotate(-20 ${cx - 7} ${rimY + 7})`}
         />
       )}
-      <ellipse
-        cx={cx}
-        cy={botY}
-        fill={cfg.botColor}
-        rx={cfg.bodyBotRx}
-        ry={2.5}
-      />
+      <ellipse cx={cx} cy={botY} fill={cfg.botColor} rx={bodyBotRx} ry={2.5} />
     </g>
   );
 }
@@ -287,10 +294,12 @@ function PotRimSVG({
   cx,
   rimY,
   potStyle,
+  scale,
 }: {
   cx: number;
   rimY: number;
   potStyle: string;
+  scale: number;
 }) {
   const cfg = POT_CONFIGS[potStyle] ?? POT_CONFIGS["simple-clay"];
   return (
@@ -298,8 +307,8 @@ function PotRimSVG({
       cx={cx}
       cy={rimY}
       fill={cfg.rimColor}
-      rx={cfg.rimRx}
-      ry={cfg.rimRy}
+      rx={Math.round(cfg.rimRx * scale)}
+      ry={Math.round(cfg.rimRy * scale)}
     />
   );
 }
@@ -323,17 +332,21 @@ function StandSVG({
   cx,
   topY,
   standStyle,
+  scale,
 }: {
   cx: number;
   topY: number;
   standStyle: string;
+  scale: number;
 }) {
   const cfg = STAND_CONFIGS[standStyle] ?? STAND_CONFIGS["bamboo-mat"];
+  const rx = Math.round(cfg.rx * scale);
+  const height = Math.round(cfg.height * scale);
 
   if (standStyle === "wooden-stand") {
-    const platformH = 3;
-    const legW = 5;
-    const legH = cfg.height - platformH;
+    const platformH = Math.round(3 * scale);
+    const legW = Math.round(5 * scale);
+    const legH = height - platformH;
     return (
       <g>
         <rect
@@ -341,7 +354,7 @@ function StandSVG({
           height={legH}
           rx={1}
           width={legW}
-          x={cx - cfg.rx}
+          x={cx - rx}
           y={topY + platformH}
         />
         <rect
@@ -349,17 +362,17 @@ function StandSVG({
           height={legH}
           rx={1}
           width={legW}
-          x={cx + cfg.rx - legW}
+          x={cx + rx - legW}
           y={topY + platformH}
         />
         <rect
           fill={cfg.color}
           height={platformH}
-          width={cfg.rx * 2}
-          x={cx - cfg.rx}
+          width={rx * 2}
+          x={cx - rx}
           y={topY}
         />
-        <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={cfg.rx} ry={2.5} />
+        <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={rx} ry={2.5} />
       </g>
     );
   }
@@ -369,46 +382,46 @@ function StandSVG({
       <g>
         <rect
           fill={cfg.color}
-          height={cfg.height}
+          height={height}
           rx={1}
-          width={cfg.rx * 2}
-          x={cx - cfg.rx}
+          width={rx * 2}
+          x={cx - rx}
           y={topY}
         />
         <line
           stroke={cfg.topColor}
           strokeWidth={0.6}
-          x1={cx - cfg.rx + 2}
-          x2={cx + cfg.rx - 2}
+          x1={cx - rx + 2}
+          x2={cx + rx - 2}
           y1={topY + 1}
           y2={topY + 1}
         />
         <line
           stroke={cfg.topColor}
           strokeWidth={0.6}
-          x1={cx - cfg.rx + 2}
-          x2={cx + cfg.rx - 2}
+          x1={cx - rx + 2}
+          x2={cx + rx - 2}
           y1={topY + 2.5}
           y2={topY + 2.5}
         />
-        <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={cfg.rx} ry={2} />
+        <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={rx} ry={2} />
       </g>
     );
   }
 
   // carved-stone: solid block with bevel
-  const botY = topY + cfg.height;
+  const botY = topY + height;
   return (
     <g>
       <rect
         fill={cfg.color}
-        height={cfg.height}
-        width={cfg.rx * 2}
-        x={cx - cfg.rx}
+        height={height}
+        width={rx * 2}
+        x={cx - rx}
         y={topY}
       />
-      <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={cfg.rx} ry={2.5} />
-      <ellipse cx={cx} cy={botY} fill="rgba(0,0,0,0.2)" rx={cfg.rx} ry={1.5} />
+      <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={rx} ry={2.5} />
+      <ellipse cx={cx} cy={botY} fill="rgba(0,0,0,0.2)" rx={rx} ry={1.5} />
     </g>
   );
 }
@@ -487,6 +500,29 @@ function FertiliserDots({
   );
 }
 
+// ─── Pot geometry helper ──────────────────────────────────────────────────────
+
+function computePotGeometry(
+  trunkBaseY: number,
+  potStyle: string | null,
+  potScale: number,
+  standStyle: string | null,
+) {
+  const potCfgBase = potStyle ? POT_CONFIGS[potStyle] : null;
+  // Soil top anchored at trunkBaseY - 3; rim bottom sits exactly at soil top.
+  const soilTop = trunkBaseY - 3;
+  const soilRx = potCfgBase ? Math.round(potCfgBase.bodyTopRx * potScale) : 22;
+  const soilRy = Math.round(7 * potScale);
+  const soilCY = soilTop + soilRy;
+  const scaledRimRy = potCfgBase ? Math.round(potCfgBase.rimRy * potScale) : 4;
+  const rimY = soilTop - scaledRimRy;
+  const potHeight = potCfgBase ? Math.round(potCfgBase.height * potScale) : 0;
+  // Stand sits below pot bottom; if no pot, below the soil ellipse.
+  const standTopY =
+    potCfgBase && standStyle ? rimY + potHeight : soilCY + soilRy;
+  return { potCfgBase, soilRx, soilRy, soilCY, rimY, standTopY };
+}
+
 // ─── Static Tree SVG ──────────────────────────────────────────────────────────
 
 export function StaticTreeSVG({
@@ -516,18 +552,21 @@ export function StaticTreeSVG({
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
   const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
 
-  // Rim sits so its bottom edge meets the soil top edge (trunkBaseY + 4 - 7 = trunkBaseY - 3).
-  // With rimRy=4: rimY = trunkBaseY - 3 - 4 = trunkBaseY - 7.
-  // This makes the rim appear as a visible collar above the soil surface.
-  const rimY = svgData.trunkBaseY - 7;
-  const potStyle = tree.equippedPotId
-    ? parsePotId(tree.equippedPotId).style
+  const potParsed = tree.equippedPotId ? parsePotId(tree.equippedPotId) : null;
+  const standParsed = tree.equippedStandId
+    ? parseStandId(tree.equippedStandId)
     : null;
-  const standStyle = tree.equippedStandId
-    ? parseStandId(tree.equippedStandId).style
-    : null;
-  const potHeight = potStyle ? (POT_CONFIGS[potStyle]?.height ?? 17) : 0;
-  const standTopY = rimY + potHeight;
+  const potStyle = potParsed?.style ?? null;
+  const standStyle = standParsed?.style ?? null;
+  const potScale = SIZE_SCALE[potParsed?.size ?? "small"] ?? 1;
+  const standScale = SIZE_SCALE[standParsed?.size ?? "small"] ?? 1;
+
+  const { soilRx, soilRy, soilCY, rimY, standTopY } = computePotGeometry(
+    svgData.trunkBaseY,
+    potStyle,
+    potScale,
+    standStyle,
+  );
 
   const bottomMargin = 30;
   const viewBox = cropTop
@@ -552,6 +591,7 @@ export function StaticTreeSVG({
       {standStyle && (
         <StandSVG
           cx={svgData.trunkX}
+          scale={standScale}
           standStyle={standStyle}
           topY={standTopY}
         />
@@ -559,26 +599,32 @@ export function StaticTreeSVG({
 
       {/* Pot body behind soil — soil will appear to sit inside the pot */}
       {potStyle && (
-        <PotBodySVG cx={svgData.trunkX} potStyle={potStyle} rimY={rimY} />
+        <PotBodySVG
+          cx={svgData.trunkX}
+          potStyle={potStyle}
+          rimY={rimY}
+          scale={potScale}
+        />
       )}
 
       <SoilEllipse
         cx={svgData.trunkX}
-        cy={svgData.trunkBaseY + 4}
+        cy={soilCY}
         fill={soilFill}
-        rx={22}
-        ry={7}
+        rx={soilRx}
+        ry={soilRy}
       />
 
-      <FertiliserDots
-        cx={svgData.trunkX}
-        soilCY={svgData.trunkBaseY + 4}
-        tree={tree}
-      />
+      <FertiliserDots cx={svgData.trunkX} soilCY={soilCY} tree={tree} />
 
       {/* Pot rim drawn after soil so it appears as a visible lip around the soil edge */}
       {potStyle && (
-        <PotRimSVG cx={svgData.trunkX} potStyle={potStyle} rimY={rimY} />
+        <PotRimSVG
+          cx={svgData.trunkX}
+          potStyle={potStyle}
+          rimY={rimY}
+          scale={potScale}
+        />
       )}
 
       <line
