@@ -3,7 +3,7 @@
 import { styled } from "next-yak";
 import { useMemo } from "react";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
-import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import { parsePotId, parseStandId, SPECIES_CONFIG } from "@/lib/bonsai/schema";
 import { generateTree, type TreeSVGData } from "@/lib/bonsai/treeGenerator";
 
 // ─── Leaf Shape Paths ─────────────────────────────────────────────────────────
@@ -166,6 +166,304 @@ function renderLeaves(
   });
 }
 
+// ─── Pot SVG ──────────────────────────────────────────────────────────────────
+
+interface PotConfig {
+  rimRx: number;
+  rimRy: number;
+  rimColor: string;
+  bodyTopRx: number;
+  bodyBotRx: number;
+  bodyColor: string;
+  shadowColor: string;
+  botColor: string;
+  height: number;
+  glaze?: boolean;
+}
+
+const POT_CONFIGS: Record<string, PotConfig> = {
+  "simple-clay": {
+    rimRx: 23,
+    rimRy: 3.5,
+    rimColor: "#9a4828",
+    bodyTopRx: 22,
+    bodyBotRx: 16,
+    bodyColor: "#c1704a",
+    shadowColor: "rgba(0,0,0,0.15)",
+    botColor: "#8a3818",
+    height: 17,
+  },
+  "glazed-ceramic": {
+    rimRx: 25,
+    rimRy: 3,
+    rimColor: "#4a7a6a",
+    bodyTopRx: 22,
+    bodyBotRx: 17,
+    bodyColor: "#6a9a88",
+    shadowColor: "rgba(0,0,0,0.12)",
+    botColor: "#3a6858",
+    height: 20,
+    glaze: true,
+  },
+  "lacquered-wood": {
+    rimRx: 21,
+    rimRy: 2.5,
+    rimColor: "#1a0806",
+    bodyTopRx: 21,
+    bodyBotRx: 19,
+    bodyColor: "#3a1a0a",
+    shadowColor: "rgba(0,0,0,0.28)",
+    botColor: "#1a0806",
+    height: 17,
+  },
+  "stone-basin": {
+    rimRx: 26,
+    rimRy: 3,
+    rimColor: "#6a6a62",
+    bodyTopRx: 25,
+    bodyBotRx: 21,
+    bodyColor: "#8a8a80",
+    shadowColor: "rgba(0,0,0,0.12)",
+    botColor: "#5a5a52",
+    height: 9,
+  },
+};
+
+function PotSVG({
+  cx,
+  rimY,
+  potStyle,
+}: {
+  cx: number;
+  rimY: number;
+  potStyle: string;
+}) {
+  const cfg = POT_CONFIGS[potStyle] ?? POT_CONFIGS["simple-clay"];
+  const botY = rimY + cfg.height;
+  const midY = rimY + cfg.height / 2;
+
+  return (
+    <g>
+      <path
+        d={`M ${cx - cfg.bodyTopRx},${rimY} C ${cx - cfg.bodyTopRx},${midY} ${cx - cfg.bodyBotRx},${botY - 2} ${cx - cfg.bodyBotRx},${botY} L ${cx + cfg.bodyBotRx},${botY} C ${cx + cfg.bodyBotRx},${botY - 2} ${cx + cfg.bodyTopRx},${midY} ${cx + cfg.bodyTopRx},${rimY} Z`}
+        fill={cfg.bodyColor}
+      />
+      {/* Left-side shadow */}
+      <path
+        d={`M ${cx - cfg.bodyTopRx},${rimY} C ${cx - cfg.bodyTopRx},${midY} ${cx - cfg.bodyBotRx},${botY - 2} ${cx - cfg.bodyBotRx},${botY} L ${cx - cfg.bodyBotRx + 7},${botY} C ${cx - cfg.bodyTopRx + 8},${midY} ${cx - cfg.bodyTopRx + 7},${rimY + 2} ${cx - cfg.bodyTopRx + 5},${rimY} Z`}
+        fill={cfg.shadowColor}
+      />
+      {cfg.glaze && (
+        <ellipse
+          cx={cx - 7}
+          cy={rimY + 7}
+          fill="rgba(255,255,255,0.18)"
+          rx={3}
+          ry={8}
+          transform={`rotate(-20 ${cx - 7} ${rimY + 7})`}
+        />
+      )}
+      <ellipse
+        cx={cx}
+        cy={botY}
+        fill={cfg.botColor}
+        rx={cfg.bodyBotRx}
+        ry={2.5}
+      />
+      <ellipse
+        cx={cx}
+        cy={rimY}
+        fill={cfg.rimColor}
+        rx={cfg.rimRx}
+        ry={cfg.rimRy}
+      />
+    </g>
+  );
+}
+
+// ─── Stand SVG ────────────────────────────────────────────────────────────────
+
+interface StandConfig {
+  color: string;
+  topColor: string;
+  height: number;
+  rx: number;
+}
+
+const STAND_CONFIGS: Record<string, StandConfig> = {
+  "bamboo-mat": { color: "#8a7840", topColor: "#b0986a", height: 4, rx: 20 },
+  "wooden-stand": { color: "#7a5030", topColor: "#a07050", height: 11, rx: 19 },
+  "carved-stone": { color: "#787870", topColor: "#9a9a90", height: 8, rx: 19 },
+};
+
+function StandSVG({
+  cx,
+  topY,
+  standStyle,
+}: {
+  cx: number;
+  topY: number;
+  standStyle: string;
+}) {
+  const cfg = STAND_CONFIGS[standStyle] ?? STAND_CONFIGS["bamboo-mat"];
+
+  if (standStyle === "wooden-stand") {
+    const platformH = 3;
+    const legW = 5;
+    const legH = cfg.height - platformH;
+    return (
+      <g>
+        <rect
+          fill={cfg.color}
+          height={legH}
+          rx={1}
+          width={legW}
+          x={cx - cfg.rx}
+          y={topY + platformH}
+        />
+        <rect
+          fill={cfg.color}
+          height={legH}
+          rx={1}
+          width={legW}
+          x={cx + cfg.rx - legW}
+          y={topY + platformH}
+        />
+        <rect
+          fill={cfg.color}
+          height={platformH}
+          width={cfg.rx * 2}
+          x={cx - cfg.rx}
+          y={topY}
+        />
+        <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={cfg.rx} ry={2.5} />
+      </g>
+    );
+  }
+
+  if (standStyle === "bamboo-mat") {
+    return (
+      <g>
+        <rect
+          fill={cfg.color}
+          height={cfg.height}
+          rx={1}
+          width={cfg.rx * 2}
+          x={cx - cfg.rx}
+          y={topY}
+        />
+        <line
+          stroke={cfg.topColor}
+          strokeWidth={0.6}
+          x1={cx - cfg.rx + 2}
+          x2={cx + cfg.rx - 2}
+          y1={topY + 1}
+          y2={topY + 1}
+        />
+        <line
+          stroke={cfg.topColor}
+          strokeWidth={0.6}
+          x1={cx - cfg.rx + 2}
+          x2={cx + cfg.rx - 2}
+          y1={topY + 2.5}
+          y2={topY + 2.5}
+        />
+        <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={cfg.rx} ry={2} />
+      </g>
+    );
+  }
+
+  // carved-stone: solid block with bevel
+  const botY = topY + cfg.height;
+  return (
+    <g>
+      <rect
+        fill={cfg.color}
+        height={cfg.height}
+        width={cfg.rx * 2}
+        x={cx - cfg.rx}
+        y={topY}
+      />
+      <ellipse cx={cx} cy={topY} fill={cfg.topColor} rx={cfg.rx} ry={2.5} />
+      <ellipse cx={cx} cy={botY} fill="rgba(0,0,0,0.2)" rx={cfg.rx} ry={1.5} />
+    </g>
+  );
+}
+
+// ─── Fertiliser Dots ──────────────────────────────────────────────────────────
+
+function FertiliserDots({
+  cx,
+  soilCY,
+  tree,
+}: {
+  cx: number;
+  soilCY: number;
+  tree: BonsaiTree;
+}) {
+  const gt = tree.activeFertilisers?.growthTonic;
+  const mk = tree.activeFertilisers?.moistureKeeper;
+  const gtActive = gt && tree.activeDaysCount < gt.expiresAtDay;
+  const mkActive = mk && tree.activeDaysCount < mk.expiresAtDay;
+
+  if (!(gtActive || mkActive)) return null;
+
+  return (
+    <g>
+      {gtActive && (
+        <>
+          <circle
+            cx={cx - 11}
+            cy={soilCY - 2}
+            fill="#f5a623"
+            opacity={0.9}
+            r={1.8}
+          />
+          <circle
+            cx={cx - 6}
+            cy={soilCY - 5}
+            fill="#f5a623"
+            opacity={0.9}
+            r={1.8}
+          />
+          <circle
+            cx={cx - 15}
+            cy={soilCY + 1}
+            fill="#f5a623"
+            opacity={0.85}
+            r={1.5}
+          />
+        </>
+      )}
+      {mkActive && (
+        <>
+          <circle
+            cx={cx + 11}
+            cy={soilCY - 2}
+            fill="#4a9eda"
+            opacity={0.9}
+            r={1.8}
+          />
+          <circle
+            cx={cx + 6}
+            cy={soilCY - 5}
+            fill="#4a9eda"
+            opacity={0.9}
+            r={1.8}
+          />
+          <circle
+            cx={cx + 15}
+            cy={soilCY + 1}
+            fill="#4a9eda"
+            opacity={0.85}
+            r={1.5}
+          />
+        </>
+      )}
+    </g>
+  );
+}
+
 // ─── Static Tree SVG ──────────────────────────────────────────────────────────
 
 export function StaticTreeSVG({
@@ -195,6 +493,16 @@ export function StaticTreeSVG({
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
   const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
 
+  const rimY = svgData.trunkBaseY - 5;
+  const potStyle = tree.equippedPotId
+    ? parsePotId(tree.equippedPotId).style
+    : null;
+  const standStyle = tree.equippedStandId
+    ? parseStandId(tree.equippedStandId).style
+    : null;
+  const potHeight = potStyle ? (POT_CONFIGS[potStyle]?.height ?? 17) : 0;
+  const standTopY = rimY + potHeight;
+
   const bottomMargin = 30;
   const viewBox = cropTop
     ? (() => {
@@ -215,12 +523,30 @@ export function StaticTreeSVG({
     >
       <title>{`${config.label} bonsai tree, day ${tree.activeDaysCount}`}</title>
 
+      {standStyle && (
+        <StandSVG
+          cx={svgData.trunkX}
+          standStyle={standStyle}
+          topY={standTopY}
+        />
+      )}
+
+      {potStyle && (
+        <PotSVG cx={svgData.trunkX} potStyle={potStyle} rimY={rimY} />
+      )}
+
       <SoilEllipse
         cx={svgData.trunkX}
         cy={svgData.trunkBaseY + 4}
         fill={soilFill}
         rx={22}
         ry={7}
+      />
+
+      <FertiliserDots
+        cx={svgData.trunkX}
+        soilCY={svgData.trunkBaseY + 4}
+        tree={tree}
       />
 
       <line
