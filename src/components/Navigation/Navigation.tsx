@@ -47,6 +47,7 @@ function ThemeToggle() {
   );
 }
 
+const MOBILE_HOME = { href: "/", label: "Home" };
 const NAV_ITEMS = [
   { href: "/colour-palette", label: "Colour Palette" },
   { href: "/energy-planner", label: "Energy Planner" },
@@ -102,7 +103,7 @@ export function Navigation() {
                   <X size={32} />
                 </CloseButton>
                 <MobileNavList>
-                  {NAV_ITEMS.map((item) => (
+                  {[MOBILE_HOME, ...NAV_ITEMS].map((item) => (
                     <MobileNavItem key={item.href}>
                       <MobileNavLink href={item.href} onClick={handleLinkClick}>
                         {item.label}
@@ -177,7 +178,7 @@ const MobileNav = styled.div`
   flex: 1;
   justify-content: flex-end;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 
   @media (${QUERIES.TABLET_UP}) {
     display: none;
@@ -222,7 +223,7 @@ const NavItem = styled.li``;
 
 const NavLink = styled(Link)`
   color: var(--color-grey-100);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1.6rem;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -242,7 +243,7 @@ const HamburgerButton = styled.button`
   cursor: pointer;
   padding-inline: 0.5rem;
   padding-top: 0.6rem;
-  padding-bottom: 0.4rem;
+  padding-bottom: 0.45rem;
   touch-action: manipulation;
 
   &:hover {
@@ -273,6 +274,7 @@ const StyledContent = styled.div`
   top: 0;
   right: -1.5rem;
   bottom: 0;
+  height: 100vh;
   width: 75%;
   padding: 2rem;
   box-shadow: var(--elevation-lg);
@@ -319,7 +321,7 @@ const MobileNavItem = styled.li`
 
 const MobileNavLink = styled(Link)`
   color: var(--color-grey-100);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1.6rem;
   text-decoration: none;
   display: block;
@@ -335,7 +337,7 @@ const DesktopSide = styled.div`
   flex: 1;
   justify-content: flex-end;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.5rem;
 
   @media (${QUERIES.TABLET_UP}) {
     display: flex;
@@ -371,16 +373,17 @@ const ThemeToggleButton = styled.button`
 `;
 
 const MobileThemeSection = styled.div`
+  position: absolute;
+  bottom: 2rem;
+  width: 100;
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--color-grey-800);
 `;
 
 const MobileThemeLabel = styled.span`
   color: var(--color-grey-100);
-  font-weight: 700;
   font-size: 1.6rem;
 `;
