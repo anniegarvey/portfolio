@@ -8,10 +8,15 @@ import { getGrowthLabel, SPECIES_CONFIG } from "@/lib/bonsai/schema";
 
 interface TreeCollectionProps {
   onOpenTree: (tree: BonsaiTree) => void;
+  onNavigateToShop: (itemId: string) => void;
 }
 
-export function TreeCollection({ onOpenTree }: TreeCollectionProps) {
-  const { state, beginPlanting } = useBonsai();
+export function TreeCollection({
+  onOpenTree,
+  onNavigateToShop,
+}: TreeCollectionProps) {
+  const { state, beginPlanting, availablePotCount } = useBonsai();
+  const hasAvailablePot = availablePotCount() > 0;
 
   const ownedSeeds = state.inventory.ownedSpeciesIds;
 
@@ -55,6 +60,17 @@ export function TreeCollection({ onOpenTree }: TreeCollectionProps) {
         <Section>
           <SectionTitle>Plant a Seed</SectionTitle>
           <SeedList>
+            {!hasAvailablePot && (
+              <NoPotWarning>
+                You need a pot to plant a new seed.{" "}
+                <NoPotShopLink
+                  onClick={() => onNavigateToShop("simple-clay-small")}
+                  type="button"
+                >
+                  Browse pots →
+                </NoPotShopLink>
+              </NoPotWarning>
+            )}
             {ownedSeeds.map((speciesId, index) => {
               const config = SPECIES_CONFIG[speciesId as SpeciesId];
               return (
@@ -63,14 +79,25 @@ export function TreeCollection({ onOpenTree }: TreeCollectionProps) {
                   <SeedLabel>
                     {config.emoji} {config.label} Seed
                   </SeedLabel>
-                  <Button
-                    intent="primary"
-                    onClick={() => beginPlanting(speciesId as SpeciesId)}
-                    size="sm"
-                    variant="solid"
-                  >
-                    Place in garden
-                  </Button>
+                  {hasAvailablePot ? (
+                    <Button
+                      intent="primary"
+                      onClick={() => beginPlanting(speciesId as SpeciesId)}
+                      size="sm"
+                      variant="solid"
+                    >
+                      Place in garden
+                    </Button>
+                  ) : (
+                    <Button
+                      disabled
+                      intent="primary"
+                      size="sm"
+                      variant="outline"
+                    >
+                      No pot available
+                    </Button>
+                  )}
                 </SeedRow>
               );
             })}
@@ -200,6 +227,36 @@ const SeedRow = styled.div`
 const SeedLabel = styled.span`
   font-size: 1.3rem;
   color: light-dark(var(--color-grey-700), var(--color-grey-300));
+`;
+
+const NoPotWarning = styled.p`
+  font-size: 1.2rem;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: light-dark(var(--color-grey-100), var(--color-grey-800));
+`;
+
+const NoPotShopLink = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: light-dark(var(--color-primary-600), var(--color-primary-400));
+  text-decoration: underline;
+
+  &:hover {
+    color: light-dark(var(--color-primary-700), var(--color-primary-300));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 `;
 
 const EmptyState = styled.div`
