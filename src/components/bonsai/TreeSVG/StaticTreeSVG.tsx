@@ -183,8 +183,9 @@ interface PotConfig {
 
 const POT_CONFIGS: Record<string, PotConfig> = {
   "simple-clay": {
-    rimRx: 23,
-    rimRy: 3.5,
+    // Classic terracotta — clear flange rim wider than body opening
+    rimRx: 26,
+    rimRy: 4,
     rimColor: "#9a4828",
     bodyTopRx: 22,
     bodyBotRx: 16,
@@ -194,8 +195,9 @@ const POT_CONFIGS: Record<string, PotConfig> = {
     height: 17,
   },
   "glazed-ceramic": {
-    rimRx: 25,
-    rimRy: 3,
+    // Elegant jade glaze — wide flange rim, slight taper
+    rimRx: 27,
+    rimRy: 4,
     rimColor: "#4a7a6a",
     bodyTopRx: 22,
     bodyBotRx: 17,
@@ -206,10 +208,11 @@ const POT_CONFIGS: Record<string, PotConfig> = {
     glaze: true,
   },
   "lacquered-wood": {
-    rimRx: 21,
+    // Dark lacquer — flush flat rim, nearly rectangular
+    rimRx: 24,
     rimRy: 2.5,
-    rimColor: "#1a0806",
-    bodyTopRx: 21,
+    rimColor: "#2a1208",
+    bodyTopRx: 22,
     bodyBotRx: 19,
     bodyColor: "#3a1a0a",
     shadowColor: "rgba(0,0,0,0.28)",
@@ -217,11 +220,12 @@ const POT_CONFIGS: Record<string, PotConfig> = {
     height: 17,
   },
   "stone-basin": {
-    rimRx: 26,
-    rimRy: 3,
+    // Wide shallow basin — very wide rim relative to depth
+    rimRx: 28,
+    rimRy: 4,
     rimColor: "#6a6a62",
-    bodyTopRx: 25,
-    bodyBotRx: 21,
+    bodyTopRx: 26,
+    bodyBotRx: 22,
     bodyColor: "#8a8a80",
     shadowColor: "rgba(0,0,0,0.12)",
     botColor: "#5a5a52",
@@ -229,7 +233,8 @@ const POT_CONFIGS: Record<string, PotConfig> = {
   },
 };
 
-function PotSVG({
+/** Pot body only — drawn behind the soil so soil appears to sit inside. */
+function PotBodySVG({
   cx,
   rimY,
   potStyle,
@@ -270,14 +275,32 @@ function PotSVG({
         rx={cfg.bodyBotRx}
         ry={2.5}
       />
-      <ellipse
-        cx={cx}
-        cy={rimY}
-        fill={cfg.rimColor}
-        rx={cfg.rimRx}
-        ry={cfg.rimRy}
-      />
     </g>
+  );
+}
+
+/**
+ * Pot rim only — drawn *after* the soil so the rim appears as a visible lip
+ * wrapping around the soil surface edge.
+ */
+function PotRimSVG({
+  cx,
+  rimY,
+  potStyle,
+}: {
+  cx: number;
+  rimY: number;
+  potStyle: string;
+}) {
+  const cfg = POT_CONFIGS[potStyle] ?? POT_CONFIGS["simple-clay"];
+  return (
+    <ellipse
+      cx={cx}
+      cy={rimY}
+      fill={cfg.rimColor}
+      rx={cfg.rimRx}
+      ry={cfg.rimRy}
+    />
   );
 }
 
@@ -493,7 +516,10 @@ export function StaticTreeSVG({
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
   const soilFill = isWateredToday ? "#7a4f2a" : "#c4a878";
 
-  const rimY = svgData.trunkBaseY - 5;
+  // Rim sits so its bottom edge meets the soil top edge (trunkBaseY + 4 - 7 = trunkBaseY - 3).
+  // With rimRy=4: rimY = trunkBaseY - 3 - 4 = trunkBaseY - 7.
+  // This makes the rim appear as a visible collar above the soil surface.
+  const rimY = svgData.trunkBaseY - 7;
   const potStyle = tree.equippedPotId
     ? parsePotId(tree.equippedPotId).style
     : null;
@@ -531,8 +557,9 @@ export function StaticTreeSVG({
         />
       )}
 
+      {/* Pot body behind soil — soil will appear to sit inside the pot */}
       {potStyle && (
-        <PotSVG cx={svgData.trunkX} potStyle={potStyle} rimY={rimY} />
+        <PotBodySVG cx={svgData.trunkX} potStyle={potStyle} rimY={rimY} />
       )}
 
       <SoilEllipse
@@ -548,6 +575,11 @@ export function StaticTreeSVG({
         soilCY={svgData.trunkBaseY + 4}
         tree={tree}
       />
+
+      {/* Pot rim drawn after soil so it appears as a visible lip around the soil edge */}
+      {potStyle && (
+        <PotRimSVG cx={svgData.trunkX} potStyle={potStyle} rimY={rimY} />
+      )}
 
       <line
         stroke="rgba(120, 90, 50, 0.3)"

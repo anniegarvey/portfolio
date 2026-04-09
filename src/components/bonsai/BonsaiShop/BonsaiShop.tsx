@@ -5,8 +5,14 @@ import { styled } from "next-yak";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
-import type { ShopCategory, ShopItem, ShopItemId } from "@/lib/bonsai/schema";
-import { SHOP_CATALOG } from "@/lib/bonsai/schema";
+import type {
+  PotId,
+  ShopCategory,
+  ShopItem,
+  ShopItemId,
+  StandId,
+} from "@/lib/bonsai/schema";
+import { parsePotId, parseStandId, SHOP_CATALOG } from "@/lib/bonsai/schema";
 import { usePoints } from "@/lib/points/context";
 
 const CATEGORIES: { value: ShopCategory; label: string }[] = [
@@ -16,6 +22,234 @@ const CATEGORIES: { value: ShopCategory; label: string }[] = [
   { value: "pot", label: "Pots" },
   { value: "stand", label: "Stands" },
 ];
+
+// ─── Pot preview SVG ──────────────────────────────────────────────────────────
+
+const POT_PREVIEW_CONFIGS: Record<
+  string,
+  {
+    rimRx: number;
+    rimRy: number;
+    rimColor: string;
+    bodyRx: number;
+    botRx: number;
+    bodyColor: string;
+    shadowColor: string;
+    botColor: string;
+    height: number;
+    glaze?: boolean;
+  }
+> = {
+  "simple-clay": {
+    rimRx: 21,
+    rimRy: 3,
+    rimColor: "#9a4828",
+    bodyRx: 18,
+    botRx: 13,
+    bodyColor: "#c1704a",
+    shadowColor: "rgba(0,0,0,0.15)",
+    botColor: "#8a3818",
+    height: 13,
+  },
+  "glazed-ceramic": {
+    rimRx: 22,
+    rimRy: 3,
+    rimColor: "#4a7a6a",
+    bodyRx: 18,
+    botRx: 13,
+    bodyColor: "#6a9a88",
+    shadowColor: "rgba(0,0,0,0.12)",
+    botColor: "#3a6858",
+    height: 15,
+    glaze: true,
+  },
+  "lacquered-wood": {
+    rimRx: 19,
+    rimRy: 2,
+    rimColor: "#2a1208",
+    bodyRx: 18,
+    botRx: 15,
+    bodyColor: "#3a1a0a",
+    shadowColor: "rgba(0,0,0,0.28)",
+    botColor: "#1a0806",
+    height: 13,
+  },
+  "stone-basin": {
+    rimRx: 23,
+    rimRy: 3,
+    rimColor: "#6a6a62",
+    bodyRx: 21,
+    botRx: 18,
+    bodyColor: "#8a8a80",
+    shadowColor: "rgba(0,0,0,0.12)",
+    botColor: "#5a5a52",
+    height: 7,
+  },
+};
+
+function PotShopPreview({ potId }: { potId: string }) {
+  const { style } = parsePotId(potId as PotId);
+  const v = POT_PREVIEW_CONFIGS[style] ?? POT_PREVIEW_CONFIGS["simple-clay"];
+  const cx = 30;
+  const rimY = 6;
+  const botY = rimY + v.height;
+  const midY = rimY + v.height / 2;
+  const soilY = rimY + v.rimRy + 1;
+  const viewH = botY + 5;
+
+  return (
+    <svg
+      aria-hidden="true"
+      height={viewH}
+      style={{ display: "block", margin: "0 auto" }}
+      viewBox={`0 0 60 ${viewH}`}
+      width={60}
+    >
+      <path
+        d={`M ${cx - v.bodyRx},${rimY} C ${cx - v.bodyRx},${midY} ${cx - v.botRx},${botY - 2} ${cx - v.botRx},${botY} L ${cx + v.botRx},${botY} C ${cx + v.botRx},${botY - 2} ${cx + v.bodyRx},${midY} ${cx + v.bodyRx},${rimY} Z`}
+        fill={v.bodyColor}
+      />
+      <path
+        d={`M ${cx - v.bodyRx},${rimY} C ${cx - v.bodyRx},${midY} ${cx - v.botRx},${botY - 2} ${cx - v.botRx},${botY} L ${cx - v.botRx + 5},${botY} C ${cx - v.bodyRx + 6},${midY} ${cx - v.bodyRx + 5},${rimY + 1} ${cx - v.bodyRx + 4},${rimY} Z`}
+        fill={v.shadowColor}
+      />
+      {v.glaze && (
+        <ellipse
+          cx={cx - 5}
+          cy={rimY + 5}
+          fill="rgba(255,255,255,0.18)"
+          rx={2}
+          ry={6}
+          transform={`rotate(-20 ${cx - 5} ${rimY + 5})`}
+        />
+      )}
+      <ellipse cx={cx} cy={botY} fill={v.botColor} rx={v.botRx} ry={2} />
+      {/* Soil surface inside pot */}
+      <ellipse
+        cx={cx}
+        cy={soilY}
+        fill="#8a6030"
+        rx={v.bodyRx - 1}
+        ry={v.rimRy - 0.5}
+      />
+      {/* Rim drawn on top of soil */}
+      <ellipse cx={cx} cy={rimY} fill={v.rimColor} rx={v.rimRx} ry={v.rimRy} />
+    </svg>
+  );
+}
+
+// ─── Stand preview SVG ────────────────────────────────────────────────────────
+
+const STAND_PREVIEW_CONFIGS: Record<
+  string,
+  { color: string; topColor: string; height: number; rx: number }
+> = {
+  "bamboo-mat": { color: "#8a7840", topColor: "#b0986a", height: 3, rx: 18 },
+  "wooden-stand": { color: "#7a5030", topColor: "#a07050", height: 9, rx: 17 },
+  "carved-stone": { color: "#787870", topColor: "#9a9a90", height: 7, rx: 17 },
+};
+
+function StandShopPreview({ standId }: { standId: string }) {
+  const { style } = parseStandId(standId as StandId);
+  const v = STAND_PREVIEW_CONFIGS[style] ?? STAND_PREVIEW_CONFIGS["bamboo-mat"];
+  const cx = 30;
+  const topY = 4;
+  const botY = topY + v.height;
+  const viewH = botY + 5;
+
+  if (style === "wooden-stand") {
+    const platformH = 2;
+    const legW = 4;
+    const legH = v.height - platformH;
+    return (
+      <svg
+        aria-hidden="true"
+        height={viewH}
+        style={{ display: "block", margin: "0 auto" }}
+        viewBox={`0 0 60 ${viewH}`}
+        width={60}
+      >
+        <rect
+          fill={v.color}
+          height={legH}
+          rx={1}
+          width={legW}
+          x={cx - v.rx}
+          y={topY + platformH}
+        />
+        <rect
+          fill={v.color}
+          height={legH}
+          rx={1}
+          width={legW}
+          x={cx + v.rx - legW}
+          y={topY + platformH}
+        />
+        <rect
+          fill={v.color}
+          height={platformH}
+          width={v.rx * 2}
+          x={cx - v.rx}
+          y={topY}
+        />
+        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={v.rx} ry={2} />
+      </svg>
+    );
+  }
+
+  if (style === "bamboo-mat") {
+    return (
+      <svg
+        aria-hidden="true"
+        height={viewH}
+        style={{ display: "block", margin: "0 auto" }}
+        viewBox={`0 0 60 ${viewH}`}
+        width={60}
+      >
+        <rect
+          fill={v.color}
+          height={v.height}
+          rx={1}
+          width={v.rx * 2}
+          x={cx - v.rx}
+          y={topY}
+        />
+        <line
+          stroke={v.topColor}
+          strokeWidth={0.5}
+          x1={cx - v.rx + 2}
+          x2={cx + v.rx - 2}
+          y1={topY + 1}
+          y2={topY + 1}
+        />
+        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={v.rx} ry={1.5} />
+      </svg>
+    );
+  }
+
+  // carved-stone
+  return (
+    <svg
+      aria-hidden="true"
+      height={viewH}
+      style={{ display: "block", margin: "0 auto" }}
+      viewBox={`0 0 60 ${viewH}`}
+      width={60}
+    >
+      <rect
+        fill={v.color}
+        height={v.height}
+        width={v.rx * 2}
+        x={cx - v.rx}
+        y={topY}
+      />
+      <ellipse cx={cx} cy={topY} fill={v.topColor} rx={v.rx} ry={2} />
+      <ellipse cx={cx} cy={botY} fill="rgba(0,0,0,0.2)" rx={v.rx} ry={1.5} />
+    </svg>
+  );
+}
+
+// ─── Owned count hook ─────────────────────────────────────────────────────────
 
 function useOwnedCount(itemId: ShopItemId, category: ShopCategory) {
   const { state } = useBonsai();
@@ -71,6 +305,8 @@ function ShopCard({ item, focused }: { item: ShopItem; focused?: boolean }) {
           {item.cost}
         </Cost>
       </CardHeader>
+      {item.category === "pot" && <PotShopPreview potId={item.id} />}
+      {item.category === "stand" && <StandShopPreview standId={item.id} />}
       <ItemDescription>{item.description}</ItemDescription>
       <CardFooter>
         {totalOwned > 0 && <OwnedBadge>Owned: {totalOwned}</OwnedBadge>}
