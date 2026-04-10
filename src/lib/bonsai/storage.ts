@@ -32,13 +32,14 @@ export function createInitialState(): BonsaiGameState {
         acquiredAt: new Date().toISOString().split("T")[0],
         prunedBranches: [],
         gardenPosition: { x: 50, y: 50 },
+        equippedPotId: "simple-clay-small",
       },
     ],
     inventory: {
       ownedSpeciesIds: [],
       ownedToolIds: [],
       ownedFertiliserIds: [],
-      ownedPotIds: [],
+      ownedPotIds: ["simple-clay-small"],
       ownedStandIds: [],
     },
   };

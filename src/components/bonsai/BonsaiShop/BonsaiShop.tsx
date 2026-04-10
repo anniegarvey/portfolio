@@ -5,9 +5,17 @@ import { styled } from "next-yak";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
-import type { ShopCategory, ShopItem, ShopItemId } from "@/lib/bonsai/schema";
-import { SHOP_CATALOG } from "@/lib/bonsai/schema";
+import type {
+  PotId,
+  ShopCategory,
+  ShopItem,
+  ShopItemId,
+  StandId,
+} from "@/lib/bonsai/schema";
+import { parsePotId, parseStandId, SHOP_CATALOG } from "@/lib/bonsai/schema";
 import { usePoints } from "@/lib/points/context";
+import { PotBodySVG, PotRimSVG } from "../TreeSVG/PotSVG";
+import { POT_CONFIGS } from "../TreeSVG/potConfigs";
 
 const CATEGORIES: { value: ShopCategory; label: string }[] = [
   { value: "species", label: "Seeds" },
@@ -16,6 +24,167 @@ const CATEGORIES: { value: ShopCategory; label: string }[] = [
   { value: "pot", label: "Pots" },
   { value: "stand", label: "Stands" },
 ];
+
+// ─── Pot preview SVG ──────────────────────────────────────────────────────────
+
+const PREVIEW_SIZE_SCALE: Record<string, number> = {
+  small: 1,
+  medium: 1.25,
+  large: 1.5,
+};
+
+function PotShopPreview({ potId }: { potId: string }) {
+  const { size, style } = parsePotId(potId as PotId);
+  const cfg = POT_CONFIGS[style] ?? POT_CONFIGS["simple-clay"];
+  const scale = PREVIEW_SIZE_SCALE[size] ?? 1;
+
+  const scaledRimRx = Math.round(cfg.rimRx * scale);
+  const scaledRimRy = Math.round(cfg.rimRy * scale);
+  const height = Math.round(cfg.height * scale);
+
+  const svgW = scaledRimRx * 2 + 10;
+  const cx = svgW / 2;
+  const rimY = scaledRimRy + 2;
+  const botY = rimY + height;
+  const viewH = botY + 5;
+
+  // Same soil positioning as computePotGeometry in StaticTreeSVG
+  const soilCY = rimY + 0.5;
+  const soilRy = Math.max(1, scaledRimRy - 1);
+  const soilRx = Math.round(cfg.bodyTopRx * scale) - 2;
+
+  return (
+    <svg
+      aria-hidden="true"
+      height={viewH}
+      style={{ display: "block", margin: "0 auto" }}
+      viewBox={`0 0 ${svgW} ${viewH}`}
+      width={svgW}
+    >
+      <PotBodySVG cx={cx} potStyle={style} rimY={rimY} scale={scale} />
+      <PotRimSVG cx={cx} potStyle={style} rimY={rimY} scale={scale} />
+      <ellipse cx={cx} cy={soilCY} fill="#8a6030" rx={soilRx} ry={soilRy} />
+    </svg>
+  );
+}
+
+// ─── Stand preview SVG ────────────────────────────────────────────────────────
+
+const STAND_PREVIEW_CONFIGS: Record<
+  string,
+  { color: string; topColor: string; height: number; rx: number }
+> = {
+  "bamboo-mat": { color: "#8a7840", topColor: "#b0986a", height: 3, rx: 18 },
+  "wooden-stand": { color: "#7a5030", topColor: "#a07050", height: 9, rx: 17 },
+  "carved-stone": { color: "#787870", topColor: "#9a9a90", height: 7, rx: 17 },
+};
+
+function StandShopPreview({ standId }: { standId: string }) {
+  const { size, style } = parseStandId(standId as StandId);
+  const v = STAND_PREVIEW_CONFIGS[style] ?? STAND_PREVIEW_CONFIGS["bamboo-mat"];
+  const scale = PREVIEW_SIZE_SCALE[size] ?? 1;
+
+  const rx = Math.round(v.rx * scale);
+  const height = Math.round(v.height * scale);
+  const svgW = rx * 2 + 10;
+  const cx = svgW / 2;
+  const topY = 4;
+  const botY = topY + height;
+  const viewH = botY + 5;
+
+  if (style === "wooden-stand") {
+    const platformH = Math.round(2 * scale);
+    const legW = Math.round(4 * scale);
+    const legH = height - platformH;
+    return (
+      <svg
+        aria-hidden="true"
+        height={viewH}
+        style={{ display: "block", margin: "0 auto" }}
+        viewBox={`0 0 ${svgW} ${viewH}`}
+        width={svgW}
+      >
+        <rect
+          fill={v.color}
+          height={legH}
+          rx={1}
+          width={legW}
+          x={cx - rx}
+          y={topY + platformH}
+        />
+        <rect
+          fill={v.color}
+          height={legH}
+          rx={1}
+          width={legW}
+          x={cx + rx - legW}
+          y={topY + platformH}
+        />
+        <rect
+          fill={v.color}
+          height={platformH}
+          width={rx * 2}
+          x={cx - rx}
+          y={topY}
+        />
+        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={rx} ry={2} />
+      </svg>
+    );
+  }
+
+  if (style === "bamboo-mat") {
+    return (
+      <svg
+        aria-hidden="true"
+        height={viewH}
+        style={{ display: "block", margin: "0 auto" }}
+        viewBox={`0 0 ${svgW} ${viewH}`}
+        width={svgW}
+      >
+        <rect
+          fill={v.color}
+          height={height}
+          rx={1}
+          width={rx * 2}
+          x={cx - rx}
+          y={topY}
+        />
+        <line
+          stroke={v.topColor}
+          strokeWidth={0.5}
+          x1={cx - rx + 2}
+          x2={cx + rx - 2}
+          y1={topY + 1}
+          y2={topY + 1}
+        />
+        <ellipse cx={cx} cy={topY} fill={v.topColor} rx={rx} ry={1.5} />
+      </svg>
+    );
+  }
+
+  // carved-stone
+  return (
+    <svg
+      aria-hidden="true"
+      height={viewH}
+      style={{ display: "block", margin: "0 auto" }}
+      viewBox={`0 0 ${svgW} ${viewH}`}
+      width={svgW}
+    >
+      <rect
+        fill={v.color}
+        height={height}
+        width={rx * 2}
+        x={cx - rx}
+        y={topY}
+      />
+      <ellipse cx={cx} cy={topY} fill={v.topColor} rx={rx} ry={2} />
+      <ellipse cx={cx} cy={botY} fill="rgba(0,0,0,0.2)" rx={rx} ry={1.5} />
+    </svg>
+  );
+}
+
+// ─── Owned count hook ─────────────────────────────────────────────────────────
 
 function useOwnedCount(itemId: ShopItemId, category: ShopCategory) {
   const { state } = useBonsai();
@@ -71,6 +240,8 @@ function ShopCard({ item, focused }: { item: ShopItem; focused?: boolean }) {
           {item.cost}
         </Cost>
       </CardHeader>
+      {item.category === "pot" && <PotShopPreview potId={item.id} />}
+      {item.category === "stand" && <StandShopPreview standId={item.id} />}
       <ItemDescription>{item.description}</ItemDescription>
       <CardFooter>
         {totalOwned > 0 && <OwnedBadge>Owned: {totalOwned}</OwnedBadge>}

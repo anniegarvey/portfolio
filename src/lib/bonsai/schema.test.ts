@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  FERTILISER_EFFECTS,
   getGrowthLabel,
   getGrowthProgress,
+  parsePotId,
+  parseStandId,
   SHOP_CATALOG,
   SPECIES_CONFIG,
   SpeciesIdSchema,
@@ -139,6 +142,109 @@ describe("SHOP_CATALOG", () => {
     );
     for (const speciesId of SpeciesIdSchema.options) {
       expect(seedIds).toContain(speciesId);
+    }
+  });
+});
+
+// ─── parsePotId ───────────────────────────────────────────────────────────────
+
+describe("parsePotId", () => {
+  it("parses simple-clay-small correctly", () => {
+    expect(parsePotId("simple-clay-small")).toEqual({
+      style: "simple-clay",
+      size: "small",
+    });
+  });
+
+  it("parses glazed-ceramic-large correctly", () => {
+    expect(parsePotId("glazed-ceramic-large")).toEqual({
+      style: "glazed-ceramic",
+      size: "large",
+    });
+  });
+
+  it("parses lacquered-wood-medium correctly", () => {
+    expect(parsePotId("lacquered-wood-medium")).toEqual({
+      style: "lacquered-wood",
+      size: "medium",
+    });
+  });
+
+  it("parses stone-basin-small correctly", () => {
+    expect(parsePotId("stone-basin-small")).toEqual({
+      style: "stone-basin",
+      size: "small",
+    });
+  });
+});
+
+// ─── parseStandId ─────────────────────────────────────────────────────────────
+
+describe("parseStandId", () => {
+  it("parses bamboo-mat-small correctly", () => {
+    expect(parseStandId("bamboo-mat-small")).toEqual({
+      style: "bamboo-mat",
+      size: "small",
+    });
+  });
+
+  it("parses carved-stone-large correctly", () => {
+    expect(parseStandId("carved-stone-large")).toEqual({
+      style: "carved-stone",
+      size: "large",
+    });
+  });
+
+  it("parses wooden-stand-medium correctly", () => {
+    expect(parseStandId("wooden-stand-medium")).toEqual({
+      style: "wooden-stand",
+      size: "medium",
+    });
+  });
+});
+
+// ─── FERTILISER_EFFECTS ───────────────────────────────────────────────────────
+
+describe("FERTILISER_EFFECTS", () => {
+  it("growth-tonic-small has correct bonus and duration", () => {
+    const effect = FERTILISER_EFFECTS["growth-tonic-small"];
+    expect(effect.type).toBe("growth-tonic");
+    if (effect.type === "growth-tonic") {
+      expect(effect.bonusPerTick).toBe(0.5);
+      expect(effect.duration).toBe(7);
+    }
+  });
+
+  it("growth-tonic-medium doubles the bonus", () => {
+    const effect = FERTILISER_EFFECTS["growth-tonic-medium"];
+    if (effect.type === "growth-tonic") {
+      expect(effect.bonusPerTick).toBe(1);
+      expect(effect.duration).toBe(14);
+    }
+  });
+
+  it("growth-tonic-large has maximum bonus", () => {
+    const effect = FERTILISER_EFFECTS["growth-tonic-large"];
+    if (effect.type === "growth-tonic") {
+      expect(effect.bonusPerTick).toBe(2);
+      expect(effect.duration).toBe(30);
+    }
+  });
+
+  it("moisture-keeper-small has correct retention and duration", () => {
+    const effect = FERTILISER_EFFECTS["moisture-keeper-small"];
+    expect(effect.type).toBe("moisture-keeper");
+    if (effect.type === "moisture-keeper") {
+      expect(effect.retentionDays).toBe(1);
+      expect(effect.duration).toBe(7);
+    }
+  });
+
+  it("moisture-keeper-large has maximum retention", () => {
+    const effect = FERTILISER_EFFECTS["moisture-keeper-large"];
+    if (effect.type === "moisture-keeper") {
+      expect(effect.retentionDays).toBe(4);
+      expect(effect.duration).toBe(30);
     }
   });
 });

@@ -20,21 +20,42 @@ export const ToolIdSchema = z.enum([
 ]);
 export type ToolId = z.infer<typeof ToolIdSchema>;
 
-export const FertiliserIdSchema = z.enum(["basic", "organic", "slow-release"]);
+export const FertiliserIdSchema = z.enum([
+  "growth-tonic-small",
+  "growth-tonic-medium",
+  "growth-tonic-large",
+  "moisture-keeper-small",
+  "moisture-keeper-medium",
+  "moisture-keeper-large",
+]);
 export type FertiliserId = z.infer<typeof FertiliserIdSchema>;
 
 export const PotIdSchema = z.enum([
-  "simple-clay",
-  "glazed-ceramic",
-  "stone-basin",
-  "lacquered-wood",
+  "simple-clay-small",
+  "simple-clay-medium",
+  "simple-clay-large",
+  "glazed-ceramic-small",
+  "glazed-ceramic-medium",
+  "glazed-ceramic-large",
+  "stone-basin-small",
+  "stone-basin-medium",
+  "stone-basin-large",
+  "lacquered-wood-small",
+  "lacquered-wood-medium",
+  "lacquered-wood-large",
 ]);
 export type PotId = z.infer<typeof PotIdSchema>;
 
 export const StandIdSchema = z.enum([
-  "bamboo-mat",
-  "wooden-stand",
-  "carved-stone",
+  "bamboo-mat-small",
+  "bamboo-mat-medium",
+  "bamboo-mat-large",
+  "wooden-stand-small",
+  "wooden-stand-medium",
+  "wooden-stand-large",
+  "carved-stone-small",
+  "carved-stone-medium",
+  "carved-stone-large",
 ]);
 export type StandId = z.infer<typeof StandIdSchema>;
 
@@ -58,18 +79,44 @@ export const GardenPositionSchema = z.object({
 });
 export type GardenPosition = z.infer<typeof GardenPositionSchema>;
 
+// ─── Active Fertilisers ───────────────────────────────────────────────────────
+
+export const ActiveGrowthTonicSchema = z.object({
+  /** activeDaysCount at which the effect expires. */
+  expiresAtDay: z.number(),
+  /** Extra active days added per growth tick (0.5, 1, or 2). */
+  bonusPerTick: z.number(),
+});
+export type ActiveGrowthTonic = z.infer<typeof ActiveGrowthTonicSchema>;
+
+export const ActiveMoistureKeeperSchema = z.object({
+  /** activeDaysCount at which the effect expires. */
+  expiresAtDay: z.number(),
+  /** Tree grows if activeDaysCount - lastWateredDay <= retentionDays (1, 2, or 4). */
+  retentionDays: z.number().int(),
+});
+export type ActiveMoistureKeeper = z.infer<typeof ActiveMoistureKeeperSchema>;
+
+export const ActiveFertilisersSchema = z.object({
+  growthTonic: ActiveGrowthTonicSchema.optional(),
+  moistureKeeper: ActiveMoistureKeeperSchema.optional(),
+});
+export type ActiveFertilisers = z.infer<typeof ActiveFertilisersSchema>;
+
 // ─── Tree ─────────────────────────────────────────────────────────────────────
 
 export const BonsaiTreeSchema = z.object({
   id: z.string().uuid(),
   speciesId: SpeciesIdSchema,
   name: z.string().optional(),
-  activeDaysCount: z.number().int().min(0),
+  /** Can be fractional when growth tonic is active. */
+  activeDaysCount: z.number().min(0),
   lastGrownDate: z.string().optional(),
-  lastWateredDay: z.number().int().min(0).optional(),
+  lastWateredDay: z.number().min(0).optional(),
   acquiredAt: z.string(),
   equippedPotId: PotIdSchema.optional(),
   equippedStandId: StandIdSchema.optional(),
+  activeFertilisers: ActiveFertilisersSchema.optional(),
   prunedBranches: z.array(PrunedBranchSchema),
   gardenPosition: GardenPositionSchema.optional(),
 });
@@ -349,6 +396,83 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
   },
 };
 
+// ─── Fertiliser Effects ───────────────────────────────────────────────────────
+
+export type FertiliserType = "growth-tonic" | "moisture-keeper";
+
+export interface GrowthTonicEffect {
+  type: "growth-tonic";
+  bonusPerTick: number;
+  duration: number;
+}
+
+export interface MoistureKeeperEffect {
+  type: "moisture-keeper";
+  retentionDays: number;
+  duration: number;
+}
+
+export type FertiliserEffect = GrowthTonicEffect | MoistureKeeperEffect;
+
+export const FERTILISER_EFFECTS: Record<FertiliserId, FertiliserEffect> = {
+  "growth-tonic-small": {
+    type: "growth-tonic",
+    bonusPerTick: 0.5,
+    duration: 7,
+  },
+  "growth-tonic-medium": {
+    type: "growth-tonic",
+    bonusPerTick: 1,
+    duration: 14,
+  },
+  "growth-tonic-large": { type: "growth-tonic", bonusPerTick: 2, duration: 30 },
+  "moisture-keeper-small": {
+    type: "moisture-keeper",
+    retentionDays: 1,
+    duration: 7,
+  },
+  "moisture-keeper-medium": {
+    type: "moisture-keeper",
+    retentionDays: 2,
+    duration: 14,
+  },
+  "moisture-keeper-large": {
+    type: "moisture-keeper",
+    retentionDays: 4,
+    duration: 30,
+  },
+};
+
+// ─── Pot Visual Config ────────────────────────────────────────────────────────
+
+export type PotStyle =
+  | "simple-clay"
+  | "glazed-ceramic"
+  | "stone-basin"
+  | "lacquered-wood";
+export type ItemSize = "small" | "medium" | "large";
+
+export function parsePotId(potId: PotId): { style: PotStyle; size: ItemSize } {
+  const lastDash = potId.lastIndexOf("-");
+  return {
+    style: potId.slice(0, lastDash) as PotStyle,
+    size: potId.slice(lastDash + 1) as ItemSize,
+  };
+}
+
+export type StandStyle = "bamboo-mat" | "wooden-stand" | "carved-stone";
+
+export function parseStandId(standId: StandId): {
+  style: StandStyle;
+  size: ItemSize;
+} {
+  const lastDash = standId.lastIndexOf("-");
+  return {
+    style: standId.slice(0, lastDash) as StandStyle,
+    size: standId.slice(lastDash + 1) as ItemSize,
+  };
+}
+
 // ─── Shop Catalog ─────────────────────────────────────────────────────────────
 
 export type ShopCategory = "species" | "tool" | "fertiliser" | "pot" | "stand";
@@ -440,79 +564,211 @@ export const SHOP_CATALOG: ShopItem[] = [
     description:
       "Water every tree in your garden at once. A luxury for the dedicated gardener.",
   },
-  // Fertiliser
+  // Fertiliser — Growth Tonic (60/180/480)
   {
-    id: "basic",
-    label: "Basic Fertiliser",
+    id: "growth-tonic-small",
+    label: "Growth Tonic (Small)",
     category: "fertiliser",
-    cost: 15,
-    description: "A balanced blend to keep your tree growing steadily.",
-  },
-  {
-    id: "organic",
-    label: "Organic Fertiliser",
-    category: "fertiliser",
-    cost: 35,
+    cost: 60,
     description:
-      "Slow-release nutrients from natural sources. Gentle and effective.",
+      "A concentrated tonic that boosts daily growth. Lasts 7 growth days.",
   },
   {
-    id: "slow-release",
-    label: "Slow-Release Fertiliser",
+    id: "growth-tonic-medium",
+    label: "Growth Tonic (Medium)",
     category: "fertiliser",
-    cost: 45,
-    description: "Pellets that feed your tree consistently over many weeks.",
+    cost: 180,
+    description: "A generous dose of growth tonic. Lasts 14 growth days.",
   },
-  // Pots
   {
-    id: "simple-clay",
-    label: "Simple Clay Pot",
+    id: "growth-tonic-large",
+    label: "Growth Tonic (Large)",
+    category: "fertiliser",
+    cost: 480,
+    description:
+      "A potent growth tonic for rapid development. Lasts 30 growth days.",
+  },
+  // Fertiliser — Moisture Keeper (40/120/320)
+  {
+    id: "moisture-keeper-small",
+    label: "Moisture Keeper (Small)",
+    category: "fertiliser",
+    cost: 40,
+    description:
+      "Retains moisture so a missed day doesn't stop growth. Lasts 7 growth days.",
+  },
+  {
+    id: "moisture-keeper-medium",
+    label: "Moisture Keeper (Medium)",
+    category: "fertiliser",
+    cost: 120,
+    description:
+      "Retains moisture for up to 2 days without watering. Lasts 14 growth days.",
+  },
+  {
+    id: "moisture-keeper-large",
+    label: "Moisture Keeper (Large)",
+    category: "fertiliser",
+    cost: 320,
+    description:
+      "Retains moisture for up to 4 days without watering. Lasts 30 growth days.",
+  },
+  // Pots — Simple Clay (40/120/320)
+  {
+    id: "simple-clay-small",
+    label: "Simple Clay Pot (Small)",
     category: "pot",
     cost: 40,
-    description: "An unglazed terracotta pot. Traditional and breathable.",
+    description: "A small unglazed terracotta pot. Traditional and breathable.",
   },
   {
-    id: "glazed-ceramic",
-    label: "Glazed Ceramic Pot",
-    category: "pot",
-    cost: 80,
-    description: "A smooth, richly coloured pot with a subtle sheen.",
-  },
-  {
-    id: "stone-basin",
-    label: "Stone Basin",
+    id: "simple-clay-medium",
+    label: "Simple Clay Pot (Medium)",
     category: "pot",
     cost: 120,
-    description: "A heavy, carved stone tray for a natural, rugged aesthetic.",
+    description:
+      "A medium unglazed terracotta pot. Traditional and breathable.",
   },
   {
-    id: "lacquered-wood",
-    label: "Lacquered Wood Pot",
+    id: "simple-clay-large",
+    label: "Simple Clay Pot (Large)",
+    category: "pot",
+    cost: 320,
+    description: "A large unglazed terracotta pot. Traditional and breathable.",
+  },
+  // Pots — Glazed Ceramic (80/240/640)
+  {
+    id: "glazed-ceramic-small",
+    label: "Glazed Ceramic Pot (Small)",
+    category: "pot",
+    cost: 80,
+    description: "A small, richly glazed pot with a deep cobalt sheen.",
+  },
+  {
+    id: "glazed-ceramic-medium",
+    label: "Glazed Ceramic Pot (Medium)",
+    category: "pot",
+    cost: 240,
+    description: "A medium, richly glazed pot with a deep cobalt sheen.",
+  },
+  {
+    id: "glazed-ceramic-large",
+    label: "Glazed Ceramic Pot (Large)",
+    category: "pot",
+    cost: 640,
+    description: "A large, richly glazed pot with a deep cobalt sheen.",
+  },
+  // Pots — Stone Basin (120/360/960)
+  {
+    id: "stone-basin-small",
+    label: "Stone Basin (Small)",
+    category: "pot",
+    cost: 120,
+    description: "A small carved stone tray. Heavy and natural.",
+  },
+  {
+    id: "stone-basin-medium",
+    label: "Stone Basin (Medium)",
+    category: "pot",
+    cost: 360,
+    description: "A medium carved stone tray. Heavy and natural.",
+  },
+  {
+    id: "stone-basin-large",
+    label: "Stone Basin (Large)",
+    category: "pot",
+    cost: 960,
+    description: "A large carved stone tray. Heavy and natural.",
+  },
+  // Pots — Lacquered Wood (150/450/1200)
+  {
+    id: "lacquered-wood-small",
+    label: "Lacquered Wood Pot (Small)",
     category: "pot",
     cost: 150,
-    description: "A handcrafted wooden pot with a deep lacquer finish.",
-  },
-  // Stands
-  {
-    id: "bamboo-mat",
-    label: "Bamboo Mat",
-    category: "stand",
-    cost: 30,
-    description: "A woven bamboo display mat. Simple and elegant.",
+    description: "A small handcrafted pot with a deep lacquer finish.",
   },
   {
-    id: "wooden-stand",
-    label: "Wooden Stand",
-    category: "stand",
-    cost: 60,
-    description: "A raised hardwood stand that puts your tree at eye level.",
+    id: "lacquered-wood-medium",
+    label: "Lacquered Wood Pot (Medium)",
+    category: "pot",
+    cost: 450,
+    description: "A medium handcrafted pot with a deep lacquer finish.",
   },
   {
-    id: "carved-stone",
-    label: "Carved Stone Stand",
+    id: "lacquered-wood-large",
+    label: "Lacquered Wood Pot (Large)",
+    category: "pot",
+    cost: 1200,
+    description: "A large handcrafted pot with a deep lacquer finish.",
+  },
+  // Stands — Bamboo Mat (100/300/800)
+  {
+    id: "bamboo-mat-small",
+    label: "Bamboo Mat (Small)",
     category: "stand",
     cost: 100,
+    description: "A small woven bamboo display mat. Simple and elegant.",
+  },
+  {
+    id: "bamboo-mat-medium",
+    label: "Bamboo Mat (Medium)",
+    category: "stand",
+    cost: 300,
+    description: "A medium woven bamboo display mat. Simple and elegant.",
+  },
+  {
+    id: "bamboo-mat-large",
+    label: "Bamboo Mat (Large)",
+    category: "stand",
+    cost: 800,
+    description: "A large woven bamboo display mat. Simple and elegant.",
+  },
+  // Stands — Wooden Stand (500/1500/4000)
+  {
+    id: "wooden-stand-small",
+    label: "Wooden Stand (Small)",
+    category: "stand",
+    cost: 500,
+    description: "A small raised hardwood stand with carved legs.",
+  },
+  {
+    id: "wooden-stand-medium",
+    label: "Wooden Stand (Medium)",
+    category: "stand",
+    cost: 1500,
+    description: "A medium raised hardwood stand with carved legs.",
+  },
+  {
+    id: "wooden-stand-large",
+    label: "Wooden Stand (Large)",
+    category: "stand",
+    cost: 4000,
+    description: "A large raised hardwood stand with carved legs.",
+  },
+  // Stands — Carved Stone (2500/7500/20000)
+  {
+    id: "carved-stone-small",
+    label: "Carved Stone Stand (Small)",
+    category: "stand",
+    cost: 2500,
     description:
-      "A sculpted stone pedestal for displaying your most prized tree.",
+      "A small sculpted stone pedestal. Reserved for the finest trees.",
+  },
+  {
+    id: "carved-stone-medium",
+    label: "Carved Stone Stand (Medium)",
+    category: "stand",
+    cost: 7500,
+    description:
+      "A medium sculpted stone pedestal. Reserved for the finest trees.",
+  },
+  {
+    id: "carved-stone-large",
+    label: "Carved Stone Stand (Large)",
+    category: "stand",
+    cost: 20000,
+    description:
+      "A large sculpted stone pedestal. Reserved for the finest trees.",
   },
 ];

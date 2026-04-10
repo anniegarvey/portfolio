@@ -22,7 +22,7 @@ import type {
   StandId,
   ToolId,
 } from "./schema";
-import { SHOP_CATALOG, SPECIES_CONFIG } from "./schema";
+import { FERTILISER_EFFECTS, SHOP_CATALOG, SPECIES_CONFIG } from "./schema";
 import {
   createInitialState,
   loadBonsaiState,
@@ -43,9 +43,13 @@ export interface BonsaiContextType {
   buyItem: (itemId: ShopItemId) => boolean;
   equipPot: (treeId: string, potId: PotId) => void;
   equipStand: (treeId: string, standId: StandId) => void;
+  unequipStand: (treeId: string) => void;
+  applyFertiliser: (treeId: string, fertiliserId: FertiliserId) => boolean;
   pruneBranch: (treeId: string, branchId: string) => void;
   waterTree: (treeId: string) => void;
   advanceDay: () => void;
+  /** Count of owned pots not currently equipped to any tree. */
+  availablePotCount: (excludeTreeId?: string) => number;
 }
 
 const BonsaiContext = createContext<BonsaiContextType | undefined>(undefined);
@@ -76,24 +80,95 @@ function cleanRegrownBranches(state: BonsaiGameState): BonsaiGameState {
   return { ...state, trees };
 }
 
-/** Grow all trees that were watered (lastWateredDay === activeDaysCount). */
+/** Returns true if this tree qualifies for growth (watered recently enough). */
+function isTreeWatered(tree: BonsaiTree): boolean {
+  if (tree.lastWateredDay === undefined) return false;
+  const mk = tree.activeFertilisers?.moistureKeeper;
+  const retentionDays =
+    mk && tree.activeDaysCount < mk.expiresAtDay ? mk.retentionDays : 0;
+  return tree.activeDaysCount - tree.lastWateredDay <= retentionDays;
+}
+
+/** Remove fertiliser effects that have expired. */
+function cleanExpiredFertilisers(tree: BonsaiTree): BonsaiTree {
+  if (!tree.activeFertilisers) return tree;
+  const { growthTonic, moistureKeeper } = tree.activeFertilisers;
+  const nextGT =
+    growthTonic && tree.activeDaysCount < growthTonic.expiresAtDay
+      ? growthTonic
+      : undefined;
+  const nextMK =
+    moistureKeeper && tree.activeDaysCount < moistureKeeper.expiresAtDay
+      ? moistureKeeper
+      : undefined;
+  if (nextGT === growthTonic && nextMK === moistureKeeper) return tree;
+  const next =
+    nextGT || nextMK
+      ? { growthTonic: nextGT, moistureKeeper: nextMK }
+      : undefined;
+  return { ...tree, activeFertilisers: next };
+}
+
+/** Grow all trees that qualify (watered or moisture keeper active). */
 function growWateredTrees(
   state: BonsaiGameState,
   todayStr: string,
 ): BonsaiGameState {
   return {
     ...state,
-    trees: state.trees.map((tree) =>
-      tree.lastWateredDay === tree.activeDaysCount
-        ? {
-            ...tree,
-            activeDaysCount: tree.activeDaysCount + 1,
-            lastGrownDate: todayStr,
-          }
-        : tree,
-    ),
+    trees: state.trees.map((tree) => {
+      if (!isTreeWatered(tree)) return tree;
+      const gt = tree.activeFertilisers?.growthTonic;
+      const bonus =
+        gt && tree.activeDaysCount < gt.expiresAtDay ? gt.bonusPerTick : 0;
+      const grown = {
+        ...tree,
+        activeDaysCount: tree.activeDaysCount + 1 + bonus,
+        lastGrownDate: todayStr,
+      };
+      return cleanExpiredFertilisers(grown);
+    }),
     lastGrowthCheckDate: todayStr,
   };
+}
+
+/** Compute count of owned pots not currently equipped to any tree (optionally excluding one tree). */
+function computeAvailablePotCount(
+  state: BonsaiGameState,
+  excludeTreeId?: string,
+): number {
+  const counts = new Map<PotId, number>();
+  for (const potId of state.inventory.ownedPotIds) {
+    counts.set(potId, (counts.get(potId) ?? 0) + 1);
+  }
+  for (const tree of state.trees) {
+    if (tree.id === excludeTreeId || !tree.equippedPotId) continue;
+    const c = counts.get(tree.equippedPotId) ?? 0;
+    if (c > 0) counts.set(tree.equippedPotId, c - 1);
+  }
+  return [...counts.values()].reduce((sum, c) => sum + c, 0);
+}
+
+/** Find the cheapest available pot ID from inventory. */
+function cheapestAvailablePot(state: BonsaiGameState): PotId | null {
+  const counts = new Map<PotId, number>();
+  for (const potId of state.inventory.ownedPotIds) {
+    counts.set(potId, (counts.get(potId) ?? 0) + 1);
+  }
+  for (const tree of state.trees) {
+    if (!tree.equippedPotId) continue;
+    const c = counts.get(tree.equippedPotId) ?? 0;
+    if (c > 0) counts.set(tree.equippedPotId, c - 1);
+  }
+  const available = [...counts.entries()]
+    .filter(([, c]) => c > 0)
+    .map(([id]) => id);
+  if (available.length === 0) return null;
+  return available.sort((a, b) => {
+    const costA = SHOP_CATALOG.find((i) => i.id === a)?.cost ?? 0;
+    const costB = SHOP_CATALOG.find((i) => i.id === b)?.cost ?? 0;
+    return costA - costB;
+  })[0];
 }
 
 // ─── Empty state used for the initial SSR render ──────────────────────────────
@@ -172,6 +247,8 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     (speciesId: SpeciesId, position: GardenPosition) => {
       setState((prev) => {
         if (!prev.inventory.ownedSpeciesIds.includes(speciesId)) return prev;
+        const potId = cheapestAvailablePot(prev);
+        if (!potId) return prev; // no available pot — UI should have prevented this
         const sameSp = prev.trees.filter(
           (t) => t.speciesId === speciesId,
         ).length;
@@ -183,6 +260,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
           acquiredAt: today(),
           prunedBranches: [],
           gardenPosition: position,
+          equippedPotId: potId,
         };
         const ownedSpeciesIds = [...prev.inventory.ownedSpeciesIds];
         const idx = ownedSpeciesIds.indexOf(speciesId);
@@ -269,6 +347,63 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  const unequipStand = useCallback(
+    (treeId: string) => {
+      setState((prev) => ({
+        ...prev,
+        trees: prev.trees.map((t) =>
+          t.id === treeId ? { ...t, equippedStandId: undefined } : t,
+        ),
+      }));
+    },
+    [setState],
+  );
+
+  const applyFertiliser = useCallback(
+    (treeId: string, fertiliserId: FertiliserId): boolean => {
+      let applied = false;
+      setState((prev) => {
+        const idx = prev.inventory.ownedFertiliserIds.indexOf(fertiliserId);
+        if (idx === -1) return prev;
+        const tree = prev.trees.find((t) => t.id === treeId);
+        if (!tree) return prev;
+
+        applied = true;
+        const effect = FERTILISER_EFFECTS[fertiliserId];
+        const existing = tree.activeFertilisers ?? {};
+        const newFertilisers =
+          effect.type === "growth-tonic"
+            ? {
+                ...existing,
+                growthTonic: {
+                  expiresAtDay: tree.activeDaysCount + effect.duration,
+                  bonusPerTick: effect.bonusPerTick,
+                },
+              }
+            : {
+                ...existing,
+                moistureKeeper: {
+                  expiresAtDay: tree.activeDaysCount + effect.duration,
+                  retentionDays: effect.retentionDays,
+                },
+              };
+
+        const ownedFertiliserIds = [...prev.inventory.ownedFertiliserIds];
+        ownedFertiliserIds.splice(idx, 1);
+
+        return {
+          ...prev,
+          inventory: { ...prev.inventory, ownedFertiliserIds },
+          trees: prev.trees.map((t) =>
+            t.id === treeId ? { ...t, activeFertilisers: newFertilisers } : t,
+          ),
+        };
+      });
+      return applied;
+    },
+    [setState],
+  );
+
   const pruneBranch = useCallback(
     (treeId: string, branchId: string) => {
       setState((prev) => ({
@@ -279,7 +414,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
                 ...t,
                 prunedBranches: [
                   ...t.prunedBranches.filter((p) => p.branchId !== branchId),
-                  { branchId, prunedAtDay: t.activeDaysCount },
+                  { branchId, prunedAtDay: Math.floor(t.activeDaysCount) },
                 ],
               }
             : t,
@@ -306,6 +441,11 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     setState((prev) => growWateredTrees(prev, todayStr));
   }, [setState]);
 
+  const availablePotCount = useCallback(
+    (excludeTreeId?: string) => computeAvailablePotCount(state, excludeTreeId),
+    [state],
+  );
+
   return (
     <BonsaiContext.Provider
       value={{
@@ -318,9 +458,12 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         buyItem,
         equipPot,
         equipStand,
+        unequipStand,
+        applyFertiliser,
         pruneBranch,
         waterTree,
         advanceDay,
+        availablePotCount,
       }}
     >
       {children}

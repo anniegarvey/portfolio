@@ -66,6 +66,7 @@ export function BonsaiPage() {
 
           <Tabs.Content value="collection">
             <TreeCollection
+              onNavigateToShop={handleNavigateToShop}
               onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
             />
           </Tabs.Content>
