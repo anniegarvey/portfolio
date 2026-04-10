@@ -1,11 +1,14 @@
 "use client";
 
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
+  ChevronDown,
   Coins,
   Droplets,
   FlaskConical,
   Lock,
   Scissors,
+  ShoppingBag,
   Sprout,
   Square,
 } from "lucide-react";
@@ -77,154 +80,219 @@ function WaterableSVGContainer({
   );
 }
 
-// ─── Pot Picker ───────────────────────────────────────────────────────────────
+// ─── Pot Dropdown ─────────────────────────────────────────────────────────────
 
-function PotPicker({
+function PotDropdown({
   tree,
-  onClose,
+  onNavigateToShop,
 }: {
   tree: BonsaiTree;
-  onClose: () => void;
+  onNavigateToShop: (itemId: string) => void;
 }) {
   const { state, equipPot } = useBonsai();
   const ownedPotIds = state.inventory.ownedPotIds;
 
-  // Count pots equipped to OTHER trees
+  if (ownedPotIds.length === 0) {
+    return (
+      <LockedToolBtn
+        onClick={() => onNavigateToShop("simple-clay-small")}
+        title="Buy a Pot"
+        type="button"
+      >
+        <Square size={13} />
+        Pot
+        <ToolPrice>
+          <Coins size={12} />
+          From {CHEAPEST_POT_PRICE}
+        </ToolPrice>
+      </LockedToolBtn>
+    );
+  }
+
   const equippedByOthers = state.trees
     .filter((t) => t.id !== tree.id)
     .flatMap((t) => (t.equippedPotId ? [t.equippedPotId] : []));
-
   const uniquePots = [...new Set(ownedPotIds)];
 
   return (
-    <PickerPanel>
-      <PickerTitle>Choose a Pot</PickerTitle>
-      <PickerGrid>
-        {uniquePots.map((potId) => {
-          const countOwned = ownedPotIds.filter((p) => p === potId).length;
-          const countUsedElsewhere = equippedByOthers.filter(
-            (p) => p === potId,
-          ).length;
-          const available = countOwned - countUsedElsewhere > 0;
-          const isEquipped = tree.equippedPotId === potId;
-          const label =
-            SHOP_CATALOG.find((i) => i.id === potId)?.label ?? potId;
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <AccessoryBtn title="Change Pot" type="button">
+          <Square size={13} />
+          Pot
+          <ChevronDown size={11} />
+        </AccessoryBtn>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownContent align="start" sideOffset={4}>
+          <DropdownLabel>Choose a Pot</DropdownLabel>
+          {uniquePots.map((potId) => {
+            const countOwned = ownedPotIds.filter((p) => p === potId).length;
+            const countUsedElsewhere = equippedByOthers.filter(
+              (p) => p === potId,
+            ).length;
+            const available = countOwned - countUsedElsewhere > 0;
+            const isEquipped = tree.equippedPotId === potId;
+            const label =
+              SHOP_CATALOG.find((i) => i.id === potId)?.label ?? potId;
 
-          return (
-            <PickerBtn
-              data-active={isEquipped || undefined}
-              data-disabled={!(available || isEquipped) || undefined}
-              disabled={!(available || isEquipped)}
-              key={potId}
-              onClick={() => {
-                if (available || isEquipped) {
-                  equipPot(tree.id, potId);
-                  onClose();
-                }
-              }}
-              title={label}
-              type="button"
-            >
-              {label}
-              {isEquipped && <EquippedTag>Equipped</EquippedTag>}
-              {!(available || isEquipped) && (
-                <UnavailableTag>In use</UnavailableTag>
-              )}
-            </PickerBtn>
-          );
-        })}
-      </PickerGrid>
-    </PickerPanel>
+            return (
+              <DropdownItem
+                data-active={isEquipped || undefined}
+                disabled={!(available || isEquipped)}
+                key={potId}
+                onSelect={() => equipPot(tree.id, potId)}
+              >
+                {label}
+                {isEquipped && <EquippedTag>Equipped</EquippedTag>}
+                {!(available || isEquipped) && (
+                  <UnavailableTag>In use</UnavailableTag>
+                )}
+              </DropdownItem>
+            );
+          })}
+          <DropdownSeparator />
+          <DropdownItem onSelect={() => onNavigateToShop("simple-clay-small")}>
+            <ShoppingBag size={12} />
+            Buy more in shop
+          </DropdownItem>
+        </DropdownContent>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 
-// ─── Stand Picker ─────────────────────────────────────────────────────────────
+// ─── Stand Dropdown ───────────────────────────────────────────────────────────
 
-function StandPicker({
+function StandDropdown({
   tree,
-  onClose,
+  onNavigateToShop,
 }: {
   tree: BonsaiTree;
-  onClose: () => void;
+  onNavigateToShop: (itemId: string) => void;
 }) {
   const { state, equipStand } = useBonsai();
   const ownedStandIds = state.inventory.ownedStandIds;
 
+  if (ownedStandIds.length === 0) {
+    return (
+      <LockedToolBtn
+        onClick={() => onNavigateToShop("bamboo-mat-small")}
+        title="Buy a Stand"
+        type="button"
+      >
+        <Sprout size={13} />
+        Stand
+        <ToolPrice>
+          <Coins size={12} />
+          From {CHEAPEST_STAND_PRICE}
+        </ToolPrice>
+      </LockedToolBtn>
+    );
+  }
+
   const equippedByOthers = state.trees
     .filter((t) => t.id !== tree.id)
     .flatMap((t) => (t.equippedStandId ? [t.equippedStandId] : []));
-
   const uniqueStands = [...new Set(ownedStandIds)];
 
   return (
-    <PickerPanel>
-      <PickerTitle>Choose a Stand</PickerTitle>
-      <PickerGrid>
-        {uniqueStands.map((standId) => {
-          const countOwned = ownedStandIds.filter((s) => s === standId).length;
-          const countUsedElsewhere = equippedByOthers.filter(
-            (s) => s === standId,
-          ).length;
-          const available = countOwned - countUsedElsewhere > 0;
-          const isEquipped = tree.equippedStandId === standId;
-          const label =
-            SHOP_CATALOG.find((i) => i.id === standId)?.label ?? standId;
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <AccessoryBtn title="Change Stand" type="button">
+          <Sprout size={13} />
+          Stand
+          <ChevronDown size={11} />
+        </AccessoryBtn>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownContent align="start" sideOffset={4}>
+          <DropdownLabel>Choose a Stand</DropdownLabel>
+          {uniqueStands.map((standId) => {
+            const countOwned = ownedStandIds.filter(
+              (s) => s === standId,
+            ).length;
+            const countUsedElsewhere = equippedByOthers.filter(
+              (s) => s === standId,
+            ).length;
+            const available = countOwned - countUsedElsewhere > 0;
+            const isEquipped = tree.equippedStandId === standId;
+            const label =
+              SHOP_CATALOG.find((i) => i.id === standId)?.label ?? standId;
 
-          return (
-            <PickerBtn
-              data-active={isEquipped || undefined}
-              data-disabled={!(available || isEquipped) || undefined}
-              disabled={!(available || isEquipped)}
-              key={standId}
-              onClick={() => {
-                if (available || isEquipped) {
-                  equipStand(tree.id, standId);
-                  onClose();
-                }
-              }}
-              title={label}
-              type="button"
-            >
-              {label}
-              {isEquipped && <EquippedTag>Equipped</EquippedTag>}
-              {!(available || isEquipped) && (
-                <UnavailableTag>In use</UnavailableTag>
-              )}
-            </PickerBtn>
-          );
-        })}
-      </PickerGrid>
-    </PickerPanel>
+            return (
+              <DropdownItem
+                data-active={isEquipped || undefined}
+                disabled={!(available || isEquipped)}
+                key={standId}
+                onSelect={() => equipStand(tree.id, standId)}
+              >
+                {label}
+                {isEquipped && <EquippedTag>Equipped</EquippedTag>}
+                {!(available || isEquipped) && (
+                  <UnavailableTag>In use</UnavailableTag>
+                )}
+              </DropdownItem>
+            );
+          })}
+          <DropdownSeparator />
+          <DropdownItem onSelect={() => onNavigateToShop("bamboo-mat-small")}>
+            <ShoppingBag size={12} />
+            Buy more in shop
+          </DropdownItem>
+        </DropdownContent>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 
-// ─── Fertiliser Picker ────────────────────────────────────────────────────────
+// ─── Fertiliser Dropdown ──────────────────────────────────────────────────────
 
-function FertiliserPicker({
+function FertiliserDropdown({
   tree,
-  onClose,
+  onNavigateToShop,
 }: {
   tree: BonsaiTree;
-  onClose: () => void;
+  onNavigateToShop: (itemId: string) => void;
 }) {
   const { state, applyFertiliser } = useBonsai();
   const owned = state.inventory.ownedFertiliserIds;
 
-  // Count by fertiliser ID
+  if (owned.length === 0) {
+    return (
+      <LockedToolBtn
+        onClick={() => onNavigateToShop("moisture-keeper-small")}
+        title="Buy Fertiliser"
+        type="button"
+      >
+        <FlaskConical size={13} />
+        Fertilise
+        <ToolPrice>
+          <Coins size={12} />
+          From {CHEAPEST_FERTILISER_PRICE}
+        </ToolPrice>
+      </LockedToolBtn>
+    );
+  }
+
   const counts = owned.reduce<Record<string, number>>((acc, id) => {
     acc[id] = (acc[id] ?? 0) + 1;
     return acc;
   }, {});
-
   const entries = Object.entries(counts) as [FertiliserId, number][];
 
   return (
-    <PickerPanel>
-      <PickerTitle>Apply Fertiliser</PickerTitle>
-      {entries.length === 0 ? (
-        <PickerEmpty>No fertiliser in inventory</PickerEmpty>
-      ) : (
-        <PickerGrid>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <AccessoryBtn title="Apply Fertiliser" type="button">
+          <FlaskConical size={13} />
+          Fertilise
+          <ChevronDown size={11} />
+        </AccessoryBtn>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownContent align="start" sideOffset={4}>
+          <DropdownLabel>Apply Fertiliser</DropdownLabel>
           {entries.map(([fertiliserId, count]) => {
             const label =
               SHOP_CATALOG.find((i) => i.id === fertiliserId)?.label ??
@@ -236,14 +304,9 @@ function FertiliserPicker({
                 : `${effect.retentionDays} day retention · ${effect.duration} growth days`;
 
             return (
-              <PickerBtn
+              <DropdownItem
                 key={fertiliserId}
-                onClick={() => {
-                  applyFertiliser(tree.id, fertiliserId);
-                  onClose();
-                }}
-                title={label}
-                type="button"
+                onSelect={() => applyFertiliser(tree.id, fertiliserId)}
               >
                 <FertiliserBtnInner>
                   <span>
@@ -251,12 +314,19 @@ function FertiliserPicker({
                   </span>
                   <FertiliserEffect>{effectDesc}</FertiliserEffect>
                 </FertiliserBtnInner>
-              </PickerBtn>
+              </DropdownItem>
             );
           })}
-        </PickerGrid>
-      )}
-    </PickerPanel>
+          <DropdownSeparator />
+          <DropdownItem
+            onSelect={() => onNavigateToShop("moisture-keeper-small")}
+          >
+            <ShoppingBag size={12} />
+            Buy more in shop
+          </DropdownItem>
+        </DropdownContent>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 
@@ -357,102 +427,6 @@ function TreeToolBar({
   );
 }
 
-// ─── Accessory Bar ────────────────────────────────────────────────────────────
-
-type AccessoryPanel = "pot" | "stand" | "fertiliser" | null;
-
-function AccessoryBarRow({
-  openPanel,
-  onTogglePanel,
-  onNavigateToShop,
-}: {
-  openPanel: AccessoryPanel;
-  onTogglePanel: (panel: AccessoryPanel) => void;
-  onNavigateToShop: (itemId: string) => void;
-}) {
-  const { state } = useBonsai();
-  const hasPots = state.inventory.ownedPotIds.length > 0;
-  const hasStands = state.inventory.ownedStandIds.length > 0;
-  const hasFertiliser = state.inventory.ownedFertiliserIds.length > 0;
-
-  return (
-    <AccessoryBar>
-      {hasPots ? (
-        <AccessoryBtn
-          data-active={openPanel === "pot" || undefined}
-          onClick={() => onTogglePanel("pot")}
-          title="Change Pot"
-          type="button"
-        >
-          <Square size={13} />
-          Pot
-        </AccessoryBtn>
-      ) : (
-        <LockedToolBtn
-          onClick={() => onNavigateToShop("simple-clay-small")}
-          title="Buy a Pot"
-          type="button"
-        >
-          <Square size={13} />
-          Pot
-          <ToolPrice>
-            <Coins size={12} />
-            From {CHEAPEST_POT_PRICE}
-          </ToolPrice>
-        </LockedToolBtn>
-      )}
-      {hasStands ? (
-        <AccessoryBtn
-          data-active={openPanel === "stand" || undefined}
-          onClick={() => onTogglePanel("stand")}
-          title="Change Stand"
-          type="button"
-        >
-          <Sprout size={13} />
-          Stand
-        </AccessoryBtn>
-      ) : (
-        <LockedToolBtn
-          onClick={() => onNavigateToShop("bamboo-mat-small")}
-          title="Buy a Stand"
-          type="button"
-        >
-          <Sprout size={13} />
-          Stand
-          <ToolPrice>
-            <Coins size={12} />
-            From {CHEAPEST_STAND_PRICE}
-          </ToolPrice>
-        </LockedToolBtn>
-      )}
-      {hasFertiliser ? (
-        <AccessoryBtn
-          data-active={openPanel === "fertiliser" || undefined}
-          onClick={() => onTogglePanel("fertiliser")}
-          title="Apply Fertiliser"
-          type="button"
-        >
-          <FlaskConical size={13} />
-          Fertilise
-        </AccessoryBtn>
-      ) : (
-        <LockedToolBtn
-          onClick={() => onNavigateToShop("moisture-keeper-small")}
-          title="Buy Fertiliser"
-          type="button"
-        >
-          <FlaskConical size={13} />
-          Fertilise
-          <ToolPrice>
-            <Coins size={12} />
-            From {CHEAPEST_FERTILISER_PRICE}
-          </ToolPrice>
-        </LockedToolBtn>
-      )}
-    </AccessoryBar>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function TreeView({
@@ -463,19 +437,11 @@ export function TreeView({
   onNavigateToShop: (itemId: string) => void;
 }) {
   const [activeTool, setActiveTool] = useState<ActiveTool>("watering-can");
-  const [openPanel, setOpenPanel] = useState<AccessoryPanel>(null);
 
   const config = SPECIES_CONFIG[tree.speciesId];
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
 
-  const handleSetTool = (tool: ActiveTool) => {
-    setActiveTool(tool);
-    setOpenPanel(null);
-  };
-
-  const togglePanel = (panel: AccessoryPanel) => {
-    setOpenPanel((prev) => (prev === panel ? null : panel));
-  };
+  const handleSetTool = (tool: ActiveTool) => setActiveTool(tool);
 
   return (
     <TreeViewWrapper>
@@ -489,21 +455,11 @@ export function TreeView({
         onSetTool={handleSetTool}
       />
 
-      <AccessoryBarRow
-        onNavigateToShop={onNavigateToShop}
-        onTogglePanel={togglePanel}
-        openPanel={openPanel}
-      />
-
-      {openPanel === "pot" && (
-        <PotPicker onClose={() => setOpenPanel(null)} tree={tree} />
-      )}
-      {openPanel === "stand" && (
-        <StandPicker onClose={() => setOpenPanel(null)} tree={tree} />
-      )}
-      {openPanel === "fertiliser" && (
-        <FertiliserPicker onClose={() => setOpenPanel(null)} tree={tree} />
-      )}
+      <AccessoryBar>
+        <PotDropdown onNavigateToShop={onNavigateToShop} tree={tree} />
+        <StandDropdown onNavigateToShop={onNavigateToShop} tree={tree} />
+        <FertiliserDropdown onNavigateToShop={onNavigateToShop} tree={tree} />
+      </AccessoryBar>
 
       <WaterableSVGContainer activeTool={activeTool} tree={tree} />
 
@@ -614,14 +570,14 @@ const AccessoryBtn = styled.button`
     transition: none;
   }
 
-  &[data-active] {
+  &[data-state="open"] {
     border-color: light-dark(#b89a50, #9a7a30);
     background: light-dark(#fdf5e0, #2a2010);
     color: light-dark(#7a5a10, #d4a840);
     font-weight: 600;
   }
 
-  &:hover:not([data-active]) {
+  &:hover:not([data-state="open"]) {
     background: light-dark(#f5f3f0, #2a3040);
   }
 `;
@@ -686,64 +642,68 @@ const Hint = styled.p`
   font-style: italic;
 `;
 
-// ─── Picker Styles ────────────────────────────────────────────────────────────
+// ─── Dropdown Styles ──────────────────────────────────────────────────────────
 
-const PickerPanel = styled.div`
-  width: 100%;
+const DropdownContent = styled(DropdownMenu.Content)`
+  z-index: 60;
+  min-width: 180px;
   background: light-dark(#f8f5f0, #252830);
   border: 1px solid light-dark(#d4c9b8, #3a3f4a);
   border-radius: 8px;
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  padding: 0.35rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+  animation-duration: 120ms;
+  animation-timing-function: ease-out;
+
+  &[data-side="bottom"] {
+    animation-name: slideDownAndFade;
+  }
+
+  @keyframes slideDownAndFade {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
-const PickerTitle = styled.p`
-  font-size: 0.8rem;
+const DropdownLabel = styled(DropdownMenu.Label)`
+  font-size: 0.72rem;
   font-weight: 600;
   color: light-dark(#7a6a58, #8a8898);
-  margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  padding: 0.25rem 0.5rem 0.3rem;
 `;
 
-const PickerGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-`;
-
-const PickerEmpty = styled.p`
-  font-size: 0.85rem;
-  color: light-dark(#9a8878, #6a7080);
-  margin: 0;
-  font-style: italic;
-`;
-
-const PickerBtn = styled.button`
+const DropdownItem = styled(DropdownMenu.Item)`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
-  border-radius: 6px;
+  border-radius: 5px;
   font-size: 0.85rem;
   font-family: inherit;
-  border: 1.5px solid light-dark(#d4c9b8, #3a3f4a);
-  background: transparent;
   color: light-dark(#5a5048, #9a9888);
   cursor: pointer;
-  text-align: left;
-  transition: background 0.12s, border-color 0.12s;
+  outline: none;
+  transition: background 0.1s;
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 
   &[data-active] {
-    border-color: light-dark(#7a9e6a, #5a8a4a);
-    background: light-dark(#f0f5ed, #1e3020);
     color: light-dark(#3a5a2a, #8ab870);
     font-weight: 600;
   }
@@ -753,10 +713,21 @@ const PickerBtn = styled.button`
     cursor: not-allowed;
   }
 
-  &:hover:not([data-active]):not([data-disabled]) {
+  &[data-highlighted]:not([data-disabled]) {
     background: light-dark(#f0ece6, #2a2f3a);
-    border-color: light-dark(#b8a898, #5a6070);
+    color: light-dark(#3a3028, #c0b8a8);
   }
+
+  &[data-active][data-highlighted] {
+    background: light-dark(#e8f0e4, #1e3020);
+    color: light-dark(#3a5a2a, #8ab870);
+  }
+`;
+
+const DropdownSeparator = styled(DropdownMenu.Separator)`
+  height: 1px;
+  background: light-dark(#e8e0d4, #343840);
+  margin: 0.3rem 0;
 `;
 
 const EquippedTag = styled.span`
