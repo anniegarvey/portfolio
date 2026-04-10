@@ -69,6 +69,20 @@ function lintAndRestage(files) {
 }
 
 /**
+ * Returns staged source files that Stryker can mutate: non-test .ts/.tsx files
+ * in src/ but outside src/app/ (which is excluded in stryker.config.json).
+ */
+function stagedSrcFilesForStryker() {
+  return staged.filter(
+    (f) =>
+      f.startsWith("src/") &&
+      !f.startsWith("src/app/") &&
+      /\.(ts|tsx)$/.test(f) &&
+      !/\.test\.(ts|tsx)$/.test(f),
+  );
+}
+
+/**
  * Full-suite fallback: lint all files, restage touched staged files, then
  * run tsc + all tests + all e2e in parallel. Equivalent to `pnpm validate`
  * but with the restage step in between.
@@ -81,9 +95,27 @@ function runFullValidate() {
   if (stagedCodeFiles.length > 0) {
     run(`git add ${stagedCodeFiles.join(" ")}`);
   }
+
+  const fullParallel = [
+    { name: "tsc", cmd: "pnpm exec tsc --noEmit" },
+    { name: "test", cmd: "pnpm test" },
+    { name: "e2e", cmd: "pnpm exec playwright test" },
+  ];
+
+  const strykerFiles = stagedSrcFilesForStryker();
+  if (strykerFiles.length > 0) {
+    fullParallel.push({
+      name: "mutation",
+      cmd: `pnpm exec stryker run --mutate "${strykerFiles.join(",")}"`,
+    });
+  } else {
+    console.error("No mutable source files staged — skipping mutation testing.");
+  }
+
+  const names = fullParallel.map((p) => p.name).join(",");
+  const cmds = fullParallel.map((p) => `"${p.cmd}"`).join(" ");
   run(
-    `pnpm exec concurrently --kill-others-on-fail --names "tsc,test,e2e"` +
-      ` "pnpm exec tsc --noEmit" "pnpm test" "pnpm exec playwright test"`,
+    `pnpm exec concurrently --kill-others-on-fail --names "${names}" ${cmds}`,
   );
 }
 
@@ -211,6 +243,16 @@ if (hasE2E) {
     name: "e2e",
     cmd: `pnpm exec playwright test ${[...e2eDirs].join(" ")}`,
   });
+}
+
+const strykerFiles = stagedSrcFilesForStryker();
+if (strykerFiles.length > 0) {
+  parallel.push({
+    name: "mutation",
+    cmd: `pnpm exec stryker run --mutate "${strykerFiles.join(",")}"`,
+  });
+} else {
+  console.error("No mutable source files staged — skipping mutation testing.");
 }
 
 const names = parallel.map((p) => p.name).join(",");

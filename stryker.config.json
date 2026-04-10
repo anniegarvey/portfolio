@@ -20,5 +20,8 @@
     "configFile": "vitest.config.ts"
   },
   "ignoreStatic": true,
-  "incremental": true
+  "incremental": true,
+  "thresholds": {
+    "break": 80
+  }
 }
