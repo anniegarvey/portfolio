@@ -226,6 +226,20 @@ describe("StaticTreeSVG — pot rendering", () => {
     expect(ellipses.length).toBeGreaterThan(1);
   });
 
+  it.each([
+    "glazed-ceramic-small",
+    "lacquered-wood-small",
+  ] as const)("%s pot renders a glaze highlight ellipse", (potId) => {
+    const tree: BonsaiTree = { ...baseTree, equippedPotId: potId };
+    const { container } = render(<StaticTreeSVG tree={tree} />);
+    const ellipses = Array.from(container.querySelectorAll("ellipse"));
+    expect(
+      ellipses.some((el) =>
+        el.getAttribute("fill")?.startsWith("rgba(255,255,255"),
+      ),
+    ).toBe(true);
+  });
+
   it("glazed-ceramic pot renders a glaze highlight ellipse", () => {
     const tree: BonsaiTree = {
       ...baseTree,

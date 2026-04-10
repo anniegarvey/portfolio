@@ -48,6 +48,7 @@ export const POT_CONFIGS: Record<string, PotConfig> = {
     shadowColor: "rgba(0,0,0,0.28)",
     botColor: "#1a0806",
     height: 17,
+    glaze: true,
   },
   "stone-basin": {
     // Wide shallow basin — very wide rim relative to depth
