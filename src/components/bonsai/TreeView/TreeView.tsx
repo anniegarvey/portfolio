@@ -171,7 +171,7 @@ function StandDropdown({
   tree: BonsaiTree;
   onNavigateToShop: (itemId: string) => void;
 }) {
-  const { state, equipStand } = useBonsai();
+  const { state, equipStand, unequipStand } = useBonsai();
   const ownedStandIds = state.inventory.ownedStandIds;
 
   if (ownedStandIds.length === 0) {
@@ -208,6 +208,13 @@ function StandDropdown({
       <DropdownMenu.Portal>
         <DropdownContent align="start" sideOffset={4}>
           <DropdownLabel>Choose a Stand</DropdownLabel>
+          <DropdownItem
+            data-active={!tree.equippedStandId || undefined}
+            onSelect={() => unequipStand(tree.id)}
+          >
+            No stand
+            {!tree.equippedStandId && <EquippedTag>Equipped</EquippedTag>}
+          </DropdownItem>
           {uniqueStands.map((standId) => {
             const countOwned = ownedStandIds.filter(
               (s) => s === standId,

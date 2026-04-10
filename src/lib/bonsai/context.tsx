@@ -43,6 +43,7 @@ export interface BonsaiContextType {
   buyItem: (itemId: ShopItemId) => boolean;
   equipPot: (treeId: string, potId: PotId) => void;
   equipStand: (treeId: string, standId: StandId) => void;
+  unequipStand: (treeId: string) => void;
   applyFertiliser: (treeId: string, fertiliserId: FertiliserId) => boolean;
   pruneBranch: (treeId: string, branchId: string) => void;
   waterTree: (treeId: string) => void;
@@ -346,6 +347,18 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  const unequipStand = useCallback(
+    (treeId: string) => {
+      setState((prev) => ({
+        ...prev,
+        trees: prev.trees.map((t) =>
+          t.id === treeId ? { ...t, equippedStandId: undefined } : t,
+        ),
+      }));
+    },
+    [setState],
+  );
+
   const applyFertiliser = useCallback(
     (treeId: string, fertiliserId: FertiliserId): boolean => {
       let applied = false;
@@ -445,6 +458,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         buyItem,
         equipPot,
         equipStand,
+        unequipStand,
         applyFertiliser,
         pruneBranch,
         waterTree,
