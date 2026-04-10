@@ -313,22 +313,22 @@ function FertiliserDots({
       {gtActive && (
         <>
           <circle
-            cx={cx - 11}
-            cy={soilCY - 2}
+            cx={cx - 10}
+            cy={soilCY - 4}
             fill="#f5a623"
             opacity={0.9}
             r={1.8}
           />
           <circle
-            cx={cx - 6}
-            cy={soilCY - 5}
+            cx={cx + 7}
+            cy={soilCY - 6}
             fill="#f5a623"
             opacity={0.9}
             r={1.8}
           />
           <circle
-            cx={cx - 15}
-            cy={soilCY + 1}
+            cx={cx - 3}
+            cy={soilCY + 0}
             fill="#f5a623"
             opacity={0.85}
             r={1.5}
@@ -338,22 +338,22 @@ function FertiliserDots({
       {mkActive && (
         <>
           <circle
-            cx={cx + 11}
+            cx={cx + 13}
             cy={soilCY - 2}
             fill="#4a9eda"
             opacity={0.9}
             r={1.8}
           />
           <circle
-            cx={cx + 6}
-            cy={soilCY - 5}
+            cx={cx - 15}
+            cy={soilCY - 1}
             fill="#4a9eda"
             opacity={0.9}
             r={1.8}
           />
           <circle
-            cx={cx + 15}
-            cy={soilCY + 1}
+            cx={cx + 3}
+            cy={soilCY - 5}
             fill="#4a9eda"
             opacity={0.85}
             r={1.5}
