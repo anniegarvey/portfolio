@@ -14,6 +14,8 @@ import type {
 } from "@/lib/bonsai/schema";
 import { parsePotId, parseStandId, SHOP_CATALOG } from "@/lib/bonsai/schema";
 import { usePoints } from "@/lib/points/context";
+import { PotBodySVG, PotRimSVG } from "../TreeSVG/PotSVG";
+import { POT_CONFIGS } from "../TreeSVG/potConfigs";
 
 const CATEGORIES: { value: ShopCategory; label: string }[] = [
   { value: "species", label: "Seeds" },
@@ -25,68 +27,6 @@ const CATEGORIES: { value: ShopCategory; label: string }[] = [
 
 // ─── Pot preview SVG ──────────────────────────────────────────────────────────
 
-const POT_PREVIEW_CONFIGS: Record<
-  string,
-  {
-    rimRx: number;
-    rimRy: number;
-    rimColor: string;
-    bodyRx: number;
-    botRx: number;
-    bodyColor: string;
-    shadowColor: string;
-    botColor: string;
-    height: number;
-    glaze?: boolean;
-  }
-> = {
-  "simple-clay": {
-    rimRx: 21,
-    rimRy: 3,
-    rimColor: "#9a4828",
-    bodyRx: 18,
-    botRx: 13,
-    bodyColor: "#c1704a",
-    shadowColor: "rgba(0,0,0,0.15)",
-    botColor: "#8a3818",
-    height: 13,
-  },
-  "glazed-ceramic": {
-    rimRx: 22,
-    rimRy: 3,
-    rimColor: "#4a7a6a",
-    bodyRx: 18,
-    botRx: 13,
-    bodyColor: "#6a9a88",
-    shadowColor: "rgba(0,0,0,0.12)",
-    botColor: "#3a6858",
-    height: 15,
-    glaze: true,
-  },
-  "lacquered-wood": {
-    rimRx: 19,
-    rimRy: 2,
-    rimColor: "#2a1208",
-    bodyRx: 18,
-    botRx: 15,
-    bodyColor: "#3a1a0a",
-    shadowColor: "rgba(0,0,0,0.28)",
-    botColor: "#1a0806",
-    height: 13,
-  },
-  "stone-basin": {
-    rimRx: 23,
-    rimRy: 3,
-    rimColor: "#6a6a62",
-    bodyRx: 21,
-    botRx: 18,
-    bodyColor: "#8a8a80",
-    shadowColor: "rgba(0,0,0,0.12)",
-    botColor: "#5a5a52",
-    height: 7,
-  },
-};
-
 const PREVIEW_SIZE_SCALE: Record<string, number> = {
   small: 1,
   medium: 1.25,
@@ -95,22 +35,23 @@ const PREVIEW_SIZE_SCALE: Record<string, number> = {
 
 function PotShopPreview({ potId }: { potId: string }) {
   const { size, style } = parsePotId(potId as PotId);
-  const v = POT_PREVIEW_CONFIGS[style] ?? POT_PREVIEW_CONFIGS["simple-clay"];
+  const cfg = POT_CONFIGS[style] ?? POT_CONFIGS["simple-clay"];
   const scale = PREVIEW_SIZE_SCALE[size] ?? 1;
 
-  const rimRx = Math.round(v.rimRx * scale);
-  const rimRy = Math.round(v.rimRy * scale);
-  const bodyRx = Math.round(v.bodyRx * scale);
-  const botRx = Math.round(v.botRx * scale);
-  const height = Math.round(v.height * scale);
+  const scaledRimRx = Math.round(cfg.rimRx * scale);
+  const scaledRimRy = Math.round(cfg.rimRy * scale);
+  const height = Math.round(cfg.height * scale);
 
-  const svgW = rimRx * 2 + 10;
+  const svgW = scaledRimRx * 2 + 10;
   const cx = svgW / 2;
-  const rimY = rimRy + 2;
+  const rimY = scaledRimRy + 2;
   const botY = rimY + height;
-  const midY = rimY + height / 2;
-  const soilY = rimY + rimRy + 1;
   const viewH = botY + 5;
+
+  // Same soil positioning as computePotGeometry in StaticTreeSVG
+  const soilCY = rimY + 0.5;
+  const soilRy = Math.max(1, scaledRimRy - 1);
+  const soilRx = Math.round(cfg.bodyTopRx * scale) - 2;
 
   return (
     <svg
@@ -120,35 +61,9 @@ function PotShopPreview({ potId }: { potId: string }) {
       viewBox={`0 0 ${svgW} ${viewH}`}
       width={svgW}
     >
-      <path
-        d={`M ${cx - bodyRx},${rimY} C ${cx - bodyRx},${midY} ${cx - botRx},${botY - 2} ${cx - botRx},${botY} L ${cx + botRx},${botY} C ${cx + botRx},${botY - 2} ${cx + bodyRx},${midY} ${cx + bodyRx},${rimY} Z`}
-        fill={v.bodyColor}
-      />
-      <path
-        d={`M ${cx - bodyRx},${rimY} C ${cx - bodyRx},${midY} ${cx - botRx},${botY - 2} ${cx - botRx},${botY} L ${cx - botRx + 5},${botY} C ${cx - bodyRx + 6},${midY} ${cx - bodyRx + 5},${rimY + 1} ${cx - bodyRx + 4},${rimY} Z`}
-        fill={v.shadowColor}
-      />
-      {v.glaze && (
-        <ellipse
-          cx={cx - 5}
-          cy={rimY + 5}
-          fill="rgba(255,255,255,0.18)"
-          rx={2}
-          ry={Math.round(6 * scale)}
-          transform={`rotate(-20 ${cx - 5} ${rimY + 5})`}
-        />
-      )}
-      <ellipse cx={cx} cy={botY} fill={v.botColor} rx={botRx} ry={2} />
-      {/* Soil surface inside pot */}
-      <ellipse
-        cx={cx}
-        cy={soilY}
-        fill="#8a6030"
-        rx={bodyRx - 1}
-        ry={rimRy - 0.5}
-      />
-      {/* Rim drawn on top of soil */}
-      <ellipse cx={cx} cy={rimY} fill={v.rimColor} rx={rimRx} ry={rimRy} />
+      <PotBodySVG cx={cx} potStyle={style} rimY={rimY} scale={scale} />
+      <PotRimSVG cx={cx} potStyle={style} rimY={rimY} scale={scale} />
+      <ellipse cx={cx} cy={soilCY} fill="#8a6030" rx={soilRx} ry={soilRy} />
     </svg>
   );
 }
