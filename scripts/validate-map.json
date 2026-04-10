@@ -8,7 +8,12 @@
     "src/components/ThemeToggle/**": "e2e/navigation",
     "e2e/energy-planner/**": "e2e/energy-planner",
     "e2e/bonsai/**": "e2e/bonsai",
-    "e2e/navigation/**": "e2e/navigation"
+    "e2e/navigation/**": "e2e/navigation",
+    "e2e/utils/seed-bonsai.ts": "e2e/bonsai",
+    "e2e/utils/seed-storage.ts": "e2e/energy-planner",
+    "e2e/utils/activity-test-helpers.ts": "e2e/energy-planner",
+    "e2e/utils/accessibility-test.ts": "e2e/energy-planner",
+    "e2e/utils/mocks.ts": "e2e/energy-planner"
   },
   "skip": [
     "*.md",

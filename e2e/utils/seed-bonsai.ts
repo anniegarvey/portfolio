@@ -10,6 +10,9 @@ export interface BonsaiSeedOptions {
   lastWateredDay?: number;
   ownedSpeciesIds?: string[];
   ownedToolIds?: string[];
+  ownedPotIds?: string[];
+  ownedStandIds?: string[];
+  ownedFertiliserIds?: string[];
   points?: number;
 }
 
@@ -37,11 +40,14 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
     inventory: {
       ownedSpeciesIds: opts.ownedSpeciesIds ?? [],
       ownedToolIds: opts.ownedToolIds ?? [],
-      ownedFertiliserIds: [],
+      ownedFertiliserIds: opts.ownedFertiliserIds ?? [],
       // All trees require a pot; initial state includes one for the starter pine
       // plus a spare so new seeds can be planted without buying a pot first
-      ownedPotIds: ["simple-clay-small", "simple-clay-small"],
-      ownedStandIds: [],
+      ownedPotIds: opts.ownedPotIds ?? [
+        "simple-clay-small",
+        "simple-clay-small",
+      ],
+      ownedStandIds: opts.ownedStandIds ?? [],
     },
   };
 }

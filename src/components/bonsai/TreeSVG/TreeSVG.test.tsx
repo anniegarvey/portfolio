@@ -2,8 +2,35 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
+import { PotBodySVG, PotRimSVG } from "./PotSVG";
 import { StaticTreeSVG } from "./StaticTreeSVG";
 import { TreeSVG } from "./TreeSVG";
+
+// ─── PotSVG — fallback branch coverage ────────────────────────────────────────
+
+describe("PotBodySVG — unknown potStyle falls back to simple-clay", () => {
+  it("renders without throwing when given an unknown potStyle", () => {
+    expect(() =>
+      render(
+        <svg aria-label="test" role="img">
+          <PotBodySVG cx={100} potStyle="unknown-pot" rimY={10} scale={1} />
+        </svg>,
+      ),
+    ).not.toThrow();
+  });
+});
+
+describe("PotRimSVG — unknown potStyle falls back to simple-clay", () => {
+  it("renders without throwing when given an unknown potStyle", () => {
+    expect(() =>
+      render(
+        <svg aria-label="test" role="img">
+          <PotRimSVG cx={100} potStyle="unknown-pot" rimY={10} scale={1} />
+        </svg>,
+      ),
+    ).not.toThrow();
+  });
+});
 
 vi.mock("@/lib/bonsai/context", () => ({
   useBonsai: vi.fn(),
@@ -129,6 +156,55 @@ const baseTree: BonsaiTree = {
   acquiredAt: "2024-01-01",
   prunedBranches: [],
 };
+
+describe("StaticTreeSVG — seed sprout stage", () => {
+  it("renders SeedSprout at day 1 without throwing", () => {
+    const tree: BonsaiTree = {
+      ...baseTree,
+      activeDaysCount: 1,
+    };
+    expect(() => render(<StaticTreeSVG tree={tree} />)).not.toThrow();
+  });
+
+  it("renders SeedSprout at day 3 without throwing", () => {
+    const tree: BonsaiTree = {
+      ...baseTree,
+      activeDaysCount: 3,
+    };
+    expect(() => render(<StaticTreeSVG tree={tree} />)).not.toThrow();
+  });
+});
+
+describe("StaticTreeSVG — lobed leaf shape", () => {
+  it("renders an oak tree (lobed leaves) without throwing", () => {
+    const oakTree: BonsaiTree = {
+      id: "oak-test",
+      speciesId: "oak",
+      activeDaysCount: 50,
+      acquiredAt: "2024-01-01",
+      prunedBranches: [],
+    };
+    expect(() => render(<StaticTreeSVG tree={oakTree} />)).not.toThrow();
+  });
+});
+
+describe("StaticTreeSVG — expanded viewBox", () => {
+  it("renders large pot + large stand without clipping (expanded viewBox)", () => {
+    const tree: BonsaiTree = {
+      ...baseTree,
+      activeDaysCount: 20,
+      equippedPotId: "glazed-ceramic-large",
+      equippedStandId: "wooden-stand-large",
+    };
+    const { container } = render(<StaticTreeSVG tree={tree} />);
+    const svg = container.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+    // viewBox height should exceed default 300 for large pot + stand
+    const viewBox = svg?.getAttribute("viewBox") ?? "";
+    const height = Number(viewBox.split(" ")[3]);
+    expect(height).toBeGreaterThan(300);
+  });
+});
 
 describe("StaticTreeSVG — pot rendering", () => {
   it("renders without a pot (no equippedPotId)", () => {

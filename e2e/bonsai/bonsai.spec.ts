@@ -278,6 +278,144 @@ test.describe("Bonsai Garden", () => {
     await expect(page.getByText(/Watering Can/i)).toBeVisible();
   });
 
+  test("pot dropdown equips a different pot", async ({ page }) => {
+    // Two simple-clay-small (one on tree, one spare) plus a glazed-ceramic-small
+    await goToBonsaiWithSeed(page, {
+      ownedPotIds: [
+        "simple-clay-small",
+        "simple-clay-small",
+        "glazed-ceramic-small",
+      ],
+    });
+
+    await openTendingModal(page);
+
+    const dialog = page.getByRole("dialog");
+
+    // Open the pot dropdown
+    await dialog.getByRole("button", { name: /^pot$/i }).click();
+
+    // Both pots should be listed; simple-clay should be currently equipped
+    await expect(
+      page.getByRole("menuitem", { name: /simple clay pot \(small\)/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: /glazed ceramic pot \(small\)/i }),
+    ).toBeVisible();
+
+    // Select the glazed ceramic pot
+    await page
+      .getByRole("menuitem", { name: /glazed ceramic pot \(small\)/i })
+      .click();
+
+    // Re-open the dropdown to verify the new pot is equipped
+    await dialog.getByRole("button", { name: /^pot$/i }).click();
+    const glazedItem = page.getByRole("menuitem", {
+      name: /glazed ceramic pot \(small\)/i,
+    });
+    await expect(glazedItem.getByText("Equipped")).toBeVisible();
+  });
+
+  test("stand dropdown equips a stand", async ({ page }) => {
+    await goToBonsaiWithSeed(page, {
+      ownedStandIds: ["bamboo-mat-small"],
+    });
+
+    await openTendingModal(page);
+
+    const dialog = page.getByRole("dialog");
+
+    // Open the stand dropdown
+    await dialog.getByRole("button", { name: /^stand$/i }).click();
+
+    await expect(
+      page.getByRole("menuitem", { name: /bamboo mat \(small\)/i }),
+    ).toBeVisible();
+
+    // Equip the stand
+    await page.getByRole("menuitem", { name: /bamboo mat \(small\)/i }).click();
+
+    // Re-open to verify it is now equipped
+    await dialog.getByRole("button", { name: /^stand$/i }).click();
+    const standItem = page.getByRole("menuitem", {
+      name: /bamboo mat \(small\)/i,
+    });
+    await expect(standItem.getByText("Equipped")).toBeVisible();
+  });
+
+  test("fertiliser dropdown applies fertiliser and shows active status", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, {
+      ownedFertiliserIds: ["growth-tonic-small"],
+    });
+
+    await openTendingModal(page);
+
+    const dialog = page.getByRole("dialog");
+
+    // Open the fertiliser dropdown
+    await dialog.getByRole("button", { name: /^fertilise$/i }).click();
+
+    await expect(
+      page.getByRole("menuitem", { name: /growth tonic \(small\)/i }),
+    ).toBeVisible();
+
+    // Apply it
+    await page
+      .getByRole("menuitem", { name: /growth tonic \(small\)/i })
+      .click();
+
+    // Active fertiliser status should now be visible in the modal
+    await expect(dialog.getByText(/growth tonic/i)).toBeVisible();
+    await expect(dialog.getByText(/days left/i)).toBeVisible();
+  });
+
+  test("pot dropdown 'Buy more in shop' navigates to shop Pots tab", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page);
+
+    await openTendingModal(page);
+
+    // Open the pot dropdown
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^pot$/i })
+      .click();
+
+    // Click "Buy more in shop"
+    await page.getByRole("menuitem", { name: /buy more in shop/i }).click();
+
+    // Modal should close and shop Pots tab should be active
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(
+      page
+        .getByRole("tab", { name: "Pots" })
+        .and(page.locator("[data-state='active']")),
+    ).toBeVisible();
+  });
+
+  test("locked stand button navigates to shop Stands tab", async ({ page }) => {
+    // No stands in inventory — button should show locked state
+    await goToBonsaiWithSeed(page, { ownedStandIds: [] });
+
+    await openTendingModal(page);
+
+    const dialog = page.getByRole("dialog");
+
+    // The stand button shows price (locked state) — click it
+    await dialog.getByRole("button", { name: /stand/i }).click();
+
+    // Modal closes, shop opens on Stands tab
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(
+      page
+        .getByRole("tab", { name: "Stands" })
+        .and(page.locator("[data-state='active']")),
+    ).toBeVisible();
+  });
+
   test("accessibility scan", async ({ page, makeAxeBuilder }) => {
     await page.goto("/bonsai");
     // Wait for the garden tree to render before scanning
