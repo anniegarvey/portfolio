@@ -12,7 +12,7 @@ import {
   Sprout,
   Square,
 } from "lucide-react";
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { type KeyboardEvent, useCallback, useState } from "react";
 import {
   type ActiveTool,
@@ -644,6 +644,11 @@ const Hint = styled.p`
 
 // ─── Dropdown Styles ──────────────────────────────────────────────────────────
 
+const slideDownAndFade = keyframes`
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
 const DropdownContent = styled(DropdownMenu.Content)`
   z-index: 60;
   min-width: 180px;
@@ -652,24 +657,7 @@ const DropdownContent = styled(DropdownMenu.Content)`
   border-radius: 8px;
   padding: 0.35rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-
-  animation-duration: 120ms;
-  animation-timing-function: ease-out;
-
-  &[data-side="bottom"] {
-    animation-name: slideDownAndFade;
-  }
-
-  @keyframes slideDownAndFade {
-    from {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+  animation: ${slideDownAndFade} 120ms ease-out;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
