@@ -397,6 +397,31 @@ function computePotGeometry(
   return { soilRx, soilRy, soilCY, rimY, standTopY };
 }
 
+// ─── ViewBox helper ───────────────────────────────────────────────────────────
+
+function computeViewBox(
+  svgData: TreeSVGData,
+  standTopY: number,
+  standStyle: string | null,
+  standScale: number,
+  cropTop: boolean,
+): string {
+  const standCfg = standStyle
+    ? (STAND_CONFIGS[standStyle] ?? STAND_CONFIGS["bamboo-mat"])
+    : null;
+  const standHeightPx = standCfg ? Math.round(standCfg.height * standScale) : 0;
+  const svgViewHeight = Math.max(300, standTopY + standHeightPx + 5);
+
+  if (!cropTop) return `0 0 200 ${svgViewHeight}`;
+
+  const contentTopY = svgData.branches.reduce(
+    (min, b) => Math.min(min, b.y1, b.y2),
+    svgData.trunkTopY,
+  );
+  const minY = Math.max(0, contentTopY - 30);
+  return `0 ${minY} 200 ${svgViewHeight - minY}`;
+}
+
 // ─── Static Tree SVG ──────────────────────────────────────────────────────────
 
 export function StaticTreeSVG({
@@ -442,17 +467,13 @@ export function StaticTreeSVG({
     standStyle,
   );
 
-  const bottomMargin = 30;
-  const viewBox = cropTop
-    ? (() => {
-        const contentTopY = svgData.branches.reduce(
-          (min, b) => Math.min(min, b.y1, b.y2),
-          svgData.trunkTopY,
-        );
-        const minY = Math.max(0, contentTopY - bottomMargin);
-        return `0 ${minY} 200 ${300 - minY}`;
-      })()
-    : svgData.viewBox;
+  const viewBox = computeViewBox(
+    svgData,
+    standTopY,
+    standStyle,
+    standScale,
+    cropTop ?? false,
+  );
 
   return (
     <svg
