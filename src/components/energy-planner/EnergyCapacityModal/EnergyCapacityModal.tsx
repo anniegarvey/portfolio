@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { formatDateForDisplay, isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
+import { usePoints } from "../../../lib/points/context";
 import { Modal } from "../../Modal";
 import { EnergyTypeManagerModal } from "../EnergyTypeManager";
 
@@ -20,6 +21,7 @@ export function EnergyCapacityModal({
 }: EnergyCapacityModalProps) {
   const { dailyCapacity, setDailyCapacity, energyTypes, currentDate } =
     useEnergyPlanner();
+  const { awardPoints } = usePoints();
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
   const viewingToday = isToday(currentDate);
@@ -76,7 +78,13 @@ export function EnergyCapacityModal({
           >
             Manage Energy Types
           </Button>
-          <Button fullWidth onClick={onClose}>
+          <Button
+            fullWidth
+            onClick={(e) => {
+              awardPoints(3, e.currentTarget.getBoundingClientRect());
+              onClose();
+            }}
+          >
             Save
           </Button>
         </Footer>

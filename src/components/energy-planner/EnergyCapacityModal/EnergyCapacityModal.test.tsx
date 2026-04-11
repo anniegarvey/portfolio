@@ -1,10 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, type Mock, test, vi } from "vitest";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
+import { usePoints } from "@/lib/points/context";
 import { EnergyCapacityModal } from "./EnergyCapacityModal";
 
 // Mock dependencies
 vi.mock("@/lib/energy-planner/context");
+vi.mock("@/lib/points/context");
 
 vi.mock("../EnergyTypeManager", () => ({
   EnergyTypeManagerModal: ({ onClose }: { onClose: () => void }) => (
@@ -19,6 +21,7 @@ vi.mock("../EnergyTypeManager", () => ({
 
 describe("EnergyCapacityModal", () => {
   const mockSetDailyCapacity = vi.fn();
+  const mockAwardPoints = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,6 +34,9 @@ describe("EnergyCapacityModal", () => {
       dailyCapacity: { physical: 50, social: 50, executive: 50 },
       setDailyCapacity: mockSetDailyCapacity,
       currentDate: new Date(),
+    });
+    (usePoints as unknown as Mock).mockReturnValue({
+      awardPoints: mockAwardPoints,
     });
   });
 
@@ -67,13 +73,19 @@ describe("EnergyCapacityModal", () => {
     });
   });
 
-  test("calls onClose when close button clicked", () => {
+  test("calls onClose when Save button clicked", () => {
     const mockOnClose = vi.fn();
     render(<EnergyCapacityModal isOpen={true} onClose={mockOnClose} />);
 
-    // Check for the modal close button, typically labeled "Save"
     fireEvent.click(screen.getByText("Save"));
     expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  test("awards 3 points when Save button clicked", () => {
+    render(<EnergyCapacityModal isOpen={true} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("Save"));
+    expect(mockAwardPoints).toHaveBeenCalledWith(3, expect.any(Object));
   });
 
   test("opens and closes EnergyTypeManagerModal when Manage Energy Types button clicked", () => {
