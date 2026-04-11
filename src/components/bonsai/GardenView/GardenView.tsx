@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { useBonsai } from "@/lib/bonsai/context";
@@ -315,12 +316,11 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
         }
         ref={gardenRef}
         style={{
-          backgroundImage: bgConfig.backgroundImage,
-          backgroundColor: bgConfig.backgroundColor,
           borderColor: bgConfig.borderColor,
           cursor: isPlacing ? "crosshair" : undefined,
         }}
       >
+        <GardenBackground backgroundId={bgId} />
         {state.trees.length === 0 && !isPlacing && (
           <EmptyGarden>
             <EmptyEmoji aria-hidden="true">🪴</EmptyEmoji>

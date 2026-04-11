@@ -4,6 +4,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
+import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { useBonsai } from "@/lib/bonsai/context";
 import type {
@@ -203,16 +204,16 @@ function BackgroundShopPreview({
   return (
     <BackgroundPreviewBox
       aria-hidden="true"
-      style={{
-        backgroundImage: cfg.backgroundImage,
-        backgroundColor: cfg.backgroundColor,
-        borderColor: cfg.borderColor,
-      }}
-    />
+      style={{ borderColor: cfg.borderColor }}
+    >
+      <GardenBackground backgroundId={backgroundId} />
+    </BackgroundPreviewBox>
   );
 }
 
 const BackgroundPreviewBox = styled.div`
+  position: relative;
+  overflow: hidden;
   width: 100%;
   height: 56px;
   border-radius: 8px;

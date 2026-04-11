@@ -1,6 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
+import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BackgroundId } from "@/lib/bonsai/schema";
@@ -119,12 +120,10 @@ export function InventoryPanel() {
                 >
                   <BackgroundPreview
                     aria-hidden="true"
-                    style={{
-                      backgroundImage: cfg.backgroundImage,
-                      backgroundColor: cfg.backgroundColor,
-                      borderColor: cfg.borderColor,
-                    }}
-                  />
+                    style={{ borderColor: cfg.borderColor }}
+                  >
+                    <GardenBackground backgroundId={bgId} />
+                  </BackgroundPreview>
                   <BackgroundCardBody>
                     <BackgroundName>{cfg.label}</BackgroundName>
                     <EquipButton
@@ -227,6 +226,8 @@ const BackgroundCard = styled.div`
 `;
 
 const BackgroundPreview = styled.div`
+  position: relative;
+  overflow: hidden;
   width: 100%;
   height: 52px;
   border-bottom: 1.5px solid transparent;

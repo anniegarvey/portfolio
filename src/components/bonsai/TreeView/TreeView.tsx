@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { type KeyboardEvent, useCallback, useState } from "react";
+import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import {
   type ActiveTool,
   TreeSVG,
@@ -81,16 +82,15 @@ function WaterableSVGContainer({
       onKeyDown={isWatering ? handleKeyDown : undefined}
       role={isWatering ? "button" : undefined}
       style={{
-        backgroundImage: bgConfig.backgroundImage,
-        backgroundColor: bgConfig.backgroundColor,
-        backgroundSize: "200% 200%",
-        backgroundPosition: `${pos.x}% ${pos.y}%`,
         borderColor: bgConfig.borderColor,
         cursor: isWatering ? WATER_CURSOR : undefined,
       }}
       tabIndex={isWatering ? 0 : undefined}
     >
-      <TreeSVG activeTool={activeTool} cropTop tree={tree} />
+      <GardenBackground backgroundId={bgId} tendPos={pos} />
+      <TreeSVGLayer>
+        <TreeSVG activeTool={activeTool} cropTop tree={tree} />
+      </TreeSVGLayer>
     </SVGContainer>
   );
 }
@@ -642,10 +642,16 @@ const ToolPrice = styled.span`
 `;
 
 const SVGContainer = styled.div`
+  position: relative;
+  overflow: hidden;
   width: 100%;
   border-radius: 12px;
   padding: 1rem;
   border: 1px solid transparent;
+`;
+
+const TreeSVGLayer = styled.div`
+  position: relative;
 `;
 
 const WaterStatus = styled.div`
