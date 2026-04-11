@@ -100,9 +100,9 @@ describe("PointsProvider", () => {
       screen.getByText("Award").click();
     });
 
-    // Advance past burst (280ms) + fly (680ms) durations
+    // Advance past burst (280ms) + max stagger for 5 particles (200ms) + fly (680ms)
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(280 + 680 + 100);
+      await vi.advanceTimersByTimeAsync(280 + 200 + 680 + 100);
     });
 
     vi.useRealTimers();
