@@ -443,7 +443,11 @@ export function TreeView({
   tree: BonsaiTree;
   onNavigateToShop: (itemId: string) => void;
 }) {
-  const [activeTool, setActiveTool] = useState<ActiveTool>("watering-can");
+  const { state } = useBonsai();
+  const hasWateringCan = state.inventory.ownedToolIds.includes("watering-can");
+  const [activeTool, setActiveTool] = useState<ActiveTool>(
+    hasWateringCan ? "watering-can" : "pruning-shears",
+  );
 
   const config = SPECIES_CONFIG[tree.speciesId];
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;

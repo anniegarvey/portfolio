@@ -426,12 +426,18 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
 
   const waterTree = useCallback(
     (treeId: string) => {
-      setState((prev) => ({
-        ...prev,
-        trees: prev.trees.map((t) =>
-          t.id === treeId ? { ...t, lastWateredDay: t.activeDaysCount } : t,
-        ),
-      }));
+      setState((prev) => {
+        const hasWateringTool =
+          prev.inventory.ownedToolIds.includes("watering-can") ||
+          prev.inventory.ownedToolIds.includes("garden-hose");
+        if (!hasWateringTool) return prev;
+        return {
+          ...prev,
+          trees: prev.trees.map((t) =>
+            t.id === treeId ? { ...t, lastWateredDay: t.activeDaysCount } : t,
+          ),
+        };
+      });
     },
     [setState],
   );
