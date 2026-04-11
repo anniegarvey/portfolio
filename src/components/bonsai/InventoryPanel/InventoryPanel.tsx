@@ -268,6 +268,11 @@ const EquipButton = styled.button`
     background: light-dark(var(--color-primary-50), rgba(100, 160, 80, 0.1));
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+
   &:disabled {
     opacity: 0.6;
     cursor: default;

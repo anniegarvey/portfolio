@@ -29,6 +29,8 @@ import {
   SPECIES_CONFIG,
 } from "@/lib/bonsai/schema";
 
+const GARDEN_CENTER = { x: 50, y: 50 };
+
 // ─── Prices ───────────────────────────────────────────────────────────────────
 
 const TOOL_PRICES = Object.fromEntries(
@@ -70,7 +72,7 @@ function WaterableSVGContainer({
 
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
-  const pos = tree.gardenPosition ?? { x: 50, y: 50 };
+  const pos = tree.gardenPosition ?? GARDEN_CENTER;
 
   return (
     <SVGContainer
