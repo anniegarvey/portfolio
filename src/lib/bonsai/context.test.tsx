@@ -387,6 +387,19 @@ describe("BonsaiProvider", () => {
     );
   });
 
+  it("waterTree does not water the tree when no watering tool is owned", async () => {
+    // Default state has ownedToolIds: [] — no watering can or hose
+    renderBonsai();
+    await waitFor(() =>
+      expect(screen.getByTestId("watered")).toHaveTextContent("none"),
+    );
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
+    // lastWateredDay should remain unset
+    expect(screen.getByTestId("watered")).toHaveTextContent("none");
+  });
+
   it("pruneBranch replacing an existing prune entry updates prunedAtDay", async () => {
     const base = createInitialState();
     seedLocalStorage({
