@@ -19,9 +19,11 @@ import {
   TreeSVG,
   WATER_CURSOR,
 } from "@/components/bonsai/TreeSVG";
+import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, FertiliserId } from "@/lib/bonsai/schema";
 import {
+  DEFAULT_BACKGROUND_ID,
   FERTILISER_EFFECTS,
   SHOP_CATALOG,
   SPECIES_CONFIG,
@@ -59,12 +61,16 @@ function WaterableSVGContainer({
   tree: BonsaiTree;
   activeTool: ActiveTool;
 }) {
-  const { waterTree } = useBonsai();
+  const { waterTree, state } = useBonsai();
   const isWatering = activeTool === "watering-can";
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => onWaterKeyDown(e, () => waterTree(tree.id)),
     [tree.id, waterTree],
   );
+
+  const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
+  const bgConfig = BACKGROUND_CONFIGS[bgId];
+  const pos = tree.gardenPosition ?? { x: 50, y: 50 };
 
   return (
     <SVGContainer
@@ -72,7 +78,14 @@ function WaterableSVGContainer({
       onClick={isWatering ? () => waterTree(tree.id) : undefined}
       onKeyDown={isWatering ? handleKeyDown : undefined}
       role={isWatering ? "button" : undefined}
-      style={{ cursor: isWatering ? WATER_CURSOR : undefined }}
+      style={{
+        backgroundImage: bgConfig.backgroundImage,
+        backgroundColor: bgConfig.backgroundColor,
+        backgroundSize: "200% 200%",
+        backgroundPosition: `${pos.x}% ${pos.y}%`,
+        borderColor: bgConfig.borderColor,
+        cursor: isWatering ? WATER_CURSOR : undefined,
+      }}
       tabIndex={isWatering ? 0 : undefined}
     >
       <TreeSVG activeTool={activeTool} cropTop tree={tree} />
@@ -628,10 +641,9 @@ const ToolPrice = styled.span`
 
 const SVGContainer = styled.div`
   width: 100%;
-  background: light-dark(#f0ebe3, #3d6e99);
   border-radius: 12px;
   padding: 1rem;
-  border: 1px solid light-dark(#d4c9b8, #5a8ab8);
+  border: 1px solid transparent;
 `;
 
 const WaterStatus = styled.div`

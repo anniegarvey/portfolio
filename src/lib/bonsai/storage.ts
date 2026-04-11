@@ -41,6 +41,7 @@ export function createInitialState(): BonsaiGameState {
       ownedFertiliserIds: [],
       ownedPotIds: ["simple-clay-small"],
       ownedStandIds: [],
+      ownedBackgroundIds: [],
     },
   };
 }
