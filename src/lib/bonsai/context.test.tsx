@@ -206,6 +206,10 @@ describe("BonsaiProvider", () => {
   });
 
   it("advanceDay grows the tree and resets to unwatered when watered first", async () => {
+    const base = createInitialState();
+    seedLocalStorage({
+      inventory: { ...base.inventory, ownedToolIds: ["watering-can"] },
+    });
     renderBonsai();
     await waitFor(() =>
       expect(screen.getByTestId("day")).toHaveTextContent("0"),
@@ -229,6 +233,10 @@ describe("BonsaiProvider", () => {
   });
 
   it("advanceDay increments activeDaysCount when tree is watered", async () => {
+    const base = createInitialState();
+    seedLocalStorage({
+      inventory: { ...base.inventory, ownedToolIds: ["watering-can"] },
+    });
     renderBonsai();
     await waitFor(() =>
       expect(screen.getByTestId("day")).toHaveTextContent("0"),
@@ -362,6 +370,10 @@ describe("BonsaiProvider", () => {
   });
 
   it("waterTree sets lastWateredDay to activeDaysCount on the tree", async () => {
+    const base = createInitialState();
+    seedLocalStorage({
+      inventory: { ...base.inventory, ownedToolIds: ["watering-can"] },
+    });
     renderBonsai();
     await waitFor(() =>
       expect(screen.getByTestId("watered")).toHaveTextContent("none"),
@@ -376,6 +388,10 @@ describe("BonsaiProvider", () => {
   });
 
   it("pruneBranch replacing an existing prune entry updates prunedAtDay", async () => {
+    const base = createInitialState();
+    seedLocalStorage({
+      inventory: { ...base.inventory, ownedToolIds: ["watering-can"] },
+    });
     renderBonsai();
     await waitFor(() =>
       expect(screen.getByTestId("pruned")).toHaveTextContent("0"),
@@ -718,6 +734,7 @@ describe("BonsaiProvider — advanceDay with multiple trees", () => {
     const base = createInitialState();
     seedLocalStorage({
       ...base,
+      inventory: { ...base.inventory, ownedToolIds: ["watering-can"] },
       trees: [
         { ...base.trees[0] }, // pine — not watered
         {
@@ -760,6 +777,7 @@ describe("BonsaiProvider — advanceDay with multiple trees", () => {
     const base = createInitialState();
     seedLocalStorage({
       ...base,
+      inventory: { ...base.inventory, ownedToolIds: ["watering-can"] },
       trees: [
         { ...base.trees[0] },
         {
