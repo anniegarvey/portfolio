@@ -14,10 +14,12 @@ import { LAST_ACTIVE_DATE_KEY } from "./keys";
 import { playCollectSound, playDepositSound } from "./sounds";
 
 const POINTS_STORAGE_KEY = "energy-planner-points";
-const PARTICLE_COUNT = 6;
+const MAX_PARTICLE_COUNT = 12;
 const BURST_DURATION_MS = 280;
 const FLY_DURATION_MS = 680;
 const BURST_RADIUS = 52;
+/** Max total spread between first and last particle landing (at MAX_PARTICLE_COUNT) */
+const MAX_STAGGER_MS = 400;
 
 interface ParticleData {
   id: string;
@@ -25,8 +27,10 @@ interface ParticleData {
   originY: number;
   burstDx: number;
   burstDy: number;
-  /** Only the lead particle (index 0) carries the amount to increment the counter */
+  /** Points this particle carries — increments the counter when it lands */
   amount: number;
+  /** Ms after burst completes before this particle flies (stagger for larger rewards) */
+  flyDelay: number;
 }
 
 // ─── Particle ─────────────────────────────────────────────────────────────────
@@ -60,18 +64,21 @@ function Particle({
         setFlyDy(rect.top + rect.height / 2 - data.originY);
       }
       setPhase("fly");
-    }, BURST_DURATION_MS);
+    }, BURST_DURATION_MS + data.flyDelay);
 
-    const doneTimer = setTimeout(() => {
-      onCompleteRef.current(data.id);
-    }, BURST_DURATION_MS + FLY_DURATION_MS);
+    const doneTimer = setTimeout(
+      () => {
+        onCompleteRef.current(data.id);
+      },
+      BURST_DURATION_MS + data.flyDelay + FLY_DURATION_MS,
+    );
 
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(flyTimer);
       clearTimeout(doneTimer);
     };
-  }, [data.id, data.originX, data.originY]);
+  }, [data.id, data.originX, data.originY, data.flyDelay]);
 
   let transform: string;
   let transition: string;
@@ -191,19 +198,32 @@ export function PointsProvider({ children }: { children: ReactNode }) {
 
     playCollectSound();
 
+    const particleCount = Math.min(amount, MAX_PARTICLE_COUNT);
+    // Stagger window scales from 0 (1 particle) up to MAX_STAGGER_MS (MAX_PARTICLE_COUNT),
+    // with ~50ms per particle so small rewards feel snappy and large ones feel full.
+    const staggerWindow = Math.min((particleCount - 1) * 50, MAX_STAGGER_MS);
+
     const newParticles: ParticleData[] = Array.from(
-      { length: PARTICLE_COUNT },
+      { length: particleCount },
       (_, i) => {
         const angle =
-          (i / PARTICLE_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+          (i / particleCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
         const radius = BURST_RADIUS * (0.55 + Math.random() * 0.6);
+        // Each particle carries 1 point; the last carries any remainder
+        const particleAmount =
+          i === particleCount - 1 ? amount - (particleCount - 1) : 1;
+        const flyDelay =
+          particleCount > 1
+            ? Math.round((i / (particleCount - 1)) * staggerWindow)
+            : 0;
         return {
           id: `p-${++particleSeq}`,
           originX: x,
           originY: y,
           burstDx: Math.cos(angle) * radius,
           burstDy: Math.sin(angle) * radius,
-          amount: i === 0 ? amount : 0,
+          amount: particleAmount,
+          flyDelay,
         };
       },
     );
