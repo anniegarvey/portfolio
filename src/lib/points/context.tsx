@@ -14,12 +14,12 @@ import { LAST_ACTIVE_DATE_KEY } from "./keys";
 import { playCollectSound, playDepositSound } from "./sounds";
 
 const POINTS_STORAGE_KEY = "energy-planner-points";
-const MAX_PARTICLE_COUNT = 12;
+const MAX_PARTICLE_COUNT = 50;
 const BURST_DURATION_MS = 280;
 const FLY_DURATION_MS = 680;
 const BURST_RADIUS = 52;
 /** Max total spread between first and last particle landing (at MAX_PARTICLE_COUNT) */
-const MAX_STAGGER_MS = 400;
+const MAX_STAGGER_MS = 2000;
 
 interface ParticleData {
   id: string;
