@@ -25,7 +25,7 @@ function GardenScene() {
       {/* Sky */}
       <rect
         height={115}
-        style={{ fill: "light-dark(#c8e4a8, #1a2c14)" }}
+        style={{ fill: "light-dark(#a8cce8, #1a2440)" }}
         width={400}
       />
       {/* Ground */}
@@ -355,7 +355,7 @@ function ZenGardenScene() {
       {/* Sand */}
       <rect
         height={200}
-        style={{ fill: "light-dark(#ede6d0, #1c1810)" }}
+        style={{ fill: "light-dark(#ede6d0, #262218)" }}
         width={400}
       />
 
@@ -365,7 +365,7 @@ function ZenGardenScene() {
           key={y}
           strokeWidth={0.8}
           style={{
-            stroke: "light-dark(rgba(150,130,80,0.38), rgba(100,85,48,0.45))",
+            stroke: "light-dark(rgba(150,130,80,0.38), rgba(130,110,65,0.55))",
           }}
           x1={0}
           x2={400}
@@ -380,39 +380,39 @@ function ZenGardenScene() {
         cy={150}
         rx={30}
         ry={23}
-        style={{ fill: "light-dark(#7a7268, #252018)" }}
+        style={{ fill: "light-dark(#7a7268, #524840)" }}
       />
       <ellipse
         cx={113}
         cy={147}
         rx={23}
         ry={17}
-        style={{ fill: "light-dark(#9c9488, #342c22)" }}
+        style={{ fill: "light-dark(#9c9488, #6a6058)" }}
       />
       <ellipse
         cx={111}
         cy={144}
         rx={14}
         ry={10}
-        style={{ fill: "light-dark(#aea698, #403830)" }}
+        style={{ fill: "light-dark(#aea698, #807870)" }}
       />
       <circle
         cx={120}
         cy={141}
         r={2.5}
-        style={{ fill: "light-dark(#6a8850, #2a4020)" }}
+        style={{ fill: "light-dark(#6a8850, #3e5c2a)" }}
       />
       <circle
         cx={114}
         cy={137}
         r={1.8}
-        style={{ fill: "light-dark(#607840, #223418)" }}
+        style={{ fill: "light-dark(#607840, #334e20)" }}
       />
       <circle
         cx={125}
         cy={145}
         r={1.5}
-        style={{ fill: "light-dark(#6a8850, #2a4020)" }}
+        style={{ fill: "light-dark(#6a8850, #3e5c2a)" }}
       />
 
       {/* Concentric raking around stone A */}
@@ -424,7 +424,7 @@ function ZenGardenScene() {
         ry={31}
         strokeWidth={0.8}
         style={{
-          stroke: "light-dark(rgba(140,120,70,0.3), rgba(100,80,40,0.35))",
+          stroke: "light-dark(rgba(140,120,70,0.3), rgba(130,110,65,0.48))",
         }}
       />
       <ellipse
@@ -435,7 +435,7 @@ function ZenGardenScene() {
         ry={39}
         strokeWidth={0.8}
         style={{
-          stroke: "light-dark(rgba(140,120,70,0.22), rgba(100,80,40,0.28))",
+          stroke: "light-dark(rgba(140,120,70,0.22), rgba(130,110,65,0.38))",
         }}
       />
 
@@ -445,33 +445,33 @@ function ZenGardenScene() {
         cy={88}
         rx={21}
         ry={17}
-        style={{ fill: "light-dark(#7a7268, #252018)" }}
+        style={{ fill: "light-dark(#7a7268, #524840)" }}
       />
       <ellipse
         cx={286}
         cy={86}
         rx={16}
         ry={12}
-        style={{ fill: "light-dark(#9c9488, #342c22)" }}
+        style={{ fill: "light-dark(#9c9488, #6a6058)" }}
       />
       <ellipse
         cx={284}
         cy={84}
         rx={9}
         ry={7}
-        style={{ fill: "light-dark(#aea698, #403830)" }}
+        style={{ fill: "light-dark(#aea698, #807870)" }}
       />
       <circle
         cx={293}
         cy={82}
         r={2}
-        style={{ fill: "light-dark(#6a8850, #2a4020)" }}
+        style={{ fill: "light-dark(#6a8850, #3e5c2a)" }}
       />
       <circle
         cx={288}
         cy={79}
         r={1.5}
-        style={{ fill: "light-dark(#607840, #223418)" }}
+        style={{ fill: "light-dark(#607840, #334e20)" }}
       />
 
       {/* Concentric raking around stone B */}
@@ -483,7 +483,7 @@ function ZenGardenScene() {
         ry={24}
         strokeWidth={0.8}
         style={{
-          stroke: "light-dark(rgba(140,120,70,0.3), rgba(100,80,40,0.35))",
+          stroke: "light-dark(rgba(140,120,70,0.3), rgba(130,110,65,0.48))",
         }}
       />
       <ellipse
@@ -494,7 +494,7 @@ function ZenGardenScene() {
         ry={32}
         strokeWidth={0.8}
         style={{
-          stroke: "light-dark(rgba(140,120,70,0.22), rgba(100,80,40,0.28))",
+          stroke: "light-dark(rgba(140,120,70,0.22), rgba(130,110,65,0.38))",
         }}
       />
 
@@ -504,21 +504,21 @@ function ZenGardenScene() {
         cy={120}
         rx={14}
         ry={11}
-        style={{ fill: "light-dark(#7a7268, #252018)" }}
+        style={{ fill: "light-dark(#7a7268, #524840)" }}
       />
       <ellipse
         cx={194}
         cy={118}
         rx={10}
         ry={7}
-        style={{ fill: "light-dark(#9c9488, #342c22)" }}
+        style={{ fill: "light-dark(#9c9488, #6a6058)" }}
       />
       <ellipse
         cx={192}
         cy={117}
         rx={6}
         ry={4}
-        style={{ fill: "light-dark(#aea698, #403830)" }}
+        style={{ fill: "light-dark(#aea698, #807870)" }}
       />
 
       {/* Concentric raking around stone C */}
@@ -530,7 +530,7 @@ function ZenGardenScene() {
         ry={18}
         strokeWidth={0.8}
         style={{
-          stroke: "light-dark(rgba(140,120,70,0.3), rgba(100,80,40,0.35))",
+          stroke: "light-dark(rgba(140,120,70,0.3), rgba(130,110,65,0.48))",
         }}
       />
     </>
@@ -771,202 +771,193 @@ function NightGardenScene() {
         y={124}
       />
 
-      {/* ── Lantern 1 (left, cx≈108) ─────────────────────────────────── */}
+      {/* ── Lantern 1 (left, cx≈108, ~⅓ scale, base y=163) ─────────── */}
       {/* Post */}
       <rect
-        height={52}
+        height={17}
         rx={1}
         style={{ fill: "light-dark(#4a4258, #282030)" }}
-        width={6}
-        x={105}
-        y={112}
+        width={2}
+        x={107}
+        y={146}
       />
       {/* Pedestal */}
       <rect
-        height={6}
-        rx={2}
+        height={2}
+        rx={1}
         style={{ fill: "light-dark(#5a5068, #302840)" }}
-        width={22}
-        x={97}
-        y={157}
+        width={8}
+        x={104}
+        y={161}
       />
-      {/* Glow halo behind lantern body */}
+      {/* Glow halo */}
       <ellipse
         cx={108}
-        cy={140}
-        rx={32}
-        ry={24}
+        cy={155}
+        rx={11}
+        ry={8}
         style={{
-          fill: "light-dark(rgba(255,190,50,0.13), rgba(255,165,30,0.2))",
+          fill: "light-dark(rgba(255,190,50,0.18), rgba(255,165,30,0.28))",
         }}
       />
-      {/* Lantern body (glowing panel) */}
+      {/* Lantern body */}
       <rect
-        height={30}
-        rx={3}
+        height={10}
+        rx={1}
         style={{
           fill: "light-dark(rgba(255,198,62,0.88), rgba(255,178,42,0.92))",
         }}
-        width={26}
-        x={95}
-        y={126}
+        width={9}
+        x={104}
+        y={151}
       />
       {/* Lantern frame */}
       <rect
         fill="none"
-        height={30}
-        rx={3}
-        strokeWidth={1.5}
+        height={10}
+        rx={1}
+        strokeWidth={0.5}
         style={{ stroke: "light-dark(#7a6030, #503e18)" }}
-        width={26}
-        x={95}
-        y={126}
+        width={9}
+        x={104}
+        y={151}
       />
       {/* Vertical dividers */}
       <line
-        strokeWidth={1}
+        strokeWidth={0.5}
         style={{ stroke: "light-dark(#6a5020, #3e2c0e)" }}
-        x1={104}
-        x2={104}
-        y1={126}
-        y2={156}
+        x1={107}
+        x2={107}
+        y1={151}
+        y2={161}
       />
       <line
-        strokeWidth={1}
+        strokeWidth={0.5}
         style={{ stroke: "light-dark(#6a5020, #3e2c0e)" }}
-        x1={112}
-        x2={112}
-        y1={126}
-        y2={156}
+        x1={110}
+        x2={110}
+        y1={151}
+        y2={161}
       />
       {/* Horizontal divider */}
       <line
-        strokeWidth={1}
+        strokeWidth={0.5}
         style={{ stroke: "light-dark(#6a5020, #3e2c0e)" }}
-        x1={95}
-        x2={121}
-        y1={141}
-        y2={141}
+        x1={104}
+        x2={113}
+        y1={156}
+        y2={156}
       />
-      {/* Cap (pagoda roof) — back face */}
+      {/* Cap — back face */}
       <polygon
-        points="93,127 108,113 123,127"
+        points="103,151 108,146 113,151"
         style={{ fill: "light-dark(#4a4260, #282040)" }}
       />
-      {/* Cap — front lighter face */}
+      {/* Cap — front face */}
       <polygon
-        points="95,127 108,115 121,127"
+        points="104,151 108,147 112,151"
         style={{ fill: "light-dark(#6a607c, #3e3458)" }}
-      />
-      {/* Cap ridge line */}
-      <line
-        strokeLinecap="round"
-        strokeWidth={1.5}
-        style={{ stroke: "light-dark(#9a9088, #5a5048)" }}
-        x1={108}
-        x2={108}
-        y1={113}
-        y2={120}
       />
       {/* Finial */}
       <circle
         cx={108}
-        cy={112}
-        r={3}
+        cy={145}
+        r={1}
         style={{ fill: "light-dark(#9a9088, #5a5048)" }}
       />
 
-      {/* ── Lantern 2 (right, cx≈282, slightly smaller/further) ────── */}
+      {/* ── Lantern 2 (right, cx≈282, ~⅓ scale, base y=159) ─────────── */}
+      {/* Post */}
       <rect
-        height={44}
+        height={15}
         rx={1}
         style={{ fill: "light-dark(#4a4258, #282030)" }}
-        width={5}
-        x={280}
-        y={116}
+        width={2}
+        x={281}
+        y={145}
       />
+      {/* Pedestal */}
       <rect
-        height={5}
-        rx={2}
+        height={2}
+        rx={1}
         style={{ fill: "light-dark(#5a5068, #302840)" }}
-        width={18}
-        x={273}
-        y={154}
+        width={6}
+        x={279}
+        y={157}
       />
+      {/* Glow halo */}
       <ellipse
         cx={282}
-        cy={138}
-        rx={26}
-        ry={20}
+        cy={152}
+        rx={9}
+        ry={7}
         style={{
-          fill: "light-dark(rgba(255,190,50,0.11), rgba(255,165,30,0.17))",
+          fill: "light-dark(rgba(255,190,50,0.16), rgba(255,165,30,0.25))",
         }}
       />
+      {/* Lantern body */}
       <rect
-        height={26}
-        rx={2.5}
+        height={9}
+        rx={1}
         style={{
           fill: "light-dark(rgba(255,198,62,0.84), rgba(255,178,42,0.88))",
         }}
-        width={22}
-        x={271}
-        y={127}
+        width={8}
+        x={278}
+        y={148}
       />
+      {/* Lantern frame */}
       <rect
         fill="none"
-        height={26}
-        rx={2.5}
-        strokeWidth={1.5}
+        height={9}
+        rx={1}
+        strokeWidth={0.5}
         style={{ stroke: "light-dark(#7a6030, #503e18)" }}
-        width={22}
-        x={271}
-        y={127}
+        width={8}
+        x={278}
+        y={148}
+      />
+      {/* Vertical dividers */}
+      <line
+        strokeWidth={0.5}
+        style={{ stroke: "light-dark(#6a5020, #3e2c0e)" }}
+        x1={281}
+        x2={281}
+        y1={148}
+        y2={157}
       />
       <line
-        strokeWidth={1}
+        strokeWidth={0.5}
         style={{ stroke: "light-dark(#6a5020, #3e2c0e)" }}
-        x1={279}
-        x2={279}
-        y1={127}
-        y2={153}
+        x1={283}
+        x2={283}
+        y1={148}
+        y2={157}
       />
+      {/* Horizontal divider */}
       <line
-        strokeWidth={1}
+        strokeWidth={0.5}
         style={{ stroke: "light-dark(#6a5020, #3e2c0e)" }}
-        x1={286}
+        x1={278}
         x2={286}
-        y1={127}
+        y1={153}
         y2={153}
       />
-      <line
-        strokeWidth={1}
-        style={{ stroke: "light-dark(#6a5020, #3e2c0e)" }}
-        x1={271}
-        x2={293}
-        y1={140}
-        y2={140}
-      />
+      {/* Cap — back face */}
       <polygon
-        points="269,128 282,116 295,128"
+        points="278,149 282,145 286,149"
         style={{ fill: "light-dark(#4a4260, #282040)" }}
       />
+      {/* Cap — front face */}
       <polygon
-        points="271,128 282,118 293,128"
+        points="279,149 282,146 285,149"
         style={{ fill: "light-dark(#6a607c, #3e3458)" }}
       />
-      <line
-        strokeLinecap="round"
-        strokeWidth={1.5}
-        style={{ stroke: "light-dark(#9a9088, #5a5048)" }}
-        x1={282}
-        x2={282}
-        y1={116}
-        y2={122}
-      />
+      {/* Finial */}
       <circle
         cx={282}
-        cy={115}
-        r={2.5}
+        cy={144}
+        r={1}
         style={{ fill: "light-dark(#9a9088, #5a5048)" }}
       />
     </>
@@ -1037,7 +1028,7 @@ function AutumnForestScene() {
       <rect
         height={178}
         rx={5}
-        style={{ fill: "light-dark(#5a3018, #280e04)" }}
+        style={{ fill: "light-dark(#5a3018, #2e1408)" }}
         width={30}
         x={0}
         y={22}
@@ -1056,7 +1047,7 @@ function AutumnForestScene() {
       <line
         strokeLinecap="round"
         strokeWidth={14}
-        style={{ stroke: "light-dark(#5a3018, #280e04)" }}
+        style={{ stroke: "light-dark(#5a3018, #2e1408)" }}
         x1={30}
         x2={88}
         y1={58}
@@ -1065,7 +1056,7 @@ function AutumnForestScene() {
       <line
         strokeLinecap="round"
         strokeWidth={11}
-        style={{ stroke: "light-dark(#5a3018, #280e04)" }}
+        style={{ stroke: "light-dark(#5a3018, #2e1408)" }}
         x1={30}
         x2={78}
         y1={88}
@@ -1074,7 +1065,7 @@ function AutumnForestScene() {
       <line
         strokeLinecap="round"
         strokeWidth={9}
-        style={{ stroke: "light-dark(#5a3018, #280e04)" }}
+        style={{ stroke: "light-dark(#5a3018, #2e1408)" }}
         x1={30}
         x2={72}
         y1={118}
@@ -1087,42 +1078,42 @@ function AutumnForestScene() {
         cy={50}
         rx={65}
         ry={40}
-        style={{ fill: "light-dark(#c05820, #480e04)" }}
+        style={{ fill: "light-dark(#c05820, #7a1c0a)" }}
       />
       <ellipse
         cx={28}
         cy={38}
         rx={44}
         ry={30}
-        style={{ fill: "light-dark(#d06828, #5a1408)" }}
+        style={{ fill: "light-dark(#d06828, #8e2210)" }}
       />
       <ellipse
         cx={72}
         cy={28}
         rx={50}
         ry={32}
-        style={{ fill: "light-dark(#e07830, #6a1e0a)" }}
+        style={{ fill: "light-dark(#e07830, #a83018)" }}
       />
       <ellipse
         cx={44}
         cy={20}
         rx={36}
         ry={24}
-        style={{ fill: "light-dark(#d88030, #7a2810)" }}
+        style={{ fill: "light-dark(#d88030, #923618)" }}
       />
       <ellipse
         cx={82}
         cy={14}
         rx={33}
         ry={21}
-        style={{ fill: "light-dark(#e88838, #8a2e12)" }}
+        style={{ fill: "light-dark(#e88838, #aa4020)" }}
       />
 
       {/* ── Right tree ─────────────────────────────────────────────── */}
       <rect
         height={178}
         rx={5}
-        style={{ fill: "light-dark(#5a3018, #280e04)" }}
+        style={{ fill: "light-dark(#5a3018, #2e1408)" }}
         width={30}
         x={370}
         y={22}
@@ -1139,7 +1130,7 @@ function AutumnForestScene() {
       <line
         strokeLinecap="round"
         strokeWidth={14}
-        style={{ stroke: "light-dark(#5a3018, #280e04)" }}
+        style={{ stroke: "light-dark(#5a3018, #2e1408)" }}
         x1={370}
         x2={312}
         y1={58}
@@ -1148,7 +1139,7 @@ function AutumnForestScene() {
       <line
         strokeLinecap="round"
         strokeWidth={11}
-        style={{ stroke: "light-dark(#5a3018, #280e04)" }}
+        style={{ stroke: "light-dark(#5a3018, #2e1408)" }}
         x1={370}
         x2={322}
         y1={88}
@@ -1157,7 +1148,7 @@ function AutumnForestScene() {
       <line
         strokeLinecap="round"
         strokeWidth={9}
-        style={{ stroke: "light-dark(#5a3018, #280e04)" }}
+        style={{ stroke: "light-dark(#5a3018, #2e1408)" }}
         x1={370}
         x2={328}
         y1={118}
@@ -1170,35 +1161,35 @@ function AutumnForestScene() {
         cy={50}
         rx={65}
         ry={40}
-        style={{ fill: "light-dark(#c05820, #480e04)" }}
+        style={{ fill: "light-dark(#c05820, #7a1c0a)" }}
       />
       <ellipse
         cx={372}
         cy={38}
         rx={44}
         ry={30}
-        style={{ fill: "light-dark(#d06828, #5a1408)" }}
+        style={{ fill: "light-dark(#d06828, #8e2210)" }}
       />
       <ellipse
         cx={328}
         cy={28}
         rx={50}
         ry={32}
-        style={{ fill: "light-dark(#e07830, #6a1e0a)" }}
+        style={{ fill: "light-dark(#e07830, #a83018)" }}
       />
       <ellipse
         cx={356}
         cy={20}
         rx={36}
         ry={24}
-        style={{ fill: "light-dark(#d88030, #7a2810)" }}
+        style={{ fill: "light-dark(#d88030, #923618)" }}
       />
       <ellipse
         cx={318}
         cy={14}
         rx={33}
         ry={21}
-        style={{ fill: "light-dark(#e88838, #8a2e12)" }}
+        style={{ fill: "light-dark(#e88838, #aa4020)" }}
       />
 
       {/* Falling leaves */}
@@ -1209,7 +1200,7 @@ function AutumnForestScene() {
           key={`${leaf.cx}-${leaf.cy}`}
           rx={leaf.rx}
           ry={leaf.ry}
-          style={{ fill: "light-dark(#c84820, #7a1606)" }}
+          style={{ fill: "light-dark(#c84820, #9e2c10)" }}
           transform={`rotate(${leaf.rotate}, ${leaf.cx}, ${leaf.cy})`}
         />
       ))}
