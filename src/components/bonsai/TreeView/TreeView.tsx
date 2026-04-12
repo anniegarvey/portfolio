@@ -30,8 +30,6 @@ import {
   SPECIES_CONFIG,
 } from "@/lib/bonsai/schema";
 
-const GARDEN_CENTER = { x: 50, y: 50 };
-
 // ─── Prices ───────────────────────────────────────────────────────────────────
 
 const TOOL_PRICES = Object.fromEntries(
@@ -73,8 +71,6 @@ function WaterableSVGContainer({
 
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
-  const pos = tree.gardenPosition ?? GARDEN_CENTER;
-
   return (
     <SVGContainer
       aria-label={isWatering ? "Water the tree" : undefined}
@@ -87,7 +83,7 @@ function WaterableSVGContainer({
       }}
       tabIndex={isWatering ? 0 : undefined}
     >
-      <GardenBackground backgroundId={bgId} tendPos={pos} />
+      <GardenBackground backgroundId={bgId} />
       <TreeSVGLayer>
         <TreeSVG activeTool={activeTool} cropTop tree={tree} />
       </TreeSVGLayer>

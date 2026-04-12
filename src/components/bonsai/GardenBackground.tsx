@@ -4,17 +4,6 @@ import type { BackgroundId } from "@/lib/bonsai/schema";
 
 interface GardenBackgroundProps {
   backgroundId: BackgroundId;
-  tendPos?: { x: number; y: number };
-}
-
-function getTendViewBox(tx: number, ty: number): string {
-  const cx = (tx / 100) * 400;
-  const cy = (ty / 100) * 200;
-  const w = 160;
-  const h = 80;
-  const x = Math.max(0, Math.min(cx - w / 2, 400 - w));
-  const y = Math.max(0, Math.min(cy - h / 2, 200 - h));
-  return `${x} ${y} ${w} ${h}`;
 }
 
 // ── Garden ────────────────────────────────────────────────────────────────────
@@ -1228,14 +1217,7 @@ function AutumnForestScene() {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 
-export function GardenBackground({
-  backgroundId,
-  tendPos,
-}: GardenBackgroundProps) {
-  const viewBox = tendPos
-    ? getTendViewBox(tendPos.x, tendPos.y)
-    : "0 0 400 200";
-
+export function GardenBackground({ backgroundId }: GardenBackgroundProps) {
   return (
     <svg
       aria-hidden="true"
@@ -1246,7 +1228,7 @@ export function GardenBackground({
         width: "100%",
         height: "100%",
       }}
-      viewBox={viewBox}
+      viewBox="0 0 400 200"
     >
       {backgroundId === "garden" && <GardenScene />}
       {backgroundId === "zen-garden" && <ZenGardenScene />}
