@@ -6,12 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
+import type { ShopCategory, ShopItem } from "@/lib/bonsai/catalog";
+import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
 import type {
   BackgroundId,
   PotId,
-  ShopCategory,
-  ShopItem,
   ShopItemId,
   StandId,
 } from "@/lib/bonsai/schema";
@@ -19,7 +19,6 @@ import {
   DEFAULT_BACKGROUND_ID,
   parsePotId,
   parseStandId,
-  SHOP_CATALOG,
 } from "@/lib/bonsai/schema";
 import { usePoints } from "@/lib/points/context";
 import { PotBodySVG, PotRimSVG } from "../TreeSVG/PotSVG";

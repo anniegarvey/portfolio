@@ -11,6 +11,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { usePoints } from "@/lib/points/context";
 import { LAST_ACTIVE_DATE_KEY } from "@/lib/points/keys";
+import { FERTILISER_EFFECTS, SHOP_CATALOG } from "./catalog";
 import type {
   BackgroundId,
   BonsaiGameState,
@@ -23,7 +24,7 @@ import type {
   StandId,
   ToolId,
 } from "./schema";
-import { FERTILISER_EFFECTS, SHOP_CATALOG, SPECIES_CONFIG } from "./schema";
+import { SPECIES_CONFIG } from "./speciesConfig";
 import {
   createInitialState,
   loadBonsaiState,

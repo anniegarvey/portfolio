@@ -2,8 +2,8 @@
 
 import { keyframes, styled } from "next-yak";
 import { StaticTreeSVG } from "@/components/bonsai/TreeSVG";
-import type { BonsaiTree } from "@/lib/bonsai/schema";
-import { SPECIES_CONFIG, type SpeciesId } from "@/lib/bonsai/schema";
+import type { BonsaiTree, SpeciesId } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 
 // ─── Growth Stage Frames ──────────────────────────────────────────────────────
 

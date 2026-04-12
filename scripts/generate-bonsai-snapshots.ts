@@ -18,7 +18,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { StaticTreeSVG } from "../src/components/bonsai/TreeSVG/StaticTreeSVG";
 import type { SpeciesId } from "../src/lib/bonsai/schema";
 // Relative imports — scripts/ is outside the Next.js @/* alias resolution scope.
-import { SPECIES_CONFIG } from "../src/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "../src/lib/bonsai/speciesConfig";
 
 // ─── Growth stages (matches GROWTH_LABEL_THRESHOLDS in schema.ts) ─────────────
 

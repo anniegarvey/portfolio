@@ -3,9 +3,10 @@
 import { styled } from "next-yak";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
+import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BackgroundId } from "@/lib/bonsai/schema";
-import { DEFAULT_BACKGROUND_ID, SHOP_CATALOG } from "@/lib/bonsai/schema";
+import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
 
 function getItemLabel(id: string): string {
   return SHOP_CATALOG.find((i) => i.id === id)?.label ?? id;

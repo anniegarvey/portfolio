@@ -21,14 +21,11 @@ import {
   WATER_CURSOR,
 } from "@/components/bonsai/TreeSVG";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
+import { FERTILISER_EFFECTS, SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, FertiliserId } from "@/lib/bonsai/schema";
-import {
-  DEFAULT_BACKGROUND_ID,
-  FERTILISER_EFFECTS,
-  SHOP_CATALOG,
-  SPECIES_CONFIG,
-} from "@/lib/bonsai/schema";
+import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 
 // ─── Prices ───────────────────────────────────────────────────────────────────
 

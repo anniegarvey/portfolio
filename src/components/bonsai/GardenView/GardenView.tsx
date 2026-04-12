@@ -13,13 +13,11 @@ import {
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
+import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
-import {
-  DEFAULT_BACKGROUND_ID,
-  SHOP_CATALOG,
-  SPECIES_CONFIG,
-} from "@/lib/bonsai/schema";
+import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
 
 // Trees positioned near an edge get clamped so they stay fully visible.

@@ -4,7 +4,8 @@ import { styled } from "next-yak";
 import { Button } from "@/components/Button";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, SpeciesId } from "@/lib/bonsai/schema";
-import { getGrowthLabel, SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import { getGrowthLabel } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 
 interface TreeCollectionProps {
   onOpenTree: (tree: BonsaiTree) => void;

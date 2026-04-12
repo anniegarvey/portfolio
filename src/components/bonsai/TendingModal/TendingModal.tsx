@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { TreeView } from "@/components/bonsai/TreeView";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
-import { SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 
 interface TendingModalProps {
   tree: BonsaiTree | null;
