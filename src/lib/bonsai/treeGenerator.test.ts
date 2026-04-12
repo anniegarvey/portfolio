@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPECIES_CONFIG } from "./schema";
+import { SPECIES_CONFIG } from "./speciesConfig";
 import { BRANCH_GROW_DURATION, generateTree } from "./treeGenerator";
 
 const PINE = SPECIES_CONFIG.pine; // branchFrequency: 6, regrowthDays: 14

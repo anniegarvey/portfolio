@@ -1,4 +1,5 @@
-import type { PrunedBranch, SpeciesConfig } from "./schema";
+import type { PrunedBranch } from "./schema";
+import type { SpeciesConfig } from "./speciesConfig";
 
 // ─── Output Types ─────────────────────────────────────────────────────────────
 

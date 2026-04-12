@@ -59,7 +59,24 @@ export const StandIdSchema = z.enum([
 ]);
 export type StandId = z.infer<typeof StandIdSchema>;
 
-export type ShopItemId = SpeciesId | ToolId | FertiliserId | PotId | StandId;
+export const BackgroundIdSchema = z.enum([
+  "garden",
+  "zen-garden",
+  "misty-mountain",
+  "night-garden",
+  "autumn-forest",
+]);
+export type BackgroundId = z.infer<typeof BackgroundIdSchema>;
+
+export const DEFAULT_BACKGROUND_ID: BackgroundId = "garden";
+
+export type ShopItemId =
+  | SpeciesId
+  | ToolId
+  | FertiliserId
+  | PotId
+  | StandId
+  | BackgroundId;
 
 // ─── Pruned Branch ─────────────────────────────────────────────────────────────
 
@@ -130,6 +147,10 @@ export const BonsaiInventorySchema = z.object({
   ownedFertiliserIds: z.array(FertiliserIdSchema),
   ownedPotIds: z.array(PotIdSchema),
   ownedStandIds: z.array(StandIdSchema),
+  /** Backgrounds owned by the player. "garden" is always available for free. */
+  ownedBackgroundIds: z.array(BackgroundIdSchema).default([]),
+  /** The currently equipped background. Defaults to "garden" if unset. */
+  equippedBackgroundId: BackgroundIdSchema.optional(),
 });
 export type BonsaiInventory = z.infer<typeof BonsaiInventorySchema>;
 
@@ -212,21 +233,3 @@ export function parseStandId(standId: StandId): {
     size: standId.slice(lastDash + 1) as ItemSize,
   };
 }
-
-// ─── Re-exports ───────────────────────────────────────────────────────────────
-// Keep all existing importers working without changes.
-
-export type {
-  FertiliserEffect,
-  FertiliserType,
-  GrowthTonicEffect,
-  MoistureKeeperEffect,
-  ShopCategory,
-  ShopItem,
-} from "./catalog";
-export { FERTILISER_EFFECTS, SHOP_CATALOG } from "./catalog";
-export type {
-  LeafShape,
-  SpeciesConfig,
-} from "./speciesConfig";
-export { SPECIES_CONFIG } from "./speciesConfig";

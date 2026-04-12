@@ -49,7 +49,13 @@ export const FERTILISER_EFFECTS: Record<FertiliserId, FertiliserEffect> = {
 
 // ─── Shop Catalog ─────────────────────────────────────────────────────────────
 
-export type ShopCategory = "species" | "tool" | "fertiliser" | "pot" | "stand";
+export type ShopCategory =
+  | "species"
+  | "tool"
+  | "fertiliser"
+  | "pot"
+  | "stand"
+  | "background";
 
 export interface ShopItem {
   id: ShopItemId;
@@ -344,5 +350,35 @@ export const SHOP_CATALOG: ShopItem[] = [
     cost: 20000,
     description:
       "A large sculpted stone pedestal. Reserved for the finest trees.",
+  },
+  // Backgrounds (1000 each)
+  {
+    id: "zen-garden",
+    label: "Zen Garden",
+    category: "background",
+    cost: 1000,
+    description:
+      "Raked sand patterns and smooth stones invite stillness and focus.",
+  },
+  {
+    id: "misty-mountain",
+    label: "Misty Mountain",
+    category: "background",
+    cost: 1000,
+    description: "Layered peaks dissolve into cool mist. Serene and vast.",
+  },
+  {
+    id: "night-garden",
+    label: "Night Garden",
+    category: "background",
+    cost: 1000,
+    description: "Warm lantern glow and a moonlit sky. Best tended after dark.",
+  },
+  {
+    id: "autumn-forest",
+    label: "Autumn Forest",
+    category: "background",
+    cost: 1000,
+    description: "Falling leaves and warm amber light. A garden turning gold.",
   },
 ];

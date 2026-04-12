@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { FERTILISER_EFFECTS, SHOP_CATALOG } from "./catalog";
 import {
-  FERTILISER_EFFECTS,
   getGrowthLabel,
   getGrowthProgress,
   parsePotId,
   parseStandId,
-  SHOP_CATALOG,
-  SPECIES_CONFIG,
   SpeciesIdSchema,
 } from "./schema";
+import { SPECIES_CONFIG } from "./speciesConfig";
 
 // ─── getGrowthLabel ───────────────────────────────────────────────────────────
 

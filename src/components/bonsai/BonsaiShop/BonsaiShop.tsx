@@ -4,15 +4,22 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
+import { GardenBackground } from "@/components/bonsai/GardenBackground";
+import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
+import type { ShopCategory, ShopItem } from "@/lib/bonsai/catalog";
+import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
 import type {
+  BackgroundId,
   PotId,
-  ShopCategory,
-  ShopItem,
   ShopItemId,
   StandId,
 } from "@/lib/bonsai/schema";
-import { parsePotId, parseStandId, SHOP_CATALOG } from "@/lib/bonsai/schema";
+import {
+  DEFAULT_BACKGROUND_ID,
+  parsePotId,
+  parseStandId,
+} from "@/lib/bonsai/schema";
 import { usePoints } from "@/lib/points/context";
 import { PotBodySVG, PotRimSVG } from "../TreeSVG/PotSVG";
 import { POT_CONFIGS } from "../TreeSVG/potConfigs";
@@ -23,6 +30,7 @@ const CATEGORIES: { value: ShopCategory; label: string }[] = [
   { value: "fertiliser", label: "Fertiliser" },
   { value: "pot", label: "Pots" },
   { value: "stand", label: "Stands" },
+  { value: "background", label: "Backgrounds" },
 ];
 
 // ─── Pot preview SVG ──────────────────────────────────────────────────────────
@@ -184,6 +192,33 @@ function StandShopPreview({ standId }: { standId: string }) {
   );
 }
 
+// ─── Background preview ───────────────────────────────────────────────────────
+
+function BackgroundShopPreview({
+  backgroundId,
+}: {
+  backgroundId: BackgroundId;
+}) {
+  const cfg = BACKGROUND_CONFIGS[backgroundId];
+  return (
+    <BackgroundPreviewBox
+      aria-hidden="true"
+      style={{ borderColor: cfg.borderColor }}
+    >
+      <GardenBackground backgroundId={backgroundId} />
+    </BackgroundPreviewBox>
+  );
+}
+
+const BackgroundPreviewBox = styled.div`
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 56px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+`;
+
 // ─── Owned count hook ─────────────────────────────────────────────────────────
 
 function useOwnedCount(itemId: ShopItemId, category: ShopCategory) {
@@ -200,7 +235,49 @@ function useOwnedCount(itemId: ShopItemId, category: ShopCategory) {
       return inv.ownedPotIds.filter((id) => id === itemId).length;
     case "stand":
       return inv.ownedStandIds.filter((id) => id === itemId).length;
+    case "background":
+      return inv.ownedBackgroundIds.filter((id) => id === itemId).length;
   }
+}
+
+function BackgroundCardActions({
+  item,
+  isOwned,
+  isEquipped,
+  canAfford,
+  onBuy,
+}: {
+  item: ShopItem;
+  isOwned: boolean;
+  isEquipped: boolean;
+  canAfford: boolean;
+  onBuy: () => void;
+}) {
+  const { equipBackground } = useBonsai();
+  if (isOwned) {
+    return (
+      <Button
+        disabled={isEquipped}
+        intent="primary"
+        onClick={() => equipBackground(item.id as BackgroundId)}
+        size="sm"
+        variant="outline"
+      >
+        {isEquipped ? "Equipped" : "Equip"}
+      </Button>
+    );
+  }
+  return (
+    <Button
+      disabled={!canAfford}
+      intent="primary"
+      onClick={onBuy}
+      size="sm"
+      variant="outline"
+    >
+      Buy
+    </Button>
+  );
 }
 
 function ShopCard({ item, focused }: { item: ShopItem; focused?: boolean }) {
@@ -223,6 +300,12 @@ function ShopCard({ item, focused }: { item: ShopItem; focused?: boolean }) {
   const totalOwned = ownedCount + plantedCount;
   const canAfford = points >= item.cost;
 
+  const isBackground = item.category === "background";
+  const isOwned = isBackground && ownedCount > 0;
+  const isEquipped =
+    isBackground &&
+    (state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID) === item.id;
+
   const handleBuy = () => {
     const success = buyItem(item.id);
     if (!success) {
@@ -242,18 +325,33 @@ function ShopCard({ item, focused }: { item: ShopItem; focused?: boolean }) {
       </CardHeader>
       {item.category === "pot" && <PotShopPreview potId={item.id} />}
       {item.category === "stand" && <StandShopPreview standId={item.id} />}
+      {item.category === "background" && (
+        <BackgroundShopPreview backgroundId={item.id as BackgroundId} />
+      )}
       <ItemDescription>{item.description}</ItemDescription>
       <CardFooter>
-        {totalOwned > 0 && <OwnedBadge>Owned: {totalOwned}</OwnedBadge>}
-        <Button
-          disabled={!canAfford}
-          intent="primary"
-          onClick={handleBuy}
-          size="sm"
-          variant="outline"
-        >
-          Buy
-        </Button>
+        {isBackground ? (
+          <BackgroundCardActions
+            canAfford={canAfford}
+            isEquipped={isEquipped}
+            isOwned={isOwned}
+            item={item}
+            onBuy={handleBuy}
+          />
+        ) : (
+          <>
+            {totalOwned > 0 && <OwnedBadge>Owned: {totalOwned}</OwnedBadge>}
+            <Button
+              disabled={!canAfford}
+              intent="primary"
+              onClick={handleBuy}
+              size="sm"
+              variant="outline"
+            >
+              Buy
+            </Button>
+          </>
+        )}
       </CardFooter>
       {feedback === "insufficient" && (
         <FeedbackMsg aria-live="polite">Not enough points</FeedbackMsg>

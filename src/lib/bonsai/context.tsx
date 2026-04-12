@@ -11,7 +11,9 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { usePoints } from "@/lib/points/context";
 import { LAST_ACTIVE_DATE_KEY } from "@/lib/points/keys";
+import { FERTILISER_EFFECTS, SHOP_CATALOG } from "./catalog";
 import type {
+  BackgroundId,
   BonsaiGameState,
   BonsaiTree,
   FertiliserId,
@@ -22,7 +24,7 @@ import type {
   StandId,
   ToolId,
 } from "./schema";
-import { FERTILISER_EFFECTS, SHOP_CATALOG, SPECIES_CONFIG } from "./schema";
+import { SPECIES_CONFIG } from "./speciesConfig";
 import {
   createInitialState,
   loadBonsaiState,
@@ -50,6 +52,7 @@ export interface BonsaiContextType {
   advanceDay: () => void;
   /** Count of owned pots not currently equipped to any tree. */
   availablePotCount: (excludeTreeId?: string) => number;
+  equipBackground: (backgroundId: BackgroundId) => void;
 }
 
 const BonsaiContext = createContext<BonsaiContextType | undefined>(undefined);
@@ -184,6 +187,7 @@ const EMPTY_STATE: BonsaiGameState = {
     ownedFertiliserIds: [],
     ownedPotIds: [],
     ownedStandIds: [],
+    ownedBackgroundIds: [],
   },
 };
 
@@ -315,12 +319,28 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
           case "stand":
             inv.ownedStandIds = [...inv.ownedStandIds, itemId as StandId];
             break;
+          case "background":
+            inv.ownedBackgroundIds = [
+              ...inv.ownedBackgroundIds,
+              itemId as BackgroundId,
+            ];
+            break;
         }
         return { ...prev, inventory: inv };
       });
       return true;
     },
     [setState, spendPoints],
+  );
+
+  const equipBackground = useCallback(
+    (backgroundId: BackgroundId) => {
+      setState((prev) => ({
+        ...prev,
+        inventory: { ...prev.inventory, equippedBackgroundId: backgroundId },
+      }));
+    },
+    [setState],
   );
 
   const equipPot = useCallback(
@@ -470,6 +490,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         waterTree,
         advanceDay,
         availablePotCount,
+        equipBackground,
       }}
     >
       {children}

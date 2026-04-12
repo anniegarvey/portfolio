@@ -3,7 +3,8 @@
 import { styled } from "next-yak";
 import { useMemo } from "react";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
-import { parsePotId, parseStandId, SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import { parsePotId, parseStandId } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 import { generateTree, type TreeSVGData } from "@/lib/bonsai/treeGenerator";
 
 // ─── Leaf Shape Paths ─────────────────────────────────────────────────────────
