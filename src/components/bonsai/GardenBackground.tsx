@@ -9,11 +9,19 @@ interface GardenBackgroundProps {
 
 function getTendViewBox(tx: number, ty: number): string {
   const cx = (tx / 100) * 400;
-  const cy = (ty / 100) * 200;
   const w = 80;
   const h = 40;
+  // With xMidYMid slice in the tend container (~470×172px at 1280px viewport),
+  // scale = 470/80 = 5.875px/unit and only ~29 of the 40 viewBox height units
+  // are visible (the rest is clipped). Simple centering on cy always maps the
+  // tree's background-y to 50% of the container, but in garden view it sits at
+  // ty% of the garden. Shift the viewBox so that cy lands at ty% of the container.
+  const visibleH = 29; // ≈ container_h / scale = 172 / 5.875
+  const y = Math.max(
+    0,
+    Math.min((ty / 100) * (200 - visibleH) + (visibleH - h) / 2, 200 - h),
+  );
   const x = Math.max(0, Math.min(cx - w / 2, 400 - w));
-  const y = Math.max(0, Math.min(cy - h / 2, 200 - h));
   return `${x} ${y} ${w} ${h}`;
 }
 
