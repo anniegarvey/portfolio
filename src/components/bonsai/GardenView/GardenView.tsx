@@ -10,10 +10,16 @@ import {
   useRef,
   useState,
 } from "react";
+import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
+import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
-import { SHOP_CATALOG, SPECIES_CONFIG } from "@/lib/bonsai/schema";
+import {
+  DEFAULT_BACKGROUND_ID,
+  SHOP_CATALOG,
+  SPECIES_CONFIG,
+} from "@/lib/bonsai/schema";
 import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
 
 // Trees positioned near an edge get clamped so they stay fully visible.
@@ -201,6 +207,8 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
   const gardenRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
   const ownedTools = state.inventory.ownedToolIds;
+  const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
+  const bgConfig = BACKGROUND_CONFIGS[bgId];
   const hasWateringCan = ownedTools.includes("watering-can");
   const hasGardenHose = ownedTools.includes("garden-hose");
 
@@ -307,8 +315,12 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
           isPlacing || gardenTool === "hose" ? handleGardenClick : undefined
         }
         ref={gardenRef}
-        style={{ cursor: isPlacing ? "crosshair" : undefined }}
+        style={{
+          borderColor: bgConfig.borderColor,
+          cursor: isPlacing ? "crosshair" : undefined,
+        }}
       >
+        <GardenBackground backgroundId={bgId} />
         {state.trees.length === 0 && !isPlacing && (
           <EmptyGarden>
             <EmptyEmoji aria-hidden="true">🪴</EmptyEmoji>
@@ -438,11 +450,7 @@ const Garden = styled.div`
   min-height: 320px;
   height: 420px;
   border-radius: 16px;
-  border: 2px solid light-dark(#b8d4a0, #3a5a30);
-  background:
-    radial-gradient(ellipse at 20% 80%, light-dark(#c8e6a0, #1a3a18) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 70%, light-dark(#b8d890, #162e14) 0%, transparent 50%),
-    light-dark(#d4ebb8, #1e3c1a);
+  border: 2px solid transparent;
   overflow: hidden;
   user-select: none;
 

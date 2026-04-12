@@ -14,14 +14,17 @@ import {
 } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { type KeyboardEvent, useCallback, useState } from "react";
+import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import {
   type ActiveTool,
   TreeSVG,
   WATER_CURSOR,
 } from "@/components/bonsai/TreeSVG";
+import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, FertiliserId } from "@/lib/bonsai/schema";
 import {
+  DEFAULT_BACKGROUND_ID,
   FERTILISER_EFFECTS,
   SHOP_CATALOG,
   SPECIES_CONFIG,
@@ -59,23 +62,32 @@ function WaterableSVGContainer({
   tree: BonsaiTree;
   activeTool: ActiveTool;
 }) {
-  const { waterTree } = useBonsai();
+  const { waterTree, state } = useBonsai();
   const isWatering = activeTool === "watering-can";
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => onWaterKeyDown(e, () => waterTree(tree.id)),
     [tree.id, waterTree],
   );
 
+  const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
+  const bgConfig = BACKGROUND_CONFIGS[bgId];
+  const pos = tree.gardenPosition ?? { x: 50, y: 50 };
   return (
     <SVGContainer
       aria-label={isWatering ? "Water the tree" : undefined}
       onClick={isWatering ? () => waterTree(tree.id) : undefined}
       onKeyDown={isWatering ? handleKeyDown : undefined}
       role={isWatering ? "button" : undefined}
-      style={{ cursor: isWatering ? WATER_CURSOR : undefined }}
+      style={{
+        borderColor: bgConfig.borderColor,
+        cursor: isWatering ? WATER_CURSOR : undefined,
+      }}
       tabIndex={isWatering ? 0 : undefined}
     >
-      <TreeSVG activeTool={activeTool} cropTop tree={tree} />
+      <GardenBackground backgroundId={bgId} tendPos={pos} />
+      <TreeSVGLayer>
+        <TreeSVG activeTool={activeTool} cropTop tree={tree} />
+      </TreeSVGLayer>
     </SVGContainer>
   );
 }
@@ -627,11 +639,16 @@ const ToolPrice = styled.span`
 `;
 
 const SVGContainer = styled.div`
+  position: relative;
+  overflow: hidden;
   width: 100%;
-  background: light-dark(#f0ebe3, #3d6e99);
   border-radius: 12px;
   padding: 1rem;
-  border: 1px solid light-dark(#d4c9b8, #5a8ab8);
+  border: 1px solid transparent;
+`;
+
+const TreeSVGLayer = styled.div`
+  position: relative;
 `;
 
 const WaterStatus = styled.div`
