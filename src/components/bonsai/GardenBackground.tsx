@@ -1212,24 +1212,6 @@ function AutumnForestScene() {
           transform={`rotate(${leaf.rotate}, ${leaf.cx}, ${leaf.cy})`}
         />
       ))}
-
-      {/* Sun glow upper-left */}
-      <circle
-        cx={28}
-        cy={18}
-        r={24}
-        style={{
-          fill: "light-dark(rgba(255,222,80,0.45), rgba(200,120,20,0.35))",
-        }}
-      />
-      <circle
-        cx={28}
-        cy={18}
-        r={15}
-        style={{
-          fill: "light-dark(rgba(255,238,120,0.55), rgba(220,140,28,0.45))",
-        }}
-      />
     </>
   );
 }
