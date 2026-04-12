@@ -4,6 +4,20 @@ import type { BackgroundId } from "@/lib/bonsai/schema";
 
 interface GardenBackgroundProps {
   backgroundId: BackgroundId;
+  tendPos?: { x: number; y: number };
+}
+
+function getTendViewBox(tx: number, ty: number): string {
+  const cx = (tx / 100) * 400;
+  // Anchor vertically on the ground line (y=115 in background SVG coords)
+  // rather than the tree's abstract y position, so the tend view shows
+  // horizon + ground rather than mostly sky.
+  const groundY = Math.max((ty / 100) * 200, 115);
+  const w = 80;
+  const h = 40;
+  const x = Math.max(0, Math.min(cx - w / 2, 400 - w));
+  const y = Math.max(0, Math.min(groundY - h * 0.3, 200 - h));
+  return `${x} ${y} ${w} ${h}`;
 }
 
 // ── Garden ────────────────────────────────────────────────────────────────────
@@ -1217,7 +1231,13 @@ function AutumnForestScene() {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 
-export function GardenBackground({ backgroundId }: GardenBackgroundProps) {
+export function GardenBackground({
+  backgroundId,
+  tendPos,
+}: GardenBackgroundProps) {
+  const viewBox = tendPos
+    ? getTendViewBox(tendPos.x, tendPos.y)
+    : "0 0 400 200";
   return (
     <svg
       aria-hidden="true"
@@ -1228,7 +1248,7 @@ export function GardenBackground({ backgroundId }: GardenBackgroundProps) {
         width: "100%",
         height: "100%",
       }}
-      viewBox="0 0 400 200"
+      viewBox={viewBox}
     >
       {backgroundId === "garden" && <GardenScene />}
       {backgroundId === "zen-garden" && <ZenGardenScene />}

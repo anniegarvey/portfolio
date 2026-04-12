@@ -71,6 +71,7 @@ function WaterableSVGContainer({
 
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
+  const pos = tree.gardenPosition ?? { x: 50, y: 50 };
   return (
     <SVGContainer
       aria-label={isWatering ? "Water the tree" : undefined}
@@ -83,7 +84,7 @@ function WaterableSVGContainer({
       }}
       tabIndex={isWatering ? 0 : undefined}
     >
-      <GardenBackground backgroundId={bgId} />
+      <GardenBackground backgroundId={bgId} tendPos={pos} />
       <TreeSVGLayer>
         <TreeSVG activeTool={activeTool} cropTop tree={tree} />
       </TreeSVGLayer>
