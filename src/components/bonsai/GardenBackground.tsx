@@ -9,14 +9,11 @@ interface GardenBackgroundProps {
 
 function getTendViewBox(tx: number, ty: number): string {
   const cx = (tx / 100) * 400;
-  // Anchor vertically on the ground line (y=115 in background SVG coords)
-  // rather than the tree's abstract y position, so the tend view shows
-  // horizon + ground rather than mostly sky.
-  const groundY = Math.max((ty / 100) * 200, 115);
+  const cy = (ty / 100) * 200;
   const w = 80;
   const h = 40;
   const x = Math.max(0, Math.min(cx - w / 2, 400 - w));
-  const y = Math.max(0, Math.min(groundY - h * 0.3, 200 - h));
+  const y = Math.max(0, Math.min(cy - h / 2, 200 - h));
   return `${x} ${y} ${w} ${h}`;
 }
 
