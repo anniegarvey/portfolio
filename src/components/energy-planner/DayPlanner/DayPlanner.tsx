@@ -2,32 +2,18 @@
 
 import {
   DndContext,
-  type DragEndEvent,
   type DraggableAttributes,
   type DraggableSyntheticListeners,
-  type DragOverEvent,
   DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
   rectIntersection,
-  useSensor,
-  useSensors,
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Pencil, Plus } from "lucide-react";
 import { styled } from "next-yak";
-import { useMemo, useState } from "react";
 import { Button } from "@/components/Button";
-import { getTodayDateString, isToday } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
-import { getReorderedItems } from "@/lib/energy-planner/utils";
-import { useEnergyPlanner } from "../../../lib/energy-planner/context";
-import type {
-  Activity,
-  ResolvedActivity,
-} from "../../../lib/energy-planner/schema";
+import type { Activity } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
 import { DayPlannerSkeleton } from "../DayPlannerSkeleton";
@@ -35,6 +21,7 @@ import { PlannedActivityCard } from "../PlannerActivityCard";
 import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
 import { ZoneSection } from "../ZoneSection";
+import { useDayPlannerState } from "./useDayPlannerState";
 
 interface DayPlannerProps {
   onEditActivity: (activity: Activity) => void;
@@ -54,173 +41,45 @@ export function DayPlanner({
   const {
     isLoading,
     currentDate,
-    goToToday: onGoToToday,
-    goToNextDay: onNextDay,
-    goToPreviousDay: onPreviousDay,
+    goToToday,
+    goToNextDay,
+    goToPreviousDay,
+    viewingToday,
+    dayContext,
     resolvedActivities,
-    addToPlan,
-    removeFromPlan,
-    removeActivity,
-    toggleActivityCompletion,
-    checkExceedsCapacity,
-    calculateEnergyUsage,
-    energyTypes,
-    uncompletedActivities,
     availableActivities,
     repeatingActivities,
-    reorderPlannedActivities,
-    reorderActivities,
-    reorderRepeatingActivities,
+    viewedUncompletedActivities,
+    energyTypes,
+    usage,
+    warning,
+    dailyCapacity,
     zones,
-    assignActivityToZone,
+    activitiesByZone,
     addZone,
     updateZone,
     removeZone,
     reorderZones,
+    removeActivity,
+    removeFromPlan,
+    toggleActivityCompletion,
     moveActivityToDate,
-    dailyCapacity,
-  } = useEnergyPlanner();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isZoneManagerOpen, setIsZoneManagerOpen] = useState(false);
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
-  const [activeResolved, setActiveResolved] = useState<ResolvedActivity | null>(
-    null,
-  );
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
-  const usage = useMemo(() => calculateEnergyUsage(), [calculateEnergyUsage]);
-  const warning = useMemo(() => checkExceedsCapacity(), [checkExceedsCapacity]);
-  const viewingToday = isToday(currentDate);
-  const viewedUncompletedActivities = viewingToday ? uncompletedActivities : [];
-  const today = getTodayDateString();
-  const dayContext =
-    currentDate < today ? "past" : currentDate > today ? "future" : "today";
-
-  // Group resolved activities by zone
-  const activitiesByZone = useMemo(() => {
-    const grouped = new Map<string, ResolvedActivity[]>();
-
-    for (const zone of zones) {
-      grouped.set(zone.id, []);
-    }
-
-    for (const resolved of resolvedActivities) {
-      const zoneId = resolved.instance.zoneId ?? zones[0]?.id;
-      if (zoneId && grouped.has(zoneId)) {
-        grouped.get(zoneId)?.push(resolved);
-      } else if (zones[0]) {
-        grouped.get(zones[0].id)?.push(resolved);
-      }
-    }
-
-    return grouped;
-  }, [resolvedActivities, zones]);
-
-  const handleAddToPlanForZone = (activityId: string) => {
-    if (activeZoneId) {
-      addToPlan(activityId, activeZoneId);
-    } else {
-      addToPlan(activityId);
-    }
-    setIsModalOpen(false);
-    setActiveZoneId(null);
-  };
-
-  const handleOpenModalForZone = (zoneId: string) => {
-    setActiveZoneId(zoneId);
-    setIsModalOpen(true);
-  };
-
-  const handleDragStart = (event: DragOverEvent) => {
-    const { active } = event;
-    const resolved = resolvedActivities.find(
-      ({ instance }) => instance.id === active.id,
-    );
-    if (resolved) {
-      setActiveResolved(resolved);
-    }
-  };
-
-  const findZoneForInstance = (instanceId: string): string | null => {
-    for (const zone of zones) {
-      const zoneResolved = activitiesByZone.get(zone.id) ?? [];
-      if (zoneResolved.some(({ instance }) => instance.id === instanceId)) {
-        return zone.id;
-      }
-    }
-    return null;
-  };
-
-  const getTargetZoneId = (overId: string): string | null => {
-    const targetZone = zones.find((z) => z.id === overId);
-    if (targetZone) {
-      return targetZone.id;
-    }
-    return findZoneForInstance(overId);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveResolved(null);
-
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    const sourceZoneId = findZoneForInstance(activeId);
-    const targetZoneId = getTargetZoneId(overId);
-
-    if (targetZoneId && sourceZoneId !== targetZoneId) {
-      assignActivityToZone(activeId, targetZoneId);
-    }
-
-    if (activeId !== overId) {
-      const newItems = getReorderedItems(
-        resolvedActivities,
-        event,
-        ({ instance }) => instance.id,
-      );
-      if (newItems) {
-        reorderPlannedActivities(newItems.map(({ instance }) => instance.id));
-      }
-    }
-  };
-
-  const handleManageZones = () => {
-    setIsZoneManagerOpen(true);
-  };
-
-  const handleCreateActivity = (
-    onCreatedWithType?: (type: "one-off" | "repeating") => void,
-  ) => {
-    // Pass current context (date and active zone). If creating with a zone
-    // context, also close this modal so the user immediately sees the new activity.
-    const closeThisModal =
-      activeZoneId != null
-        ? () => {
-            setIsModalOpen(false);
-            setActiveZoneId(null);
-          }
-        : undefined;
-
-    onOpenCreateActivity(
-      { date: currentDate, zoneId: activeZoneId || undefined },
-      closeThisModal,
-      onCreatedWithType,
-    );
-  };
+    reorderActivities,
+    reorderRepeatingActivities,
+    isModalOpen,
+    isZoneManagerOpen,
+    activeResolved,
+    sensors,
+    handleOpenManageActivities,
+    handleCloseModal,
+    handleOpenModalForZone,
+    handleAddToPlanForZone,
+    handleManageZones,
+    handleCloseZoneManager,
+    handleCreateActivity,
+    handleDragStart,
+    handleDragEnd,
+  } = useDayPlannerState({ onOpenCreateActivity });
 
   if (isLoading) {
     return <DayPlannerSkeleton />;
@@ -231,9 +90,9 @@ export function DayPlanner({
       <DateSelectorRow>
         <DateSelector
           currentDate={currentDate}
-          onGoToToday={onGoToToday}
-          onNextDay={onNextDay}
-          onPreviousDay={onPreviousDay}
+          onGoToToday={goToToday}
+          onNextDay={goToNextDay}
+          onPreviousDay={goToPreviousDay}
           viewingToday={viewingToday}
         />
       </DateSelectorRow>
@@ -251,7 +110,7 @@ export function DayPlanner({
           </Button>
           <Button
             leftIcon={<Plus size={16} />}
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenManageActivities}
           >
             Manage Activities
           </Button>
@@ -275,7 +134,6 @@ export function DayPlanner({
             const used = usage[type.id] || 0;
             const cap = dailyCapacity[type.id] || 0;
             const isOver = used > cap && cap > 0;
-            // Both bars are expressed as % of 100 (max scale)
             const usagePercent = Math.min(used, 100);
             const capacityPercent = Math.min(cap, 100);
 
@@ -373,10 +231,7 @@ export function DayPlanner({
         availableActivities={availableActivities}
         isOpen={isModalOpen}
         onAddActivity={handleAddToPlanForZone}
-        onClose={() => {
-          setIsModalOpen(false);
-          setActiveZoneId(null);
-        }}
+        onClose={handleCloseModal}
         onDeleteActivity={removeActivity}
         onEditActivity={onEditActivity}
         onOpenCreateActivity={handleCreateActivity}
@@ -388,7 +243,7 @@ export function DayPlanner({
       <ZoneManagerModal
         isOpen={isZoneManagerOpen}
         onAddZone={addZone}
-        onClose={() => setIsZoneManagerOpen(false)}
+        onClose={handleCloseZoneManager}
         onRemoveZone={removeZone}
         onReorderZones={reorderZones}
         onUpdateZone={updateZone}
@@ -410,7 +265,7 @@ const UsageRow = styled.tr`
   display: flex;
   align-items: center;
   gap: 12px;
-  
+
   &:not(:last-child) {
     margin-bottom: 12px;
   }
