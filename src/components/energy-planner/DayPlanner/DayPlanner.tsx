@@ -8,7 +8,6 @@ import {
   rectIntersection,
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Pencil, Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
@@ -21,6 +20,7 @@ import { PlannedActivityCard } from "../PlannerActivityCard";
 import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
 import { ZoneSection } from "../ZoneSection";
+import { EnergyUsageTable } from "./EnergyUsageTable";
 import { useDayPlannerState } from "./useDayPlannerState";
 
 interface DayPlannerProps {
@@ -117,48 +117,11 @@ export function DayPlanner({
         </ButtonGroup>
       </Header>
 
-      <UsageSection>
-        <VisuallyHidden asChild>
-          <caption>Energy Usage vs Capacity</caption>
-        </VisuallyHidden>
-        <VisuallyHidden asChild>
-          <thead>
-            <tr>
-              <th scope="col">Energy Type</th>
-              <th scope="col">Usage</th>
-            </tr>
-          </thead>
-        </VisuallyHidden>
-        <tbody>
-          {energyTypes.map((type) => {
-            const used = usage[type.id] || 0;
-            const cap = dailyCapacity[type.id] || 0;
-            const isOver = used > cap && cap > 0;
-            const usagePercent = Math.min(used, 100);
-            const capacityPercent = Math.min(cap, 100);
-
-            return (
-              <UsageRow key={type.id}>
-                <UsageLabel>{type.label}</UsageLabel>
-                <UsageValue>
-                  <Track>
-                    {/* Capacity bar — subtler, behind usage */}
-                    <CapacityFill
-                      $color={type.color}
-                      $percent={capacityPercent}
-                    />
-                    {/* Usage bar — solid, on top */}
-                    <Fill $color={type.color} $percent={usagePercent} />
-                  </Track>
-                  <UsageText $isOver={isOver}>
-                    {used} / {cap}
-                  </UsageText>
-                </UsageValue>
-              </UsageRow>
-            );
-          })}
-        </tbody>
-      </UsageSection>
+      <EnergyUsageTable
+        dailyCapacity={dailyCapacity}
+        energyTypes={energyTypes}
+        usage={usage}
+      />
 
       {viewingToday && warning.exceeded ? (
         <Warning>{warning.message}</Warning>
@@ -255,99 +218,6 @@ export function DayPlanner({
 
 const DateSelectorRow = styled.div`
   margin-bottom: 8px;
-`;
-
-const UsageSection = styled.table`
-  isolation: isolate;
-`;
-
-const UsageRow = styled.tr`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  &:not(:last-child) {
-    margin-bottom: 12px;
-  }
-`;
-
-const UsageLabel = styled.td`
-  display: inline-block;
-  width: 80px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: light-dark(var(--color-grey-600), var(--color-grey-300));
-`;
-
-const UsageValue = styled.td`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-`;
-
-const Track = styled.div`
-  flex: 1;
-  height: 14px;
-  background-color: light-dark(var(--color-grey-200), var(--color-grey-800));
-  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-  border-radius: 7px;
-  position: relative;
-  overflow: hidden;
-`;
-
-const Fill = styled.div<{ $color: string; $percent: number }>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  transform: scaleX(${({ $percent }) => $percent / 100});
-  transform-origin: left;
-  background-color: ${({ $color }) => $color};
-  border-radius: 7px;
-  transition: transform 0.3s ease;
-  z-index: 2;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const CapacityFill = styled.div<{ $color: string; $percent: number }>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: ${({ $percent }) => $percent}%;
-  /* Diagonal stripes clearly distinguish capacity ceiling from solid usage */
-  background-image: repeating-linear-gradient(
-    -45deg,
-    ${({ $color }) => $color} 0px,
-    ${({ $color }) => $color} 3px,
-    transparent 3px,
-    transparent 8px
-  );
-  opacity: 0.55;
-  border-radius: 7px;
-  transition: transform 0.3s ease;
-  z-index: 1;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const UsageText = styled.div<{ $isOver: boolean }>`
-  width: 60px;
-  text-align: right;
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: ${({ $isOver }) => ($isOver ? "700" : "500")};
-  color: ${({ $isOver }) =>
-    $isOver
-      ? "light-dark(var(--color-orange-700), var(--color-orange-400))"
-      : "light-dark(var(--color-grey-700), var(--color-grey-300))"};
 `;
 
 const Container = styled.section`
