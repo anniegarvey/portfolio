@@ -1,13 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import type {
   Activity,
   DayPlan,
   PlannedInstance,
   ResolvedActivity,
 } from "@/lib/energy-planner/schema";
+import {
+  calculateNextDueDate,
+  checkIsActivityDue,
+  mergeInstancesWithOrder,
+  projectedInstanceId,
+} from "./dayPlanUtils";
 import {
   createEmptyDayPlan,
   defaultCapacity,
@@ -17,83 +23,6 @@ import {
   getTodayDateString,
   saveDayPlanForDate,
 } from "./utils";
-
-function checkIsActivityDue(activity: Activity, date: string): boolean {
-  if (!activity.repeatConfig?.nextDueDate) return false;
-  const start = new Date(activity.repeatConfig.nextDueDate);
-  const target = new Date(date);
-
-  // Ignore time components
-  start.setHours(0, 0, 0, 0);
-  target.setHours(0, 0, 0, 0);
-
-  const diffTime = target.getTime() - start.getTime();
-  if (diffTime < 0) return false;
-
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-  const { frequency, unit } = activity.repeatConfig;
-
-  if (unit === "days") {
-    return diffDays % frequency === 0;
-  }
-  if (unit === "weeks") {
-    return diffDays % (frequency * 7) === 0;
-  }
-  if (unit === "months") {
-    if (target.getDate() !== start.getDate()) return false;
-    const months =
-      (target.getFullYear() - start.getFullYear()) * 12 +
-      (target.getMonth() - start.getMonth());
-    return months % frequency === 0;
-  }
-  if (unit === "years") {
-    if (target.getDate() !== start.getDate()) return false;
-    if (target.getMonth() !== start.getMonth()) return false;
-    const years = target.getFullYear() - start.getFullYear();
-    return years % frequency === 0;
-  }
-  return false;
-}
-
-// UUID v5 URL namespace — gives projected instances a stable, deterministic ID
-// so activityOrder entries survive page reloads.
-const PROJECTED_INSTANCE_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-
-function projectedInstanceId(sourceActivityId: string, date: string): string {
-  return uuidv5(`${sourceActivityId}:${date}`, PROJECTED_INSTANCE_NAMESPACE);
-}
-
-/**
- * Merge instances into a persisted order.
- * Instances in storedOrder are placed first in their stored positions,
- * then any new instances (not in storedOrder) are appended.
- */
-function mergeInstancesWithOrder(
-  instances: PlannedInstance[],
-  storedOrder: string[] | undefined,
-): PlannedInstance[] {
-  if (!storedOrder || storedOrder.length === 0) {
-    return instances;
-  }
-
-  const instanceMap = new Map(instances.map((i) => [i.id, i]));
-  const ordered: PlannedInstance[] = [];
-
-  for (const id of storedOrder) {
-    const instance = instanceMap.get(id);
-    if (instance) {
-      ordered.push(instance);
-      instanceMap.delete(id);
-    }
-  }
-
-  // Append any instances not in the stored order (newly projected)
-  for (const instance of instanceMap.values()) {
-    ordered.push(instance);
-  }
-
-  return ordered;
-}
 
 export function useDayPlan(
   repeatingActivities: Activity[] = [],
@@ -119,32 +48,6 @@ export function useDayPlan(
   dayPlanRef.current = dayPlan;
   const isLoadingRef = useRef(isLoading);
   isLoadingRef.current = isLoading;
-
-  const isActivityDueOnDate = useCallback(
-    (activity: Activity, date: string) => checkIsActivityDue(activity, date),
-    [],
-  );
-
-  const calculateNextDueDate = useCallback(
-    (
-      currentDueDate: string | undefined,
-      config: Activity["repeatConfig"],
-    ): string | undefined => {
-      if (!(config && currentDueDate)) return;
-      const date = new Date(currentDueDate);
-      const { frequency, unit } = config;
-
-      // Use UTC methods to stay on the correct calendar date regardless of local time
-      if (unit === "days") date.setUTCDate(date.getUTCDate() + frequency);
-      if (unit === "weeks") date.setUTCDate(date.getUTCDate() + frequency * 7);
-      if (unit === "months") date.setUTCMonth(date.getUTCMonth() + frequency);
-      if (unit === "years")
-        date.setUTCFullYear(date.getUTCFullYear() + frequency);
-
-      return date.toISOString().split("T")[0];
-    },
-    [],
-  );
 
   // Load day plan when date changes
   useEffect(() => {
@@ -183,7 +86,7 @@ export function useDayPlan(
 
       const projectedInstances: PlannedInstance[] = repeatingActivities
         .filter((ra) => !storedSourceIds.has(ra.id))
-        .filter((ra) => isActivityDueOnDate(ra, currentDate))
+        .filter((ra) => checkIsActivityDue(ra, currentDate))
         .map(
           (ra): PlannedInstance => ({
             id: projectedInstanceId(ra.id, currentDate),
@@ -217,7 +120,7 @@ export function useDayPlan(
     return () => {
       cancelled = true;
     };
-  }, [currentDate, repeatingActivities, isActivityDueOnDate]);
+  }, [currentDate, repeatingActivities]);
 
   // Save day plan when it changes
   useEffect(() => {
@@ -235,49 +138,46 @@ export function useDayPlan(
     }
   }, [dayPlan, currentDate, isLoading]);
 
-  const toggleActivityCompletion = useCallback(
-    (instanceId: string) => {
-      storeDayPlan((prev) => {
-        const idx = prev.plannedInstances.findIndex((i) => i.id === instanceId);
-        if (idx === -1) return prev;
+  const toggleActivityCompletion = useCallback((instanceId: string) => {
+    storeDayPlan((prev) => {
+      const idx = prev.plannedInstances.findIndex((i) => i.id === instanceId);
+      if (idx === -1) return prev;
 
-        const instance = prev.plannedInstances[idx];
-        const isCompleting = !instance.completed;
-        const updatedInstance: PlannedInstance = {
-          ...instance,
-          completed: isCompleting,
-          // Solidify on any interaction
-          isProjected: undefined,
-        };
+      const instance = prev.plannedInstances[idx];
+      const isCompleting = !instance.completed;
+      const updatedInstance: PlannedInstance = {
+        ...instance,
+        completed: isCompleting,
+        // Solidify on any interaction
+        isProjected: undefined,
+      };
 
-        const newInstances = [...prev.plannedInstances];
-        newInstances[idx] = updatedInstance;
+      const newInstances = [...prev.plannedInstances];
+      newInstances[idx] = updatedInstance;
 
-        // When completing a projected repeating instance, advance the nextDueDate
-        if (isCompleting && instance.isProjected) {
-          const repeatingActivity = repeatingActivitiesRef.current.find(
-            (ra) => ra.id === instance.sourceActivityId,
+      // When completing a projected repeating instance, advance the nextDueDate
+      if (isCompleting && instance.isProjected) {
+        const repeatingActivity = repeatingActivitiesRef.current.find(
+          (ra) => ra.id === instance.sourceActivityId,
+        );
+        if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
+          const nextDate = calculateNextDueDate(
+            repeatingActivity.repeatConfig.nextDueDate,
+            repeatingActivity.repeatConfig,
           );
-          if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
-            const nextDate = calculateNextDueDate(
-              repeatingActivity.repeatConfig.nextDueDate,
-              repeatingActivity.repeatConfig,
-            );
-            onUpdateActivityRef.current({
-              ...repeatingActivity,
-              repeatConfig: {
-                ...repeatingActivity.repeatConfig,
-                nextDueDate: nextDate,
-              },
-            });
-          }
+          onUpdateActivityRef.current({
+            ...repeatingActivity,
+            repeatConfig: {
+              ...repeatingActivity.repeatConfig,
+              nextDueDate: nextDate,
+            },
+          });
         }
+      }
 
-        return { ...prev, plannedInstances: newInstances };
-      });
-    },
-    [calculateNextDueDate],
-  );
+      return { ...prev, plannedInstances: newInstances };
+    });
+  }, []);
 
   // Mark an instance as complete on a specific date (for uncompleted activities)
   const markActivityCompleteOnDate = useCallback(
@@ -499,12 +399,7 @@ export function useDayPlan(
         }
       }
     },
-    [
-      calculateNextDueDate,
-      currentDate,
-      dayPlan.plannedInstances,
-      deleteFromPlan,
-    ],
+    [currentDate, dayPlan.plannedInstances, deleteFromPlan],
   );
 
   const reorderPlannedActivitiesWithIds = useCallback((itemIds: string[]) => {
