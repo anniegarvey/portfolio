@@ -8,10 +8,10 @@ import type { Activity } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
 import { DayPlannerSkeleton } from "../DayPlannerSkeleton";
-import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
 import { EnergyUsageTable } from "./EnergyUsageTable";
 import { PlannedActivitiesDndSection } from "./PlannedActivitiesDndSection";
+import { UncompletedActivitiesSection } from "./UncompletedActivitiesSection";
 import { useDayPlannerState } from "./useDayPlannerState";
 
 interface DayPlannerProps {
@@ -118,25 +118,7 @@ export function DayPlanner({
         <Warning>{warning.message}</Warning>
       ) : null}
 
-      {viewedUncompletedActivities.length > 0 ? (
-        <UncompletedSection data-testid="uncompleted-activities">
-          <UncompletedHeader>
-            Uncompleted Activities ({viewedUncompletedActivities.length})
-          </UncompletedHeader>
-          <UncompletedList>
-            {viewedUncompletedActivities.map(
-              ({ activity, instanceId, fromDate }) => (
-                <UncompletedActivityCard
-                  activity={activity}
-                  fromDate={fromDate}
-                  instanceId={instanceId}
-                  key={`${instanceId}-${fromDate}`}
-                />
-              ),
-            )}
-          </UncompletedList>
-        </UncompletedSection>
-      ) : null}
+      <UncompletedActivitiesSection activities={viewedUncompletedActivities} />
 
       <PlannedActivitiesDndSection
         activeResolved={activeResolved}
@@ -229,24 +211,4 @@ const Warning = styled.div`
   font-weight: 500;
   font-size: 0.875rem;
   border: 1px solid var(--color-orange-300);
-`;
-
-const UncompletedSection = styled.section`
-  background-color: light-dark(var(--color-orange-50), oklch(25% 0.05 50));
-  border: 1px solid var(--color-orange-300);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
-`;
-
-const UncompletedHeader = styled.h3`
-  color: light-dark(var(--color-orange-900), var(--color-orange-100));
-  margin-bottom: 12px;
-  font-size: 0.95rem;
-`;
-
-const UncompletedList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 `;
