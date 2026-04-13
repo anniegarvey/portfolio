@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  DndContext,
-  type DraggableAttributes,
-  type DraggableSyntheticListeners,
-  DragOverlay,
-  rectIntersection,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Pencil, Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
@@ -16,11 +8,10 @@ import type { Activity } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
 import { DayPlannerSkeleton } from "../DayPlannerSkeleton";
-import { PlannedActivityCard } from "../PlannerActivityCard";
 import { UncompletedActivityCard } from "../UncompletedActivityCard";
 import { ZoneManagerModal } from "../ZoneManagerModal";
-import { ZoneSection } from "../ZoneSection";
 import { EnergyUsageTable } from "./EnergyUsageTable";
+import { PlannedActivitiesDndSection } from "./PlannedActivitiesDndSection";
 import { useDayPlannerState } from "./useDayPlannerState";
 
 interface DayPlannerProps {
@@ -147,48 +138,21 @@ export function DayPlanner({
         </UncompletedSection>
       ) : null}
 
-      <SelectedSection>
-        <DndContext
-          collisionDetection={rectIntersection}
-          modifiers={[restrictToVerticalAxis]}
-          onDragEnd={handleDragEnd}
-          onDragStart={handleDragStart}
-          sensors={sensors}
-        >
-          <ZonesContainer data-testid="selected-activities">
-            {zones.map((zone) => (
-              <ZoneSection
-                activities={activitiesByZone.get(zone.id) ?? []}
-                dayContext={dayContext}
-                key={zone.id}
-                onAddActivity={() => handleOpenModalForZone(zone.id)}
-                onEditActivity={onEditActivity}
-                onManageZones={handleManageZones}
-                onMove={moveActivityToDate}
-                onRemove={removeFromPlan}
-                onToggleCompletion={toggleActivityCompletion}
-                zone={zone}
-              />
-            ))}
-          </ZonesContainer>
-          <DragOverlay>
-            {activeResolved ? (
-              <PlannedActivityCard
-                activity={activeResolved.activity}
-                completed={activeResolved.instance.completed}
-                dayContext={dayContext}
-                dragHandleProps={{
-                  listeners: {} as DraggableSyntheticListeners,
-                  attributes: {} as DraggableAttributes,
-                  ref: () => {},
-                }}
-                instance={activeResolved.instance}
-                onEdit={onEditActivity}
-              />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </SelectedSection>
+      <PlannedActivitiesDndSection
+        activeResolved={activeResolved}
+        activitiesByZone={activitiesByZone}
+        dayContext={dayContext}
+        onAddActivity={handleOpenModalForZone}
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
+        onEditActivity={onEditActivity}
+        onManageZones={handleManageZones}
+        onMove={moveActivityToDate}
+        onRemove={removeFromPlan}
+        onToggleCompletion={toggleActivityCompletion}
+        sensors={sensors}
+        zones={zones}
+      />
 
       <AvailableActivitiesModal
         availableActivities={availableActivities}
@@ -285,17 +249,4 @@ const UncompletedList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-`;
-
-const SelectedSection = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const ZonesContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-inline: -12px;
 `;
