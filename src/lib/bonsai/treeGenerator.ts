@@ -1,45 +1,21 @@
 import type { PrunedBranch } from "./schema";
 import type { SpeciesConfig } from "./speciesConfig";
+import {
+  lerp,
+  r,
+  seededInt,
+  seededVal,
+  taperedPath,
+  trunkCentreX,
+} from "./treeGenerator.math";
+import type {
+  BranchSpec,
+  Leaf,
+  RenderedBranch,
+  TreeSVGData,
+} from "./treeGenerator.types";
 
-// ─── Output Types ─────────────────────────────────────────────────────────────
-
-export interface Leaf {
-  /** Stable React key — unique within this branch's leaf cluster. */
-  id: string;
-  cx: number;
-  cy: number;
-  /** For needles: half-length. For ovals/scale: half-width. For palmate/lobed: overall scale. */
-  rx: number;
-  /** For needles: half-thickness (always small). For ovals/scale: half-height. */
-  ry: number;
-  /** Rotation in degrees — needle direction, leaf tilt, etc. */
-  angleDeg: number;
-}
-
-export interface RenderedBranch {
-  id: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  pathData: string; // tapered filled shape
-  depth: number;
-  leaves: Leaf[];
-  isPruned: boolean;
-  isTerminal: boolean;
-}
-
-export interface TreeSVGData {
-  viewBox: string;
-  trunkX: number;
-  trunkBaseY: number;
-  trunkTopY: number;
-  trunkTopX: number; // offset from centre due to curvature
-  trunkPathData: string;
-  branches: RenderedBranch[];
-  /** Leaf cluster at the trunk apex — always rendered, never prunable. */
-  apexLeaves: Leaf[];
-}
+export type { BranchSpec, Leaf, RenderedBranch, TreeSVGData };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -64,98 +40,7 @@ export function computeTrunkHeight(
   return maxH > 0 ? (maxH * rawGrowth) / (maxH + rawGrowth) : 0;
 }
 
-// ─── Seeded Randomness ────────────────────────────────────────────────────────
-
-/** Returns a deterministic value in [0, 1) for a given string key + index.
- *  Consistent across renders for the same inputs. */
-function seededVal(key: string, index: number): number {
-  let h = index * 2654435761;
-  for (let i = 0; i < key.length; i++) {
-    h = Math.imul(h ^ key.charCodeAt(i), 2246822519);
-    h ^= h >>> 13;
-  }
-  h = Math.imul(h ^ (h >>> 16), 2246822519);
-  return ((h >>> 0) & 0xffff) / 0x10000;
-}
-
-/** Linear interpolate between a and b, clamped to [0,1]. */
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * Math.min(Math.max(t, 0), 1);
-}
-
-/** Round to 1 decimal place — reduces SVG path string size without visible loss. */
-function r(n: number): number {
-  return Math.round(n * 10) / 10;
-}
-
-/** Random integer in [min, max] using seededVal. */
-function seededInt(
-  key: string,
-  index: number,
-  min: number,
-  max: number,
-): number {
-  return min + Math.floor(seededVal(key, index) * (max - min + 1));
-}
-
-// ─── Geometry Helpers ─────────────────────────────────────────────────────────
-
-/** Tapered filled quadrilateral path from (x1,y1) [width w1] to (x2,y2) [width w2].
- *  Sides are gently curved outward using quadratic bezier for an organic look. */
-/** curveBias: lateral offset (SVG units) at midpoint — positive bends toward the perpendicular,
- *  negative away. Creates gently curved organic branches instead of straight ones. */
-function taperedPath(
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  w1: number,
-  w2: number,
-  curveBias = 0,
-): string {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const len = Math.sqrt(dx * dx + dy * dy);
-  if (len < 0.001) return "";
-
-  const px = -dy / len; // unit perpendicular x
-  const py = dx / len; // unit perpendicular y
-
-  const ax = x1 + px * w1;
-  const ay = y1 + py * w1;
-  const bx = x1 - px * w1;
-  const by = y1 - py * w1;
-  const cx = x2 + px * w2;
-  const cy = y2 + py * w2;
-  const dx2 = x2 - px * w2;
-  const dy2 = y2 - py * w2;
-
-  // Shift the midpoint laterally by curveBias to curve the branch centreline
-  const mx = (x1 + x2) / 2 + px * curveBias;
-  const my = (y1 + y2) / 2 + py * curveBias;
-  const cp1x = mx + px * (w1 * 0.85);
-  const cp1y = my + py * (w1 * 0.85);
-  const cp2x = mx - px * (w1 * 0.85);
-  const cp2y = my - py * (w1 * 0.85);
-
-  return `M ${r(ax)} ${r(ay)} Q ${r(cp1x)} ${r(cp1y)} ${r(cx)} ${r(cy)} L ${r(dx2)} ${r(dy2)} Q ${r(cp2x)} ${r(cp2y)} ${r(bx)} ${r(by)} Z`;
-}
-
-/** Quadratic bezier point at parameter t. */
-function qbez(p0: number, p1: number, p2: number, t: number): number {
-  const mt = 1 - t;
-  return mt * mt * p0 + 2 * mt * t * p1 + t * t * p2;
-}
-
-/** Find the x position on the curved trunk centreline at height fraction t (0=base, 1=top). */
-function trunkCentreX(
-  t: number,
-  baseX: number,
-  cpX: number,
-  topX: number,
-): number {
-  return qbez(baseX, cpX, topX, t);
-}
+// ─── Branch Logic Helpers ─────────────────────────────────────────────────────
 
 /** Ancestor IDs for pruning propagation: "L0-a-b" → ["L0", "L0-a"]. */
 function buildAncestors(id: string): string[] {
@@ -313,23 +198,7 @@ function generateLeaves(
   return leaves;
 }
 
-// ─── Branch Spec ─────────────────────────────────────────────────────────────
-
-interface BranchSpec {
-  id: string;
-  appearsAtDay: number;
-  x1: number;
-  y1: number;
-  fulltipX: number;
-  fulltipY: number; // position at full growth (for child attachment)
-  angle: number;
-  maxLength: number;
-  baseWidth: number;
-  tipWidth: number;
-  depth: number;
-  /** Lateral midpoint offset for taperedPath — gives each branch its own gentle curve. */
-  curveBias: number;
-}
+// ─── Branch Tree Builder ──────────────────────────────────────────────────────
 
 function buildBranchTree(
   id: string,
