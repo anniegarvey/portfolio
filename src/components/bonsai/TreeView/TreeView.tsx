@@ -13,7 +13,12 @@ import {
   Square,
 } from "lucide-react";
 import { keyframes, styled } from "next-yak";
-import { type KeyboardEvent, useCallback, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useCallback,
+  useState,
+} from "react";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import {
   type ActiveTool,
@@ -23,7 +28,12 @@ import {
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { FERTILISER_EFFECTS, SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
-import type { BonsaiTree, FertiliserId } from "@/lib/bonsai/schema";
+import type {
+  BonsaiTree,
+  FertiliserId,
+  PotId,
+  StandId,
+} from "@/lib/bonsai/schema";
 import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 
@@ -89,30 +99,47 @@ function WaterableSVGContainer({
   );
 }
 
-// ─── Pot Dropdown ─────────────────────────────────────────────────────────────
+// ─── Accessory Dropdown (generic) ────────────────────────────────────────────
 
-function PotDropdown({
+function AccessoryDropdown({
   tree,
+  noun,
+  items,
+  equippedId,
+  onEquip,
+  onUnequip,
+  icon,
+  shopAnchorId,
+  cheapestPrice,
+  getEquippedId,
   onNavigateToShop,
 }: {
   tree: BonsaiTree;
+  noun: string;
+  items: string[];
+  equippedId: string | undefined;
+  onEquip: (id: string) => void;
+  onUnequip?: () => void;
+  icon: ReactNode;
+  shopAnchorId: string;
+  cheapestPrice: number;
+  getEquippedId: (t: BonsaiTree) => string | undefined;
   onNavigateToShop: (itemId: string) => void;
 }) {
-  const { state, equipPot } = useBonsai();
-  const ownedPotIds = state.inventory.ownedPotIds;
+  const { state } = useBonsai();
 
-  if (ownedPotIds.length === 0) {
+  if (items.length === 0) {
     return (
       <LockedToolBtn
-        onClick={() => onNavigateToShop("simple-clay-small")}
-        title="Buy a Pot"
+        onClick={() => onNavigateToShop(shopAnchorId)}
+        title={`Buy a ${noun}`}
         type="button"
       >
-        <Square size={13} />
-        Pot
+        {icon}
+        {noun}
         <ToolPrice>
           <Coins size={12} />
-          From {CHEAPEST_POT_PRICE}
+          From {cheapestPrice}
         </ToolPrice>
       </LockedToolBtn>
     );
@@ -120,37 +147,49 @@ function PotDropdown({
 
   const equippedByOthers = state.trees
     .filter((t) => t.id !== tree.id)
-    .flatMap((t) => (t.equippedPotId ? [t.equippedPotId] : []));
-  const uniquePots = [...new Set(ownedPotIds)];
+    .flatMap((t) => {
+      const id = getEquippedId(t);
+      return id ? [id] : [];
+    });
+  const uniqueItems = [...new Set(items)];
 
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <AccessoryBtn title="Change Pot" type="button">
-          <Square size={13} />
-          Pot
+        <AccessoryBtn title={`Change ${noun}`} type="button">
+          {icon}
+          {noun}
           <ChevronDown size={11} />
         </AccessoryBtn>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownContent align="start" sideOffset={4}>
-          <DropdownLabel>Choose a Pot</DropdownLabel>
-          {uniquePots.map((potId) => {
-            const countOwned = ownedPotIds.filter((p) => p === potId).length;
+          <DropdownLabel>Choose a {noun}</DropdownLabel>
+          {onUnequip && (
+            <DropdownItem
+              data-active={!equippedId || undefined}
+              onSelect={onUnequip}
+            >
+              No {noun.toLowerCase()}
+              {!equippedId && <EquippedTag>Equipped</EquippedTag>}
+            </DropdownItem>
+          )}
+          {uniqueItems.map((itemId) => {
+            const countOwned = items.filter((i) => i === itemId).length;
             const countUsedElsewhere = equippedByOthers.filter(
-              (p) => p === potId,
+              (i) => i === itemId,
             ).length;
             const available = countOwned - countUsedElsewhere > 0;
-            const isEquipped = tree.equippedPotId === potId;
+            const isEquipped = equippedId === itemId;
             const label =
-              SHOP_CATALOG.find((i) => i.id === potId)?.label ?? potId;
+              SHOP_CATALOG.find((i) => i.id === itemId)?.label ?? itemId;
 
             return (
               <DropdownItem
                 data-active={isEquipped || undefined}
                 disabled={!(available || isEquipped)}
-                key={potId}
-                onSelect={() => equipPot(tree.id, potId)}
+                key={itemId}
+                onSelect={() => onEquip(itemId)}
               >
                 {label}
                 {isEquipped && <EquippedTag>Equipped</EquippedTag>}
@@ -161,13 +200,39 @@ function PotDropdown({
             );
           })}
           <DropdownSeparator />
-          <DropdownItem onSelect={() => onNavigateToShop("simple-clay-small")}>
+          <DropdownItem onSelect={() => onNavigateToShop(shopAnchorId)}>
             <ShoppingBag size={12} />
             Buy more in shop
           </DropdownItem>
         </DropdownContent>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  );
+}
+
+// ─── Pot Dropdown ─────────────────────────────────────────────────────────────
+
+function PotDropdown({
+  tree,
+  onNavigateToShop,
+}: {
+  tree: BonsaiTree;
+  onNavigateToShop: (itemId: string) => void;
+}) {
+  const { state, equipPot } = useBonsai();
+  return (
+    <AccessoryDropdown
+      cheapestPrice={CHEAPEST_POT_PRICE}
+      equippedId={tree.equippedPotId}
+      getEquippedId={(t) => t.equippedPotId}
+      icon={<Square size={13} />}
+      items={state.inventory.ownedPotIds}
+      noun="Pot"
+      onEquip={(id) => equipPot(tree.id, id as PotId)}
+      onNavigateToShop={onNavigateToShop}
+      shopAnchorId="simple-clay-small"
+      tree={tree}
+    />
   );
 }
 
@@ -181,84 +246,20 @@ function StandDropdown({
   onNavigateToShop: (itemId: string) => void;
 }) {
   const { state, equipStand, unequipStand } = useBonsai();
-  const ownedStandIds = state.inventory.ownedStandIds;
-
-  if (ownedStandIds.length === 0) {
-    return (
-      <LockedToolBtn
-        onClick={() => onNavigateToShop("bamboo-mat-small")}
-        title="Buy a Stand"
-        type="button"
-      >
-        <Sprout size={13} />
-        Stand
-        <ToolPrice>
-          <Coins size={12} />
-          From {CHEAPEST_STAND_PRICE}
-        </ToolPrice>
-      </LockedToolBtn>
-    );
-  }
-
-  const equippedByOthers = state.trees
-    .filter((t) => t.id !== tree.id)
-    .flatMap((t) => (t.equippedStandId ? [t.equippedStandId] : []));
-  const uniqueStands = [...new Set(ownedStandIds)];
-
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <AccessoryBtn title="Change Stand" type="button">
-          <Sprout size={13} />
-          Stand
-          <ChevronDown size={11} />
-        </AccessoryBtn>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownContent align="start" sideOffset={4}>
-          <DropdownLabel>Choose a Stand</DropdownLabel>
-          <DropdownItem
-            data-active={!tree.equippedStandId || undefined}
-            onSelect={() => unequipStand(tree.id)}
-          >
-            No stand
-            {!tree.equippedStandId && <EquippedTag>Equipped</EquippedTag>}
-          </DropdownItem>
-          {uniqueStands.map((standId) => {
-            const countOwned = ownedStandIds.filter(
-              (s) => s === standId,
-            ).length;
-            const countUsedElsewhere = equippedByOthers.filter(
-              (s) => s === standId,
-            ).length;
-            const available = countOwned - countUsedElsewhere > 0;
-            const isEquipped = tree.equippedStandId === standId;
-            const label =
-              SHOP_CATALOG.find((i) => i.id === standId)?.label ?? standId;
-
-            return (
-              <DropdownItem
-                data-active={isEquipped || undefined}
-                disabled={!(available || isEquipped)}
-                key={standId}
-                onSelect={() => equipStand(tree.id, standId)}
-              >
-                {label}
-                {isEquipped && <EquippedTag>Equipped</EquippedTag>}
-                {!(available || isEquipped) && (
-                  <UnavailableTag>In use</UnavailableTag>
-                )}
-              </DropdownItem>
-            );
-          })}
-          <DropdownSeparator />
-          <DropdownItem onSelect={() => onNavigateToShop("bamboo-mat-small")}>
-            <ShoppingBag size={12} />
-            Buy more in shop
-          </DropdownItem>
-        </DropdownContent>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+    <AccessoryDropdown
+      cheapestPrice={CHEAPEST_STAND_PRICE}
+      equippedId={tree.equippedStandId}
+      getEquippedId={(t) => t.equippedStandId}
+      icon={<Sprout size={13} />}
+      items={state.inventory.ownedStandIds}
+      noun="Stand"
+      onEquip={(id) => equipStand(tree.id, id as StandId)}
+      onNavigateToShop={onNavigateToShop}
+      onUnequip={() => unequipStand(tree.id)}
+      shopAnchorId="bamboo-mat-small"
+      tree={tree}
+    />
   );
 }
 
