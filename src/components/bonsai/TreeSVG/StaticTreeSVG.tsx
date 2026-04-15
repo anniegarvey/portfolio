@@ -22,6 +22,78 @@ const LOBED_LEAF_PATH =
   "C -0.5,0.8 -0.6,0.6 -0.45,0.45 C -0.65,0.3 -0.7,0.1 -0.5,0 " +
   "C -0.7,-0.15 -0.7,-0.35 -0.5,-0.45 C -0.55,-0.65 -0.3,-0.85 0,-1 Z";
 
+/**
+ * Wisteria pinnate compound leaf — a central rachis with 6 paired oval leaflets.
+ * Normalised so scale(leafSize) gives the right size; the rachis runs from ~(0,-1)
+ * to (0,1) and leaflets extend ±0.55 units to each side.
+ */
+function PinnateLeaf({
+  cx,
+  cy,
+  scale: s,
+  angleDeg,
+  fill,
+  id,
+}: {
+  cx: number;
+  cy: number;
+  scale: number;
+  angleDeg: number;
+  fill: string;
+  id: string;
+}) {
+  // 6 leaflet pairs distributed along the rachis from -0.75 to 0.75
+  const pairs = 6;
+  const leaflets: React.ReactNode[] = [];
+  for (let i = 0; i < pairs; i++) {
+    const t = -0.72 + (i / (pairs - 1)) * 1.44; // -0.72 → +0.72 along rachis
+    const lrx = s * 0.45;
+    const lry = s * 0.18;
+    const lAngle = 15 + i * 4; // slight upward tip angle
+    for (const side of [-1, 1]) {
+      const lx = cx + side * s * 0.52;
+      const ly = cy + t * s;
+      leaflets.push(
+        <ellipse
+          cx={lx}
+          cy={ly}
+          fill={fill}
+          key={`${id}-l${i}s${side}`}
+          rx={lrx}
+          ry={lry}
+          transform={`rotate(${side * lAngle} ${lx} ${ly})`}
+        />,
+      );
+    }
+  }
+  // Terminal leaflet at the tip
+  leaflets.push(
+    <ellipse
+      cx={cx}
+      cy={cy - s * 0.82}
+      fill={fill}
+      key={`${id}-tip`}
+      rx={s * 0.28}
+      ry={s * 0.42}
+    />,
+  );
+  return (
+    <g transform={`rotate(${angleDeg} ${cx} ${cy})`}>
+      <line
+        opacity={0.6}
+        stroke={fill}
+        strokeLinecap="round"
+        strokeWidth={s * 0.08}
+        x1={cx}
+        x2={cx}
+        y1={cy - s * 0.9}
+        y2={cy + s * 0.8}
+      />
+      {leaflets}
+    </g>
+  );
+}
+
 // ─── Seed / Sprout Stage ──────────────────────────────────────────────────────
 
 function clamp(v: number, lo: number, hi: number) {
@@ -153,6 +225,19 @@ function renderLeaves(
         />
       );
     }
+    if (leafShape === "pinnate") {
+      return (
+        <PinnateLeaf
+          angleDeg={leaf.angleDeg}
+          cx={leaf.cx}
+          cy={leaf.cy}
+          fill={foliageColor}
+          id={leaf.id}
+          key={leaf.id}
+          scale={leaf.rx}
+        />
+      );
+    }
     return (
       <ellipse
         cx={leaf.cx}
@@ -165,6 +250,196 @@ function renderLeaves(
       />
     );
   });
+}
+
+// ─── Flower Renderer ──────────────────────────────────────────────────────────
+
+import type { FlowerSpec } from "@/lib/bonsai/speciesConfig";
+import type { Flower } from "@/lib/bonsai/treeGenerator";
+
+function RacemeFlower({
+  flower,
+  flowerColor,
+  accent,
+}: {
+  flower: Flower;
+  flowerColor: string;
+  accent: string | undefined;
+}) {
+  const last = flower.racemeFlorets[flower.racemeFlorets.length - 1];
+  return (
+    <g key={flower.id} opacity={flower.progress}>
+      <line
+        stroke={flowerColor}
+        strokeOpacity={0.4}
+        strokeWidth={0.5}
+        x1={flower.cx}
+        x2={flower.cx}
+        y1={flower.cy}
+        y2={last?.cy ?? flower.cy}
+      />
+      {flower.racemeFlorets.map((f) => (
+        <g key={f.id} transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}>
+          <ellipse
+            cx={f.cx}
+            cy={f.cy - f.ry * 0.4}
+            fill={accent ?? flowerColor}
+            opacity={0.9}
+            rx={f.rx * 0.85}
+            ry={f.ry * 0.75}
+          />
+          <ellipse
+            cx={f.cx}
+            cy={f.cy + f.ry * 0.2}
+            fill={flowerColor}
+            rx={f.rx}
+            ry={f.ry}
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function ClusterFlower({
+  flower,
+  flowerColor,
+  accent,
+}: {
+  flower: Flower;
+  flowerColor: string;
+  accent: string | undefined;
+}) {
+  const centre = flower.florets[flower.florets.length - 1];
+  const petals = flower.florets.slice(0, -1);
+  return (
+    <g key={flower.id} opacity={flower.progress}>
+      {petals.map((f) => (
+        <ellipse
+          cx={f.cx}
+          cy={f.cy}
+          fill={flowerColor}
+          key={f.id}
+          rx={f.rx}
+          ry={f.ry}
+          transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}
+        />
+      ))}
+      {centre && (
+        <circle
+          cx={centre.cx}
+          cy={centre.cy}
+          fill={accent ?? flowerColor}
+          r={centre.rx}
+        />
+      )}
+    </g>
+  );
+}
+
+function CatkinFlower({
+  flower,
+  flowerColor,
+  accent,
+}: {
+  flower: Flower;
+  flowerColor: string;
+  accent: string | undefined;
+}) {
+  return (
+    <g key={flower.id} opacity={flower.progress}>
+      {flower.florets.map((f, i) => (
+        <ellipse
+          cx={f.cx}
+          cy={f.cy}
+          fill={i % 2 === 0 ? flowerColor : (accent ?? flowerColor)}
+          key={f.id}
+          rx={f.rx}
+          ry={f.ry}
+          transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}
+        />
+      ))}
+    </g>
+  );
+}
+
+function BerryFlower({
+  flower,
+  flowerColor,
+  accent,
+}: {
+  flower: Flower;
+  flowerColor: string;
+  accent: string | undefined;
+}) {
+  return (
+    <g key={flower.id} opacity={flower.progress}>
+      {flower.florets.map((f) => (
+        <g key={f.id}>
+          <circle cx={f.cx} cy={f.cy} fill={flowerColor} r={f.rx} />
+          <circle
+            cx={f.cx - f.rx * 0.28}
+            cy={f.cy - f.rx * 0.28}
+            fill={accent ?? "rgba(255,255,255,0.3)"}
+            opacity={0.55}
+            r={f.rx * 0.38}
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function FlowerLayer({
+  flowers,
+  flowerSpec,
+}: {
+  flowers: Flower[];
+  flowerSpec: FlowerSpec | undefined;
+}) {
+  if (!flowerSpec || flowers.length === 0) return null;
+  const { flowerShape, flowerColor, flowerColorAccent: accent } = flowerSpec;
+  return (
+    <g className="flowers">
+      {flowers.map((flower) => {
+        if (flowerShape === "raceme")
+          return (
+            <RacemeFlower
+              accent={accent}
+              flower={flower}
+              flowerColor={flowerColor}
+              key={flower.id}
+            />
+          );
+        if (flowerShape === "cluster")
+          return (
+            <ClusterFlower
+              accent={accent}
+              flower={flower}
+              flowerColor={flowerColor}
+              key={flower.id}
+            />
+          );
+        if (flowerShape === "catkin")
+          return (
+            <CatkinFlower
+              accent={accent}
+              flower={flower}
+              flowerColor={flowerColor}
+              key={flower.id}
+            />
+          );
+        return (
+          <BerryFlower
+            accent={accent}
+            flower={flower}
+            flowerColor={flowerColor}
+            key={flower.id}
+          />
+        );
+      })}
+    </g>
+  );
 }
 
 import { PotBodySVG, PotRimSVG } from "./PotSVG";
@@ -545,6 +820,8 @@ export function StaticTreeSVG({
         ))}
 
       {renderLeaves(svgData.apexLeaves, config.leafShape, config.foliageColor)}
+
+      <FlowerLayer flowerSpec={config.flowers} flowers={svgData.flowers} />
 
       {showSeed && (
         <SeedSprout

@@ -97,7 +97,7 @@ describe("SPECIES_CONFIG", () => {
   });
 
   it.each(speciesIds)("%s — leafShape is a recognised value", (id) => {
-    const valid = ["needle", "oval", "palmate", "lobed", "scale"];
+    const valid = ["needle", "oval", "palmate", "lobed", "scale", "pinnate"];
     expect(valid).toContain(SPECIES_CONFIG[id].leafShape);
   });
 
