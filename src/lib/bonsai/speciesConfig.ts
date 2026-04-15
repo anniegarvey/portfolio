@@ -233,8 +233,8 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Wisteria sinensis — fast-growing; cascade/semi-cascade. Drooping from upper trunk.
     label: "Wisteria",
     emoji: "🪻",
-    foliageColor: "#9b59b6",
-    foliageColorLight: "#c39bd3",
+    foliageColor: "#4a7a32",
+    foliageColorLight: "#6a9a48",
     trunkColor: "#6b5040",
     regrowthDays: 12,
     maxTrunkHeight: 145,
