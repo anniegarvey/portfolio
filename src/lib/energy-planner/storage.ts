@@ -34,7 +34,7 @@ export interface StoredDayPlan {
   plannedInstances?: PlannedInstance[];
   dailyCapacity: EnergyCost;
   activityOrder?: string[]; // Persisted order of instance IDs
-  skippedSourceActivityIds?: string[]; // Source IDs skipped for this date
+  skippedSourceActivityIds?: string[];
 }
 
 /**

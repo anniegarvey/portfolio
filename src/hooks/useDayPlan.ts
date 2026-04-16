@@ -385,8 +385,7 @@ export function useDayPlan(
       );
 
       if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
-        // Record the skip in the day plan so it survives a reload even if the
-        // activity's nextDueDate update hasn't been flushed to IndexedDB yet.
+        // Guard against reload before the activity's nextDueDate write persists.
         storeDayPlan((prev) => ({
           ...prev,
           plannedInstances: prev.plannedInstances.filter(
