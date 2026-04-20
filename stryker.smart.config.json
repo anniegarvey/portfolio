@@ -1,20 +1,10 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
-  "mutate": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "!src/**/*.test.ts",
-    "!src/**/*.test.tsx",
-    "!src/app/**/*.tsx"
-  ],
-  "plugins": [
-    "@stryker-mutator/vitest-runner",
-    "@stryker-mutator/typescript-checker"
-  ],
+  "plugins": ["@stryker-mutator/vitest-runner"],
   "testRunner": "vitest",
-  "reporters": ["progress", "clear-text", "html"],
+  "reporters": ["progress", "clear-text"],
   "coverageAnalysis": "perTest",
-  "checkers": ["typescript"],
+  "checkers": [],
   "tsconfigFile": "tsconfig.json",
   "vitest": {
     "configFile": "vitest.config.ts"
@@ -22,5 +12,6 @@
   "ignoreStatic": true,
   "incremental": true,
   "incrementalFile": "reports/stryker-incremental.json",
+  "ignorePatterns": ["/reports"],
   "concurrency": 2
 }

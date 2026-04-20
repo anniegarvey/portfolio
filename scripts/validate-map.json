@@ -25,6 +25,8 @@
     ".claude/**",
     ".husky/**",
     "scripts/**",
+    "stryker.config.json",
+    "stryker.smart.config.json",
     "images/**",
     "public/**",
     "docs/**",

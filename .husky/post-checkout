@@ -1,0 +1,13 @@
+#!/bin/sh
+# $3 == 1 means this is a worktree checkout (git worktree add), not a branch switch.
+# Symlink Stryker's incremental data file from the main repo so incremental
+# mode finds prior run data without copying the whole reports directory.
+if [ "$3" = "1" ]; then
+  MAIN_REPO=$(git worktree list | head -1 | awk '{print $1}')
+  [ -n "$MAIN_REPO" ] && [ "$MAIN_REPO" != "$(pwd)" ] || exit 0
+  INCREMENTAL="$MAIN_REPO/reports/stryker-incremental.json"
+  if [ -f "$INCREMENTAL" ] && [ ! -e "reports/stryker-incremental.json" ]; then
+    mkdir -p reports
+    ln -sf "$INCREMENTAL" reports/stryker-incremental.json
+  fi
+fi

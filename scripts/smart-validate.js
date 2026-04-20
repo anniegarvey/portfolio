@@ -22,8 +22,16 @@
 // directories without updating "areas" will be slow but never silently skip
 // tests. Fix it by adding the new path to "areas" (or "skip" if it needs no
 // tests).
+//
+// Stryker mutation testing
+// ─────────────────────────────────────────
+// Runs after the main parallel suite, scoped to staged non-test src files
+// (excluding src/app/). Skipped if no mutable files are staged.
+// Config: stryker.smart.config.json (no TypeScript checker, concurrency 2).
+// Timeout: STRYKER_TIMEOUT_MINUTES env var (default 60). On timeout, warns
+// and continues — logged to reports/stryker-timeouts.log.
 
-const { execSync } = require("node:child_process");
+const { execSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -69,9 +77,79 @@ function lintAndRestage(files) {
 }
 
 /**
+ * Returns staged non-test src files outside src/app/ — the files Stryker
+ * should mutate. These are the files that have testable logic and co-located
+ * unit tests.
+ */
+function getMutableFiles(files) {
+  return files.filter(
+    (f) =>
+      f.startsWith("src/") &&
+      !f.startsWith("src/app/") &&
+      /\.(ts|tsx)$/.test(f) &&
+      !/\.test\.(ts|tsx)$/.test(f),
+  );
+}
+
+/**
+ * Run Stryker mutation testing scoped to the given files. Uses
+ * stryker.smart.config.json (no TypeScript checker, concurrency 2).
+ * Exits non-zero if mutation score is below threshold. On timeout, warns and
+ * returns — the commit is not blocked, but the event is logged.
+ */
+function runStryker(mutableFiles) {
+  if (mutableFiles.length === 0) {
+    console.log("Stryker: no mutable source files staged — skipping.");
+    return;
+  }
+
+  const timeoutMinutes = Number(process.env.STRYKER_TIMEOUT_MINUTES ?? 60);
+  const timeoutMs = timeoutMinutes * 60 * 1000;
+  const mutatePattern = mutableFiles.join(",");
+
+  console.log(
+    `\nStryker: mutating ${mutableFiles.length} file(s) (timeout ${timeoutMinutes}min)…`,
+  );
+
+  const result = spawnSync(
+    "pnpm",
+    [
+      "exec",
+      "stryker",
+      "run",
+      "stryker.smart.config.json",
+      "--mutate",
+      mutatePattern,
+    ],
+    { stdio: "inherit", cwd: ROOT, timeout: timeoutMs },
+  );
+
+  const timedOut =
+    result.signal === "SIGTERM" ||
+    (result.error && result.error.code === "ETIMEDOUT");
+
+  if (timedOut) {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] timeout=${timeoutMinutes}min files=${mutatePattern}\n`;
+    const logPath = path.join(ROOT, "reports", "stryker-timeouts.log");
+    fs.mkdirSync(path.join(ROOT, "reports"), { recursive: true });
+    fs.appendFileSync(logPath, logLine);
+    console.warn(
+      `\nWarning: Stryker timed out after ${timeoutMinutes} minutes.` +
+        ` Event logged to reports/stryker-timeouts.log. Continuing without mutation score.`,
+    );
+    return;
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
+/**
  * Full-suite fallback: lint all files, restage touched staged files, then
  * run tsc + all tests + all e2e in parallel. Equivalent to `pnpm validate`
- * but with the restage step in between.
+ * but with the restage step in between. Followed by scoped Stryker run.
  */
 function runFullValidate() {
   run("pnpm exec biome check --error-on-warnings --fix");
@@ -85,6 +163,7 @@ function runFullValidate() {
     `pnpm exec concurrently --kill-others-on-fail --names "tsc,test,e2e"` +
       ` "pnpm exec tsc --noEmit" "pnpm test" "pnpm exec playwright test"`,
   );
+  runStryker(getMutableFiles(staged));
 }
 
 // --- Collect staged files ---
@@ -216,3 +295,7 @@ if (hasE2E) {
 const names = parallel.map((p) => p.name).join(",");
 const cmds = parallel.map((p) => `"${p.cmd}"`).join(" ");
 run(`pnpm exec concurrently --kill-others-on-fail --names "${names}" ${cmds}`);
+
+// --- Stryker mutation testing (after parallel suite passes) ---
+
+runStryker(getMutableFiles(staged));
