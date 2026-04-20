@@ -112,6 +112,7 @@ export const DayPlanSchema = z.object({
   plannedInstances: z.array(PlannedInstanceSchema).default([]),
   dailyCapacity: EnergyCostSchema,
   activityOrder: z.array(z.string()).optional(), // Persisted order of instance IDs
+  skippedSourceActivityIds: z.array(z.string()).optional(),
 });
 
 export type DayPlan = z.infer<typeof DayPlanSchema>;

@@ -831,6 +831,55 @@ describe("useDayPlan", () => {
         ),
       ).toBeUndefined();
     });
+
+    it("skipped activity does not re-appear after a simulated reload", async () => {
+      // Regression: "Skip this time" advanced nextDueDate on the activity record but
+      // the activity's nextDueDate update is async and may not reach IndexedDB before a
+      // page reload. The skip must also be recorded in the day plan so the activity is
+      // suppressed on reload even if the activity record hasn't been updated yet.
+      const today = new Date().toISOString().split("T")[0];
+      const activity = {
+        ...mockActivity("rep-reload", "Should Stay Skipped"),
+        repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
+      } as const;
+
+      // Stable list reference — prevents the load effect re-firing on every render
+      // (which would happen with an inline `[activity]` array).
+      const stableList = [activity];
+      const mockOnUpdateActivity = vi.fn();
+
+      const { result, unmount } = renderHook(() =>
+        useDayPlan(stableList, mockOnUpdateActivity),
+      );
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      const projected = result.current.dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === "rep-reload",
+      );
+      expect(projected).toBeDefined();
+      if (!projected) throw new Error("No projected instance found");
+
+      await act(async () => {
+        result.current.skipActivity(projected.id);
+      });
+
+      // Simulate a page reload: unmount the hook, then remount with the ORIGINAL
+      // (unmodified) activity list — this is the worst-case race condition where the
+      // activity's nextDueDate update never reached IndexedDB. The skip must be recorded
+      // in the day plan itself so it persists regardless.
+      unmount();
+
+      const { result: result2 } = renderHook(() =>
+        useDayPlan(stableList, vi.fn()),
+      );
+      await waitFor(() => expect(result2.current.isLoading).toBe(false));
+
+      // The skipped activity must NOT re-appear even with the original (unmodified) activity list
+      const reappeared = result2.current.dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === "rep-reload",
+      );
+      expect(reappeared).toBeUndefined();
+    });
   });
 
   describe("Navigation and moving to today", () => {

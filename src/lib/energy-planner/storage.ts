@@ -34,6 +34,7 @@ export interface StoredDayPlan {
   plannedInstances?: PlannedInstance[];
   dailyCapacity: EnergyCost;
   activityOrder?: string[]; // Persisted order of instance IDs
+  skippedSourceActivityIds?: string[];
 }
 
 /**
@@ -103,6 +104,13 @@ function toStoredDayPlan(plan: DayPlan): StoredDayPlan {
     stored.activityOrder = plan.activityOrder;
   }
 
+  if (
+    plan.skippedSourceActivityIds &&
+    plan.skippedSourceActivityIds.length > 0
+  ) {
+    stored.skippedSourceActivityIds = plan.skippedSourceActivityIds;
+  }
+
   return stored;
 }
 
@@ -115,6 +123,7 @@ function fromStoredDayPlan(date: string, stored: StoredDayPlan): DayPlan {
     plannedInstances: stored.plannedInstances ?? [],
     dailyCapacity: stored.dailyCapacity,
     activityOrder: stored.activityOrder,
+    skippedSourceActivityIds: stored.skippedSourceActivityIds,
   };
 }
 

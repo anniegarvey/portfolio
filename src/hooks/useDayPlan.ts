@@ -78,14 +78,17 @@ export function useDayPlan(
       }
 
       // Project repeating activities that don't already have a concrete instance
+      // and weren't explicitly skipped for this date
       const storedSourceIds = new Set(
         basePlan.plannedInstances
           .filter((i) => !i.isProjected)
           .map((i) => i.sourceActivityId),
       );
+      const skippedIds = new Set(basePlan.skippedSourceActivityIds ?? []);
 
       const projectedInstances: PlannedInstance[] = repeatingActivities
         .filter((ra) => !storedSourceIds.has(ra.id))
+        .filter((ra) => !skippedIds.has(ra.id))
         .filter((ra) => checkIsActivityDue(ra, currentDate))
         .map(
           (ra): PlannedInstance => ({
@@ -112,6 +115,7 @@ export function useDayPlan(
         dailyCapacity: basePlan.dailyCapacity,
         plannedInstances: orderedInstances,
         activityOrder: basePlan.activityOrder,
+        skippedSourceActivityIds: basePlan.skippedSourceActivityIds,
       });
 
       setIsLoading(false);
@@ -381,7 +385,17 @@ export function useDayPlan(
       );
 
       if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
-        deleteFromPlan(instanceId);
+        // Guard against reload before the activity's nextDueDate write persists.
+        storeDayPlan((prev) => ({
+          ...prev,
+          plannedInstances: prev.plannedInstances.filter(
+            (i) => i.id !== instanceId,
+          ),
+          skippedSourceActivityIds: [
+            ...(prev.skippedSourceActivityIds ?? []),
+            instance.sourceActivityId,
+          ],
+        }));
 
         const nextDate = calculateNextDueDate(
           currentDate,
@@ -399,7 +413,7 @@ export function useDayPlan(
         }
       }
     },
-    [currentDate, dayPlan.plannedInstances, deleteFromPlan],
+    [currentDate, dayPlan.plannedInstances],
   );
 
   const reorderPlannedActivitiesWithIds = useCallback((itemIds: string[]) => {
