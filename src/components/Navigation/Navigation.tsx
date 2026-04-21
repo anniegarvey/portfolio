@@ -241,7 +241,7 @@ const NavLink = styled(Link)`
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  transition: background-position 750ms cubic-bezier(0.19, 1, 0.22, 1);
+  transition: background-position 1200ms cubic-bezier(0.19, 1, 0.22, 1);
 
   &:hover,
   &:focus-visible {
@@ -365,7 +365,7 @@ const MobileNavLink = styled(Link)`
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  transition: background-position 750ms cubic-bezier(0.19, 1, 0.22, 1);
+  transition: background-position 1200ms cubic-bezier(0.19, 1, 0.22, 1);
 
   &:hover,
   &:focus-visible {
