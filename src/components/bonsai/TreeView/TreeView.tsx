@@ -623,7 +623,7 @@ const LockedToolBtn = styled.button`
 
   &:hover {
     background: light-dark(#f9f7f5, #242930);
-    border-color: #f59e0b99;
+    border-color: color-mix(in oklch, var(--color-points) 60%, transparent);
   }
 `;
 
@@ -631,7 +631,7 @@ const ToolPrice = styled.span`
   display: flex;
   align-items: center;
   gap: 0.2rem;
-  color: #f59e0b;
+  color: var(--color-points);
   font-weight: 600;
   margin-left: 0.15rem;
 `;
@@ -793,7 +793,7 @@ const YellowDot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #f59e0b;
+  background: var(--color-points);
   flex-shrink: 0;
 `;
 

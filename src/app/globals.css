@@ -190,6 +190,9 @@
     0 0 calc(var(--shadow-unit) * 6) oklch(68% 0.18 12 / 0.3),
     0 0 calc(var(--shadow-unit) * 12) oklch(68% 0.18 12 / 0.16);
 
+  /* Points / coin amber — shared by PointsDisplay and all bonsai points UI */
+  --color-points: light-dark(var(--color-orange-700), var(--color-orange-500));
+
   /* Souped up easing functions */
   --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
   --ease-in: cubic-bezier(0.75, 0, 1, 1);

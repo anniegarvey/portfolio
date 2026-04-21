@@ -6,13 +6,7 @@
         "button[title=\"Watering Can (locked)\"]"
       ],
       [
-        "button[title=\"Watering Can (locked)\"] > .GardenView_ToolPrice_[hash]"
-      ],
-      [
         "button[title=\"Garden Hose (locked)\"]"
-      ],
-      [
-        "button[title=\"Garden Hose (locked)\"] > .GardenView_ToolPrice_[hash]"
       ],
       [
         ".TreeCollection_DryBadge_[hash]"
