@@ -222,37 +222,39 @@ const NavList = styled.ul`
 const NavItem = styled.li``;
 
 const NavLink = styled(Link)`
-  color: light-dark(var(--color-grey-900), var(--color-grey-100));
   font-weight: 600;
   font-size: 1.6rem;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   text-decoration: none;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-color: var(--color-primary-500);
-    transform: scaleY(0);
-    transform-origin: bottom;
-    transition: transform 400ms var(--ease-out);
-    z-index: -1;
-    border-radius: 4px;
+  /* Liquid fills the text glyphs from bottom to top */
+  background: linear-gradient(
+    to top,
+    var(--color-primary-500) 0%,
+    var(--color-primary-500) 47%,
+    light-dark(var(--color-grey-900), var(--color-grey-100)) 53%,
+    light-dark(var(--color-grey-900), var(--color-grey-100)) 100%
+  );
+  background-size: 100% 200%;
+  background-position: 0% 0%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: background-position 400ms var(--ease-out);
+
+  &:hover,
+  &:focus-visible {
+    background-position: 0% 100%;
   }
 
-  &:hover::before,
-  &:focus-visible::before {
-    transform: scaleY(1);
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &::before {
-      transition: none;
-    }
+    transition: none;
   }
 `;
 
@@ -341,38 +343,40 @@ const MobileNavItem = styled.li`
 `;
 
 const MobileNavLink = styled(Link)`
-  color: light-dark(var(--color-grey-900), var(--color-grey-100));
   font-weight: 600;
   font-size: 1.6rem;
   text-decoration: none;
   display: block;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-color: var(--color-primary-500);
-    transform: scaleY(0);
-    transform-origin: bottom;
-    transition: transform 400ms var(--ease-out);
-    z-index: -1;
-    border-radius: 4px;
+  /* Liquid fills the text glyphs from bottom to top */
+  background: linear-gradient(
+    to top,
+    var(--color-primary-500) 0%,
+    var(--color-primary-500) 47%,
+    light-dark(var(--color-grey-900), var(--color-grey-100)) 53%,
+    light-dark(var(--color-grey-900), var(--color-grey-100)) 100%
+  );
+  background-size: 100% 200%;
+  background-position: 0% 0%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: background-position 400ms var(--ease-out);
+
+  &:hover,
+  &:focus-visible {
+    background-position: 0% 100%;
   }
 
-  &:hover::before,
-  &:focus-visible::before {
-    transform: scaleY(1);
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &::before {
-      transition: none;
-    }
+    transition: none;
   }
 `;
 
