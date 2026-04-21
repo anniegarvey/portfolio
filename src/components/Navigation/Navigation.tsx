@@ -16,17 +16,17 @@ const THEME_META: Record<
   { icon: React.ReactNode; label: string; next: ThemeSetting }
 > = {
   system: {
-    icon: <Monitor size={20} />,
+    icon: <Monitor aria-hidden="true" size={20} />,
     label: "Theme: System (click for Light)",
     next: "light",
   },
   light: {
-    icon: <Sun size={20} />,
+    icon: <Sun aria-hidden="true" size={20} />,
     label: "Theme: Light (click for Dark)",
     next: "dark",
   },
   dark: {
-    icon: <Moon size={20} />,
+    icon: <Moon aria-hidden="true" size={20} />,
     label: "Theme: Dark (click for System)",
     next: "system",
   },
@@ -89,7 +89,7 @@ export function Navigation() {
         <Dialog.Root onOpenChange={setOpen} open={open}>
           <Dialog.Trigger asChild>
             <HamburgerButton aria-label="Toggle navigation menu">
-              <Menu size={32} />
+              <Menu aria-hidden="true" size={32} />
             </HamburgerButton>
           </Dialog.Trigger>
           <Dialog.Portal>
@@ -100,7 +100,7 @@ export function Navigation() {
                   <Dialog.Title>Navigation menu</Dialog.Title>
                 </VisuallyHidden>
                 <CloseButton aria-label="Close navigation menu">
-                  <X size={32} />
+                  <X aria-hidden="true" size={32} />
                 </CloseButton>
                 <MobileNavList>
                   {[MOBILE_HOME, ...NAV_ITEMS].map((item) => (
@@ -132,8 +132,8 @@ export function Navigation() {
 const Header = styled.header`
   display: flex;
   padding: 0.2rem 1rem;
-  background-color: var(--color-grey-950);
-  border-bottom: 1px solid var(--color-grey-700);
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
+  border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   position: relative;
   align-items: center;
 
@@ -222,24 +222,44 @@ const NavList = styled.ul`
 const NavItem = styled.li``;
 
 const NavLink = styled(Link)`
-  color: var(--color-grey-100);
+  color: light-dark(var(--color-grey-900), var(--color-grey-100));
   font-weight: 600;
   font-size: 1.6rem;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 
-  &:hover,
-  &:focus-visible {
-    background-color: var(--color-primary-700);
-    color: var(--color-primary-100);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: var(--color-primary-500);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 400ms var(--ease-out);
+    z-index: -1;
+    border-radius: 4px;
+  }
+
+  &:hover::before,
+  &:focus-visible::before {
+    transform: scaleY(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
   }
 `;
 
 const HamburgerButton = styled.button`
   background: none;
   border: none;
-  color: var(--color-grey-100);
+  color: light-dark(var(--color-grey-700), var(--color-grey-100));
   cursor: pointer;
   padding-inline: 0.5rem;
   padding-top: 0.6rem;
@@ -247,7 +267,7 @@ const HamburgerButton = styled.button`
   touch-action: manipulation;
 
   &:hover {
-    color: var(--color-primary-400);
+    color: var(--color-primary-500);
   }
 
   &:focus-visible {
@@ -269,7 +289,7 @@ const StyledOverlay = styled(Dialog.Overlay)`
 `;
 
 const StyledContent = styled.div`
-  background-color: var(--color-grey-900);
+  background-color: light-dark(var(--color-grey-50), var(--color-grey-900));
   position: absolute;
   top: 0;
   right: -1.5rem;
@@ -278,6 +298,7 @@ const StyledContent = styled.div`
   width: 75%;
   padding: 2rem;
   box-shadow: var(--elevation-lg);
+  overscroll-behavior: contain;
   animation: slideInFromRight 300ms ease;
 
   @media (prefers-reduced-motion: reduce) {
@@ -291,12 +312,12 @@ const CloseButton = styled(Dialog.Close)`
   right: 1.5rem;
   background: none;
   border: none;
-  color: var(--color-grey-100);
+  color: light-dark(var(--color-grey-700), var(--color-grey-100));
   cursor: pointer;
   touch-action: manipulation;
 
   &:hover {
-    color: var(--color-primary-400);
+    color: var(--color-primary-500);
   }
 
   &:focus-visible {
@@ -315,20 +336,43 @@ const MobileNavList = styled.ul`
 `;
 
 const MobileNavItem = styled.li`
-  border-bottom: 1px solid var(--color-grey-800);
+  border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-800));
   padding-bottom: 0.5rem;
 `;
 
 const MobileNavLink = styled(Link)`
-  color: var(--color-grey-100);
+  color: light-dark(var(--color-grey-900), var(--color-grey-100));
   font-weight: 600;
   font-size: 1.6rem;
   text-decoration: none;
   display: block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 
-  &:hover,
-  &:focus-visible {
-    color: var(--color-primary-400);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: var(--color-primary-500);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 400ms var(--ease-out);
+    z-index: -1;
+    border-radius: 4px;
+  }
+
+  &:hover::before,
+  &:focus-visible::before {
+    transform: scaleY(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
   }
 `;
 
@@ -346,9 +390,9 @@ const DesktopSide = styled.div`
 
 const ThemeToggleButton = styled.button`
   background: none;
-  border: 1px solid var(--color-grey-600);
+  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
   border-radius: 6px;
-  color: var(--color-grey-100);
+  color: light-dark(var(--color-grey-700), var(--color-grey-100));
   cursor: pointer;
   padding: 0.4rem 0.6rem;
   display: flex;
@@ -375,7 +419,7 @@ const ThemeToggleButton = styled.button`
 const MobileThemeSection = styled.div`
   position: absolute;
   bottom: 2rem;
-  width: 100;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -384,6 +428,6 @@ const MobileThemeSection = styled.div`
 `;
 
 const MobileThemeLabel = styled.span`
-  color: var(--color-grey-100);
+  color: light-dark(var(--color-grey-700), var(--color-grey-100));
   font-size: 1.6rem;
 `;
