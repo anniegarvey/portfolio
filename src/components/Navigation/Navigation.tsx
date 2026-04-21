@@ -241,11 +241,12 @@ const NavLink = styled(Link)`
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  transition: background-position 400ms var(--ease-out);
+  transition: background-position 750ms var(--ease-in-out);
 
   &:hover,
   &:focus-visible {
     background-position: 0% 100%;
+    transition: background-position 400ms var(--ease-out);
   }
 
   &:focus-visible {
@@ -255,6 +256,7 @@ const NavLink = styled(Link)`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    &:hover, &:focus-visible { transition: none; }
   }
 `;
 
@@ -363,11 +365,12 @@ const MobileNavLink = styled(Link)`
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  transition: background-position 400ms var(--ease-out);
+  transition: background-position 750ms var(--ease-in-out);
 
   &:hover,
   &:focus-visible {
     background-position: 0% 100%;
+    transition: background-position 400ms var(--ease-out);
   }
 
   &:focus-visible {
@@ -377,6 +380,7 @@ const MobileNavLink = styled(Link)`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    &:hover, &:focus-visible { transition: none; }
   }
 `;
 
