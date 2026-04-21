@@ -231,8 +231,8 @@ const NavLink = styled(Link)`
   /* Liquid fills the text glyphs from bottom to top */
   background: linear-gradient(
     to top,
-    var(--color-primary-500) 0%,
-    var(--color-primary-500) 47%,
+    light-dark(var(--color-primary-600), var(--color-primary-400)) 0%,
+    light-dark(var(--color-primary-600), var(--color-primary-400)) 47%,
     light-dark(var(--color-grey-900), var(--color-grey-100)) 53%,
     light-dark(var(--color-grey-900), var(--color-grey-100)) 100%
   );
@@ -241,12 +241,13 @@ const NavLink = styled(Link)`
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  transition: background-position 1200ms cubic-bezier(0.19, 1, 0.22, 1);
+  --speed: 1000ms;
+  transition: background-position calc(var(--speed) * 3) cubic-bezier(0.19, 1, 0.22, 1);
 
   &:hover,
   &:focus-visible {
     background-position: 0% 100%;
-    transition: background-position 400ms var(--ease-out);
+    transition: background-position var(--speed) var(--ease-out);
   }
 
   &:focus-visible {
