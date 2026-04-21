@@ -135,7 +135,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
       floweringAge: 35,
       flowerShape: "cluster",
       flowerColor: "#a0375a",
-      flowerSize: 2.2,
+      flowerSize: 0.5,
     },
   },
   "cherry-blossom": {
