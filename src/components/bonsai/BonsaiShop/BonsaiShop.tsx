@@ -469,8 +469,8 @@ const Card = styled.div`
   gap: 0.5rem;
 
   &[data-focused] {
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 2px #f59e0b44;
+    border-color: var(--color-points);
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-points) 27%, transparent);
   }
 `;
 
@@ -494,7 +494,7 @@ const Cost = styled.span`
   gap: 0.3rem;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #f59e0b;
+  color: var(--color-points);
   white-space: nowrap;
   flex-shrink: 0;
 `;
@@ -503,7 +503,7 @@ const CoinDot = styled.span`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffe066, #f59e0b);
+  background: radial-gradient(circle at 35% 35%, #ffe066, var(--color-points));
   display: inline-block;
   flex-shrink: 0;
 `;

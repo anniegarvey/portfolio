@@ -107,8 +107,10 @@ function Particle({
         width: 11,
         height: 11,
         borderRadius: "50%",
-        background: "radial-gradient(circle at 35% 35%, #ffe066, #f59e0b)",
-        boxShadow: "0 0 7px 2px rgba(245, 158, 11, 0.55)",
+        background:
+          "radial-gradient(circle at 35% 35%, #ffe066, var(--color-points))",
+        boxShadow:
+          "0 0 7px 2px color-mix(in oklch, var(--color-points) 55%, transparent)",
         transform,
         transition,
         opacity,

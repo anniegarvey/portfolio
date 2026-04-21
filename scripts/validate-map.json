@@ -7,6 +7,7 @@
     "src/app/**": "e2e/navigation",
     "src/components/home/**": "e2e/navigation",
     "src/components/Navigation/**": "e2e/navigation",
+    "src/components/PointsDisplay/**": "e2e/navigation",
     "src/components/ThemeToggle/**": "e2e/navigation",
     "e2e/energy-planner/**": "e2e/energy-planner",
     "e2e/bonsai/**": "e2e/bonsai",

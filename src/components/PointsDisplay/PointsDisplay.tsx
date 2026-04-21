@@ -37,13 +37,13 @@ const Wrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  color: #f59e0b;
+  color: var(--color-points);
   font-weight: 700;
   font-size: 0.9rem;
   padding: 0.3rem 0.6rem;
   border-radius: 6px;
-  border: 1px solid #f59e0b66;
-  background: #f59e0b0f;
+  border: 1px solid color-mix(in oklch, var(--color-points) 40%, transparent);
+  background: color-mix(in oklch, var(--color-points) 6%, transparent);
   user-select: none;
   line-height: 1;
 `;
