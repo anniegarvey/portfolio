@@ -240,6 +240,20 @@ function depthTintedColor(
   return lerpHexColor(foliageColor, foliageColorLight, zNorm * 0.6);
 }
 
+/** Computes z-depth bounds for a branch list in a single pass. */
+function branchZBounds(branches: { z: number }[]): {
+  zMin: number;
+  zRange: number;
+} {
+  let zMin = 0;
+  let zMax = 0;
+  for (const b of branches) {
+    if (b.z < zMin) zMin = b.z;
+    if (b.z > zMax) zMax = b.z;
+  }
+  return { zMin, zRange: zMax - zMin };
+}
+
 // ─── Leaf Renderer ────────────────────────────────────────────────────────────
 
 function renderLeaves(
@@ -794,6 +808,12 @@ export function StaticTreeSVG({
     cropTop ?? false,
   );
 
+  const { zMin, zRange } = branchZBounds(svgData.branches);
+  // Far branches (small/negative z) first so near branches overpaint them.
+  const sortedBranches = [...svgData.branches].sort(
+    (a, b) => a.z - b.z || b.depth - a.depth,
+  );
+
   return (
     <svg
       aria-label={`${config.label} bonsai tree, day ${tree.activeDaysCount}`}
@@ -853,32 +873,21 @@ export function StaticTreeSVG({
         <path d={svgData.trunkPathData} fill={config.trunkColor} />
       )}
 
-      {(() => {
-        const zValues = svgData.branches.map((b) => b.z);
-        const zMin = Math.min(...zValues, 0);
-        const zMax = Math.max(...zValues, 0);
-        const zRange = zMax - zMin;
-        return (
-          [...svgData.branches]
-            // Far branches (small/negative z) first so near branches overpaint them.
-            .sort((a, b) => a.z - b.z || b.depth - a.depth)
-            .map((branch) => {
-              const leafColor = depthTintedColor(
-                branch.z,
-                zMin,
-                zRange,
-                config.foliageColor,
-                config.foliageColorLight,
-              );
-              return (
-                <g key={branch.id}>
-                  <path d={branch.pathData} fill={config.trunkColor} />
-                  {renderLeaves(branch.leaves, config.leafShape, leafColor)}
-                </g>
-              );
-            })
+      {sortedBranches.map((branch) => {
+        const leafColor = depthTintedColor(
+          branch.z,
+          zMin,
+          zRange,
+          config.foliageColor,
+          config.foliageColorLight,
         );
-      })()}
+        return (
+          <g key={branch.id}>
+            <path d={branch.pathData} fill={config.trunkColor} />
+            {renderLeaves(branch.leaves, config.leafShape, leafColor)}
+          </g>
+        );
+      })}
 
       {renderLeaves(svgData.apexLeaves, config.leafShape, config.foliageColor)}
 
