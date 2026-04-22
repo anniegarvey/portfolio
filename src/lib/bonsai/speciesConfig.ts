@@ -8,6 +8,20 @@ export type LeafShape =
   | "scale"
   | "pinnate";
 
+// ─── Phyllotaxy ───────────────────────────────────────────────────────────────
+// Arrangement of leaves (and, by extension, buds/branches) along a stem.
+// Used to drive primary-branch emergence patterns and terminal leaf layout.
+
+export type Phyllotaxy = "opposite" | "alternate" | "whorled";
+
+// ─── Foliage Distribution ─────────────────────────────────────────────────────
+// How the crown is packed with leaves:
+//   tips     — individual leaf clusters at each terminal branch (current behaviour)
+//   pads     — foliage grouped into distinct convex "pads" (pine, juniper, flame tree)
+//   interior — leaves distributed throughout the interior of the crown volume
+
+export type FoliageDistribution = "tips" | "pads" | "interior";
+
 // ─── Flower Spec ──────────────────────────────────────────────────────────────
 
 export type FlowerShape = "raceme" | "cluster" | "catkin" | "berry";
@@ -44,6 +58,15 @@ export interface SpeciesConfig {
   /** 0 = perfectly straight; higher values produce a more bent trunk.
    *  Curvature direction (left/right) is randomised per individual tree. */
   trunkCurvature: number;
+  /** Exponent controlling the trunk taper profile. 1 = linear; >1 = concave
+   *  (base flares outward, slim above); <1 = convex. Typical 1.1–1.5. */
+  trunkTaperPower: number;
+  /** 0–1 — roughness/irregularity of the trunk silhouette. 0 = perfectly smooth
+   *  bezier; higher values add deterministic bark/shari texture to the outline. */
+  trunkJaggedness: number;
+  /** 0–1+ — additional basal flare (nebari) as a fraction of base trunk width.
+   *  0 = no flare; 0.5 = base ~50% wider than a straight taper would give. */
+  nebariSpread: number;
 
   // Branches
   /** Angle above horizontal for a mid-height primary branch (radians, positive = above horizontal).
@@ -65,6 +88,33 @@ export interface SpeciesConfig {
   branchThicknessFactor: number;
   /** Max lateral midpoint offset (SVG units) applied randomly per branch for natural curvature. */
   branchCurvature: number;
+  /** Phyllotaxy — controls primary-branch emergence pattern around the trunk. */
+  phyllotaxy: Phyllotaxy;
+  /** When `phyllotaxy === "whorled"`, number of branches per whorl node.
+   *  Ignored for opposite/alternate species. */
+  whorlSize?: number;
+  /** Maximum branching depth (0 = primary only). Deeper values produce finer
+   *  ramification at the cost of more branches to render. */
+  maxDepth: number;
+  /** Number of child branches produced when a parent forks, indexed by parent depth.
+   *  e.g. [3, 2, 2] = primary forks 3 ways, secondaries fork 2 ways, tertiaries fork 2 ways. */
+  childCountByDepth: number[];
+  /** 0–1 — strength of apical dominance. 1 = strong leader species with a
+   *  markedly thicker/longer apex; 0 = weak apex (cascade / vase-shaped). */
+  apicalDominance: number;
+  /** 0–1+ — random per-branch angle deviation added along the branch length,
+   *  producing kinks/wander. 0 = perfectly straight branches. */
+  branchWander: number;
+  /** Radians — range of yaw angles (around trunk vertical axis) across which
+   *  primary branches can emerge. PI*2 = full 360° sweep; smaller = one-sided
+   *  crown (e.g. cascade junipers lean toward a viewing side). */
+  azimuthSpread: number;
+  /** 0–1 — crown depth along the viewer's z-axis. 0 = flat 2D silhouette;
+   *  1 = roughly spherical crown. Drives depth-sort and atmospheric-tint magnitude. */
+  crownDepthFactor: number;
+  /** Radians — additional downward droop applied at branch tips. 0 = no droop;
+   *  ~0.5 = heavily drooping (wisteria). */
+  tipDroop: number;
 
   // Leaves
   leafShape: LeafShape;
@@ -75,6 +125,23 @@ export interface SpeciesConfig {
   leafSize: number;
   /** When true, leaf clusters are also generated at intervals along the branch, not just the tip. */
   leavesAlongBranch?: boolean;
+  /** Where leaves cluster in the crown — see `FoliageDistribution` doc. */
+  foliageDistribution: FoliageDistribution;
+  /** SVG units — radius of a single foliage pad. Used when
+   *  `foliageDistribution === "pads"` to set pad size. */
+  padRadius: number;
+  /** 0–1 — density of interior foliage clusters independent of the pad/tip
+   *  choice (fills the bare middle). 0 = no interior fill. */
+  interiorPadDensity: number;
+  /** [min, max] — leaves per pad when `foliageDistribution === "pads"`.
+   *  Species with non-pad distribution can still set a value for consistency. */
+  leavesPerPad: [number, number];
+
+  // Per-individual variability
+  /** 0–1 — scale of per-tree parameter scatter applied to any randomised
+   *  visual (trunk angle, branch spacing, leaf count). Higher values produce
+   *  more visible individuality across trees of the same species. */
+  individualVariability: number;
 
   // Flowers
   /** Omit for species with no ornamental flowers (pine). */
@@ -95,6 +162,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     regrowthDays: 14,
     maxTrunkHeight: 155,
     trunkCurvature: 0.22,
+    trunkTaperPower: 1.4,
+    trunkJaggedness: 0.2,
+    nebariSpread: 0.4,
     branchAngleBase: 0.35,
     branchAngleRamp: 0.45,
     firstBranchFrac: 0.28,
@@ -103,10 +173,25 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     splitDiverge: 0.28,
     branchThicknessFactor: 0.4,
     branchCurvature: 1.5,
+    // Whorled growth — new buds emerge in evenly spaced rings (nodes) up the trunk.
+    phyllotaxy: "whorled",
+    whorlSize: 5,
+    maxDepth: 3,
+    childCountByDepth: [3, 2, 2],
+    apicalDominance: 0.8,
+    branchWander: 0.15,
+    azimuthSpread: Math.PI * 2,
+    crownDepthFactor: 0.7,
+    tipDroop: 0,
     leafShape: "needle",
     leavesPerCluster: [8, 12],
     leafSize: 7.5,
     leavesAlongBranch: true,
+    foliageDistribution: "pads",
+    padRadius: 14,
+    interiorPadDensity: 0.6,
+    leavesPerPad: [30, 50],
+    individualVariability: 0.2,
     // Pine has no ornamental flowers — only inconspicuous pollen cones.
   },
   maple: {
@@ -119,6 +204,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     regrowthDays: 12,
     maxTrunkHeight: 150,
     trunkCurvature: 0.45,
+    trunkTaperPower: 1.3,
+    trunkJaggedness: 0.3,
+    nebariSpread: 0.5,
     branchAngleBase: 0.62,
     branchAngleRamp: 0.2,
     firstBranchFrac: 0.32,
@@ -127,9 +215,23 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     splitDiverge: 0.42,
     branchThicknessFactor: 0.46,
     branchCurvature: 3.5,
+    // Opposite buds — pairs of branches emerge at each node, alternating 90° between nodes.
+    phyllotaxy: "opposite",
+    maxDepth: 3,
+    childCountByDepth: [2, 2, 2],
+    apicalDominance: 0.4,
+    branchWander: 0.4,
+    azimuthSpread: Math.PI * 2,
+    crownDepthFactor: 0.8,
+    tipDroop: 0.1,
     leafShape: "palmate",
     leavesPerCluster: [3, 5],
     leafSize: 5.0,
+    foliageDistribution: "tips",
+    padRadius: 10,
+    interiorPadDensity: 0.2,
+    leavesPerPad: [12, 18],
+    individualVariability: 0.3,
     flowers: {
       // Small reddish-purple hanging umbel clusters, appear with the new spring leaves.
       floweringAge: 35,
@@ -148,6 +250,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     regrowthDays: 10,
     maxTrunkHeight: 140,
     trunkCurvature: 0.3,
+    trunkTaperPower: 1.2,
+    trunkJaggedness: 0.15,
+    nebariSpread: 0.35,
     branchAngleBase: 0.5,
     branchAngleRamp: 0.18,
     firstBranchFrac: 0.3,
@@ -156,9 +261,23 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     splitDiverge: 0.35,
     branchThicknessFactor: 0.38,
     branchCurvature: 2.5,
+    // Alternate buds along the stem — spiral arrangement with ~137° phyllotactic offset.
+    phyllotaxy: "alternate",
+    maxDepth: 2,
+    childCountByDepth: [2, 2],
+    apicalDominance: 0.6,
+    branchWander: 0.2,
+    azimuthSpread: Math.PI * 2,
+    crownDepthFactor: 0.7,
+    tipDroop: 0.05,
     leafShape: "oval",
     leavesPerCluster: [4, 6],
     leafSize: 4.5,
+    foliageDistribution: "tips",
+    padRadius: 9,
+    interiorPadDensity: 0.3,
+    leavesPerPad: [14, 20],
+    individualVariability: 0.25,
     flowers: {
       // Iconic 5-petal blossoms in clusters; pale pink to white. Appear with leaves.
       floweringAge: 15,
@@ -178,6 +297,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     regrowthDays: 16,
     maxTrunkHeight: 160,
     trunkCurvature: 0.65,
+    trunkTaperPower: 1.5,
+    trunkJaggedness: 0.7,
+    nebariSpread: 0.8,
     branchAngleBase: -0.2,
     branchAngleRamp: -0.1,
     firstBranchFrac: 0.62,
@@ -186,10 +308,26 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     splitDiverge: 0.22,
     branchThicknessFactor: 0.5,
     branchCurvature: 5.0,
+    // Whorled scale foliage in 3-leaf rings on adult growth.
+    phyllotaxy: "whorled",
+    whorlSize: 3,
+    maxDepth: 3,
+    childCountByDepth: [3, 2, 2],
+    apicalDominance: 0.2,
+    branchWander: 0.7,
+    // Cascade junipers are typically displayed from a single viewing side — narrow the yaw sweep.
+    azimuthSpread: Math.PI * 1.6,
+    crownDepthFactor: 0.5,
+    tipDroop: 0.3,
     leafShape: "scale",
     leavesPerCluster: [12, 18],
     leafSize: 2.0,
     leavesAlongBranch: true,
+    foliageDistribution: "pads",
+    padRadius: 16,
+    interiorPadDensity: 0.8,
+    leavesPerPad: [40, 60],
+    individualVariability: 0.4,
     flowers: {
       // Waxy blue-black seed cones (berry-like); ornamental once mature.
       floweringAge: 30,
@@ -209,6 +347,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     regrowthDays: 18,
     maxTrunkHeight: 158,
     trunkCurvature: 0.18,
+    trunkTaperPower: 1.5,
+    trunkJaggedness: 0.5,
+    nebariSpread: 0.6,
     branchAngleBase: 0.42,
     branchAngleRamp: 0.28,
     firstBranchFrac: 0.3,
@@ -217,9 +358,22 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     splitDiverge: 0.45,
     branchThicknessFactor: 0.42,
     branchCurvature: 2.0,
+    phyllotaxy: "alternate",
+    maxDepth: 2,
+    childCountByDepth: [2, 3, 2],
+    apicalDominance: 0.7,
+    branchWander: 0.25,
+    azimuthSpread: Math.PI * 2,
+    crownDepthFactor: 0.9,
+    tipDroop: 0,
     leafShape: "lobed",
     leavesPerCluster: [3, 5],
     leafSize: 6.0,
+    foliageDistribution: "tips",
+    padRadius: 12,
+    interiorPadDensity: 0.4,
+    leavesPerPad: [10, 16],
+    individualVariability: 0.2,
     flowers: {
       // Pendulous yellow-green catkins; rare — reflects 20–40 year real-world maturity.
       floweringAge: 90,
@@ -239,6 +393,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     regrowthDays: 12,
     maxTrunkHeight: 145,
     trunkCurvature: 0.55,
+    trunkTaperPower: 1.2,
+    trunkJaggedness: 0.6,
+    nebariSpread: 0.7,
     branchAngleBase: -0.3,
     branchAngleRamp: 0.1,
     firstBranchFrac: 0.58,
@@ -247,9 +404,22 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     splitDiverge: 0.4,
     branchThicknessFactor: 0.32,
     branchCurvature: 5.5,
+    phyllotaxy: "alternate",
+    maxDepth: 2,
+    childCountByDepth: [2, 2],
+    apicalDominance: 0.3,
+    branchWander: 0.6,
+    azimuthSpread: Math.PI * 1.6,
+    crownDepthFactor: 0.5,
+    tipDroop: 0.5,
     leafShape: "pinnate",
     leavesPerCluster: [5, 8],
     leafSize: 4.0,
+    foliageDistribution: "tips",
+    padRadius: 10,
+    interiorPadDensity: 0.25,
+    leavesPerPad: [10, 16],
+    individualVariability: 0.35,
     flowers: {
       // Drooping violet racemes, 20–30 cm in nature — the defining visual of wisteria bonsai.
       floweringAge: 55,
@@ -270,6 +440,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     regrowthDays: 14,
     maxTrunkHeight: 165,
     trunkCurvature: 0.12,
+    trunkTaperPower: 1.1,
+    trunkJaggedness: 0.15,
+    nebariSpread: 0.3,
     branchAngleBase: 0.18,
     branchAngleRamp: 0.06,
     firstBranchFrac: 0.25,
@@ -278,9 +451,23 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     splitDiverge: 0.55,
     branchThicknessFactor: 0.4,
     branchCurvature: 2.5,
+    phyllotaxy: "alternate",
+    maxDepth: 3,
+    childCountByDepth: [2, 3, 2],
+    apicalDominance: 0.2,
+    branchWander: 0.15,
+    azimuthSpread: Math.PI * 2,
+    // Flat umbrella crown — compressed z-axis depth.
+    crownDepthFactor: 0.3,
+    tipDroop: 0,
     leafShape: "palmate",
     leavesPerCluster: [4, 7],
     leafSize: 5.5,
+    foliageDistribution: "pads",
+    padRadius: 18,
+    interiorPadDensity: 0.5,
+    leavesPerPad: [20, 30],
+    individualVariability: 0.15,
     flowers: {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.
       floweringAge: 45,
