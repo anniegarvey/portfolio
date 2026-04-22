@@ -7,15 +7,18 @@ const BONSAI_STORAGE_KEY = "bonsai-game-state";
 // Phase 3 renamed primary-branch IDs from L{i}/R{i} to p{n} (sequential).
 // Mapping: L{i} → p{2i}, R{i} → p{2i+1}. Child segments are preserved.
 // Example: "L0-a-b" → "p0-a-b", "R1-a" → "p3-a".
+const LEFT_BRANCH_RE = /^L(\d+)$/;
+const RIGHT_BRANCH_RE = /^R(\d+)$/;
+
 function migrateBranchId(id: string): string {
   const dashIdx = id.indexOf("-");
   const root = dashIdx === -1 ? id : id.slice(0, dashIdx);
   const rest = dashIdx === -1 ? "" : id.slice(dashIdx); // includes leading "-"
 
-  const leftMatch = root.match(/^L(\d+)$/);
+  const leftMatch = root.match(LEFT_BRANCH_RE);
   if (leftMatch) return `p${2 * parseInt(leftMatch[1], 10)}${rest}`;
 
-  const rightMatch = root.match(/^R(\d+)$/);
+  const rightMatch = root.match(RIGHT_BRANCH_RE);
   if (rightMatch) return `p${2 * parseInt(rightMatch[1], 10) + 1}${rest}`;
 
   return id; // already new format (e.g., "p0", "apex-L")

@@ -548,14 +548,18 @@ export function generateTree(
   // gets around the trunk axis.
   const phyllotaxy = spec.phyllotaxy;
   const whorlSize = spec.whorlSize ?? 3;
+  const maxBranchPairs = spec.maxBranchPairs;
+  const branchFrequency = spec.branchFrequency;
+  const branchAngleBase = spec.branchAngleBase;
+  const branchAngleRamp = spec.branchAngleRamp;
 
   // Height-node count: whorled/opposite group multiple primaries per node.
   const numNodes =
     phyllotaxy === "whorled"
-      ? Math.ceil(spec.maxBranchPairs / whorlSize)
+      ? Math.ceil(maxBranchPairs / whorlSize)
       : phyllotaxy === "opposite"
-        ? Math.ceil(spec.maxBranchPairs / 2)
-        : spec.maxBranchPairs;
+        ? Math.ceil(maxBranchPairs / 2)
+        : maxBranchPairs;
 
   const branchHeights = computeBranchHeights(
     trunkHeight,
@@ -571,25 +575,25 @@ export function generateTree(
     // Branches born from this height node
     const branchesAtNode =
       phyllotaxy === "whorled"
-        ? Math.min(whorlSize, spec.maxBranchPairs - primaryIdx)
+        ? Math.min(whorlSize, maxBranchPairs - primaryIdx)
         : phyllotaxy === "opposite"
-          ? Math.min(2, spec.maxBranchPairs - primaryIdx)
+          ? Math.min(2, maxBranchPairs - primaryIdx)
           : 1;
 
     // Zone fraction: 0 = lowest node, 1 = highest — used for angle ramp.
     const zoneFrac = numActualNodes > 1 ? nodeIdx / (numActualNodes - 1) : 0.5;
 
     for (let k = 0; k < branchesAtNode; k++) {
-      if (primaryIdx >= spec.maxBranchPairs) break nodeLoop;
+      if (primaryIdx >= maxBranchPairs) break nodeLoop;
 
       const currentPrimary = primaryIdx;
       primaryIdx++;
       const id = `p${currentPrimary}`;
 
       // Appearance day: lower nodes appear earlier
-      const baseDay = (nodeIdx + 1) * spec.branchFrequency;
+      const baseDay = (nodeIdx + 1) * branchFrequency;
       const dayJitter =
-        (seededVal(`${id}t${treeId}`, 0) - 0.5) * spec.branchFrequency * 0.5;
+        (seededVal(`${id}t${treeId}`, 0) - 0.5) * branchFrequency * 0.5;
       const appearsAtDay = Math.max(1, Math.round(baseDay + dayJitter));
       if (activeDaysCount < appearsAtDay) continue;
 
@@ -612,9 +616,9 @@ export function generateTree(
       const attachY = trunkBaseY - heightFromBase;
 
       // Elevation (pitch) angle — same ramp logic as before
-      const angleProgression = spec.branchAngleRamp * (zoneFrac - 0.5);
+      const angleProgression = branchAngleRamp * (zoneFrac - 0.5);
       const angleJitter = (seededVal(`pa${id}${treeId}`, 0) - 0.5) * 0.14;
-      const pitch = spec.branchAngleBase + angleProgression + angleJitter;
+      const pitch = branchAngleBase + angleProgression + angleJitter;
 
       // Azimuth (yaw around trunk axis) — the key Phase 3 change
       let azimuth: number;
