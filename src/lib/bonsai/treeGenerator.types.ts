@@ -46,6 +46,10 @@ export interface RenderedBranch {
   y2: number;
   pathData: string; // tapered filled shape
   depth: number;
+  /** Z-depth of the branch tip: positive = toward viewer, negative = away.
+   *  0 for flat branches (azimuth ∈ {0, π}); non-zero once Phase 3
+   *  introduces full azimuth spread. */
+  z: number;
   leaves: Leaf[];
   isPruned: boolean;
   isTerminal: boolean;
@@ -73,6 +77,12 @@ export interface BranchSpec {
   fulltipX: number;
   fulltipY: number; // position at full growth (for child attachment)
   angle: number;
+  /** Yaw around the trunk's vertical axis (0 = right/front, π = left/back).
+   *  Phase 2: only 0 and π are used. Phase 3 will introduce full-circle spread. */
+  azimuth: number;
+  /** Z-depth of the branch tip: positive = toward viewer, negative = away.
+   *  Derived from pitch and azimuth; clamped to 0 when |value| < 1e-10. */
+  z: number;
   maxLength: number;
   baseWidth: number;
   tipWidth: number;
