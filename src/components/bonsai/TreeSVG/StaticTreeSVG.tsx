@@ -197,6 +197,49 @@ function SeedSprout({
   );
 }
 
+// ─── Depth Tinting ────────────────────────────────────────────────────────────
+
+/** Lerp two hex colours by factor t ∈ [0, 1]. Returns `a` for t ≤ 0. */
+function lerpHexColor(a: string, b: string, t: number): string {
+  if (t <= 0) return a;
+  if (t >= 1) return b;
+  const ar = parseInt(a.slice(1, 3), 16);
+  const ag = parseInt(a.slice(3, 5), 16);
+  const ab = parseInt(a.slice(5, 7), 16);
+  const br = parseInt(b.slice(1, 3), 16);
+  const bg = parseInt(b.slice(3, 5), 16);
+  const bb = parseInt(b.slice(5, 7), 16);
+  const rr = Math.round(ar + (br - ar) * t)
+    .toString(16)
+    .padStart(2, "0");
+  const rg = Math.round(ag + (bg - ag) * t)
+    .toString(16)
+    .padStart(2, "0");
+  const rb = Math.round(ab + (bb - ab) * t)
+    .toString(16)
+    .padStart(2, "0");
+  return `#${rr}${rg}${rb}`;
+}
+
+/**
+ * Returns the leaf fill colour for a branch at z-depth `z`, given the full
+ * z-range of the tree. Near-viewer branches (positive z) use foliageColorLight;
+ * far branches use foliageColor. When zRange < 1e-6 (all-flat tree), returns
+ * foliageColor unchanged — preserving byte-identical output for Phase 1 trees.
+ */
+function depthTintedColor(
+  z: number,
+  zMin: number,
+  zRange: number,
+  foliageColor: string,
+  foliageColorLight: string,
+): string {
+  if (zRange < 1e-6) return foliageColor;
+  // Normalise z to [0, 1] across the tree's actual depth range.
+  const zNorm = (z - zMin) / zRange; // 0 = farthest, 1 = nearest viewer
+  return lerpHexColor(foliageColor, foliageColorLight, zNorm * 0.6);
+}
+
 // ─── Leaf Renderer ────────────────────────────────────────────────────────────
 
 function renderLeaves(
@@ -810,14 +853,32 @@ export function StaticTreeSVG({
         <path d={svgData.trunkPathData} fill={config.trunkColor} />
       )}
 
-      {[...svgData.branches]
-        .sort((a, b) => b.depth - a.depth)
-        .map((branch) => (
-          <g key={branch.id}>
-            <path d={branch.pathData} fill={config.trunkColor} />
-            {renderLeaves(branch.leaves, config.leafShape, config.foliageColor)}
-          </g>
-        ))}
+      {(() => {
+        const zValues = svgData.branches.map((b) => b.z);
+        const zMin = Math.min(...zValues, 0);
+        const zMax = Math.max(...zValues, 0);
+        const zRange = zMax - zMin;
+        return (
+          [...svgData.branches]
+            // Far branches (small/negative z) first so near branches overpaint them.
+            .sort((a, b) => a.z - b.z || b.depth - a.depth)
+            .map((branch) => {
+              const leafColor = depthTintedColor(
+                branch.z,
+                zMin,
+                zRange,
+                config.foliageColor,
+                config.foliageColorLight,
+              );
+              return (
+                <g key={branch.id}>
+                  <path d={branch.pathData} fill={config.trunkColor} />
+                  {renderLeaves(branch.leaves, config.leafShape, leafColor)}
+                </g>
+              );
+            })
+        );
+      })()}
 
       {renderLeaves(svgData.apexLeaves, config.leafShape, config.foliageColor)}
 

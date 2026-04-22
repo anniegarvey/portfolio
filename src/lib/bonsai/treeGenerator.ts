@@ -382,6 +382,7 @@ function buildBranchTree(
   x1: number,
   y1: number,
   angle: number,
+  azimuth: number,
   maxLength: number,
   appearsAtDay: number,
   depth: number,
@@ -398,6 +399,14 @@ function buildBranchTree(
   const curveBias =
     (seededVal(id + treeId, 91) - 0.5) * 2 * spec.branchCurvature;
 
+  // Pitch (elevation above horizontal): sin(pitch) = -sin(angle) in SVG coords
+  // (SVG y is inverted, so upward branches have negative angle).
+  const pitch = Math.asin(Math.max(-1, Math.min(1, -Math.sin(angle))));
+  // Z-depth of tip: cos(pitch)·sin(azimuth)·length. Clamp floating-point
+  // noise to exactly 0 for azimuth ∈ {0, π} where sin should be zero.
+  const rawZ = Math.cos(pitch) * Math.sin(azimuth) * maxLength;
+  const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
+
   out.push({
     id,
     appearsAtDay,
@@ -406,6 +415,8 @@ function buildBranchTree(
     fulltipX,
     fulltipY,
     angle,
+    azimuth,
+    z,
     maxLength,
     baseWidth,
     tipWidth,
@@ -424,11 +435,14 @@ function buildBranchTree(
   const childLength = maxLength * (0.55 + seededVal(id + treeId, 89) * 0.12);
   const childBaseWidth = tipWidth * 1.5;
 
+  // Azimuth is inherited unchanged by children; angle arithmetic (angle ±
+  // divergeVar) preserves the existing 2-D geometry exactly.
   buildBranchTree(
     `${id}-a`,
     fulltipX,
     fulltipY,
     angle - divergeVar,
+    azimuth,
     childLength,
     childDay,
     depth + 1,
@@ -443,6 +457,7 @@ function buildBranchTree(
     fulltipX,
     fulltipY,
     angle + divergeVar,
+    azimuth,
     childLength,
     childDay,
     depth + 1,
@@ -569,6 +584,9 @@ export function generateTree(
     const effectiveBase = spec.branchAngleBase + angleProgression + angleJitter;
 
     const angle = side === "L" ? -(Math.PI - effectiveBase) : -effectiveBase;
+    // Azimuth: right branches face outward at 0, left branches at π. Both give
+    // z=0 (sin(0)=sin(π)=0) so visual output is identical to Phase 1.
+    const azimuth = side === "L" ? Math.PI : 0;
 
     // Thickness from trunk width at attachment point — upper branches naturally thinner
     const attachTrunkW = lerp(trunkBaseW, trunkTopW, t);
@@ -587,6 +605,7 @@ export function generateTree(
       attachX,
       attachY,
       angle,
+      azimuth,
       primaryLength,
       appearsAtDay,
       0,
@@ -618,11 +637,14 @@ export function generateTree(
       ["apex-L", -1],
       ["apex-R", 1],
     ] as [string, number][]) {
+      // apex-L leans left (azimuth π), apex-R leans right (azimuth 0).
+      const apexAzimuth = sign === -1 ? Math.PI : 0;
       buildBranchTree(
         apexId,
         trunkTopX,
         trunkTopY,
         -(Math.PI / 2) + sign * apexHalfSpread,
+        apexAzimuth,
         apexLength,
         apexAppearsAtDay,
         0,
@@ -729,6 +751,7 @@ export function generateTree(
       y2,
       pathData: path,
       depth: s.depth,
+      z: s.z,
       leaves,
       isPruned: false,
       isTerminal,
@@ -762,6 +785,7 @@ export function generateTree(
         s.baseWidth * 0.3,
       ),
       depth: s.depth,
+      z: s.z,
       leaves: [],
       isPruned: true,
       isTerminal: false,
