@@ -99,26 +99,27 @@ describe("generateTree", () => {
   // ─── Pruning ───────────────────────────────────────────────────────────────
 
   describe("pruning", () => {
-    // Pine branchFrequency=6: L0 appears at day 6. Pruned at day 20.
+    // Pine (whorled, whorlSize=5): p0 is the first primary branch, appears at
+    // nodeIdx=0 → baseDay = 1 * branchFrequency = 6. Pruned at day 20.
     // At day 20: 20 < 20 + 14 = 34, so still pruned.
-    const pruned = [{ branchId: "L0", prunedAtDay: 20 }];
+    const pruned = [{ branchId: "p0", prunedAtDay: 20 }];
 
     it("renders a stub for the pruned branch", () => {
       const data = generateTree(20, PINE, pruned, TREE_ID);
-      const stub = data.branches.find((b) => b.id === "L0" && b.isPruned);
+      const stub = data.branches.find((b) => b.id === "p0" && b.isPruned);
       expect(stub).toBeDefined();
     });
 
     it("pruned branch stub has no leaves", () => {
       const data = generateTree(20, PINE, pruned, TREE_ID);
-      const stub = data.branches.find((b) => b.id === "L0" && b.isPruned);
+      const stub = data.branches.find((b) => b.id === "p0" && b.isPruned);
       expect(stub?.leaves).toHaveLength(0);
     });
 
     it("children of a pruned branch are hidden", () => {
       // Day 30 is within pruning window: 30 < 20 + 14 = 34
       const data = generateTree(30, PINE, pruned, TREE_ID);
-      const child = data.branches.find((b) => b.id === "L0-a" && !b.isPruned);
+      const child = data.branches.find((b) => b.id === "p0-a" && !b.isPruned);
       expect(child).toBeUndefined();
     });
   });
@@ -126,8 +127,8 @@ describe("generateTree", () => {
   // ─── Regrowth ──────────────────────────────────────────────────────────────
 
   describe("regrowth", () => {
-    // Prune L0 at day 15. regrowthStart = 15 + 14 = 29.
-    const pruned = [{ branchId: "L0", prunedAtDay: 15 }];
+    // Prune p0 at day 15. regrowthStart = 15 + 14 = 29.
+    const pruned = [{ branchId: "p0", prunedAtDay: 15 }];
 
     it("regrowing branch is shorter than the same branch at full growth", () => {
       // At day 31: effectiveAge = 31 - 29 = 2, progress = 2/6 ≈ 0.33 → short
@@ -136,9 +137,9 @@ describe("generateTree", () => {
       const mature = generateTree(100, PINE, [], TREE_ID);
 
       const regrowingBranch = regrowing.branches.find(
-        (b) => b.id === "L0" && !b.isPruned,
+        (b) => b.id === "p0" && !b.isPruned,
       );
-      const matureBranch = mature.branches.find((b) => b.id === "L0");
+      const matureBranch = mature.branches.find((b) => b.id === "p0");
 
       expect(regrowingBranch).toBeDefined();
       expect(matureBranch).toBeDefined();
@@ -158,24 +159,24 @@ describe("generateTree", () => {
     });
 
     it("child of a regrowing branch is not yet visible at regrowth start", () => {
-      // At day 29 (effectiveAge=0), L0-a needs SPLIT_DELAY more days to appear
+      // At day 29 (effectiveAge=0), p0-a needs SPLIT_DELAY more days to appear
       const atStart = generateTree(29, PINE, pruned, TREE_ID);
       const child = atStart.branches.find(
-        (b) => b.id === "L0-a" && !b.isPruned,
+        (b) => b.id === "p0-a" && !b.isPruned,
       );
       expect(child).toBeUndefined();
     });
 
     it("child of a regrowing branch appears after SPLIT_DELAY days", () => {
-      // At day 29 + 7 (SPLIT_DELAY) + a few more = day 38, L0-a should appear
+      // At day 29 + 7 (SPLIT_DELAY) + a few more = day 38, p0-a should appear
       const data = generateTree(40, PINE, pruned, TREE_ID);
-      const child = data.branches.find((b) => b.id === "L0-a" && !b.isPruned);
+      const child = data.branches.find((b) => b.id === "p0-a" && !b.isPruned);
       expect(child).toBeDefined();
     });
 
     it("regrowing branch is not marked isPruned", () => {
       const data = generateTree(31, PINE, pruned, TREE_ID);
-      const branch = data.branches.find((b) => b.id === "L0");
+      const branch = data.branches.find((b) => b.id === "p0");
       expect(branch?.isPruned).toBe(false);
     });
   });
