@@ -1,11 +1,13 @@
 # Bonsai Species Research
 
-This document explains how the growth parameters in `SPECIES_CONFIG` (schema.ts) were derived,
+This document explains how the growth parameters in `SPECIES_CONFIG` (speciesConfig.ts) were derived,
 to assist with adding new species in future.
 
 ---
 
 ## Parameter Reference
+
+### Currently used by the tree generator
 
 | Parameter | Type | Meaning |
 |---|---|---|
@@ -20,10 +22,37 @@ to assist with adding new species in future.
 | `splitDiverge` | radians | Angle divergence when a branch forks into two children. Smaller = tight columnar; larger = wide spreading. |
 | `branchThicknessFactor` | 0–1 | Base thickness of primary branches as a fraction of trunk width at the attachment point. |
 | `branchCurvature` | SVG units | Max lateral midpoint offset applied randomly per branch for natural curvature. Higher = wispier, more arching branches. |
-| `leafShape` | enum | `needle` / `oval` / `palmate` / `lobed` / `scale` — controls SVG leaf renderer |
+| `leafShape` | enum | `needle` / `oval` / `palmate` / `lobed` / `scale` / `pinnate` — controls SVG leaf renderer |
 | `leavesPerCluster` | [min, max] | Randomised count of leaf elements per terminal cluster |
 | `leafSize` | SVG units | Base size. Interpretation varies by shape (see below). |
 | `leavesAlongBranch` | boolean | When true, leaf clusters appear at intervals along the branch, not just the tip. Good for dense-foliage species (pine, juniper). |
+
+### Reserved for the natural-growth redesign
+
+These fields are declared in `SpeciesConfig` and filled for every species but are
+not yet read by `treeGenerator.ts`. Each phase of the redesign (see
+`docs/bonsai-snapshots/`) will switch one or more of them on, surfacing the
+rendered change as a PNG diff in `git log`.
+
+| Parameter | Type | Meaning |
+|---|---|---|
+| `trunkTaperPower` | exponent | Trunk taper profile. 1 = linear; >1 = concave (flared base, slim top); <1 = convex. |
+| `trunkJaggedness` | 0–1 | Roughness added to the trunk silhouette. 0 = smooth bezier; higher = bark/shari texture. |
+| `nebariSpread` | 0–1+ | Basal flare as a fraction of base trunk width — drives visible surface roots. |
+| `phyllotaxy` | enum | `opposite` / `alternate` / `whorled` — primary-branch emergence pattern around the trunk. |
+| `whorlSize` | number | Branches per whorl node when `phyllotaxy === "whorled"`. Ignored otherwise. |
+| `maxDepth` | number | Max branching depth (0 = primary only). Higher values enable finer ramification. |
+| `childCountByDepth` | number[] | Children per fork at each depth. e.g. `[3, 2, 2]` = primary forks 3 ways, deeper forks 2. |
+| `apicalDominance` | 0–1 | Strength of the apex shoot. 1 = strong leader (pine, oak); 0 = weak (cascade, vase). |
+| `branchWander` | 0–1+ | Random per-branch angle deviation producing kinks. 0 = perfectly straight. |
+| `azimuthSpread` | radians | Yaw range around the trunk axis across which branches emerge. `PI*2` = full 360°. |
+| `crownDepthFactor` | 0–1 | Crown depth along the z-axis. 0 = flat silhouette; 1 = roughly spherical. |
+| `tipDroop` | radians | Additional downward droop at branch tips. ~0.5 = heavily drooping (wisteria). |
+| `foliageDistribution` | enum | `tips` / `pads` / `interior` — where leaves cluster in the crown. |
+| `padRadius` | SVG units | Radius of a single foliage pad (used when `foliageDistribution === "pads"`). |
+| `interiorPadDensity` | 0–1 | Density of interior foliage clusters — fills the bare middle of the crown. |
+| `leavesPerPad` | [min, max] | Leaves per pad. Analogous to `leavesPerCluster` for pad-based distribution. |
+| `individualVariability` | 0–1 | Scale of per-tree parameter scatter — higher = more visible differences between same-species trees. |
 
 ### `leafSize` interpretation by shape
 
@@ -53,6 +82,11 @@ the species' formal-upright proportions.
 Represented as radiating ellipse clusters. `leavesPerCluster: [8, 12]`, `leafSize: 7.5`.
 `leavesAlongBranch: true` fills branches with dense needle clusters throughout their length.
 
+**Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 5` reflects pine's signature
+candle-whorl growth. Strong `apicalDominance: 0.8` drives the conical leader; `maxDepth: 3`
+and `childCountByDepth: [3, 2, 2]` support the horticultural pad structure with
+`foliageDistribution: "pads"` and `padRadius: 14`. Moderate `crownDepthFactor: 0.7`.
+
 **Pruning speed**: Moderate — pine is vigorous but back-budding takes time. `regrowthDays: 14`.
 
 **Sources**: Bonsai Empire pine guide; *The Complete Book of Bonsai* (Tomlinson).
@@ -74,6 +108,13 @@ gives the naturally graceful arching of mature maple limbs.
 Relatively small clusters of 3–5 individual leaves clearly visible at each tip.
 `leavesPerCluster: [3, 5]`, `leafSize: 5.0`.
 
+**Redesign params**: `phyllotaxy: "opposite"` captures maple's paired-bud habit
+(adjacent nodes rotate 90° to produce the crossing-branch look). Weak
+`apicalDominance: 0.4` and high `branchWander: 0.4` give the vase-shaped,
+sinuous crown. `foliageDistribution: "tips"` preserves the current
+at-the-tip cluster rendering; `crownDepthFactor: 0.8` gives a rounded
+silhouette for later 3D work.
+
 **Pruning speed**: Fast — maple back-buds readily. `regrowthDays: 12`.
 
 **Sources**: Bonsai Tonight; *Acer palmatum* cultivation guides; Kokufu album observations.
@@ -91,6 +132,11 @@ maintains a fairly even spreading silhouette from base to apex. `firstBranchFrac
 
 **Foliage**: Oval-lanceolate leaves 6–13 cm in nature, shown as landscape ovals.
 Clusters of 4–6. `leavesPerCluster: [4, 6]`, `leafSize: 4.5`.
+
+**Redesign params**: `phyllotaxy: "alternate"` for cherry's spiral bud arrangement.
+Moderate `apicalDominance: 0.6` and low `branchWander: 0.2` produce a tidy
+spreading crown. `foliageDistribution: "tips"` with a small `interiorPadDensity: 0.3`
+fills the middle without losing the light, airy canopy.
 
 **Pruning speed**: Moderate-fast — cherry heals quickly. `regrowthDays: 10`.
 
@@ -115,6 +161,13 @@ Dense branching with compact pads. `maxBranchPairs: 8`.
 clusters of tiny scale ellipses throughout the branch length. `leavesPerCluster: [12, 18]`,
 `leafSize: 2.0`. `leavesAlongBranch: true`.
 
+**Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 3` matches the species'
+trademark 3-leaf scale whorls. Weak `apicalDominance: 0.2` and high `branchWander: 0.7`
+produce the twisted, tortured shari movement the style is prized for. Cascade display
+narrows `azimuthSpread` to `PI * 1.6` — branches lean toward the viewing side.
+`foliageDistribution: "pads"` with `padRadius: 16` and `interiorPadDensity: 0.8` produces
+the dense pad-and-pad silhouette. High `trunkJaggedness: 0.7` for shari bark texture.
+
 **Pruning speed**: Slow — junipers dislike hard pruning and back-bud cautiously.
 `regrowthDays: 16`.
 
@@ -134,6 +187,12 @@ reflects oak's stiff, relatively straight limbs compared to species like maple o
 
 **Foliage**: Deeply lobed leaves 5–15 cm in nature (much reduced on bonsai). Rendered as
 a sinuous lobed path. Small clusters of 3–5. `leavesPerCluster: [3, 5]`, `leafSize: 6.0`.
+
+**Redesign params**: `phyllotaxy: "alternate"` with strong `apicalDominance: 0.7`
+reflects oak's powerful straight-leader growth. `childCountByDepth: [2, 3, 2]` lets the
+middle fork widen into oak's signature stout three-way crown-scaffolds. High
+`crownDepthFactor: 0.9` models oak's full, rounded canopy volume. `trunkJaggedness: 0.5`
+and `trunkTaperPower: 1.5` capture the furrowed, muscular trunk taper.
 
 **Pruning speed**: Slowest in the set — oaks grow deliberately. `regrowthDays: 18`.
 
@@ -160,6 +219,11 @@ to suggest the light, feathery canopy. `leavesPerCluster: [5, 8]`, `leafSize: 4.
 **Colour**: Lavender-purple (`#9b59b6`), representing the iconic hanging raceme flowers as
 much as the foliage — the main visual appeal of wisteria bonsai.
 
+**Redesign params**: High `tipDroop: 0.5` models the heavy hanging habit. Weak
+`apicalDominance: 0.3` and strong `branchWander: 0.6` produce the gnarled semi-cascade
+character; high `trunkJaggedness: 0.6` gives bark texture. `azimuthSpread: PI * 1.6`
+narrows the crown to one display side, matching typical wisteria presentation.
+
 **Pruning speed**: Moderate — wisteria back-buds well. `regrowthDays: 12`.
 
 **Sources**: Bonsai Empire wisteria guide; RHS *Wisteria sinensis* cultivation notes;
@@ -185,6 +249,12 @@ fine leaflet structure). `leavesPerCluster: [4, 7]`, `leafSize: 5.5`.
 
 **Colour**: Vivid scarlet-orange (`#e74c3c` / `#ff6b47`), representing the mass of brilliant
 red flowers that cover the entire canopy — the species is named for this effect.
+
+**Redesign params**: Extremely low `crownDepthFactor: 0.3` captures the flat-topped
+umbrella silhouette. Weak `apicalDominance: 0.2` and near-zero `branchWander: 0.15`
+produce the clean, horizontally-layered canopy. `foliageDistribution: "pads"` with
+the largest `padRadius: 18` of any species models the sweeping horizontal foliage
+plates characteristic of *Delonix regia*.
 
 **Pruning speed**: Moderate — tropical species with good recovery. `regrowthDays: 14`.
 
