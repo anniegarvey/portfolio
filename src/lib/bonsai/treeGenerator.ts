@@ -24,7 +24,6 @@ export type { BranchSpec, Floret, Flower, Leaf, RenderedBranch, TreeSVGData };
 const VIEWBOX_WIDTH = 200;
 export const VIEWBOX_HEIGHT = 300;
 const SPLIT_DELAY = 7; // days from parent appearing to children appearing
-const MAX_DEPTH = 2; // 0 = primary, 1 = secondary, 2 = tertiary
 export const BRANCH_GROW_DURATION = 6; // days from first appearance to full length
 // Golden angle: 137.508° in radians. Irrational ratio ensures no azimuth repeats
 // across alternate-phyllotaxy primaries, producing a natural spiral.
@@ -427,49 +426,63 @@ function buildBranchTree(
     curveBias,
   });
 
-  if (depth >= MAX_DEPTH) return;
+  if (depth >= spec.maxDepth) return;
 
   const childDay = appearsAtDay + SPLIT_DELAY;
   if (day < childDay) return;
 
+  // branchWander: small random walk on the parent angle before forking,
+  // producing organic kinks rather than ruler-straight branch lines.
+  const wanderedAngle =
+    angle + (seededVal(id + treeId, 77) - 0.5) * 2 * spec.branchWander;
+
   // Per-branch random divergence variation (±15% around species default)
   const divergeVar =
     spec.splitDiverge * (1.0 + (seededVal(id + treeId, 88) - 0.5) * 0.3);
-  const childLength = maxLength * (0.55 + seededVal(id + treeId, 89) * 0.12);
+
+  // Shorter twigs at deeper levels — base factor shrinks linearly with depth.
+  const baseLengthFactor = Math.max(0.3, 0.55 - depth * 0.04);
+  const childLength =
+    maxLength * (baseLengthFactor + seededVal(id + treeId, 89) * 0.12);
   const childBaseWidth = tipWidth * 1.5;
 
-  // Azimuth is inherited unchanged by children; angle arithmetic (angle ±
-  // divergeVar) preserves the existing 2-D geometry exactly.
-  buildBranchTree(
-    `${id}-a`,
-    fulltipX,
-    fulltipY,
-    angle - divergeVar,
-    azimuth,
-    childLength,
-    childDay,
-    depth + 1,
-    childBaseWidth,
-    spec,
-    day,
-    treeId,
-    out,
-  );
-  buildBranchTree(
-    `${id}-b`,
-    fulltipX,
-    fulltipY,
-    angle + divergeVar,
-    azimuth,
-    childLength,
-    childDay,
-    depth + 1,
-    childBaseWidth,
-    spec,
-    day,
-    treeId,
-    out,
-  );
+  // Leader: the first child continues near-parallel to the parent direction.
+  // High apicalDominance → small leader offset (pine, juniper); low → all
+  // children diverge similarly (maple, flame tree).
+  const leaderDiverge = (1 - spec.apicalDominance) * divergeVar;
+
+  const childCount = spec.childCountByDepth[depth] ?? 2;
+
+  for (let k = 0; k < childCount; k++) {
+    const childSuffix = String.fromCharCode(97 + k); // 'a', 'b', 'c', …
+    let childAngle: number;
+    if (k === 0) {
+      // Leader — stays close to wandered parent direction
+      childAngle = wanderedAngle + leaderDiverge;
+    } else {
+      // Laterals — alternate ±divergeVar, incrementing multiplier every pair
+      const sign = k % 2 === 0 ? 1 : -1;
+      const multiplier = Math.ceil(k / 2);
+      childAngle = wanderedAngle + sign * multiplier * divergeVar;
+    }
+
+    // Azimuth is inherited unchanged; only 2-D angle changes across children.
+    buildBranchTree(
+      `${id}-${childSuffix}`,
+      fulltipX,
+      fulltipY,
+      childAngle,
+      azimuth,
+      childLength,
+      childDay,
+      depth + 1,
+      childBaseWidth,
+      spec,
+      day,
+      treeId,
+      out,
+    );
+  }
 }
 
 // ─── Main Generator ───────────────────────────────────────────────────────────
