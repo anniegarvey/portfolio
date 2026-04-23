@@ -87,4 +87,38 @@ describe("saveBonsaiState / loadBonsaiState", () => {
     const state = createInitialState();
     expect(() => saveBonsaiState(state)).not.toThrow();
   });
+
+  describe("branch ID migration (Phase 3)", () => {
+    it("migrates L{i} branch IDs to p{2i} on load", () => {
+      const state = createInitialState();
+      state.trees[0].prunedBranches = [{ branchId: "L0", prunedAtDay: 5 }];
+      saveBonsaiState(state);
+      const loaded = loadBonsaiState();
+      expect(loaded?.trees[0].prunedBranches[0].branchId).toBe("p0");
+    });
+
+    it("migrates R{i} branch IDs to p{2i+1} on load", () => {
+      const state = createInitialState();
+      state.trees[0].prunedBranches = [{ branchId: "R1", prunedAtDay: 5 }];
+      saveBonsaiState(state);
+      const loaded = loadBonsaiState();
+      expect(loaded?.trees[0].prunedBranches[0].branchId).toBe("p3");
+    });
+
+    it("preserves child segments when migrating root IDs", () => {
+      const state = createInitialState();
+      state.trees[0].prunedBranches = [{ branchId: "L2-a-b", prunedAtDay: 5 }];
+      saveBonsaiState(state);
+      const loaded = loadBonsaiState();
+      expect(loaded?.trees[0].prunedBranches[0].branchId).toBe("p4-a-b");
+    });
+
+    it("leaves already-migrated p{n} IDs unchanged", () => {
+      const state = createInitialState();
+      state.trees[0].prunedBranches = [{ branchId: "p3-a", prunedAtDay: 5 }];
+      saveBonsaiState(state);
+      const loaded = loadBonsaiState();
+      expect(loaded?.trees[0].prunedBranches[0].branchId).toBe("p3-a");
+    });
+  });
 });

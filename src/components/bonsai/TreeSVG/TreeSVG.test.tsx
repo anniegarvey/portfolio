@@ -135,12 +135,12 @@ describe("TreeSVG", () => {
   });
 
   it("shows pruned branch title when a branch is pruned", () => {
-    // Branch IDs are generated as L0, R0, L1, R1... by treeGenerator.
-    // Maple regrowthDays=12: pruned at day 40, current day 50 → still pruned (50 < 52).
+    // Maple (opposite, branchFrequency=3): p0 is the first primary branch.
+    // regrowthDays=12: pruned at day 40, current day 50 → still pruned (50 < 52).
     const treeWithPruned: BonsaiTree = {
       ...mapleAt50,
       activeDaysCount: 50,
-      prunedBranches: [{ branchId: "L0", prunedAtDay: 40 }],
+      prunedBranches: [{ branchId: "p0", prunedAtDay: 40 }],
     };
     render(<TreeSVG activeTool="pruning-shears" tree={treeWithPruned} />);
     expect(screen.getByText("Pruned (regrowing\u2026)")).toBeInTheDocument();

@@ -26,6 +26,9 @@ export const VIEWBOX_HEIGHT = 300;
 const SPLIT_DELAY = 7; // days from parent appearing to children appearing
 const MAX_DEPTH = 2; // 0 = primary, 1 = secondary, 2 = tertiary
 export const BRANCH_GROW_DURATION = 6; // days from first appearance to full length
+// Golden angle: 137.508° in radians. Irrational ratio ensures no azimuth repeats
+// across alternate-phyllotaxy primaries, producing a natural spiral.
+const GOLDEN_ANGLE = 2.399193;
 
 /** Returns the trunk height (in SVG units) for a given tree — mirrors the
  *  growth formula inside generateTree so callers can compute glow sizes etc.
@@ -44,7 +47,7 @@ export function computeTrunkHeight(
 
 // ─── Branch Logic Helpers ─────────────────────────────────────────────────────
 
-/** Ancestor IDs for pruning propagation: "L0-a-b" → ["L0", "L0-a"]. */
+/** Ancestor IDs for pruning propagation: "p0-a-b" → ["p0", "p0-a"]. */
 function buildAncestors(id: string): string[] {
   const segs = id.split("-");
   if (segs.length <= 1) return [];
@@ -539,82 +542,140 @@ export function generateTree(
   const isCascade = spec.branchAngleBase < -0.05;
   const maxAttachFrac = isCascade ? 0.96 : 0.9;
 
+  // ─── Phyllotaxy-Driven Primary Branch Placement ──────────────────────────
+  // Primary branches are numbered p0, p1, p2 … sequentially. Phyllotaxy
+  // controls how many branches share each height node and what azimuth each
+  // gets around the trunk axis.
+  const phyllotaxy = spec.phyllotaxy;
+  const whorlSize = spec.whorlSize ?? 3;
+  const maxBranchPairs = spec.maxBranchPairs;
+  const branchFrequency = spec.branchFrequency;
+  const branchAngleBase = spec.branchAngleBase;
+  const branchAngleRamp = spec.branchAngleRamp;
+
+  // Height-node count: whorled/opposite group multiple primaries per node.
+  const numNodes =
+    phyllotaxy === "whorled"
+      ? Math.ceil(maxBranchPairs / whorlSize)
+      : phyllotaxy === "opposite"
+        ? Math.ceil(maxBranchPairs / 2)
+        : maxBranchPairs;
+
   const branchHeights = computeBranchHeights(
     trunkHeight,
-    spec.maxBranchPairs,
+    numNodes,
     spec.firstBranchFrac,
     maxAttachFrac,
   );
-  const numActualBranches = branchHeights.length;
+  const numActualNodes = branchHeights.length;
 
-  for (let branchIdx = 0; branchIdx < numActualBranches; branchIdx++) {
-    const side = branchIdx % 2 === 0 ? "L" : "R";
-    const sideIdx = Math.floor(branchIdx / 2);
-    const id = `${side}${sideIdx}`;
+  let primaryIdx = 0;
 
-    // Appearance day: lower branches appear earlier
-    const baseDay = (sideIdx + 1) * spec.branchFrequency;
-    const dayJitter =
-      (seededVal(`${id}t${treeId}`, 0) - 0.5) * spec.branchFrequency * 0.5;
-    const appearsAtDay = Math.max(1, Math.round(baseDay + dayJitter));
-    if (activeDaysCount < appearsAtDay) continue;
+  nodeLoop: for (let nodeIdx = 0; nodeIdx < numActualNodes; nodeIdx++) {
+    // Branches born from this height node
+    const branchesAtNode =
+      phyllotaxy === "whorled"
+        ? Math.min(whorlSize, maxBranchPairs - primaryIdx)
+        : phyllotaxy === "opposite"
+          ? Math.min(2, maxBranchPairs - primaryIdx)
+          : 1;
 
-    // Height with small per-branch jitter for naturalness (±3% of trunk)
-    const hJitter =
-      (seededVal(`${id}h${treeId}`, 0) - 0.5) * trunkHeight * 0.03;
-    const heightFromBase = Math.max(
-      trunkHeight * spec.firstBranchFrac * 0.85,
-      Math.min(
-        trunkHeight * maxAttachFrac * 0.99,
-        branchHeights[branchIdx] + hJitter,
-      ),
-    );
+    // Zone fraction: 0 = lowest node, 1 = highest — used for angle ramp.
+    const zoneFrac = numActualNodes > 1 ? nodeIdx / (numActualNodes - 1) : 0.5;
 
-    const t = trunkHeight > 0 ? Math.min(heightFromBase / trunkHeight, 1) : 0;
-    const attachX = trunkCentreX(t, trunkBaseX, trunkCpX, trunkTopX);
-    const attachY = trunkBaseY - heightFromBase;
+    for (let k = 0; k < branchesAtNode; k++) {
+      if (primaryIdx >= maxBranchPairs) break nodeLoop;
 
-    // Zone fraction: 0 = lowest branch in this tree, 1 = highest
-    const zoneFrac =
-      numActualBranches > 1 ? branchIdx / (numActualBranches - 1) : 0.5;
+      const currentPrimary = primaryIdx;
+      primaryIdx++;
+      const id = `p${currentPrimary}`;
 
-    // Angle: linear progression from bottom to top controlled by branchAngleRamp
-    const angleProgression = spec.branchAngleRamp * (zoneFrac - 0.5);
-    const angleJitter = (seededVal(`pa${branchIdx}${treeId}`, 0) - 0.5) * 0.14;
-    const effectiveBase = spec.branchAngleBase + angleProgression + angleJitter;
+      // Appearance day: lower nodes appear earlier
+      const baseDay = (nodeIdx + 1) * branchFrequency;
+      const dayJitter =
+        (seededVal(`${id}t${treeId}`, 0) - 0.5) * branchFrequency * 0.5;
+      const appearsAtDay = Math.max(1, Math.round(baseDay + dayJitter));
+      if (activeDaysCount < appearsAtDay) continue;
 
-    const angle = side === "L" ? -(Math.PI - effectiveBase) : -effectiveBase;
-    // Azimuth: right branches face outward at 0, left branches at π. Both give
-    // z=0 (sin(0)=sin(π)=0) so visual output is identical to Phase 1.
-    const azimuth = side === "L" ? Math.PI : 0;
+      // Attachment height — alternate branches get a small per-branch jitter;
+      // whorled/opposite keep all siblings at the same node height.
+      const hJitter =
+        phyllotaxy === "alternate"
+          ? (seededVal(`${id}h${treeId}`, 0) - 0.5) * trunkHeight * 0.03
+          : 0;
+      const heightFromBase = Math.max(
+        trunkHeight * spec.firstBranchFrac * 0.85,
+        Math.min(
+          trunkHeight * maxAttachFrac * 0.99,
+          branchHeights[nodeIdx] + hJitter,
+        ),
+      );
 
-    // Thickness from trunk width at attachment point — upper branches naturally thinner
-    const attachTrunkW = lerp(trunkBaseW, trunkTopW, t);
-    const primaryBaseW = Math.max(
-      0.5,
-      attachTrunkW * spec.branchThicknessFactor,
-    );
+      const t = trunkHeight > 0 ? Math.min(heightFromBase / trunkHeight, 1) : 0;
+      const attachX = trunkCentreX(t, trunkBaseX, trunkCpX, trunkTopX);
+      const attachY = trunkBaseY - heightFromBase;
 
-    // Length: lower branches longer (wide silhouette), upper branches shorter
-    const lengthBase = 38 - zoneFrac * 16;
-    const lengthVar = (seededVal(`pl${branchIdx}${treeId}`, 0) - 0.5) * 8;
-    const primaryLength = Math.max(10, lengthBase + lengthVar);
+      // Elevation (pitch) angle — same ramp logic as before
+      const angleProgression = branchAngleRamp * (zoneFrac - 0.5);
+      const angleJitter = (seededVal(`pa${id}${treeId}`, 0) - 0.5) * 0.14;
+      const pitch = branchAngleBase + angleProgression + angleJitter;
 
-    buildBranchTree(
-      id,
-      attachX,
-      attachY,
-      angle,
-      azimuth,
-      primaryLength,
-      appearsAtDay,
-      0,
-      primaryBaseW,
-      spec,
-      activeDaysCount,
-      treeId,
-      allSpecs,
-    );
+      // Azimuth (yaw around trunk axis) — the key Phase 3 change
+      let azimuth: number;
+      if (phyllotaxy === "whorled") {
+        // k-th branch of the whorl, evenly spaced around 2π.
+        // Divide by branchesAtNode (not whorlSize) so partial final whorls
+        // still spread evenly — e.g. 2 leftover branches get 0° and 180°.
+        const baseAzimuth = (k / branchesAtNode) * Math.PI * 2;
+        const azJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3;
+        azimuth = baseAzimuth + azJitter;
+      } else if (phyllotaxy === "opposite") {
+        // Decussate: successive pairs rotate 90° (π/2). Within each pair,
+        // the two branches are diametrically opposite (+ π).
+        const pairBase = (nodeIdx % 2) * (Math.PI / 2);
+        azimuth = pairBase + k * Math.PI;
+      } else {
+        // alternate — golden-angle spiral avoids azimuth repetition
+        const baseAzimuth = currentPrimary * GOLDEN_ANGLE;
+        const azJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3;
+        azimuth = baseAzimuth + azJitter;
+      }
+
+      // 2D SVG angle from pitch and azimuth.
+      // dx = cos(azimuth)·cos(pitch), dy(SVG) = −sin(pitch)
+      const angle = Math.atan2(
+        -Math.sin(pitch),
+        Math.cos(azimuth) * Math.cos(pitch),
+      );
+
+      // Thickness from trunk width at attachment — upper branches naturally thinner
+      const attachTrunkW = lerp(trunkBaseW, trunkTopW, t);
+      const primaryBaseW = Math.max(
+        0.5,
+        attachTrunkW * spec.branchThicknessFactor,
+      );
+
+      // Length: lower branches longer (wide silhouette), upper shorter
+      const lengthBase = 38 - zoneFrac * 16;
+      const lengthVar = (seededVal(`pl${id}${treeId}`, 0) - 0.5) * 8;
+      const primaryLength = Math.max(10, lengthBase + lengthVar);
+
+      buildBranchTree(
+        id,
+        attachX,
+        attachY,
+        angle,
+        azimuth,
+        primaryLength,
+        appearsAtDay,
+        0,
+        primaryBaseW,
+        spec,
+        activeDaysCount,
+        treeId,
+        allSpecs,
+      );
+    }
   }
 
   // ─── Apex Branches ────────────────────────────────────────────────────────
