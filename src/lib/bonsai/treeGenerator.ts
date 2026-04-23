@@ -623,8 +623,10 @@ export function generateTree(
       // Azimuth (yaw around trunk axis) — the key Phase 3 change
       let azimuth: number;
       if (phyllotaxy === "whorled") {
-        // k-th branch of the whorl, evenly spaced around 2π
-        const baseAzimuth = (k / whorlSize) * Math.PI * 2;
+        // k-th branch of the whorl, evenly spaced around 2π.
+        // Divide by branchesAtNode (not whorlSize) so partial final whorls
+        // still spread evenly — e.g. 2 leftover branches get 0° and 180°.
+        const baseAzimuth = (k / branchesAtNode) * Math.PI * 2;
         const azJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3;
         azimuth = baseAzimuth + azJitter;
       } else if (phyllotaxy === "opposite") {
