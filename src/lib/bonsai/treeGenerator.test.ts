@@ -71,7 +71,8 @@ describe("generateTree", () => {
     const data = generateTree(50, PINE, [], TREE_ID);
 
     it("has many branches", () => {
-      expect(data.branches.length).toBeGreaterThan(4);
+      // Phase 4: deeper recursion + variable childCount yields far more than 4
+      expect(data.branches.length).toBeGreaterThan(20);
     });
 
     it("branches span across the upper portion of the trunk height", () => {
@@ -178,6 +179,69 @@ describe("generateTree", () => {
       const data = generateTree(31, PINE, pruned, TREE_ID);
       const branch = data.branches.find((b) => b.id === "p0");
       expect(branch?.isPruned).toBe(false);
+    });
+  });
+
+  // ─── Apical Dominance ─────────────────────────────────────────────────────
+
+  /** Derive the 2-D angle of a rendered branch from its endpoint coordinates. */
+  function branchAngle(b: { x1: number; y1: number; x2: number; y2: number }) {
+    return Math.atan2(b.y2 - b.y1, b.x2 - b.x1);
+  }
+
+  /** Smallest angular difference between two angles, in [0, π]. */
+  function angleDelta(a: number, b: number) {
+    const diff = Math.abs(a - b) % (2 * Math.PI);
+    return diff > Math.PI ? 2 * Math.PI - diff : diff;
+  }
+
+  describe("apical dominance", () => {
+    it("pine leader child (-a) angle stays close to parent direction", () => {
+      // Pine has apicalDominance=0.8. Leader diverges by at most
+      // (1-0.8) * splitDiverge ≈ 0.11 rad from the wandered parent direction.
+      // Include branchWander (≤0.15 rad) in the tolerance → ceiling 0.5 rad.
+      const data = generateTree(50, PINE, [], TREE_ID);
+      const primaries = data.branches.filter(
+        (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+      );
+      for (const primary of primaries) {
+        const leader = data.branches.find((b) => b.id === `${primary.id}-a`);
+        if (!leader) continue;
+        expect(
+          angleDelta(branchAngle(leader), branchAngle(primary)),
+        ).toBeLessThan(0.5);
+      }
+    });
+
+    it("pine leader child is closer to parent than lateral child in most cases", () => {
+      // Pine: apicalDominance=0.8, branchWander=0.15, splitDiverge≈0.55.
+      // leaderDiverge ≈ 0.11 rad; divergeVar ≈ 0.55 rad; wander ≤ ±0.15 rad.
+      // Even in the worst wander case the leader is ≤ 0.26 rad from parent
+      // while the lateral is ≥ 0.40 rad — leader wins in every seed.
+      const data = generateTree(50, PINE, [], TREE_ID);
+      const primaries = data.branches.filter(
+        (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+      );
+      let closer = 0;
+      let total = 0;
+      for (const primary of primaries) {
+        const leader = data.branches.find((b) => b.id === `${primary.id}-a`);
+        const lateral = data.branches.find((b) => b.id === `${primary.id}-b`);
+        if (!(leader && lateral)) continue;
+        const leaderDiff = angleDelta(
+          branchAngle(leader),
+          branchAngle(primary),
+        );
+        const lateralDiff = angleDelta(
+          branchAngle(lateral),
+          branchAngle(primary),
+        );
+        if (leaderDiff < lateralDiff) closer++;
+        total++;
+      }
+      expect(total).toBeGreaterThan(0);
+      // Leader should be closer to parent than lateral in the majority of branches
+      expect(closer / total).toBeGreaterThan(0.7);
     });
   });
 
