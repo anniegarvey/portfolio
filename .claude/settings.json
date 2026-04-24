@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(pnpm tsc --noEmit *)",
+      "Bash(pnpm exec tsc --noEmit *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm test --run *)",
+      "Bash(pnpm vitest run *)"
+    ]
+  },
   "hooks": {
     "SessionEnd": [
       {
