@@ -684,8 +684,19 @@ function buildBranchTree(
   out: BranchSpec[],
 ): void {
   const tipWidth = Math.max(baseWidth * 0.25, 0.4);
-  const fulltipX = x1 + Math.cos(angle) * maxLength;
-  const fulltipY = y1 + Math.sin(angle) * maxLength;
+
+  // Foreshortening: branches pointing toward/away from viewer appear shorter.
+  // apparent_length = maxLength · sqrt(cos²(az) + sin²(az)·k) where
+  // k = crownDepthFactor. k=0 → completely flat projection (only horizontal
+  // extent shows); k=1 → no compression (maximum 3D feel).
+  const k = spec.crownDepthFactor;
+  const foreshorten = Math.sqrt(
+    Math.cos(azimuth) ** 2 + Math.sin(azimuth) ** 2 * k,
+  );
+  const visibleLength = maxLength * foreshorten;
+
+  const fulltipX = x1 + Math.cos(angle) * visibleLength;
+  const fulltipY = y1 + Math.sin(angle) * visibleLength;
   // Each branch gets a seeded random curve — range ±branchCurvature
   const curveBias =
     (seededVal(id + treeId, 91) - 0.5) * 2 * spec.branchCurvature;
@@ -693,8 +704,8 @@ function buildBranchTree(
   // Pitch (elevation above horizontal): sin(pitch) = -sin(angle) in SVG coords
   // (SVG y is inverted, so upward branches have negative angle).
   const pitch = Math.asin(Math.max(-1, Math.min(1, -Math.sin(angle))));
-  // Z-depth of tip: cos(pitch)·sin(azimuth)·length. Clamp floating-point
-  // noise to exactly 0 for azimuth ∈ {0, π} where sin should be zero.
+  // Z-depth of tip: use full maxLength so depth sort isn't affected by foreshortening.
+  // Clamp floating-point noise to exactly 0 for azimuth ∈ {0, π}.
   const rawZ = Math.cos(pitch) * Math.sin(azimuth) * maxLength;
   const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
 
@@ -1060,9 +1071,17 @@ export function generateTree(
     const effectiveProg = regrowProg !== null ? regrowProg : prog;
     if (effectiveProg <= 0) continue;
 
-    const currentLen = lerp(0, s.maxLength, effectiveProg);
+    // Mirror the foreshortening from buildBranchTree so the rendered tip
+    // matches fulltipX/fulltipY at full growth.
+    const rk = spec.crownDepthFactor;
+    const rForeshorten = Math.sqrt(
+      Math.cos(s.azimuth) ** 2 + Math.sin(s.azimuth) ** 2 * rk,
+    );
+    const currentLen = lerp(0, s.maxLength * rForeshorten, effectiveProg);
     const x2 = s.x1 + Math.cos(s.angle) * currentLen;
-    const y2 = s.y1 + Math.sin(s.angle) * currentLen;
+    // Subtle vertical parallax: near-viewer branches (positive z) sit slightly
+    // higher; far branches slightly lower. Keeps forward ≠ backward in 2D.
+    const y2 = s.y1 + Math.sin(s.angle) * currentLen + s.z * rk * 0.015;
     const currentTipW = lerp(s.baseWidth, s.tipWidth, effectiveProg);
 
     const path = taperedPath(
