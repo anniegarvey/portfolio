@@ -202,6 +202,80 @@ function generateLeaves(
   return leaves;
 }
 
+// ─── Foliage Pad Generation ───────────────────────────────────────────────────
+
+/**
+ * Generates a foliage pad — a disc of leaves around a 3D centre point.
+ * Leaves are scattered within a circle of `radius` SVG units in 2D, with a
+ * z-offset sampled from ±(radius × crownDepthFactor) so the renderer can
+ * depth-sort individual leaves across overlapping pads.
+ */
+function generatePad(
+  seed: string,
+  treeId: string,
+  centerX: number,
+  centerY: number,
+  centerZ: number,
+  radius: number,
+  leafCount: number,
+  spec: SpeciesConfig,
+  progress: number,
+  _depth: number,
+  sizeMultiplier = 1.0,
+): Leaf[] {
+  const leaves: Leaf[] = [];
+  const size = spec.leafSize * progress * sizeMultiplier;
+  const zSpread = radius * spec.crownDepthFactor;
+
+  for (let i = 0; i < leafCount; i++) {
+    const angle = seededVal(seed + treeId, i * 4 + 1000) * Math.PI * 2;
+    // sqrt for uniform area distribution within disc
+    const radialFrac = Math.sqrt(seededVal(seed + treeId, i * 4 + 1001));
+    const dist = radialFrac * radius;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    const dz = (seededVal(seed + treeId, i * 4 + 1002) - 0.5) * 2 * zSpread;
+    const tilt = seededVal(seed + treeId, i * 4 + 1003) * 360;
+
+    if (spec.leafShape === "needle") {
+      const baseDeg = (i / leafCount) * 360;
+      const jitter = (seededVal(seed + treeId, i * 4 + 1003) - 0.5) * 18;
+      leaves.push({
+        id: `${seed}-p${i}`,
+        cx: r(centerX + dx),
+        cy: r(centerY + dy),
+        rx: 0.4,
+        ry: size,
+        angleDeg: baseDeg + jitter,
+        z: centerZ + dz,
+      });
+    } else if (spec.leafShape === "scale") {
+      leaves.push({
+        id: `${seed}-p${i}`,
+        cx: r(centerX + dx),
+        cy: r(centerY + dy),
+        rx: size * 0.7,
+        ry: size * 0.7,
+        angleDeg: tilt,
+        z: centerZ + dz,
+      });
+    } else {
+      // oval, palmate, lobed, pinnate
+      leaves.push({
+        id: `${seed}-p${i}`,
+        cx: r(centerX + dx),
+        cy: r(centerY + dy),
+        rx: size,
+        ry: size * (spec.leafShape === "oval" ? 0.6 : 1.0),
+        angleDeg: tilt,
+        z: centerZ + dz,
+      });
+    }
+  }
+
+  return leaves;
+}
+
 // ─── Flower Generation ────────────────────────────────────────────────────────
 
 const FLOWER_FADE_DURATION = 8; // days from floweringAge to full opacity
@@ -375,6 +449,221 @@ function generateFlowers(
       racemeFlorets: [],
     };
   });
+}
+
+// ─── Foliage Dispatch ─────────────────────────────────────────────────────────
+// Each distribution mode is a separate function to keep cognitive complexity low.
+
+function terminalFoliage(
+  s: BranchSpec,
+  x2: number,
+  y2: number,
+  effectiveProg: number,
+  isTerminal: boolean,
+  spec: SpeciesConfig,
+  treeId: string,
+): Leaf[] {
+  if (!isTerminal || effectiveProg <= 0.3) return [];
+  const [minL, maxL] = spec.leavesPerPad;
+  const count = seededInt(s.id + treeId, 77, minL, maxL);
+  return generatePad(
+    s.id,
+    treeId,
+    x2,
+    y2,
+    s.z,
+    spec.padRadius,
+    count,
+    spec,
+    effectiveProg,
+    s.depth,
+  );
+}
+
+function padFoliage(
+  s: BranchSpec,
+  x2: number,
+  y2: number,
+  effectiveProg: number,
+  isTerminal: boolean,
+  spec: SpeciesConfig,
+  treeId: string,
+): Leaf[] {
+  const [minL, maxL] = spec.leavesPerPad;
+  if (isTerminal && effectiveProg > 0.3) {
+    const count = seededInt(s.id + treeId, 77, minL, maxL);
+    return generatePad(
+      s.id,
+      treeId,
+      x2,
+      y2,
+      s.z,
+      spec.padRadius,
+      count,
+      spec,
+      effectiveProg,
+      s.depth,
+    );
+  }
+  if (
+    !isTerminal &&
+    s.depth >= spec.maxDepth - 1 &&
+    effectiveProg > 0.5 &&
+    seededVal(s.id + treeId, 78) < spec.interiorPadDensity
+  ) {
+    const intCount = seededInt(
+      s.id + treeId,
+      79,
+      Math.max(1, Math.floor(minL * 0.5)),
+      Math.max(2, Math.ceil(maxL * 0.5)),
+    );
+    return generatePad(
+      `${s.id}i`,
+      treeId,
+      x2,
+      y2,
+      s.z,
+      spec.padRadius * 0.7,
+      intCount,
+      spec,
+      effectiveProg,
+      s.depth,
+      0.8,
+    );
+  }
+  return [];
+}
+
+function scatteredFoliage(
+  s: BranchSpec,
+  _x2: number,
+  _y2: number,
+  currentLen: number,
+  effectiveProg: number,
+  spec: SpeciesConfig,
+  treeId: string,
+): Leaf[] {
+  if (effectiveProg <= 0.4 || currentLen <= 6) return [];
+  const [minL, maxL] = spec.leavesPerPad;
+  const numPads = Math.max(
+    1,
+    Math.round(seededVal(s.id + treeId, 80) * spec.interiorPadDensity * 3),
+  );
+  const leaves: Leaf[] = [];
+  for (let p = 0; p < numPads; p++) {
+    const frac = 0.4 + seededVal(s.id + treeId, 81 + p) * 0.6;
+    const px = s.x1 + Math.cos(s.angle) * currentLen * frac;
+    const py = s.y1 + Math.sin(s.angle) * currentLen * frac;
+    const count = seededInt(s.id + treeId, 82 + p, minL, maxL);
+    leaves.push(
+      ...generatePad(
+        `${s.id}s${p}`,
+        treeId,
+        px,
+        py,
+        s.z,
+        spec.padRadius,
+        count,
+        spec,
+        effectiveProg,
+        s.depth,
+      ),
+    );
+  }
+  return leaves;
+}
+
+function pendentFoliage(
+  s: BranchSpec,
+  x2: number,
+  y2: number,
+  effectiveProg: number,
+  isTerminal: boolean,
+  spec: SpeciesConfig,
+  treeId: string,
+): Leaf[] {
+  if (effectiveProg <= 0.3) return [];
+  const [minL, maxL] = spec.leavesPerPad;
+  const racemeLen = spec.flowers?.racemeLength ?? 20;
+  const leaves: Leaf[] = [];
+  if (isTerminal) {
+    const count = seededInt(s.id + treeId, 77, minL, maxL);
+    leaves.push(
+      ...generatePad(
+        s.id,
+        treeId,
+        x2,
+        y2,
+        s.z,
+        spec.padRadius,
+        count,
+        spec,
+        effectiveProg,
+        s.depth,
+      ),
+    );
+  }
+  const numHang = seededInt(s.id + treeId, 83, 2, 4);
+  for (let d = 1; d <= numHang; d++) {
+    const t = d / numHang;
+    const sway = (seededVal(s.id + treeId, 84 + d) - 0.5) * 2.5;
+    const hangCount = seededInt(s.id + treeId, 85 + d, minL, maxL);
+    leaves.push(
+      ...generatePad(
+        `${s.id}h${d}`,
+        treeId,
+        x2 + sway,
+        y2 + t * racemeLen * 0.5 * effectiveProg,
+        s.z,
+        spec.padRadius * 0.4,
+        hangCount,
+        spec,
+        effectiveProg,
+        s.depth,
+        0.7,
+      ),
+    );
+  }
+  return leaves;
+}
+
+/** Dispatches to the appropriate per-distribution foliage builder. */
+function buildFoliageLeaves(
+  s: BranchSpec,
+  x2: number,
+  y2: number,
+  currentLen: number,
+  effectiveProg: number,
+  isTerminal: boolean,
+  spec: SpeciesConfig,
+  treeId: string,
+): Leaf[] {
+  switch (spec.foliageDistribution) {
+    case "terminal":
+      return terminalFoliage(
+        s,
+        x2,
+        y2,
+        effectiveProg,
+        isTerminal,
+        spec,
+        treeId,
+      );
+    case "pad":
+      return padFoliage(s, x2, y2, effectiveProg, isTerminal, spec, treeId);
+    case "scattered":
+      return scatteredFoliage(
+        s,
+        x2,
+        y2,
+        currentLen,
+        effectiveProg,
+        spec,
+        treeId,
+      );
+    case "pendent":
+      return pendentFoliage(s, x2, y2, effectiveProg, isTerminal, spec, treeId);
+  }
 }
 
 // ─── Branch Tree Builder ──────────────────────────────────────────────────────
@@ -790,32 +1079,16 @@ export function generateTree(
       visibleIds.has(`${s.id}-a`) || visibleIds.has(`${s.id}-b`)
     );
 
-    // Tip leaves — always at the terminal point when the branch is a terminal
-    const leaves: Leaf[] =
-      isTerminal && effectiveProg > 0.3
-        ? generateLeaves(s.id, x2, y2, effectiveProg, s.depth, spec, treeId)
-        : [];
-
-    // Interior leaf clusters along the branch for species like pine / juniper
-    if (spec.leavesAlongBranch && effectiveProg > 0.4 && currentLen > 8) {
-      const interiorCount = Math.min(3, Math.floor(currentLen / 10));
-      for (let k = 1; k <= interiorCount; k++) {
-        const frac = k / (interiorCount + 1);
-        const ix = s.x1 + Math.cos(s.angle) * currentLen * frac;
-        const iy = s.y1 + Math.sin(s.angle) * currentLen * frac;
-        const interior = generateLeaves(
-          `${s.id}-int-${k}`,
-          ix,
-          iy,
-          effectiveProg * 0.75,
-          s.depth,
-          spec,
-          treeId,
-          0.65,
-        );
-        leaves.push(...interior);
-      }
-    }
+    const leaves: Leaf[] = buildFoliageLeaves(
+      s,
+      x2,
+      y2,
+      currentLen,
+      effectiveProg,
+      isTerminal,
+      spec,
+      treeId,
+    );
 
     rendered.push({
       id: s.id,

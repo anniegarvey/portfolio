@@ -5,7 +5,11 @@ import { useMemo } from "react";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { parsePotId, parseStandId } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
-import { generateTree, type TreeSVGData } from "@/lib/bonsai/treeGenerator";
+import {
+  generateTree,
+  type Leaf,
+  type TreeSVGData,
+} from "@/lib/bonsai/treeGenerator";
 
 // ─── Leaf Shape Paths ─────────────────────────────────────────────────────────
 
@@ -240,6 +244,28 @@ function depthTintedColor(
   return lerpHexColor(foliageColor, foliageColorLight, zNorm * 0.6);
 }
 
+/**
+ * Collects every leaf from all rendered branches and the apex, attaches the
+ * absolute z-depth (branch.z + leaf.z offset), and returns a list sorted
+ * back-to-front so the renderer can paint front pads over rear pads.
+ */
+function collectGlobalLeaves(
+  sortedBranches: { z: number; leaves: Leaf[] }[],
+  apexLeaves: Leaf[],
+): { leaf: Leaf; absoluteZ: number }[] {
+  const out: { leaf: Leaf; absoluteZ: number }[] = [];
+  for (const branch of sortedBranches) {
+    for (const leaf of branch.leaves) {
+      out.push({ leaf, absoluteZ: branch.z + (leaf.z ?? 0) });
+    }
+  }
+  for (const leaf of apexLeaves) {
+    out.push({ leaf, absoluteZ: leaf.z ?? 0 });
+  }
+  out.sort((a, b) => a.absoluteZ - b.absoluteZ);
+  return out;
+}
+
 /** Computes z-depth bounds for a branch list in a single pass. */
 function branchZBounds(branches: { z: number }[]): {
   zMin: number;
@@ -256,57 +282,51 @@ function branchZBounds(branches: { z: number }[]): {
 
 // ─── Leaf Renderer ────────────────────────────────────────────────────────────
 
-function renderLeaves(
-  leaves: ReturnType<typeof generateTree>["apexLeaves"],
-  leafShape: string,
-  foliageColor: string,
-) {
-  return leaves.map((leaf) => {
-    if (leafShape === "palmate") {
-      return (
-        <path
-          d={PALMATE_LEAF_PATH}
-          fill={foliageColor}
-          key={leaf.id}
-          transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-        />
-      );
-    }
-    if (leafShape === "lobed") {
-      return (
-        <path
-          d={LOBED_LEAF_PATH}
-          fill={foliageColor}
-          key={leaf.id}
-          transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-        />
-      );
-    }
-    if (leafShape === "pinnate") {
-      return (
-        <PinnateLeaf
-          angleDeg={leaf.angleDeg}
-          cx={leaf.cx}
-          cy={leaf.cy}
-          fill={foliageColor}
-          id={leaf.id}
-          key={leaf.id}
-          scale={leaf.rx}
-        />
-      );
-    }
+function renderLeaf(leaf: Leaf, leafShape: string, foliageColor: string) {
+  if (leafShape === "palmate") {
     return (
-      <ellipse
+      <path
+        d={PALMATE_LEAF_PATH}
+        fill={foliageColor}
+        key={leaf.id}
+        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
+      />
+    );
+  }
+  if (leafShape === "lobed") {
+    return (
+      <path
+        d={LOBED_LEAF_PATH}
+        fill={foliageColor}
+        key={leaf.id}
+        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
+      />
+    );
+  }
+  if (leafShape === "pinnate") {
+    return (
+      <PinnateLeaf
+        angleDeg={leaf.angleDeg}
         cx={leaf.cx}
         cy={leaf.cy}
         fill={foliageColor}
+        id={leaf.id}
         key={leaf.id}
-        rx={leaf.rx}
-        ry={leaf.ry}
-        transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}
+        scale={leaf.rx}
       />
     );
-  });
+  }
+  return (
+    <ellipse
+      cx={leaf.cx}
+      cy={leaf.cy}
+      fill={foliageColor}
+      key={leaf.id}
+      rx={leaf.rx}
+      ry={leaf.ry}
+      transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}
+    />
+  );
 }
 
 // ─── Flower Renderer ──────────────────────────────────────────────────────────
@@ -808,10 +828,14 @@ export function StaticTreeSVG({
     cropTop ?? false,
   );
 
-  const { zMin, zRange } = branchZBounds(svgData.branches);
   // Far branches (small/negative z) first so near branches overpaint them.
   const sortedBranches = [...svgData.branches].sort(
     (a, b) => a.z - b.z || b.depth - a.depth,
+  );
+
+  const globalLeaves = collectGlobalLeaves(sortedBranches, svgData.apexLeaves);
+  const { zMin: leafZMin, zRange: leafZRange } = branchZBounds(
+    globalLeaves.map((e) => ({ z: e.absoluteZ })),
   );
 
   return (
@@ -873,23 +897,25 @@ export function StaticTreeSVG({
         <path d={svgData.trunkPathData} fill={config.trunkColor} />
       )}
 
-      {sortedBranches.map((branch) => {
-        const leafColor = depthTintedColor(
-          branch.z,
-          zMin,
-          zRange,
-          config.foliageColor,
-          config.foliageColorLight,
-        );
-        return (
-          <g key={branch.id}>
-            <path d={branch.pathData} fill={config.trunkColor} />
-            {renderLeaves(branch.leaves, config.leafShape, leafColor)}
-          </g>
-        );
-      })}
+      {/* Branch paths z-sorted back-to-front; leaves rendered separately below */}
+      {sortedBranches.map((branch) => (
+        <path d={branch.pathData} fill={config.trunkColor} key={branch.id} />
+      ))}
 
-      {renderLeaves(svgData.apexLeaves, config.leafShape, config.foliageColor)}
+      {/* Global leaf layer — all pads z-sorted so near pads overpaint far pads */}
+      {globalLeaves.map(({ leaf, absoluteZ }) =>
+        renderLeaf(
+          leaf,
+          config.leafShape,
+          depthTintedColor(
+            absoluteZ,
+            leafZMin,
+            leafZRange,
+            config.foliageColor,
+            config.foliageColorLight,
+          ),
+        ),
+      )}
 
       <FlowerLayer flowerSpec={config.flowers} flowers={svgData.flowers} />
 

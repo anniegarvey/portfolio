@@ -11,6 +11,9 @@ export interface Leaf {
   ry: number;
   /** Rotation in degrees — needle direction, leaf tilt, etc. */
   angleDeg: number;
+  /** Z-depth offset within the foliage pad (positive = toward viewer). Used for
+   *  global depth-sort across all pads. 0 / absent for pre-pad-system clusters. */
+  z?: number;
 }
 
 export interface Floret {
