@@ -685,29 +685,37 @@ function buildBranchTree(
 ): void {
   const tipWidth = Math.max(baseWidth * 0.25, 0.4);
 
-  // Foreshortening: branches pointing toward/away from viewer appear shorter.
-  // apparent_length = maxLength · sqrt(cos²(az) + sin²(az)·k) where
-  // k = crownDepthFactor. k=0 → completely flat projection (only horizontal
-  // extent shows); k=1 → no compression (maximum 3D feel).
-  const k = spec.crownDepthFactor;
+  // Pitch (elevation above horizontal): sin(pitch) = -sin(angle) in SVG coords.
+  const pitch = Math.asin(Math.max(-1, Math.min(1, -Math.sin(angle))));
+  // Z-depth: full maxLength so painter's-order sort is unaffected by projection.
+  const rawZ = Math.cos(pitch) * Math.sin(azimuth) * maxLength;
+  const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
+
+  // Cabinet oblique projection: the depth axis (sin(az)) maps to a rightward
+  // lean in 2D.  Forward-facing branches (sin(az)>0) lean right; backward-
+  // facing (sin(az)<0) lean left.  This breaks the az=π/2 ≡ az=3π/2 symmetry
+  // that made all branches look like they were in the same vertical plane.
+  // crownDepthFactor scales the lean per species: flat crowns (flame k=0.3)
+  // barely lean; spherical crowns (oak k=0.9) lean more.
+  const oblique = spec.crownDepthFactor * 0.35;
+  const zNorm = Math.cos(pitch) * Math.sin(azimuth); // = z / maxLength
+  const leanDx = Math.cos(angle) + zNorm * oblique;
+  const leanDy = Math.sin(angle);
+  const leanLen = Math.sqrt(leanDx * leanDx + leanDy * leanDy);
+  const leanAngle = Math.atan2(leanDy, leanDx);
+
+  // Foreshortening: depth-facing branches also appear slightly shorter.
   const foreshorten = Math.sqrt(
-    Math.cos(azimuth) ** 2 + Math.sin(azimuth) ** 2 * k,
+    Math.cos(azimuth) ** 2 + Math.sin(azimuth) ** 2 * spec.crownDepthFactor,
   );
   const visibleLength = maxLength * foreshorten;
 
-  const fulltipX = x1 + Math.cos(angle) * visibleLength;
-  const fulltipY = y1 + Math.sin(angle) * visibleLength;
   // Each branch gets a seeded random curve — range ±branchCurvature
   const curveBias =
     (seededVal(id + treeId, 91) - 0.5) * 2 * spec.branchCurvature;
 
-  // Pitch (elevation above horizontal): sin(pitch) = -sin(angle) in SVG coords
-  // (SVG y is inverted, so upward branches have negative angle).
-  const pitch = Math.asin(Math.max(-1, Math.min(1, -Math.sin(angle))));
-  // Z-depth of tip: use full maxLength so depth sort isn't affected by foreshortening.
-  // Clamp floating-point noise to exactly 0 for azimuth ∈ {0, π}.
-  const rawZ = Math.cos(pitch) * Math.sin(azimuth) * maxLength;
-  const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
+  const fulltipX = x1 + Math.cos(leanAngle) * visibleLength;
+  const fulltipY = y1 + Math.sin(leanAngle) * visibleLength;
 
   out.push({
     id,
@@ -716,7 +724,11 @@ function buildBranchTree(
     y1,
     fulltipX,
     fulltipY,
-    angle,
+    // Store the oblique-projected angle so the render loop draws the branch
+    // in the leaned direction.  Child direction (wanderedAngle below) still
+    // derives from the original orthographic `angle` so each sub-level
+    // independently applies its own lean rather than accumulating.
+    angle: leanLen > 1e-10 ? leanAngle : angle,
     azimuth,
     z,
     maxLength,
@@ -1071,17 +1083,15 @@ export function generateTree(
     const effectiveProg = regrowProg !== null ? regrowProg : prog;
     if (effectiveProg <= 0) continue;
 
-    // Mirror the foreshortening from buildBranchTree so the rendered tip
-    // matches fulltipX/fulltipY at full growth.
-    const rk = spec.crownDepthFactor;
+    // s.angle is the oblique-projected lean angle from buildBranchTree.
+    // Foreshortening matches the same formula used there.
     const rForeshorten = Math.sqrt(
-      Math.cos(s.azimuth) ** 2 + Math.sin(s.azimuth) ** 2 * rk,
+      Math.cos(s.azimuth) ** 2 +
+        Math.sin(s.azimuth) ** 2 * spec.crownDepthFactor,
     );
     const currentLen = lerp(0, s.maxLength * rForeshorten, effectiveProg);
     const x2 = s.x1 + Math.cos(s.angle) * currentLen;
-    // Subtle vertical parallax: near-viewer branches (positive z) sit slightly
-    // higher; far branches slightly lower. Keeps forward ≠ backward in 2D.
-    const y2 = s.y1 + Math.sin(s.angle) * currentLen + s.z * rk * 0.015;
+    const y2 = s.y1 + Math.sin(s.angle) * currentLen;
     const currentTipW = lerp(s.baseWidth, s.tipWidth, effectiveProg);
 
     const path = taperedPath(
