@@ -506,35 +506,59 @@ function padFoliage(
     );
   }
   if (!isTerminal && effectiveProg > 0.5) {
-    // Interior pads at every depth level, not just near-tip branches.
-    // Probability increases toward the tips (where detail matters most) but
-    // shallow branches near the trunk also get a chance so forward-facing
-    // primary / secondary branches fill the bare central crown area.
+    // Interior pads placed at several positions along the branch (not at the tip).
+    // depthFrac rises from 0 (primary, near trunk) to 1 (near terminal).
     const depthFrac = (s.depth + 1) / (spec.maxDepth + 1);
-    if (seededVal(s.id + treeId, 78) < spec.interiorPadDensity * depthFrac) {
-      const intCount = seededInt(
-        s.id + treeId,
-        79,
-        Math.max(1, Math.floor(minL * 0.5)),
-        Math.max(2, Math.ceil(maxL * 0.5)),
-      );
-      // Pads near the trunk (low depth) are slightly larger — they have more
-      // empty space to fill and are more visible.
-      const radiusScale = Math.max(0.6, 1.0 - depthFrac * 0.4);
-      return generatePad(
-        `${s.id}i`,
-        treeId,
-        x2,
-        y2,
-        s.z,
-        spec.padRadius * radiusScale,
-        intCount,
-        spec,
-        effectiveProg,
-        s.depth,
-        0.8,
-      );
+
+    // Inner branches (depth 0–1) get up to 2 pad attempts so forward-facing
+    // primaries — which run close to the trunk centreline — reliably contribute
+    // lighter-coloured leaves that z-sort in front of the trunk.
+    // Outer branches get a single attempt biased toward the tip.
+    const numTrials = s.depth <= Math.floor(spec.maxDepth / 2) ? 2 : 1;
+    const padProb = spec.interiorPadDensity;
+
+    const leaves: Leaf[] = [];
+    for (let trial = 0; trial < numTrials; trial++) {
+      if (seededVal(s.id + treeId, 78 + trial * 11) < padProb) {
+        const intCount = seededInt(
+          s.id + treeId,
+          79 + trial * 11,
+          Math.max(1, Math.floor(minL * 0.5)),
+          Math.max(2, Math.ceil(maxL * 0.5)),
+        );
+        // For inner branches the first trial lands close to the attachment
+        // (trunk area); subsequent trials or outer branches land further out.
+        const trialOffset = trial * 0.3;
+        const fracMax = Math.min(0.9, 0.1 + depthFrac * 0.6 + trialOffset);
+        const fracMin = Math.max(0.0, fracMax - 0.25);
+        const frac =
+          fracMin +
+          seededVal(s.id + treeId, 80 + trial * 11) * (fracMax - fracMin);
+        const px = s.x1 + (x2 - s.x1) * frac;
+        const py = s.y1 + (y2 - s.y1) * frac;
+        // Pads near the trunk (low depth, low frac) are full-sized.
+        const radiusScale = Math.max(
+          0.65,
+          1.0 - (depthFrac + frac * 0.3) * 0.35,
+        );
+        leaves.push(
+          ...generatePad(
+            `${s.id}i${trial}`,
+            treeId,
+            px,
+            py,
+            s.z,
+            spec.padRadius * radiusScale,
+            intCount,
+            spec,
+            effectiveProg,
+            s.depth,
+            0.8,
+          ),
+        );
+      }
     }
+    return leaves;
   }
   return [];
 }
