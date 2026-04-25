@@ -703,6 +703,7 @@ function buildBranchTree(
   y1: number,
   angle: number,
   azimuth: number,
+  pitch: number, // true 3D elevation — passed explicitly so z is correct for all azimuths
   maxLength: number,
   appearsAtDay: number,
   depth: number,
@@ -714,20 +715,18 @@ function buildBranchTree(
 ): void {
   const tipWidth = Math.max(baseWidth * 0.25, 0.4);
 
-  // Pitch (elevation above horizontal): sin(pitch) = -sin(angle) in SVG coords.
-  const pitch = Math.asin(Math.max(-1, Math.min(1, -Math.sin(angle))));
-  // Z-depth: full maxLength so painter's-order sort is unaffected by projection.
+  // Z-depth from the PASSED pitch (not re-derived from angle).
+  // Re-deriving from angle loses information when cos(azimuth)=0 (az=π/2, 3π/2)
+  // because those branches always project to angle=-90° regardless of pitch,
+  // making asin(-sin(-90°))=90° → cos(90°)=0 → z=0 for every forward branch.
   const rawZ = Math.cos(pitch) * Math.sin(azimuth) * maxLength;
   const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
 
-  // Cabinet oblique projection: the depth axis (sin(az)) maps to a rightward
-  // lean in 2D.  Forward-facing branches (sin(az)>0) lean right; backward-
-  // facing (sin(az)<0) lean left.  This breaks the az=π/2 ≡ az=3π/2 symmetry
-  // that made all branches look like they were in the same vertical plane.
-  // crownDepthFactor scales the lean per species: flat crowns (flame k=0.3)
-  // barely lean; spherical crowns (oak k=0.9) lean more.
+  // Cabinet oblique projection: depth axis maps to a horizontal lean in 2D.
+  // Uses the passed pitch so forward branches (az≈π/2) get the correct zNorm
+  // and therefore get the oblique lean they were missing.
   const oblique = spec.crownDepthFactor * 0.35;
-  const zNorm = Math.cos(pitch) * Math.sin(azimuth); // = z / maxLength
+  const zNorm = Math.cos(pitch) * Math.sin(azimuth);
   const leanDx = Math.cos(angle) + zNorm * oblique;
   const leanDy = Math.sin(angle);
   const leanLen = Math.sqrt(leanDx * leanDx + leanDy * leanDy);
@@ -765,6 +764,7 @@ function buildBranchTree(
     tipWidth,
     depth,
     curveBias,
+    pitch,
   });
 
   if (depth >= spec.maxDepth) return;
@@ -808,12 +808,20 @@ function buildBranchTree(
     }
 
     // Azimuth is inherited unchanged; only 2-D angle changes across children.
+    // Child pitch is approximated from the parent pitch plus the angular deviation
+    // from the parent direction, clamped to a sensible range.  This keeps
+    // z-values meaningful at all recursion levels for forward-facing subtrees.
+    const childPitch = Math.max(
+      0.05,
+      Math.min(Math.PI / 2 - 0.05, pitch + (childAngle - wanderedAngle)),
+    );
     buildBranchTree(
       `${id}-${childSuffix}`,
       fulltipX,
       fulltipY,
       childAngle,
       azimuth,
+      childPitch,
       childLength,
       childDay,
       depth + 1,
@@ -995,11 +1003,20 @@ export function generateTree(
         azimuth = baseAzimuth + azJitter;
       }
 
-      // 2D SVG angle from pitch and azimuth.
-      // dx = cos(azimuth)·cos(pitch), dy(SVG) = −sin(pitch)
+      // Option 2: reduce pitch for forward-facing azimuths so they project near
+      // trunk level rather than straight up, making the 3D depth visible.
+      // A branch at az=π/2 normally projects to angle=-90° (straight up) with
+      // z=0 (because asin(-sin(-90°))=90° → cos=0).  Reducing pitch to ~10°
+      // makes these branches project nearly horizontally with high z — they
+      // lean visibly forward and their pads cover the trunk in the 2D view.
+      const forwardness = Math.abs(Math.sin(azimuth)); // 0=side, 1=fully forward
+      const pitchReduction = forwardness * spec.crownDepthFactor * 0.85;
+      const effectivePitch = Math.max(0.08, pitch * (1 - pitchReduction));
+
+      // 2D SVG angle from EFFECTIVE pitch and azimuth.
       const angle = Math.atan2(
-        -Math.sin(pitch),
-        Math.cos(azimuth) * Math.cos(pitch),
+        -Math.sin(effectivePitch),
+        Math.cos(azimuth) * Math.cos(effectivePitch),
       );
 
       // Thickness from trunk width at attachment — upper branches naturally thinner
@@ -1020,6 +1037,7 @@ export function generateTree(
         attachY,
         angle,
         azimuth,
+        effectivePitch,
         primaryLength,
         appearsAtDay,
         0,
@@ -1054,12 +1072,16 @@ export function generateTree(
     ] as [string, number][]) {
       // apex-L leans left (azimuth π), apex-R leans right (azimuth 0).
       const apexAzimuth = sign === -1 ? Math.PI : 0;
+      const apexAngle = -(Math.PI / 2) + sign * apexHalfSpread;
+      // Apex branches are at azimuth 0/π (side-facing) so pitch = apexHalfSpread.
+      const apexPitch = apexHalfSpread;
       buildBranchTree(
         apexId,
         trunkTopX,
         trunkTopY,
-        -(Math.PI / 2) + sign * apexHalfSpread,
+        apexAngle,
         apexAzimuth,
+        apexPitch,
         apexLength,
         apexAppearsAtDay,
         0,

@@ -92,4 +92,8 @@ export interface BranchSpec {
   depth: number;
   /** Lateral midpoint offset for taperedPath — gives each branch its own gentle curve. */
   curveBias: number;
+  /** True 3D elevation angle (radians above horizontal) passed explicitly so z
+   *  and the oblique lean are computed from the species pitch, not re-derived
+   *  from the 2D angle (which loses information when cos(azimuth) = 0). */
+  pitch: number;
 }
