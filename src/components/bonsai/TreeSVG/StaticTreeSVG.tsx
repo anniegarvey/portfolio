@@ -241,7 +241,7 @@ function depthTintedColor(
   if (zRange < 1e-6) return foliageColor;
   // Normalise z to [0, 1] across the tree's actual depth range.
   const zNorm = (z - zMin) / zRange; // 0 = farthest, 1 = nearest viewer
-  return lerpHexColor(foliageColor, foliageColorLight, zNorm * 0.6);
+  return lerpHexColor(foliageColor, foliageColorLight, zNorm * 0.85);
 }
 
 /**

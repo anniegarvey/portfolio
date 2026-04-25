@@ -505,31 +505,36 @@ function padFoliage(
       s.depth,
     );
   }
-  if (
-    !isTerminal &&
-    s.depth >= spec.maxDepth - 1 &&
-    effectiveProg > 0.5 &&
-    seededVal(s.id + treeId, 78) < spec.interiorPadDensity
-  ) {
-    const intCount = seededInt(
-      s.id + treeId,
-      79,
-      Math.max(1, Math.floor(minL * 0.5)),
-      Math.max(2, Math.ceil(maxL * 0.5)),
-    );
-    return generatePad(
-      `${s.id}i`,
-      treeId,
-      x2,
-      y2,
-      s.z,
-      spec.padRadius * 0.7,
-      intCount,
-      spec,
-      effectiveProg,
-      s.depth,
-      0.8,
-    );
+  if (!isTerminal && effectiveProg > 0.5) {
+    // Interior pads at every depth level, not just near-tip branches.
+    // Probability increases toward the tips (where detail matters most) but
+    // shallow branches near the trunk also get a chance so forward-facing
+    // primary / secondary branches fill the bare central crown area.
+    const depthFrac = (s.depth + 1) / (spec.maxDepth + 1);
+    if (seededVal(s.id + treeId, 78) < spec.interiorPadDensity * depthFrac) {
+      const intCount = seededInt(
+        s.id + treeId,
+        79,
+        Math.max(1, Math.floor(minL * 0.5)),
+        Math.max(2, Math.ceil(maxL * 0.5)),
+      );
+      // Pads near the trunk (low depth) are slightly larger — they have more
+      // empty space to fill and are more visible.
+      const radiusScale = Math.max(0.6, 1.0 - depthFrac * 0.4);
+      return generatePad(
+        `${s.id}i`,
+        treeId,
+        x2,
+        y2,
+        s.z,
+        spec.padRadius * radiusScale,
+        intCount,
+        spec,
+        effectiveProg,
+        s.depth,
+        0.8,
+      );
+    }
   }
   return [];
 }
