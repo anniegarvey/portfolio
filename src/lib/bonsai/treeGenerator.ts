@@ -383,9 +383,9 @@ function buildBranchTree(
   id: string,
   x1: number,
   y1: number,
-  angle: number,
+  pitch: number,
   azimuth: number,
-  maxLength: number,
+  length3D: number,
   appearsAtDay: number,
   depth: number,
   baseWidth: number,
@@ -395,19 +395,30 @@ function buildBranchTree(
   out: BranchSpec[],
 ): void {
   const tipWidth = Math.max(baseWidth * 0.25, 0.4);
-  const fulltipX = x1 + Math.cos(angle) * maxLength;
-  const fulltipY = y1 + Math.sin(angle) * maxLength;
+
+  // 3D → 2D projection. Pitch is elevation above horizontal (SVG y-down so
+  // upward = +pitch → negative dy); azimuth is yaw around the trunk axis
+  // (0 = right, π/2 = toward viewer, π = left, 3π/2 = away).
+  const cosPitch = Math.cos(pitch);
+  const sinPitch = Math.sin(pitch);
+  const dx = cosPitch * Math.cos(azimuth) * length3D;
+  const dy = -sinPitch * length3D;
+  // Z-depth: cos(pitch)·sin(azimuth)·length. Drives painter-order sort and
+  // depth tinting. Clamped to 0 at cardinal azimuths to avoid float noise.
+  const rawZ = cosPitch * Math.sin(azimuth) * length3D;
+  const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
+
+  // 2D length is the foreshortened projection — branches facing the viewer
+  // shrink toward zero, branches in the picture plane keep their length.
+  // The renderer uses this to draw and to lerp the growth animation.
+  const projectedLength = Math.sqrt(dx * dx + dy * dy);
+  const angle2D = projectedLength < 1e-9 ? 0 : Math.atan2(dy, dx);
+
+  const fulltipX = x1 + dx;
+  const fulltipY = y1 + dy;
   // Each branch gets a seeded random curve — range ±branchCurvature
   const curveBias =
     (seededVal(id + treeId, 91) - 0.5) * 2 * spec.branchCurvature;
-
-  // Pitch (elevation above horizontal): sin(pitch) = -sin(angle) in SVG coords
-  // (SVG y is inverted, so upward branches have negative angle).
-  const pitch = Math.asin(Math.max(-1, Math.min(1, -Math.sin(angle))));
-  // Z-depth of tip: cos(pitch)·sin(azimuth)·length. Clamp floating-point
-  // noise to exactly 0 for azimuth ∈ {0, π} where sin should be zero.
-  const rawZ = Math.cos(pitch) * Math.sin(azimuth) * maxLength;
-  const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
 
   out.push({
     id,
@@ -416,10 +427,10 @@ function buildBranchTree(
     y1,
     fulltipX,
     fulltipY,
-    angle,
+    angle: angle2D,
     azimuth,
     z,
-    maxLength,
+    maxLength: projectedLength,
     baseWidth,
     tipWidth,
     depth,
@@ -431,10 +442,10 @@ function buildBranchTree(
   const childDay = appearsAtDay + SPLIT_DELAY;
   if (day < childDay) return;
 
-  // branchWander: small random walk on the parent angle before forking,
+  // branchWander: small random walk on the parent's 3D pitch before forking,
   // producing organic kinks rather than ruler-straight branch lines.
-  const wanderedAngle =
-    angle + (seededVal(id + treeId, 77) - 0.5) * 2 * spec.branchWander;
+  const wanderedPitch =
+    pitch + (seededVal(id + treeId, 77) - 0.5) * 2 * spec.branchWander;
 
   // Per-branch random divergence variation (±15% around species default)
   const divergeVar =
@@ -442,8 +453,10 @@ function buildBranchTree(
 
   // Shorter twigs at deeper levels — base factor shrinks linearly with depth.
   const baseLengthFactor = Math.max(0.3, 0.55 - depth * 0.04);
+  // Children inherit the parent's 3D length so deeper branches scale naturally
+  // even if the parent itself was foreshortened in 2D.
   const childLength =
-    maxLength * (baseLengthFactor + seededVal(id + treeId, 89) * 0.12);
+    length3D * (baseLengthFactor + seededVal(id + treeId, 89) * 0.12);
   const childBaseWidth = tipWidth * 1.5;
 
   // Leader: the first child continues near-parallel to the parent direction.
@@ -451,28 +464,54 @@ function buildBranchTree(
   // children diverge similarly (maple, flame tree).
   const leaderDiverge = (1 - spec.apicalDominance) * divergeVar;
 
+  // Per-fork fan rotation — orients the divergence plane around the parent's
+  // 3D direction. Without this, every fork's divergence stays in pitch
+  // (vertical), so a forward-projected primary's leader-and-laterals chain
+  // collapses onto a single vertical column above the attachment, giving
+  // the "linear strip up the trunk" silhouette.
+  const forkFanRotation = seededVal(`${id}-fanRot${treeId}`, 0) * Math.PI * 2;
+
+  // Compensates for azimuth coordinate compression near the poles — without
+  // this, near-vertical parents get tiny visual spread for the same azimuth
+  // offset. Floor at 0.4 keeps the term bounded near vertical.
+  const azCompensation = 1 / Math.max(0.4, Math.abs(Math.cos(pitch)));
+
   const childCount = spec.childCountByDepth[depth] ?? 2;
+  const laterals = Math.max(1, childCount - 1);
 
   for (let k = 0; k < childCount; k++) {
     const childSuffix = String.fromCharCode(97 + k); // 'a', 'b', 'c', …
-    let childAngle: number;
+    let childPitch: number;
+    let childAzimuth: number;
+
     if (k === 0) {
-      // Leader — stays close to wandered parent direction
-      childAngle = wanderedAngle + leaderDiverge;
+      // Leader — stays close to wandered parent direction. Azimuth jitter
+      // scales with (1 - apicalDominance) so loose-apex species (maple,
+      // flame tree) wander further from the parent's azimuth than tight-apex
+      // species (pine, oak).
+      childPitch = wanderedPitch + leaderDiverge;
+      const leaderAzJitter =
+        (seededVal(`${id}-${childSuffix}-az${treeId}`, 0) - 0.5) *
+        2 *
+        leaderDiverge *
+        azCompensation;
+      childAzimuth = azimuth + leaderAzJitter;
     } else {
-      // Laterals — alternate ±divergeVar, incrementing multiplier every pair
-      const sign = k % 2 === 0 ? 1 : -1;
-      const multiplier = Math.ceil(k / 2);
-      childAngle = wanderedAngle + sign * multiplier * divergeVar;
+      // Lateral — distribute around the fan ring at equal angular spacing
+      // rotated by forkFanRotation. cos(fan)=1 reproduces the old "pitch
+      // only" behaviour; sin(fan)=1 spreads laterally instead. Random
+      // rotation per fork mixes both outcomes across the tree.
+      const fanAngle = forkFanRotation + ((k - 1) * 2 * Math.PI) / laterals;
+      childPitch = wanderedPitch + divergeVar * Math.cos(fanAngle);
+      childAzimuth = azimuth + divergeVar * Math.sin(fanAngle) * azCompensation;
     }
 
-    // Azimuth is inherited unchanged; only 2-D angle changes across children.
     buildBranchTree(
       `${id}-${childSuffix}`,
       fulltipX,
       fulltipY,
-      childAngle,
-      azimuth,
+      childPitch,
+      childAzimuth,
       childLength,
       childDay,
       depth + 1,
@@ -566,6 +605,12 @@ export function generateTree(
   const branchAngleBase = spec.branchAngleBase;
   const branchAngleRamp = spec.branchAngleRamp;
 
+  // Per-tree azimuth rotation — prevents every tree of the same species from
+  // landing primaries at identical cardinal angles. Without this, opposite
+  // and whorled species always project the same forward/back primaries to
+  // dx ≈ 0, giving every tree a "linear strip up the trunk" silhouette.
+  const treeAzimuthOffset = seededVal(treeId, 12) * Math.PI * 2;
+
   // Height-node count: whorled/opposite group multiple primaries per node.
   const numNodes =
     phyllotaxy === "whorled"
@@ -636,30 +681,33 @@ export function generateTree(
       // Azimuth (yaw around trunk axis) — the key Phase 3 change
       let azimuth: number;
       if (phyllotaxy === "whorled") {
-        // k-th branch of the whorl, evenly spaced around 2π.
+        // k-th branch of the whorl, evenly spaced around 2π. Successive
+        // whorls are rotated by π/whorlSize so they interleave instead of
+        // repeating the same azimuths up the trunk — doubles the unique
+        // azimuths used and prevents every whorl looking like the same
+        // 3-spoke (juniper) or 5-spoke (pine) signature.
         // Divide by branchesAtNode (not whorlSize) so partial final whorls
         // still spread evenly — e.g. 2 leftover branches get 0° and 180°.
         const baseAzimuth = (k / branchesAtNode) * Math.PI * 2;
+        const whorlRotation = (nodeIdx * Math.PI) / whorlSize;
         const azJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3;
-        azimuth = baseAzimuth + azJitter;
+        azimuth = baseAzimuth + whorlRotation + azJitter;
       } else if (phyllotaxy === "opposite") {
         // Decussate: successive pairs rotate 90° (π/2). Within each pair,
-        // the two branches are diametrically opposite (+ π).
+        // the two branches are diametrically opposite (+ π). Per-node jitter
+        // prevents every pair landing on exactly cardinal axes — without it
+        // pair 1 always projects to dx = 0, foreshortening the whole pair
+        // onto the trunk centreline.
         const pairBase = (nodeIdx % 2) * (Math.PI / 2);
-        azimuth = pairBase + k * Math.PI;
+        const pairJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.4;
+        azimuth = pairBase + pairJitter + k * Math.PI;
       } else {
         // alternate — golden-angle spiral avoids azimuth repetition
         const baseAzimuth = currentPrimary * GOLDEN_ANGLE;
         const azJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3;
         azimuth = baseAzimuth + azJitter;
       }
-
-      // 2D SVG angle from pitch and azimuth.
-      // dx = cos(azimuth)·cos(pitch), dy(SVG) = −sin(pitch)
-      const angle = Math.atan2(
-        -Math.sin(pitch),
-        Math.cos(azimuth) * Math.cos(pitch),
-      );
+      azimuth += treeAzimuthOffset;
 
       // Thickness from trunk width at attachment — upper branches naturally thinner
       const attachTrunkW = lerp(trunkBaseW, trunkTopW, t);
@@ -673,11 +721,13 @@ export function generateTree(
       const lengthVar = (seededVal(`pl${id}${treeId}`, 0) - 0.5) * 8;
       const primaryLength = Math.max(10, lengthBase + lengthVar);
 
+      // Pitch + azimuth pass through unprojected — buildBranchTree does the
+      // 3D→2D projection internally so foreshortening and depth are preserved.
       buildBranchTree(
         id,
         attachX,
         attachY,
-        angle,
+        pitch,
         azimuth,
         primaryLength,
         appearsAtDay,
@@ -707,17 +757,18 @@ export function generateTree(
     const apexBaseWidth = Math.max(0.6, trunkTopW * 1.4);
     const apexHalfSpread = spec.splitDiverge * 0.8;
 
-    for (const [apexId, sign] of [
-      ["apex-L", -1],
-      ["apex-R", 1],
+    // apex-L leans left (azimuth π), apex-R leans right (azimuth 0). Pitch
+    // is just under π/2 so both branches lean slightly off vertical.
+    const apexPitch = Math.PI / 2 - apexHalfSpread;
+    for (const [apexId, apexAzimuth] of [
+      ["apex-L", Math.PI],
+      ["apex-R", 0],
     ] as [string, number][]) {
-      // apex-L leans left (azimuth π), apex-R leans right (azimuth 0).
-      const apexAzimuth = sign === -1 ? Math.PI : 0;
       buildBranchTree(
         apexId,
         trunkTopX,
         trunkTopY,
-        -(Math.PI / 2) + sign * apexHalfSpread,
+        apexPitch,
         apexAzimuth,
         apexLength,
         apexAppearsAtDay,
