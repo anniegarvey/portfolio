@@ -383,6 +383,7 @@ function buildBranchTree(
   id: string,
   x1: number,
   y1: number,
+  parentTipZ: number,
   pitch: number,
   azimuth: number,
   length3D: number,
@@ -403,10 +404,16 @@ function buildBranchTree(
   const sinPitch = Math.sin(pitch);
   const dx = cosPitch * Math.cos(azimuth) * length3D;
   const dy = -sinPitch * length3D;
-  // Z-depth: cos(pitch)·sin(azimuth)·length. Drives painter-order sort and
-  // depth tinting. Clamped to 0 at cardinal azimuths to avoid float noise.
-  const rawZ = cosPitch * Math.sin(azimuth) * length3D;
-  const z = Math.abs(rawZ) < 1e-10 ? 0 : rawZ;
+  // Z-depth of this tip = parent tip's z + this segment's z component.
+  // Cumulative (not segment-local) so a deep terminal sitting in front of
+  // a forward-facing primary inherits its primary's depth — without this,
+  // terminal leaves would always have small |z| and depth tinting would
+  // collapse to the primaries that have no leaves on them.
+  const segmentZ = cosPitch * Math.sin(azimuth) * length3D;
+  const tipZ = parentTipZ + segmentZ;
+  // Clamp to exactly 0 only at the trunk root + cardinal-azimuth cases to
+  // keep the all-flat branch determinism property.
+  const z = Math.abs(tipZ) < 1e-10 ? 0 : tipZ;
 
   // 2D length is the foreshortened projection — branches facing the viewer
   // shrink toward zero, branches in the picture plane keep their length.
@@ -510,6 +517,7 @@ function buildBranchTree(
       `${id}-${childSuffix}`,
       fulltipX,
       fulltipY,
+      tipZ,
       childPitch,
       childAzimuth,
       childLength,
@@ -723,10 +731,13 @@ export function generateTree(
 
       // Pitch + azimuth pass through unprojected — buildBranchTree does the
       // 3D→2D projection internally so foreshortening and depth are preserved.
+      // Primaries attach to the trunk at z = 0 (the trunk centreline is the
+      // z origin); cumulative tip z is built up as the recursion descends.
       buildBranchTree(
         id,
         attachX,
         attachY,
+        0,
         pitch,
         azimuth,
         primaryLength,
@@ -768,6 +779,7 @@ export function generateTree(
         apexId,
         trunkTopX,
         trunkTopY,
+        0,
         apexPitch,
         apexAzimuth,
         apexLength,

@@ -221,11 +221,32 @@ function lerpHexColor(a: string, b: string, t: number): string {
   return `#${rr}${rg}${rb}`;
 }
 
+/** Multiplies an RGB hex colour by `factor` (≈0.6 = darker shadow, ≈1.2 = lighter
+ *  highlight). Used to derive tint endpoints from the species' base colour
+ *  without requiring extra config fields. */
+function shadeHexColor(hex: string, factor: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return `#${clamp(r * factor)
+    .toString(16)
+    .padStart(2, "0")}${clamp(g * factor)
+    .toString(16)
+    .padStart(2, "0")}${clamp(b * factor)
+    .toString(16)
+    .padStart(2, "0")}`;
+}
+
 /**
  * Returns the leaf fill colour for a branch at z-depth `z`, given the full
- * z-range of the tree. Near-viewer branches (positive z) use foliageColorLight;
- * far branches use foliageColor. When zRange < 1e-6 (all-flat tree), returns
- * foliageColor unchanged — preserving byte-identical output for Phase 1 trees.
+ * z-range of the tree. Linearly interpolates between a darkened
+ * foliageColor (far) and the species' foliageColorLight (near) across the
+ * full tree depth — full range, not capped, so the shadow → highlight
+ * gradient is visible across overlapping foliage.
+ *
+ * When zRange < 1e-6 (all-flat tree, e.g. a young sapling with branches in
+ * the picture plane only) returns foliageColor unchanged.
  */
 function depthTintedColor(
   z: number,
@@ -235,9 +256,28 @@ function depthTintedColor(
   foliageColorLight: string,
 ): string {
   if (zRange < 1e-6) return foliageColor;
-  // Normalise z to [0, 1] across the tree's actual depth range.
   const zNorm = (z - zMin) / zRange; // 0 = farthest, 1 = nearest viewer
-  return lerpHexColor(foliageColor, foliageColorLight, zNorm * 0.6);
+  // Anchor the far end at a shaded version of foliageColor so back leaves
+  // recede visibly. Front uses the species' lighter highlight unchanged.
+  const farTone = shadeHexColor(foliageColor, 0.7);
+  return lerpHexColor(farTone, foliageColorLight, zNorm);
+}
+
+/** Branch (wood) fill colour for the same z-based gradient as the foliage
+ *  tint — keeps the trunk bark feeling consistent with the canopy. */
+function depthTintedTrunkColor(
+  z: number,
+  zMin: number,
+  zRange: number,
+  trunkColor: string,
+): string {
+  if (zRange < 1e-6) return trunkColor;
+  const zNorm = (z - zMin) / zRange;
+  // Narrower brightness band on the wood than the leaves — bark always
+  // reads as one species across depth, just shaded.
+  const farTone = shadeHexColor(trunkColor, 0.75);
+  const nearTone = shadeHexColor(trunkColor, 1.15);
+  return lerpHexColor(farTone, nearTone, zNorm);
 }
 
 /** Computes z-depth bounds for a branch list in a single pass. */
@@ -881,9 +921,15 @@ export function StaticTreeSVG({
           config.foliageColor,
           config.foliageColorLight,
         );
+        const branchColor = depthTintedTrunkColor(
+          branch.z,
+          zMin,
+          zRange,
+          config.trunkColor,
+        );
         return (
           <g key={branch.id}>
-            <path d={branch.pathData} fill={config.trunkColor} />
+            <path d={branch.pathData} fill={branchColor} />
             {renderLeaves(branch.leaves, config.leafShape, leafColor)}
           </g>
         );
