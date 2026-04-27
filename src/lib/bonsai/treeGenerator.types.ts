@@ -47,8 +47,8 @@ export interface RenderedBranch {
   pathData: string; // tapered filled shape
   depth: number;
   /** Z-depth of the branch tip: positive = toward viewer, negative = away.
-   *  0 for flat branches (azimuth ∈ {0, π}); non-zero once Phase 3
-   *  introduces full azimuth spread. */
+   *  Drives painter-order sort and depth tinting. 0 at cardinal azimuths
+   *  ({0, π}); non-zero for the full-circle phyllotaxy primaries. */
   z: number;
   leaves: Leaf[];
   isPruned: boolean;
@@ -76,13 +76,18 @@ export interface BranchSpec {
   y1: number;
   fulltipX: number;
   fulltipY: number; // position at full growth (for child attachment)
+  /** 2D angle on the SVG plane (atan2 of the projected (dx, dy)). */
   angle: number;
-  /** Yaw around the trunk's vertical axis (0 = right/front, π = left/back).
-   *  Phase 2: only 0 and π are used. Phase 3 will introduce full-circle spread. */
+  /** Yaw around the trunk's vertical axis (0 = right, π/2 = toward viewer,
+   *  π = left, 3π/2 = away). Set per phyllotaxy in `generateTree`. */
   azimuth: number;
   /** Z-depth of the branch tip: positive = toward viewer, negative = away.
    *  Derived from pitch and azimuth; clamped to 0 when |value| < 1e-10. */
   z: number;
+  /** Foreshortened 2D length on the SVG plane, used by the renderer for the
+   *  growth animation lerp. Equals the 3D length only for branches lying in
+   *  the picture plane (azimuth ∈ {0, π}); strictly smaller when the branch
+   *  has any forward/back component. */
   maxLength: number;
   baseWidth: number;
   tipWidth: number;

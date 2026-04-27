@@ -51,3 +51,15 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 | Test | Failures |
 |------|----------|
 | `e2e/energy-planner/conversion.spec.ts` > "should persist and project when converting from one-off to repeating" | 1 |
+
+---
+
+## Parallel load race: Bonsai garden tree button not interactive in time
+
+**Symptom:** `openTendingModal` times out at 30s waiting for `getByRole("button", { name: /pine.*click to tend/i })` to be clickable after `goToBonsaiWithSeed`. Passes in 1.9s when run in isolation; only fails when the full `e2e/bonsai` suite runs in parallel.
+
+**Root cause (suspected):** Same parallel-load class as the Energy Planner entries above — the bonsai page hasn't finished hydrating under contention, so the tree button is rendered but not yet wired to its click handler when the test attempts to click.
+
+| Test | Failures |
+|------|----------|
+| `e2e/bonsai/bonsai.spec.ts` > "locked stand button navigates to shop Stands tab" | 1 |
