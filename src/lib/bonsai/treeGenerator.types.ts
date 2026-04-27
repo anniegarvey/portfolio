@@ -11,6 +11,10 @@ export interface Leaf {
   ry: number;
   /** Rotation in degrees — needle direction, leaf tilt, etc. */
   angleDeg: number;
+  /** Per-leaf depth offset within its pad. The renderer adds this to the
+   *  parent branch's z to z-sort every leaf globally so front pads overpaint
+   *  rear pads (and rear branches), regardless of which branch they sit on. */
+  z: number;
 }
 
 export interface Floret {
