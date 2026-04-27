@@ -912,10 +912,13 @@ export function generateTree(
   }
 
   // ─── Apex Branches ────────────────────────────────────────────────────────
-  // A pair of upward-forking branches from the trunk tip crowns the tree.
-  // Using the full sub-branch pipeline means they gain the same foliage
-  // density as lateral branches, and their terminal tips extend visibly
-  // above the topmost lateral pair — resolving the stubby-apex look.
+  // The trunk tip is "just another forking node" that follows the species'
+  // phyllotaxy: whorled species crown with a whorl, opposite with a pair,
+  // alternate with a single leader (which then forks per childCountByDepth[0]).
+  // The old fixed apex-L / apex-R pair was always at azimuth ∈ {0, π}, which
+  // gave every species a bilaterally symmetric "pom-pom on a stick"; phyllotaxy-
+  // driven azimuths plus the per-tree azimuth offset distribute the apex
+  // branches around the trunk axis instead.
   const finalTopBranchLen = Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
   if (
     trunkHeight > 0 &&
@@ -927,13 +930,39 @@ export function generateTree(
     const apexBaseWidth = Math.max(0.6, trunkTopW * 1.4);
     const apexHalfSpread = spec.splitDiverge * 0.8;
 
-    // apex-L leans left (azimuth π), apex-R leans right (azimuth 0). Pitch
-    // is just under π/2 so both branches lean slightly off vertical.
-    const apexPitch = Math.PI / 2 - apexHalfSpread;
-    for (const [apexId, apexAzimuth] of [
-      ["apex-L", Math.PI],
-      ["apex-R", 0],
-    ] as [string, number][]) {
+    const apexBranchCount =
+      phyllotaxy === "whorled" ? whorlSize : phyllotaxy === "opposite" ? 2 : 1;
+
+    // Continue the height-node sequence so apex whorls inherit the inter-
+    // whorl rotation pattern and alternate spirals advance past the last
+    // primary's golden-angle azimuth.
+    const apexNodeIdx = numActualNodes;
+
+    for (let k = 0; k < apexBranchCount; k++) {
+      const apexId = `apex-${k}`;
+      let apexAzimuth: number;
+      if (phyllotaxy === "whorled") {
+        const baseAzimuth = (k / apexBranchCount) * Math.PI * 2;
+        const whorlRotation = (apexNodeIdx * Math.PI) / whorlSize;
+        const azJitter = (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.3;
+        apexAzimuth = baseAzimuth + whorlRotation + azJitter;
+      } else if (phyllotaxy === "opposite") {
+        const pairBase = (apexNodeIdx % 2) * (Math.PI / 2);
+        const pairJitter = (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.4;
+        apexAzimuth = pairBase + pairJitter + k * Math.PI;
+      } else {
+        // alternate — continue the golden-angle spiral past the last primary
+        const baseAzimuth = (primaryIdx + k) * GOLDEN_ANGLE;
+        const azJitter = (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.3;
+        apexAzimuth = baseAzimuth + azJitter;
+      }
+      apexAzimuth += treeAzimuthOffset;
+
+      // Pitch — near-vertical with small per-branch tilt so multi-apex
+      // species don't read as a single ramrod-straight column.
+      const pitchTilt = (seededVal(`apx${apexId}${treeId}`, 0) - 0.5) * 0.18;
+      const apexPitch = Math.PI / 2 - apexHalfSpread + pitchTilt;
+
       buildBranchTree(
         apexId,
         trunkTopX,
