@@ -909,6 +909,17 @@ export function StaticTreeSVG({
         y2={svgData.trunkBaseY}
       />
 
+      {/* Nebari root fingers painted before the main trunk so the trunk
+         overlaps their inner end. */}
+      {svgData.nebariPathData.map((d, idx) => (
+        <path
+          d={d}
+          fill={config.trunkColor}
+          // biome-ignore lint/suspicious/noArrayIndexKey: deterministic order per generation
+          key={`nebari-${idx}`}
+        />
+      ))}
+
       {svgData.trunkPathData && (
         <path d={svgData.trunkPathData} fill={config.trunkColor} />
       )}

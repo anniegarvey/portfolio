@@ -62,6 +62,11 @@ export interface TreeSVGData {
   trunkTopY: number;
   trunkTopX: number; // offset from centre due to curvature
   trunkPathData: string;
+  /** 3–5 short tapered "root finger" paths radiating from the trunk base.
+   *  Painted with the trunk fill so they read as a continuation of the trunk
+   *  silhouette (nebari/root flare). Empty array when `nebariSpread === 0`
+   *  or before the trunk has begun forming. */
+  nebariPathData: string[];
   branches: RenderedBranch[];
   /** Leaf cluster at the trunk apex — always rendered, never prunable. */
   apexLeaves: Leaf[];
