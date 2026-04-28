@@ -90,8 +90,8 @@ describe("SPECIES_CONFIG", () => {
     expect(SPECIES_CONFIG[id].regrowthDays).toBeGreaterThan(0);
   });
 
-  it.each(speciesIds)("%s — leavesPerCluster[min] ≤ [max]", (id) => {
-    const [min, max] = SPECIES_CONFIG[id].leavesPerCluster;
+  it.each(speciesIds)("%s — leavesPerPad[min] ≤ [max]", (id) => {
+    const [min, max] = SPECIES_CONFIG[id].leavesPerPad;
     expect(min).toBeGreaterThan(0);
     expect(max).toBeGreaterThanOrEqual(min);
   });

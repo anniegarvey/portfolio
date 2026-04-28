@@ -5,7 +5,11 @@ import { useMemo } from "react";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { parsePotId, parseStandId } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
-import { generateTree, type TreeSVGData } from "@/lib/bonsai/treeGenerator";
+import {
+  generateTree,
+  type Leaf,
+  type TreeSVGData,
+} from "@/lib/bonsai/treeGenerator";
 
 // ─── Leaf Shape Paths ─────────────────────────────────────────────────────────
 
@@ -296,57 +300,75 @@ function branchZBounds(branches: { z: number }[]): {
 
 // ─── Leaf Renderer ────────────────────────────────────────────────────────────
 
-function renderLeaves(
-  leaves: ReturnType<typeof generateTree>["apexLeaves"],
-  leafShape: string,
-  foliageColor: string,
-) {
-  return leaves.map((leaf) => {
-    if (leafShape === "palmate") {
-      return (
-        <path
-          d={PALMATE_LEAF_PATH}
-          fill={foliageColor}
-          key={leaf.id}
-          transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-        />
-      );
-    }
-    if (leafShape === "lobed") {
-      return (
-        <path
-          d={LOBED_LEAF_PATH}
-          fill={foliageColor}
-          key={leaf.id}
-          transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-        />
-      );
-    }
-    if (leafShape === "pinnate") {
-      return (
-        <PinnateLeaf
-          angleDeg={leaf.angleDeg}
-          cx={leaf.cx}
-          cy={leaf.cy}
-          fill={foliageColor}
-          id={leaf.id}
-          key={leaf.id}
-          scale={leaf.rx}
-        />
-      );
-    }
+function renderLeaf(leaf: Leaf, leafShape: string, foliageColor: string) {
+  if (leafShape === "palmate") {
     return (
-      <ellipse
+      <path
+        d={PALMATE_LEAF_PATH}
+        fill={foliageColor}
+        key={leaf.id}
+        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
+      />
+    );
+  }
+  if (leafShape === "lobed") {
+    return (
+      <path
+        d={LOBED_LEAF_PATH}
+        fill={foliageColor}
+        key={leaf.id}
+        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
+      />
+    );
+  }
+  if (leafShape === "pinnate") {
+    return (
+      <PinnateLeaf
+        angleDeg={leaf.angleDeg}
         cx={leaf.cx}
         cy={leaf.cy}
         fill={foliageColor}
+        id={leaf.id}
         key={leaf.id}
-        rx={leaf.rx}
-        ry={leaf.ry}
-        transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}
+        scale={leaf.rx}
       />
     );
-  });
+  }
+  return (
+    <ellipse
+      cx={leaf.cx}
+      cy={leaf.cy}
+      fill={foliageColor}
+      key={leaf.id}
+      rx={leaf.rx}
+      ry={leaf.ry}
+      transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}
+    />
+  );
+}
+
+/**
+ * Flattens every leaf from every branch (and the apex cluster) into one list,
+ * tagged with each leaf's absolute z-depth (`branch.z + leaf.z`), then sorts
+ * back-to-front so the renderer can globally depth-sort the foliage layer —
+ * front pads overpaint rear pads regardless of which branch they sit on.
+ */
+function collectGlobalLeaves(
+  branches: { z: number; leaves: Leaf[] }[],
+  apexLeaves: Leaf[],
+): { leaf: Leaf; absoluteZ: number }[] {
+  const out: { leaf: Leaf; absoluteZ: number }[] = [];
+  for (const branch of branches) {
+    for (const leaf of branch.leaves) {
+      out.push({ leaf, absoluteZ: branch.z + leaf.z });
+    }
+  }
+  // Apex cluster centres on the trunk top — z origin is 0 there.
+  for (const leaf of apexLeaves) {
+    out.push({ leaf, absoluteZ: leaf.z });
+  }
+  out.sort((a, b) => a.absoluteZ - b.absoluteZ);
+  return out;
 }
 
 // ─── Flower Renderer ──────────────────────────────────────────────────────────
@@ -854,6 +876,14 @@ export function StaticTreeSVG({
     (a, b) => a.z - b.z || b.depth - a.depth,
   );
 
+  // Foliage z-sort runs across every leaf in the tree, not just per-branch —
+  // a forward-projected pad on a back branch can still overpaint a back pad
+  // on a forward branch where the two discs cross in 2D.
+  const globalLeaves = collectGlobalLeaves(sortedBranches, svgData.apexLeaves);
+  const { zMin: leafZMin, zRange: leafZRange } = branchZBounds(
+    globalLeaves.map((e) => ({ z: e.absoluteZ })),
+  );
+
   return (
     <svg
       aria-label={`${config.label} bonsai tree, day ${tree.activeDaysCount}`}
@@ -924,29 +954,32 @@ export function StaticTreeSVG({
         <path d={svgData.trunkPathData} fill={config.trunkColor} />
       )}
 
+      {/* Branch wood — z-sorted back-to-front so near branches overpaint. */}
       {sortedBranches.map((branch) => {
-        const leafColor = depthTintedColor(
-          branch.z,
-          zMin,
-          zRange,
-          config.foliageColor,
-          config.foliageColorLight,
-        );
         const branchColor = depthTintedTrunkColor(
           branch.z,
           zMin,
           zRange,
           config.trunkColor,
         );
-        return (
-          <g key={branch.id}>
-            <path d={branch.pathData} fill={branchColor} />
-            {renderLeaves(branch.leaves, config.leafShape, leafColor)}
-          </g>
-        );
+        return <path d={branch.pathData} fill={branchColor} key={branch.id} />;
       })}
 
-      {renderLeaves(svgData.apexLeaves, config.leafShape, config.foliageColor)}
+      {/* Foliage layer — every leaf z-sorted globally so overlapping pads
+         on different branches paint in true depth order. */}
+      {globalLeaves.map(({ leaf, absoluteZ }) =>
+        renderLeaf(
+          leaf,
+          config.leafShape,
+          depthTintedColor(
+            absoluteZ,
+            leafZMin,
+            leafZRange,
+            config.foliageColor,
+            config.foliageColorLight,
+          ),
+        ),
+      )}
 
       <FlowerLayer flowerSpec={config.flowers} flowers={svgData.flowers} />
 

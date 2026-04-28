@@ -15,12 +15,15 @@ export type LeafShape =
 export type Phyllotaxy = "opposite" | "alternate" | "whorled";
 
 // ─── Foliage Distribution ─────────────────────────────────────────────────────
-// How the crown is packed with leaves:
-//   tips     — individual leaf clusters at each terminal branch (current behaviour)
-//   pads     — foliage grouped into distinct convex "pads" (pine, juniper, flame tree)
-//   interior — leaves distributed throughout the interior of the crown volume
+// How the crown is packed with leaves. Each mode produces foliage "pads" — discs
+// of leaves with a per-leaf z offset so the renderer can globally depth-sort them.
+//   terminal  — one pad at each terminal tip (open canopies — cherry, oak)
+//   pad       — terminal pads + interior pads on near-tip branches; fills the
+//               middle of dense canopies (pine, maple, juniper, flame tree)
+//   scattered — pads scattered along the branch length, biased toward tips
+//   pendent   — terminal pad + hanging chains of pads below the tip (wisteria)
 
-export type FoliageDistribution = "tips" | "pads" | "interior";
+export type FoliageDistribution = "terminal" | "pad" | "scattered" | "pendent";
 
 // ─── Flower Spec ──────────────────────────────────────────────────────────────
 
@@ -118,23 +121,19 @@ export interface SpeciesConfig {
 
   // Leaves
   leafShape: LeafShape;
-  /** [min, max] number of leaf elements per terminal cluster. */
-  leavesPerCluster: [number, number];
   /** Base size in SVG viewbox units. Interpretation varies by leafShape:
    *  needle = half-length of needle; oval = half-width; palmate/lobed/pinnate = overall scale; scale = radius. */
   leafSize: number;
-  /** When true, leaf clusters are also generated at intervals along the branch, not just the tip. */
-  leavesAlongBranch?: boolean;
   /** Where leaves cluster in the crown — see `FoliageDistribution` doc. */
   foliageDistribution: FoliageDistribution;
-  /** SVG units — radius of a single foliage pad. Used when
-   *  `foliageDistribution === "pads"` to set pad size. */
+  /** SVG units — radius of a single foliage pad disc. Larger = more spread-out
+   *  pads that overlap their neighbours and the trunk. */
   padRadius: number;
-  /** 0–1 — density of interior foliage clusters independent of the pad/tip
-   *  choice (fills the bare middle). 0 = no interior fill. */
+  /** 0–1 — for `foliageDistribution === "pad"`: probability that a near-tip
+   *  non-terminal branch gets an extra interior pad. Fills the bare crown
+   *  centre. Ignored by `terminal`. */
   interiorPadDensity: number;
-  /** [min, max] — leaves per pad when `foliageDistribution === "pads"`.
-   *  Species with non-pad distribution can still set a value for consistency. */
+  /** [min, max] — leaves placed within each pad disc. */
   leavesPerPad: [number, number];
 
   // Per-individual variability
@@ -184,13 +183,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.7,
     tipDroop: 0,
     leafShape: "needle",
-    leavesPerCluster: [8, 12],
     leafSize: 7.5,
-    leavesAlongBranch: true,
-    foliageDistribution: "pads",
-    padRadius: 14,
-    interiorPadDensity: 0.6,
-    leavesPerPad: [30, 50],
+    foliageDistribution: "pad",
+    padRadius: 10,
+    interiorPadDensity: 0.7,
+    leavesPerPad: [10, 14],
     individualVariability: 0.2,
     // Pine has no ornamental flowers — only inconspicuous pollen cones.
   },
@@ -225,12 +222,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.8,
     tipDroop: 0.1,
     leafShape: "palmate",
-    leavesPerCluster: [3, 5],
     leafSize: 5.0,
-    foliageDistribution: "tips",
-    padRadius: 10,
-    interiorPadDensity: 0.2,
-    leavesPerPad: [12, 18],
+    foliageDistribution: "pad",
+    padRadius: 8,
+    interiorPadDensity: 0.4,
+    leavesPerPad: [6, 10],
     individualVariability: 0.3,
     flowers: {
       // Small reddish-purple hanging umbel clusters, appear with the new spring leaves.
@@ -271,12 +267,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.7,
     tipDroop: 0.05,
     leafShape: "oval",
-    leavesPerCluster: [4, 6],
     leafSize: 4.5,
-    foliageDistribution: "tips",
-    padRadius: 9,
-    interiorPadDensity: 0.3,
-    leavesPerPad: [14, 20],
+    foliageDistribution: "terminal",
+    padRadius: 5,
+    interiorPadDensity: 0.2,
+    leavesPerPad: [4, 7],
     individualVariability: 0.25,
     flowers: {
       // Iconic 5-petal blossoms in clusters; pale pink to white. Appear with leaves.
@@ -320,13 +315,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.5,
     tipDroop: 0.3,
     leafShape: "scale",
-    leavesPerCluster: [12, 18],
     leafSize: 2.0,
-    leavesAlongBranch: true,
-    foliageDistribution: "pads",
-    padRadius: 16,
+    foliageDistribution: "pad",
+    padRadius: 14,
     interiorPadDensity: 0.8,
-    leavesPerPad: [40, 60],
+    leavesPerPad: [18, 26],
     individualVariability: 0.4,
     flowers: {
       // Waxy blue-black seed cones (berry-like); ornamental once mature.
@@ -367,12 +360,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.9,
     tipDroop: 0,
     leafShape: "lobed",
-    leavesPerCluster: [3, 5],
     leafSize: 6.0,
-    foliageDistribution: "tips",
-    padRadius: 12,
-    interiorPadDensity: 0.4,
-    leavesPerPad: [10, 16],
+    foliageDistribution: "terminal",
+    padRadius: 6,
+    interiorPadDensity: 0.2,
+    leavesPerPad: [4, 6],
     individualVariability: 0.2,
     flowers: {
       // Pendulous yellow-green catkins; rare — reflects 20–40 year real-world maturity.
@@ -413,12 +405,13 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.5,
     tipDroop: 0.5,
     leafShape: "pinnate",
-    leavesPerCluster: [5, 8],
     leafSize: 4.0,
-    foliageDistribution: "tips",
-    padRadius: 10,
-    interiorPadDensity: 0.25,
-    leavesPerPad: [10, 16],
+    // Pendent: hanging chains of pinnate leaf clusters below each tip — the
+    // defining drape of mature wisteria.
+    foliageDistribution: "pendent",
+    padRadius: 5,
+    interiorPadDensity: 0.1,
+    leavesPerPad: [3, 5],
     individualVariability: 0.35,
     flowers: {
       // Drooping violet racemes, 20–30 cm in nature — the defining visual of wisteria bonsai.
@@ -461,12 +454,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.3,
     tipDroop: 0,
     leafShape: "palmate",
-    leavesPerCluster: [4, 7],
     leafSize: 5.5,
-    foliageDistribution: "pads",
-    padRadius: 18,
-    interiorPadDensity: 0.5,
-    leavesPerPad: [20, 30],
+    foliageDistribution: "pad",
+    padRadius: 16,
+    interiorPadDensity: 0.6,
+    leavesPerPad: [6, 10],
     individualVariability: 0.15,
     flowers: {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.

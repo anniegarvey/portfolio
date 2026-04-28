@@ -23,9 +23,11 @@ to assist with adding new species in future.
 | `branchThicknessFactor` | 0–1 | Base thickness of primary branches as a fraction of trunk width at the attachment point. |
 | `branchCurvature` | SVG units | Max lateral midpoint offset applied randomly per branch for natural curvature. Higher = wispier, more arching branches. |
 | `leafShape` | enum | `needle` / `oval` / `palmate` / `lobed` / `scale` / `pinnate` — controls SVG leaf renderer |
-| `leavesPerCluster` | [min, max] | Randomised count of leaf elements per terminal cluster |
 | `leafSize` | SVG units | Base size. Interpretation varies by shape (see below). |
-| `leavesAlongBranch` | boolean | When true, leaf clusters appear at intervals along the branch, not just the tip. Good for dense-foliage species (pine, juniper). |
+| `foliageDistribution` | enum | `terminal` / `pad` / `scattered` / `pendent` — see Foliage Distribution doc in `speciesConfig.ts`. |
+| `padRadius` | SVG units | Radius of a single foliage pad disc. Larger pads overlap their neighbours and the trunk for closed canopies. |
+| `interiorPadDensity` | 0–1 | For `pad` mode: chance a near-tip non-terminal branch grows an extra interior pad. Fills the bare crown centre. |
+| `leavesPerPad` | [min, max] | Randomised leaf count placed within each pad. |
 
 ### Reserved for the natural-growth redesign
 
@@ -48,10 +50,6 @@ rendered change as a PNG diff in `git log`.
 | `azimuthSpread` | radians | Yaw range around the trunk axis across which branches emerge. `PI*2` = full 360°. |
 | `crownDepthFactor` | 0–1 | Crown depth along the z-axis. 0 = flat silhouette; 1 = roughly spherical. |
 | `tipDroop` | radians | Additional downward droop at branch tips. ~0.5 = heavily drooping (wisteria). |
-| `foliageDistribution` | enum | `tips` / `pads` / `interior` — where leaves cluster in the crown. |
-| `padRadius` | SVG units | Radius of a single foliage pad (used when `foliageDistribution === "pads"`). |
-| `interiorPadDensity` | 0–1 | Density of interior foliage clusters — fills the bare middle of the crown. |
-| `leavesPerPad` | [min, max] | Leaves per pad. Analogous to `leavesPerCluster` for pad-based distribution. |
 | `individualVariability` | 0–1 | Scale of per-tree parameter scatter — higher = more visible differences between same-species trees. |
 
 ### `leafSize` interpretation by shape
@@ -79,13 +77,15 @@ at the apex. `firstBranchFrac: 0.28` — first branch emerges low on the trunk, 
 the species' formal-upright proportions.
 
 **Foliage**: Paired needles 6–12 cm long in nature, grouped in dense fascicles at each node.
-Represented as radiating ellipse clusters. `leavesPerCluster: [8, 12]`, `leafSize: 7.5`.
-`leavesAlongBranch: true` fills branches with dense needle clusters throughout their length.
+Rendered as needle pads — each terminal carries a disc of radiating needles, and near-tip
+non-terminal branches add interior pads to fill the conical interior.
+`foliageDistribution: "pad"` with `padRadius: 10`, `leavesPerPad: [10, 14]`,
+`interiorPadDensity: 0.7`, `leafSize: 7.5`.
 
 **Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 5` reflects pine's signature
 candle-whorl growth. Strong `apicalDominance: 0.8` drives the conical leader; `maxDepth: 3`
-and `childCountByDepth: [3, 2, 2]` support the horticultural pad structure with
-`foliageDistribution: "pads"` and `padRadius: 14`. Moderate `crownDepthFactor: 0.7`.
+and `childCountByDepth: [3, 2, 2]` support the horticultural pad structure. Moderate
+`crownDepthFactor: 0.7`.
 
 **Pruning speed**: Moderate — pine is vigorous but back-budding takes time. `regrowthDays: 14`.
 
@@ -105,15 +105,15 @@ broad, open-crowned form characteristic of the species. High `branchCurvature: 3
 gives the naturally graceful arching of mature maple limbs.
 
 **Foliage**: Classic 5-lobed palmate leaf. Rendered as a normalized 5-point path.
-Relatively small clusters of 3–5 individual leaves clearly visible at each tip.
-`leavesPerCluster: [3, 5]`, `leafSize: 5.0`.
+Small terminal pads of 6–10 leaves with moderate interior pad fill so the maple's vase
+crown reads dense without losing the crossing-branch visibility.
+`foliageDistribution: "pad"` with `padRadius: 8`, `leavesPerPad: [6, 10]`,
+`interiorPadDensity: 0.4`, `leafSize: 5.0`.
 
 **Redesign params**: `phyllotaxy: "opposite"` captures maple's paired-bud habit
 (adjacent nodes rotate 90° to produce the crossing-branch look). Weak
 `apicalDominance: 0.4` and high `branchWander: 0.4` give the vase-shaped,
-sinuous crown. `foliageDistribution: "tips"` preserves the current
-at-the-tip cluster rendering; `crownDepthFactor: 0.8` gives a rounded
-silhouette for later 3D work.
+sinuous crown. `crownDepthFactor: 0.8` gives a rounded silhouette.
 
 **Pruning speed**: Fast — maple back-buds readily. `regrowthDays: 12`.
 
@@ -131,12 +131,13 @@ Low `branchAngleRamp: 0.18` gives only a subtle variation across the crown heigh
 maintains a fairly even spreading silhouette from base to apex. `firstBranchFrac: 0.30`.
 
 **Foliage**: Oval-lanceolate leaves 6–13 cm in nature, shown as landscape ovals.
-Clusters of 4–6. `leavesPerCluster: [4, 6]`, `leafSize: 4.5`.
+Light terminal-only pads of 4–7 ovals — keeps the airy, see-through canopy that
+cherries are known for. `foliageDistribution: "terminal"` with `padRadius: 5`,
+`leavesPerPad: [4, 7]`, `leafSize: 4.5`.
 
 **Redesign params**: `phyllotaxy: "alternate"` for cherry's spiral bud arrangement.
 Moderate `apicalDominance: 0.6` and low `branchWander: 0.2` produce a tidy
-spreading crown. `foliageDistribution: "tips"` with a small `interiorPadDensity: 0.3`
-fills the middle without losing the light, airy canopy.
+spreading crown.
 
 **Pruning speed**: Moderate-fast — cherry heals quickly. `regrowthDays: 10`.
 
@@ -158,15 +159,15 @@ Very high `branchCurvature: 5.0` produces the long, sweeping arcs typical of the
 Dense branching with compact pads. `maxBranchPairs: 8`.
 
 **Foliage**: Scale-like (adult foliage) or needle-like (juvenile). Modelled as dense
-clusters of tiny scale ellipses throughout the branch length. `leavesPerCluster: [12, 18]`,
-`leafSize: 2.0`. `leavesAlongBranch: true`.
+overlapping pads of tiny scale ellipses — the species' signature flat foliage cloud.
+`foliageDistribution: "pad"` with `padRadius: 14`, `leavesPerPad: [18, 26]`,
+`interiorPadDensity: 0.8`, `leafSize: 2.0`.
 
 **Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 3` matches the species'
 trademark 3-leaf scale whorls. Weak `apicalDominance: 0.2` and high `branchWander: 0.7`
 produce the twisted, tortured shari movement the style is prized for. Cascade display
-narrows `azimuthSpread` to `PI * 1.6` — branches lean toward the viewing side.
-`foliageDistribution: "pads"` with `padRadius: 16` and `interiorPadDensity: 0.8` produces
-the dense pad-and-pad silhouette. High `trunkJaggedness: 0.7` for shari bark texture.
+narrows `azimuthSpread` to `PI * 1.6` — branches lean toward the viewing side. High
+`trunkJaggedness: 0.7` for shari bark texture.
 
 **Pruning speed**: Slow — junipers dislike hard pruning and back-bud cautiously.
 `regrowthDays: 16`.
@@ -186,7 +187,9 @@ give the broad, rounded silhouette typical of the species. Moderate `branchCurva
 reflects oak's stiff, relatively straight limbs compared to species like maple or wisteria.
 
 **Foliage**: Deeply lobed leaves 5–15 cm in nature (much reduced on bonsai). Rendered as
-a sinuous lobed path. Small clusters of 3–5. `leavesPerCluster: [3, 5]`, `leafSize: 6.0`.
+a sinuous lobed path. Light terminal-only pads of 4–6 to preserve oak's coarse, irregular
+silhouette. `foliageDistribution: "terminal"` with `padRadius: 6`, `leavesPerPad: [4, 6]`,
+`leafSize: 6.0`.
 
 **Redesign params**: `phyllotaxy: "alternate"` with strong `apicalDominance: 0.7`
 reflects oak's powerful straight-leader growth. `childCountByDepth: [2, 3, 2]` lets the
@@ -213,8 +216,10 @@ with a slight `branchAngleRamp: 0.10` so lower branches angle slightly less down
 Very high `branchCurvature: 5.5` produces the long, sinuous arching canes the species
 is known for. Fast-growing; branches appear every 3 days.
 
-**Foliage**: Pinnate compound leaves in nature (7–13 leaflets per leaf), shown as oval clusters
-to suggest the light, feathery canopy. `leavesPerCluster: [5, 8]`, `leafSize: 4.0`.
+**Foliage**: Pinnate compound leaves in nature (7–13 leaflets per leaf), rendered with
+`foliageDistribution: "pendent"` so each terminal carries a small tip pad plus a hanging
+chain of smaller pads — the defining drape of mature wisteria. `padRadius: 5`,
+`leavesPerPad: [3, 5]`, `leafSize: 4.0`.
 
 **Colour**: Lavender-purple (`#9b59b6`), representing the iconic hanging raceme flowers as
 much as the foliage — the main visual appeal of wisteria bonsai.
@@ -244,17 +249,17 @@ low on the trunk. Wide `splitDiverge: 0.55` and `maxBranchPairs: 8` create the b
 Fast-growing; branches appear every 3 days.
 
 **Foliage**: Bipinnate compound leaves in nature, with hundreds of tiny leaflets giving a
-ferny, light texture. Represented as palmate clusters (the closest available shape to the
-fine leaflet structure). `leavesPerCluster: [4, 7]`, `leafSize: 5.5`.
+ferny, light texture. Represented as palmate pads (the closest available shape to the
+fine leaflet structure). `foliageDistribution: "pad"` with the largest `padRadius: 16` of
+any species and `interiorPadDensity: 0.6` for the broad umbrella canopy.
+`leavesPerPad: [6, 10]`, `leafSize: 5.5`.
 
 **Colour**: Vivid scarlet-orange (`#e74c3c` / `#ff6b47`), representing the mass of brilliant
 red flowers that cover the entire canopy — the species is named for this effect.
 
 **Redesign params**: Extremely low `crownDepthFactor: 0.3` captures the flat-topped
 umbrella silhouette. Weak `apicalDominance: 0.2` and near-zero `branchWander: 0.15`
-produce the clean, horizontally-layered canopy. `foliageDistribution: "pads"` with
-the largest `padRadius: 18` of any species models the sweeping horizontal foliage
-plates characteristic of *Delonix regia*.
+produce the clean, horizontally-layered canopy.
 
 **Pruning speed**: Moderate — tropical species with good recovery. `regrowthDays: 14`.
 
