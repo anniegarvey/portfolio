@@ -96,11 +96,28 @@ export interface BranchSpec {
   /** Foreshortened 2D length on the SVG plane, used by the renderer for the
    *  growth animation lerp. Equals the 3D length only for branches lying in
    *  the picture plane (azimuth ∈ {0, π}); strictly smaller when the branch
-   *  has any forward/back component. */
+   *  has any forward/back component.
+   *  For final-depth twigs with `tipBendLength > 0`, this is the *total* path
+   *  length (shaftLength + tipBendLength) so the growth animation lerps
+   *  uniformly across both segments. */
   maxLength: number;
   baseWidth: number;
   tipWidth: number;
   depth: number;
   /** Lateral midpoint offset for taperedPath — gives each branch its own gentle curve. */
   curveBias: number;
+  /** Phase 7 — tip droop/upturn. Position of the kink where the straight
+   *  shaft meets the bent tip segment. For non-bent branches (the vast
+   *  majority — only final-depth twigs with non-zero `tipDroop` bend), this
+   *  equals (fulltipX, fulltipY) and `tipBendLength === 0`. */
+  kneeX: number;
+  kneeY: number;
+  /** 2D length of the straight shaft (x1,y1 → kneeX,kneeY). Equal to
+   *  `maxLength` when no bend applies. */
+  shaftLength: number;
+  /** 2D length of the bent tip segment (kneeX,kneeY → fulltipX,fulltipY).
+   *  0 when no bend applies. */
+  tipBendLength: number;
+  /** 2D angle of the bent tip segment. Equal to `angle` when no bend applies. */
+  tipBendAngle: number;
 }

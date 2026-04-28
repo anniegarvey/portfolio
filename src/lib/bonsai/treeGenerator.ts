@@ -713,6 +713,84 @@ function generateFlowers(
 
 // ─── Branch Tree Builder ──────────────────────────────────────────────────────
 
+const TIP_BEND_FRACTION = 0.3;
+
+interface BranchGeometry {
+  kneeOffsetX: number;
+  kneeOffsetY: number;
+  tipOffsetX: number;
+  tipOffsetY: number;
+  tipOffsetZ: number;
+  shaftLength: number;
+  tipBendLength: number;
+  angle2D: number;
+  tipBendAngle: number;
+  projectedLength: number;
+}
+
+/**
+ * Computes shaft+tip 2D geometry for a branch from its 3D pitch + azimuth.
+ *
+ * Phase 7 — final-depth twigs with non-zero `tipDroop` bend toward the tip
+ * by `(π/2)·tipDroop` over the last `TIP_BEND_FRACTION` of length: positive
+ * tipDroop = upturn (pine candles), negative = weep (wisteria). Non-terminal
+ * branches and species with `tipDroop === 0` collapse to a straight branch
+ * (knee = unbent tip, `tipBendLength === 0`).
+ */
+function computeBranchGeometry(
+  pitch: number,
+  azimuth: number,
+  length3D: number,
+  applyBend: boolean,
+  tipDroop: number,
+): BranchGeometry {
+  const cosPitch = Math.cos(pitch);
+  const dirX = cosPitch * Math.cos(azimuth);
+  const dirY = -Math.sin(pitch);
+  const dirZ = cosPitch * Math.sin(azimuth);
+  const shaftFrac = applyBend ? 1 - TIP_BEND_FRACTION : 1;
+  const kneeOffsetX = dirX * length3D * shaftFrac;
+  const kneeOffsetY = dirY * length3D * shaftFrac;
+  const kneeOffsetZ = dirZ * length3D * shaftFrac;
+
+  let tipOffsetX = dirX * length3D;
+  let tipOffsetY = dirY * length3D;
+  let tipOffsetZ = dirZ * length3D;
+  if (applyBend) {
+    const bentPitch = pitch + (Math.PI / 2) * tipDroop;
+    const cosBent = Math.cos(bentPitch);
+    const bentLen = length3D * TIP_BEND_FRACTION;
+    tipOffsetX = kneeOffsetX + cosBent * Math.cos(azimuth) * bentLen;
+    tipOffsetY = kneeOffsetY + -Math.sin(bentPitch) * bentLen;
+    tipOffsetZ = kneeOffsetZ + cosBent * Math.sin(azimuth) * bentLen;
+  }
+
+  const shaftLength = Math.sqrt(kneeOffsetX ** 2 + kneeOffsetY ** 2);
+  const tipBendLength = applyBend
+    ? Math.sqrt(
+        (tipOffsetX - kneeOffsetX) ** 2 + (tipOffsetY - kneeOffsetY) ** 2,
+      )
+    : 0;
+  const angle2D = shaftLength < 1e-9 ? 0 : Math.atan2(kneeOffsetY, kneeOffsetX);
+  const tipBendAngle =
+    applyBend && tipBendLength >= 1e-9
+      ? Math.atan2(tipOffsetY - kneeOffsetY, tipOffsetX - kneeOffsetX)
+      : angle2D;
+
+  return {
+    kneeOffsetX,
+    kneeOffsetY,
+    tipOffsetX,
+    tipOffsetY,
+    tipOffsetZ,
+    shaftLength,
+    tipBendLength,
+    angle2D,
+    tipBendAngle,
+    projectedLength: shaftLength + tipBendLength,
+  };
+}
+
 function buildBranchTree(
   id: string,
   x1: number,
@@ -731,32 +809,35 @@ function buildBranchTree(
 ): void {
   const tipWidth = Math.max(baseWidth * 0.25, 0.4);
 
-  // 3D → 2D projection. Pitch is elevation above horizontal (SVG y-down so
-  // upward = +pitch → negative dy); azimuth is yaw around the trunk axis
-  // (0 = right, π/2 = toward viewer, π = left, 3π/2 = away).
-  const cosPitch = Math.cos(pitch);
-  const sinPitch = Math.sin(pitch);
-  const dx = cosPitch * Math.cos(azimuth) * length3D;
-  const dy = -sinPitch * length3D;
+  // 3D → 2D projection happens inside computeBranchGeometry. Pitch is
+  // elevation above horizontal (SVG y-down so upward = +pitch → negative
+  // dy); azimuth is yaw around the trunk axis (0 = right, π/2 = toward
+  // viewer, π = left, 3π/2 = away).
+  const applyBend = depth === spec.maxDepth && spec.tipDroop !== 0;
+  const geom = computeBranchGeometry(
+    pitch,
+    azimuth,
+    length3D,
+    applyBend,
+    spec.tipDroop,
+  );
+
   // Z-depth of this tip = parent tip's z + this segment's z component.
   // Cumulative (not segment-local) so a deep terminal sitting in front of
   // a forward-facing primary inherits its primary's depth — without this,
   // terminal leaves would always have small |z| and depth tinting would
   // collapse to the primaries that have no leaves on them.
-  const segmentZ = cosPitch * Math.sin(azimuth) * length3D;
-  const tipZ = parentTipZ + segmentZ;
+  const tipZRaw = parentTipZ + geom.tipOffsetZ;
   // Clamp to exactly 0 only at the trunk root + cardinal-azimuth cases to
   // keep the all-flat branch determinism property.
-  const z = Math.abs(tipZ) < 1e-10 ? 0 : tipZ;
+  const z = Math.abs(tipZRaw) < 1e-10 ? 0 : tipZRaw;
 
-  // 2D length is the foreshortened projection — branches facing the viewer
-  // shrink toward zero, branches in the picture plane keep their length.
-  // The renderer uses this to draw and to lerp the growth animation.
-  const projectedLength = Math.sqrt(dx * dx + dy * dy);
-  const angle2D = projectedLength < 1e-9 ? 0 : Math.atan2(dy, dx);
-
-  const fulltipX = x1 + dx;
-  const fulltipY = y1 + dy;
+  const kneeX = x1 + geom.kneeOffsetX;
+  const kneeY = y1 + geom.kneeOffsetY;
+  const fulltipX = x1 + geom.tipOffsetX;
+  const fulltipY = y1 + geom.tipOffsetY;
+  const { shaftLength, tipBendLength, projectedLength, angle2D, tipBendAngle } =
+    geom;
   // Each branch gets a seeded random curve — range ±branchCurvature
   const curveBias =
     (seededVal(id + treeId, 91) - 0.5) * 2 * spec.branchCurvature;
@@ -776,6 +857,11 @@ function buildBranchTree(
     tipWidth,
     depth,
     curveBias,
+    kneeX,
+    kneeY,
+    shaftLength,
+    tipBendLength,
+    tipBendAngle,
   });
 
   if (depth >= spec.maxDepth) return;
@@ -851,7 +937,7 @@ function buildBranchTree(
       `${id}-${childSuffix}`,
       fulltipX,
       fulltipY,
-      tipZ,
+      tipZRaw,
       childPitch,
       childAzimuth,
       childLength,
@@ -1200,19 +1286,61 @@ export function generateTree(
     if (effectiveProg <= 0) continue;
 
     const currentLen = lerp(0, s.maxLength, effectiveProg);
-    const x2 = s.x1 + Math.cos(s.angle) * currentLen;
-    const y2 = s.y1 + Math.sin(s.angle) * currentLen;
     const currentTipW = lerp(s.baseWidth, s.tipWidth, effectiveProg);
 
-    const path = taperedPath(
-      s.x1,
-      s.y1,
-      x2,
-      y2,
-      s.baseWidth,
-      currentTipW,
-      s.curveBias,
-    );
+    let x2: number;
+    let y2: number;
+    let tipAngle2D: number;
+    let path: string;
+    if (s.tipBendLength > 0 && currentLen > s.shaftLength) {
+      // Phase 7 — bent tip rendered as two tapered segments meeting at the
+      // knee. While the tip is still extending, the visible end moves along
+      // the bent direction; once the tip is fully grown, leaves attach at the
+      // bent end so the foliage layer follows the curl.
+      const tipLen = currentLen - s.shaftLength;
+      x2 = s.kneeX + Math.cos(s.tipBendAngle) * tipLen;
+      y2 = s.kneeY + Math.sin(s.tipBendAngle) * tipLen;
+      tipAngle2D = s.tipBendAngle;
+      const kneeWidth = lerp(
+        s.baseWidth,
+        s.tipWidth,
+        s.shaftLength / s.maxLength,
+      );
+      const shaftPath = taperedPath(
+        s.x1,
+        s.y1,
+        s.kneeX,
+        s.kneeY,
+        s.baseWidth,
+        kneeWidth,
+        s.curveBias,
+      );
+      const tipPath = taperedPath(
+        s.kneeX,
+        s.kneeY,
+        x2,
+        y2,
+        kneeWidth,
+        currentTipW,
+        0,
+      );
+      path = `${shaftPath} ${tipPath}`;
+    } else {
+      // Either an unbent branch, or a bent branch still in its shaft phase
+      // (the kink hasn't appeared yet). Single tapered segment as before.
+      x2 = s.x1 + Math.cos(s.angle) * currentLen;
+      y2 = s.y1 + Math.sin(s.angle) * currentLen;
+      tipAngle2D = s.angle;
+      path = taperedPath(
+        s.x1,
+        s.y1,
+        x2,
+        y2,
+        s.baseWidth,
+        currentTipW,
+        s.curveBias,
+      );
+    }
 
     const isTerminal = !(
       visibleIds.has(`${s.id}-a`) || visibleIds.has(`${s.id}-b`)
@@ -1222,7 +1350,7 @@ export function generateTree(
       branchId: s.id,
       tipX: x2,
       tipY: y2,
-      branchAngle: s.angle,
+      branchAngle: tipAngle2D,
       branchLen: currentLen,
       isTerminal,
       effectiveProg,

@@ -115,8 +115,10 @@ export interface SpeciesConfig {
   /** 0–1 — crown depth along the viewer's z-axis. 0 = flat 2D silhouette;
    *  1 = roughly spherical crown. Drives depth-sort and atmospheric-tint magnitude. */
   crownDepthFactor: number;
-  /** Radians — additional downward droop applied at branch tips. 0 = no droop;
-   *  ~0.5 = heavily drooping (wisteria). */
+  /** Tip behaviour for final-depth twigs. Twigs bend by `(π/2)·tipDroop` over
+   *  their last 30% of length. Negative = weeping (wisteria, flame tree);
+   *  0 = horizontal; positive = upturn (pine candles). |tipDroop| ≤ 1 keeps
+   *  the bend bounded to a quarter-turn. */
   tipDroop: number;
 
   // Leaves
@@ -181,7 +183,8 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchWander: 0.15,
     azimuthSpread: Math.PI * 2,
     crownDepthFactor: 0.7,
-    tipDroop: 0,
+    // Pine candles flick upward at the tip — characteristic conifer growth.
+    tipDroop: 0.3,
     leafShape: "needle",
     leafSize: 7.5,
     foliageDistribution: "pad",
@@ -220,7 +223,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchWander: 0.4,
     azimuthSpread: Math.PI * 2,
     crownDepthFactor: 0.8,
-    tipDroop: 0.1,
+    tipDroop: 0,
     leafShape: "palmate",
     leafSize: 5.0,
     foliageDistribution: "pad",
@@ -265,7 +268,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchWander: 0.2,
     azimuthSpread: Math.PI * 2,
     crownDepthFactor: 0.7,
-    tipDroop: 0.05,
+    // Slight upturn at the cherry's twig tips — keeps the canopy from feeling
+    // flat without making it look like a weeping cultivar.
+    tipDroop: 0.1,
     leafShape: "oval",
     leafSize: 4.5,
     foliageDistribution: "terminal",
@@ -313,7 +318,8 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Cascade junipers are typically displayed from a single viewing side — narrow the yaw sweep.
     azimuthSpread: Math.PI * 1.6,
     crownDepthFactor: 0.5,
-    tipDroop: 0.3,
+    // Juniper foliage pads spread laterally — twigs read horizontal, not bent.
+    tipDroop: 0,
     leafShape: "scale",
     leafSize: 2.0,
     foliageDistribution: "pad",
@@ -403,7 +409,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchWander: 0.6,
     azimuthSpread: Math.PI * 1.6,
     crownDepthFactor: 0.5,
-    tipDroop: 0.5,
+    // Wisteria's signature weep: tips plunge nearly straight down at the
+    // ends of the racemes, complementing the pendent foliage distribution.
+    tipDroop: -0.9,
     leafShape: "pinnate",
     leafSize: 4.0,
     // Pendent: hanging chains of pinnate leaf clusters below each tip — the
@@ -452,7 +460,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     azimuthSpread: Math.PI * 2,
     // Flat umbrella crown — compressed z-axis depth.
     crownDepthFactor: 0.3,
-    tipDroop: 0,
+    // Mild downward tilt on tips so the umbrella canopy droops at the edges
+    // rather than reading as flat-cut.
+    tipDroop: -0.2,
     leafShape: "palmate",
     leafSize: 5.5,
     foliageDistribution: "pad",
