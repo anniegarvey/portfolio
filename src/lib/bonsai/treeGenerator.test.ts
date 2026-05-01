@@ -269,6 +269,78 @@ describe("generateTree", () => {
     });
   });
 
+  // ─── Tip Droop (Phase 7) ──────────────────────────────────────────────────
+
+  describe("tipDroop", () => {
+    /** Mean y-coordinate of every visible final-depth twig tip. */
+    function meanTwigY(data: ReturnType<typeof generateTree>) {
+      const twigs = data.branches.filter(
+        (b) => b.isTerminal && !b.isPruned && b.id.split("-").length >= 3,
+      );
+      if (twigs.length === 0) return 0;
+      return twigs.reduce((sum, b) => sum + b.y2, 0) / twigs.length;
+    }
+    /** Lowest (largest y) tip among final-depth twigs. */
+    function bottomTwigY(data: ReturnType<typeof generateTree>) {
+      const twigs = data.branches.filter(
+        (b) => b.isTerminal && !b.isPruned && b.id.split("-").length >= 3,
+      );
+      return twigs.reduce((m, b) => Math.max(m, b.y2), 0);
+    }
+
+    it("oak (tipDroop = 0) renders single-segment paths on terminal twigs", () => {
+      const oak = SPECIES_CONFIG.oak;
+      expect(oak.tipDroop).toBe(0);
+      const data = generateTree(60, oak, [], TREE_ID);
+      const twigs = data.branches.filter(
+        (b) => b.isTerminal && !b.isPruned && b.id.split("-").length >= 3,
+      );
+      expect(twigs.length).toBeGreaterThan(0);
+      // taperedPath emits exactly one "M " — kinked paths concatenate two,
+      // so a tipDroop = 0 species must always render with one moveto.
+      for (const t of twigs) {
+        const moveCount = (t.pathData.match(/M /g) ?? []).length;
+        expect(moveCount).toBe(1);
+      }
+    });
+
+    it("wisteria terminal twigs sit lower on average (weep) than with tipDroop = 0", () => {
+      const wisteria = SPECIES_CONFIG.wisteria;
+      const flatWisteria = { ...wisteria, tipDroop: 0 };
+      const droopy = generateTree(80, wisteria, [], TREE_ID);
+      const flat = generateTree(80, flatWisteria, [], TREE_ID);
+      // Mean tip y is the more reliable summary: wisteria primaries already
+      // drape downward, so the bottom twig moves only a couple of pixels
+      // with the bend. The whole canopy sliding down is clear in the mean.
+      expect(meanTwigY(droopy)).toBeGreaterThan(meanTwigY(flat) + 1);
+      expect(bottomTwigY(droopy)).toBeGreaterThan(bottomTwigY(flat));
+    });
+
+    it("wisteria terminal twigs render multi-segment paths when tipDroop ≠ 0", () => {
+      const data = generateTree(80, SPECIES_CONFIG.wisteria, [], TREE_ID);
+      const twigs = data.branches.filter(
+        (b) => b.isTerminal && !b.isPruned && b.id.split("-").length >= 3,
+      );
+      expect(twigs.length).toBeGreaterThan(0);
+      const kinked = twigs.filter(
+        (t) => (t.pathData.match(/M /g) ?? []).length === 2,
+      );
+      // Most fully-grown terminal twigs render as a kinked two-segment path.
+      expect(kinked.length / twigs.length).toBeGreaterThan(0.5);
+    });
+
+    it("pine terminal twigs sit higher on average (upturn) than with tipDroop = 0", () => {
+      const pine = SPECIES_CONFIG.pine;
+      const flatPine = { ...pine, tipDroop: 0 };
+      const upturned = generateTree(80, pine, [], TREE_ID);
+      const flat = generateTree(80, flatPine, [], TREE_ID);
+      // Mean tip y is more reliable than min/max for pine: a few near-vertical
+      // candles can over-rotate past the apex when bent, but the bulk of the
+      // canopy lifts upward. Smaller mean y = higher on the SVG canvas.
+      expect(meanTwigY(upturned)).toBeLessThan(meanTwigY(flat));
+    });
+  });
+
   // ─── All species ──────────────────────────────────────────────────────────
 
   describe("all species at day 30", () => {
