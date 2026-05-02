@@ -262,8 +262,10 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchCurvature: 2.5,
     // Alternate buds along the stem — spiral arrangement with ~137° phyllotactic offset.
     phyllotaxy: "alternate",
-    maxDepth: 2,
-    childCountByDepth: [2, 2],
+    maxDepth: 3,
+    // Depth-3 single-child entry continues a final twig without re-forking,
+    // adding visible finer ramification without doubling terminal count.
+    childCountByDepth: [2, 2, 1],
     apicalDominance: 0.6,
     branchWander: 0.2,
     azimuthSpread: Math.PI * 2,
@@ -358,7 +360,10 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchThicknessFactor: 0.42,
     branchCurvature: 2.0,
     phyllotaxy: "alternate",
-    maxDepth: 2,
+    // Phase-9 bump from 2 → 3: oak's three-way crown scaffolds split once
+    // more into finer twigs at depth 3 (the [2, 3, 2] entry was already in
+    // place from the §4 design but was unused at maxDepth 2).
+    maxDepth: 3,
     childCountByDepth: [2, 3, 2],
     apicalDominance: 0.7,
     branchWander: 0.25,
@@ -403,8 +408,10 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchThicknessFactor: 0.32,
     branchCurvature: 5.5,
     phyllotaxy: "alternate",
-    maxDepth: 2,
-    childCountByDepth: [2, 2],
+    // Phase-9 bump 2 → 3: gives the pendent racemes a finer attachment
+    // structure so each drape hangs off a fork rather than a primary tip.
+    maxDepth: 3,
+    childCountByDepth: [2, 2, 1],
     apicalDominance: 0.3,
     branchWander: 0.6,
     azimuthSpread: Math.PI * 1.6,
