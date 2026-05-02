@@ -1,9 +1,14 @@
 import { v4 as uuidv4 } from "uuid";
 import { type BonsaiGameState, BonsaiGameStateSchema } from "./schema";
 
-const BONSAI_STORAGE_KEY = "bonsai-game-state";
+// ─── Storage Keys ─────────────────────────────────────────────────────────────
+// v1: pre-Phase-9 — branch IDs use the L{i}/R{i} scheme.
+// v2: Phase-9 onward — branch IDs are p{n}, and the bumped key marks data as
+// already migrated so we don't re-run the L/R parser on every load.
+const BONSAI_STORAGE_KEY_V1 = "bonsai-game-state";
+const BONSAI_STORAGE_KEY = "bonsai-game-state-v2";
 
-// ─── Branch ID Migration ──────────────────────────────────────────────────────
+// ─── Branch ID Migration (v1 → v2) ────────────────────────────────────────────
 // Phase 3 renamed primary-branch IDs from L{i}/R{i} to p{n} (sequential).
 // Mapping: L{i} → p{2i}, R{i} → p{2i+1}. Child segments are preserved.
 // Example: "L0-a-b" → "p0-a-b", "R1-a" → "p3-a".
@@ -24,25 +29,44 @@ function migrateBranchId(id: string): string {
   return id; // already new format (e.g., "p0", "apex-L")
 }
 
-export function loadBonsaiState(): BonsaiGameState | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(BONSAI_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    const result = BonsaiGameStateSchema.safeParse(parsed);
-    if (!result.success) return null;
-    // Migrate any saved branch IDs written before Phase 3
-    for (const tree of result.data.trees) {
-      tree.prunedBranches = tree.prunedBranches.map((pb) => ({
+function migrateV1State(state: BonsaiGameState): BonsaiGameState {
+  return {
+    ...state,
+    trees: state.trees.map((tree) => ({
+      ...tree,
+      prunedBranches: tree.prunedBranches.map((pb) => ({
         ...pb,
         branchId: migrateBranchId(pb.branchId),
-      }));
-    }
-    return result.data;
+      })),
+    })),
+  };
+}
+
+function parseStoredState(raw: string): BonsaiGameState | null {
+  try {
+    const result = BonsaiGameStateSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : null;
   } catch {
     return null;
   }
+}
+
+export function loadBonsaiState(): BonsaiGameState | null {
+  if (typeof window === "undefined") return null;
+
+  const v2Raw = localStorage.getItem(BONSAI_STORAGE_KEY);
+  if (v2Raw !== null) return parseStoredState(v2Raw);
+
+  const v1Raw = localStorage.getItem(BONSAI_STORAGE_KEY_V1);
+  if (v1Raw === null) return null;
+
+  const v1State = parseStoredState(v1Raw);
+  if (v1State === null) return null;
+
+  const migrated = migrateV1State(v1State);
+  localStorage.setItem(BONSAI_STORAGE_KEY, JSON.stringify(migrated));
+  localStorage.removeItem(BONSAI_STORAGE_KEY_V1);
+  return migrated;
 }
 
 export function saveBonsaiState(state: BonsaiGameState): void {

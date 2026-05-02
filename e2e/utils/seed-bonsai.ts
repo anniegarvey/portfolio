@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-const BONSAI_KEY = "bonsai-game-state";
+const BONSAI_KEY = "bonsai-game-state-v2";
 const POINTS_KEY = "energy-planner-points";
 
 const FIXED_TREE_ID = "00000000-0000-4000-8000-000000000001";

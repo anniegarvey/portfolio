@@ -10,7 +10,7 @@ vi.mock("@/lib/points/context", () => ({
   usePoints: vi.fn(),
 }));
 
-const BONSAI_KEY = "bonsai-game-state";
+const BONSAI_KEY = "bonsai-game-state-v2";
 const TODAY = new Date().toISOString().split("T")[0];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
