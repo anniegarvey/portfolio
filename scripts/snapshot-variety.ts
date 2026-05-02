@@ -54,9 +54,7 @@ async function main() {
             acquiredAt: "2024-01-01",
             prunedBranches: [] as [],
           };
-          return renderToStaticMarkup(
-            createElement(StaticTreeSVG, { tree }),
-          );
+          return renderToStaticMarkup(createElement(StaticTreeSVG, { tree }));
         });
         const label = SPECIES_CONFIG[speciesId].label;
         return `<div class="row">
