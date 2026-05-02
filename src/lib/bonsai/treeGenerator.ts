@@ -30,6 +30,40 @@ export const BRANCH_GROW_DURATION = 6; // days from first appearance to full len
 // across alternate-phyllotaxy primaries, producing a natural spiral.
 const GOLDEN_ANGLE = 2.399193;
 
+// ─── Phase 8 — Individual Variability ─────────────────────────────────────────
+
+/** Per-tree signed scalar in [-1, +1], deterministic from treeId + slot. */
+function ivSignedScalar(treeId: string, slot: number): number {
+  return seededVal(treeId, 4000 + slot) * 2 - 1;
+}
+
+/**
+ * Phase 8 — derives a per-tree "effective" spec by perturbing a few
+ * silhouette-shaping fields by amounts proportional to the species'
+ * `individualVariability`. The same species + treeId always produces the same
+ * effective spec, so determinism is preserved.
+ *
+ * Multipliers chosen so iv = 0 leaves every field at its species default
+ * (zero variability between seeds), and the magnitudes stay bounded enough
+ * at iv = 1 to keep the silhouette recognisable as the same species.
+ */
+function applyIndividualVariability(
+  spec: SpeciesConfig,
+  treeId: string,
+): SpeciesConfig {
+  const iv = spec.individualVariability;
+  if (iv <= 0) return spec;
+  const s = (slot: number) => ivSignedScalar(treeId, slot);
+  return {
+    ...spec,
+    branchAngleBase: spec.branchAngleBase + s(0) * iv * 0.3,
+    branchCurvature: spec.branchCurvature * (1 + s(1) * iv * 0.8),
+    branchWander: spec.branchWander * (1 + s(2) * iv * 1.0),
+    padRadius: spec.padRadius * (1 + s(3) * iv * 0.5),
+    splitDiverge: spec.splitDiverge * (1 + s(4) * iv * 0.6),
+  };
+}
+
 /** Returns the trunk height (in SVG units) for a given tree — mirrors the
  *  growth formula inside generateTree so callers can compute glow sizes etc.
  *  without running the full generator. */
@@ -38,7 +72,8 @@ export function computeTrunkHeight(
   spec: SpeciesConfig,
   treeId: string,
 ): number {
-  const growthRate = 5.5 * (0.88 + seededVal(treeId, 3) * 0.24);
+  const iv = spec.individualVariability;
+  const growthRate = 5.5 * (1 + ivSignedScalar(treeId, 5) * iv * 0.8);
   const rawGrowth =
     activeDaysCount > 0 ? activeDaysCount ** 0.72 * growthRate : 0;
   const maxH = spec.maxTrunkHeight;
@@ -757,7 +792,18 @@ function computeBranchGeometry(
   let tipOffsetY = dirY * length3D;
   let tipOffsetZ = dirZ * length3D;
   if (applyBend) {
-    const bentPitch = pitch + (Math.PI / 2) * tipDroop;
+    // Clamp bentPitch so a weeping/upturned tip flattens at perpendicular
+    // rather than overshooting and curling back the wrong way — without this,
+    // a parent already plunging near -π/2 plus a strongly negative tipDroop
+    // would wrap past straight-down and the tip would point upward.
+    const HALF_PI = Math.PI / 2;
+    const rawBent = pitch + HALF_PI * tipDroop;
+    const bentPitch =
+      tipDroop < 0
+        ? Math.max(rawBent, -HALF_PI)
+        : tipDroop > 0
+          ? Math.min(rawBent, HALF_PI)
+          : rawBent;
     const cosBent = Math.cos(bentPitch);
     const bentLen = length3D * TIP_BEND_FRACTION;
     tipOffsetX = kneeOffsetX + cosBent * Math.cos(azimuth) * bentLen;
@@ -903,7 +949,19 @@ function buildBranchTree(
   // offset. Floor at 0.4 keeps the term bounded near vertical.
   const azCompensation = 1 / Math.max(0.4, Math.abs(Math.cos(pitch)));
 
-  const childCount = spec.childCountByDepth[depth] ?? 2;
+  // Per-fork childCount perturbation — at higher individualVariability, some
+  // forks gain or lose a child relative to the species default. Probability of
+  // a non-zero adjustment scales linearly with iv, so iv = 0 leaves every fork
+  // at its configured count. Bounded so the species silhouette stays readable.
+  const baseChildCount = spec.childCountByDepth[depth] ?? 2;
+  const ivAdjRoll = seededVal(`${id}-cc${treeId}`, 0);
+  const ivAdjRange = spec.individualVariability * 0.4;
+  let childCount = baseChildCount;
+  if (baseChildCount > 1 && ivAdjRoll < ivAdjRange) {
+    childCount = baseChildCount - 1;
+  } else if (ivAdjRoll > 1 - ivAdjRange) {
+    childCount = baseChildCount + 1;
+  }
   const laterals = Math.max(1, childCount - 1);
 
   for (let k = 0; k < childCount; k++) {
@@ -957,18 +1015,29 @@ function buildBranchTree(
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: procedural SVG tree generation is inherently complex
 export function generateTree(
   activeDaysCount: number,
-  spec: SpeciesConfig,
+  inputSpec: SpeciesConfig,
   prunedBranches: PrunedBranch[],
   treeId: string,
 ): TreeSVGData {
+  // Phase 8 — every downstream read of the spec sees per-tree-perturbed values
+  // so seeds of the same species look like distinct individuals.
+  const spec = applyIndividualVariability(inputSpec, treeId);
+  const iv = spec.individualVariability;
+  // Multiplier applied to per-branch seeded jitter ranges. Calibrated so iv=0.2
+  // (typical species default) reproduces the historical hard-coded jitter.
+  // Higher iv (e.g. juniper 0.4) widens jitter; iv=0 narrows it sharply.
+  const jitterScale = 0.5 + iv * 2.5;
+
   const trunkBaseX = VIEWBOX_WIDTH / 2;
   const trunkBaseY = VIEWBOX_HEIGHT - 30;
   const prunedMap = new Map(prunedBranches.map((p) => [p.branchId, p]));
 
   // ─── Trunk ────────────────────────────────────────────────────────────────
 
-  // Per-tree growth rate variation (±15%) for visual uniqueness between same-species trees
-  const growthRate = 5.5 * (0.88 + seededVal(treeId, 3) * 0.24);
+  // Per-tree growth rate variation — magnitude scales with species'
+  // individualVariability. iv=0 → all seeds reach identical heights; iv=0.4
+  // → ±32% spread.
+  const growthRate = 5.5 * (1 + ivSignedScalar(treeId, 5) * iv * 0.8);
   // Smooth asymptotic approach to maxTrunkHeight — growth slows naturally near the limit
   const rawGrowth =
     activeDaysCount > 0 ? activeDaysCount ** 0.72 * growthRate : 0;
@@ -984,8 +1053,11 @@ export function generateTree(
 
   // Per-tree curvature direction: 50% left, 50% right, based on tree ID
   const curveDir = seededVal(treeId, 0) > 0.5 ? 1 : -1;
-  // Per-tree curvature variation (±30%) — makes each individual tree look distinct
-  const curveMag = spec.trunkCurvature * (0.75 + seededVal(treeId, 1) * 0.5);
+  // Per-tree curvature variation — magnitude scales with iv. At iv=0.15 the
+  // ±25% spread matches the previous hard-coded behaviour; juniper (0.4)
+  // gets ±68% spread, producing visibly straight-vs-bent individuals.
+  const curveMag =
+    spec.trunkCurvature * (1 + ivSignedScalar(treeId, 6) * iv * 1.7);
   const curveOffset = curveMag * trunkHeight * 0.4 * curveDir;
 
   // Trunk centreline: quadratic bezier P0 (base) → P1 (control) → P2 (top)
@@ -1089,7 +1161,10 @@ export function generateTree(
       // whorled/opposite keep all siblings at the same node height.
       const hJitter =
         phyllotaxy === "alternate"
-          ? (seededVal(`${id}h${treeId}`, 0) - 0.5) * trunkHeight * 0.03
+          ? (seededVal(`${id}h${treeId}`, 0) - 0.5) *
+            trunkHeight *
+            0.03 *
+            jitterScale
           : 0;
       const heightFromBase = Math.max(
         trunkHeight * spec.firstBranchFrac * 0.85,
@@ -1105,7 +1180,8 @@ export function generateTree(
 
       // Elevation (pitch) angle — same ramp logic as before
       const angleProgression = branchAngleRamp * (zoneFrac - 0.5);
-      const angleJitter = (seededVal(`pa${id}${treeId}`, 0) - 0.5) * 0.14;
+      const angleJitter =
+        (seededVal(`pa${id}${treeId}`, 0) - 0.5) * 0.14 * jitterScale;
       const pitch = branchAngleBase + angleProgression + angleJitter;
 
       // Azimuth (yaw around trunk axis) — the key Phase 3 change
@@ -1120,7 +1196,8 @@ export function generateTree(
         // still spread evenly — e.g. 2 leftover branches get 0° and 180°.
         const baseAzimuth = (k / branchesAtNode) * Math.PI * 2;
         const whorlRotation = (nodeIdx * Math.PI) / whorlSize;
-        const azJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3;
+        const azJitter =
+          (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3 * jitterScale;
         azimuth = baseAzimuth + whorlRotation + azJitter;
       } else if (phyllotaxy === "opposite") {
         // Decussate: successive pairs rotate 90° (π/2). Within each pair,
@@ -1129,12 +1206,14 @@ export function generateTree(
         // pair 1 always projects to dx = 0, foreshortening the whole pair
         // onto the trunk centreline.
         const pairBase = (nodeIdx % 2) * (Math.PI / 2);
-        const pairJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.4;
+        const pairJitter =
+          (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.4 * jitterScale;
         azimuth = pairBase + pairJitter + k * Math.PI;
       } else {
         // alternate — golden-angle spiral avoids azimuth repetition
         const baseAzimuth = currentPrimary * GOLDEN_ANGLE;
-        const azJitter = (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3;
+        const azJitter =
+          (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3 * jitterScale;
         azimuth = baseAzimuth + azJitter;
       }
       azimuth += treeAzimuthOffset;
@@ -1148,7 +1227,8 @@ export function generateTree(
 
       // Length: lower branches longer (wide silhouette), upper shorter
       const lengthBase = 38 - zoneFrac * 16;
-      const lengthVar = (seededVal(`pl${id}${treeId}`, 0) - 0.5) * 8;
+      const lengthVar =
+        (seededVal(`pl${id}${treeId}`, 0) - 0.5) * 8 * jitterScale;
       const primaryLength = Math.max(10, lengthBase + lengthVar);
 
       // Pitch + azimuth pass through unprojected — buildBranchTree does the
@@ -1207,23 +1287,27 @@ export function generateTree(
       if (phyllotaxy === "whorled") {
         const baseAzimuth = (k / apexBranchCount) * Math.PI * 2;
         const whorlRotation = (apexNodeIdx * Math.PI) / whorlSize;
-        const azJitter = (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.3;
+        const azJitter =
+          (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.3 * jitterScale;
         apexAzimuth = baseAzimuth + whorlRotation + azJitter;
       } else if (phyllotaxy === "opposite") {
         const pairBase = (apexNodeIdx % 2) * (Math.PI / 2);
-        const pairJitter = (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.4;
+        const pairJitter =
+          (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.4 * jitterScale;
         apexAzimuth = pairBase + pairJitter + k * Math.PI;
       } else {
         // alternate — continue the golden-angle spiral past the last primary
         const baseAzimuth = (primaryIdx + k) * GOLDEN_ANGLE;
-        const azJitter = (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.3;
+        const azJitter =
+          (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.3 * jitterScale;
         apexAzimuth = baseAzimuth + azJitter;
       }
       apexAzimuth += treeAzimuthOffset;
 
       // Pitch — near-vertical with small per-branch tilt so multi-apex
       // species don't read as a single ramrod-straight column.
-      const pitchTilt = (seededVal(`apx${apexId}${treeId}`, 0) - 0.5) * 0.18;
+      const pitchTilt =
+        (seededVal(`apx${apexId}${treeId}`, 0) - 0.5) * 0.18 * jitterScale;
       const apexPitch = Math.PI / 2 - apexHalfSpread + pitchTilt;
 
       buildBranchTree(

@@ -341,6 +341,94 @@ describe("generateTree", () => {
     });
   });
 
+  // ─── Individual Variability (Phase 8) ─────────────────────────────────────
+
+  describe("individualVariability", () => {
+    /** Counts terminal-twig path strings that differ across two trees. */
+    function pathDiffCount(
+      a: ReturnType<typeof generateTree>,
+      b: ReturnType<typeof generateTree>,
+    ) {
+      const pa = a.branches.map((br) => br.pathData);
+      const pb = b.branches.map((br) => br.pathData);
+      const n = Math.min(pa.length, pb.length);
+      let diffs = Math.abs(pa.length - pb.length);
+      for (let i = 0; i < n; i++) {
+        if (pa[i] !== pb[i]) diffs++;
+      }
+      return diffs;
+    }
+
+    it("iv = 0 collapses per-tree growth variation across seeds", () => {
+      // With iv = 0, applyIndividualVariability is a no-op and the growth-rate
+      // / curve-magnitude scalings contribute zero variance. Two seeds reach
+      // the same trunk height and base width — the only remaining per-tree
+      // difference is the curveDir flip and azimuth offset, which leave
+      // height + width unchanged.
+      const flat = { ...SPECIES_CONFIG.maple, individualVariability: 0 };
+      const a = generateTree(40, flat, [], "seed-a");
+      const b = generateTree(40, flat, [], "seed-b");
+      expect(a.trunkBaseY - a.trunkTopY).toBeCloseTo(
+        b.trunkBaseY - b.trunkTopY,
+      );
+    });
+
+    it("iv > 0 produces visible variation in trunk height across seeds", () => {
+      // High-iv species at the same growth day should reach measurably
+      // different trunk heights across seeds — that's the most visible
+      // sign that growth-rate variation is wired up.
+      const heights = ["seed-1", "seed-2", "seed-3", "seed-4", "seed-5"].map(
+        (id) => {
+          const d = generateTree(40, SPECIES_CONFIG.juniper, [], id);
+          return d.trunkBaseY - d.trunkTopY;
+        },
+      );
+      const min = Math.min(...heights);
+      const max = Math.max(...heights);
+      // Range should exceed a few SVG units — anything < 1px would mean the
+      // iv wiring isn't actually producing visible spread.
+      expect(max - min).toBeGreaterThan(3);
+    });
+
+    it("different seeds of the same species produce different branch paths", () => {
+      // Phase 8 exit criterion (from docs/more-natural-bonsai-growth.md):
+      // four seeds of the same species at the same day should look distinct.
+      const ids = ["v1", "v2", "v3", "v4"];
+      const trees = ids.map((id) =>
+        generateTree(50, SPECIES_CONFIG.juniper, [], id),
+      );
+      // Pairwise comparison: every pair should differ on at least one
+      // branch path.
+      for (let i = 0; i < trees.length; i++) {
+        for (let j = i + 1; j < trees.length; j++) {
+          expect(pathDiffCount(trees[i], trees[j])).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it("iv changes branch counts across seeds (childCount perturbation)", () => {
+      // The per-fork ±1 childCount adjustment fires with probability iv·0.4
+      // per fork, so a high-iv species at a mature stage should show varied
+      // total branch counts across different seeds.
+      const counts = ["seed-1", "seed-2", "seed-3", "seed-4"].map(
+        (id) =>
+          generateTree(60, SPECIES_CONFIG.juniper, [], id).branches.length,
+      );
+      const unique = new Set(counts);
+      expect(unique.size).toBeGreaterThan(1);
+    });
+
+    it("iv preserves determinism — same seed twice gives identical branches", () => {
+      const a = generateTree(50, SPECIES_CONFIG.juniper, [], "stable");
+      const b = generateTree(50, SPECIES_CONFIG.juniper, [], "stable");
+      expect(a.branches.length).toBe(b.branches.length);
+      expect(a.trunkPathData).toBe(b.trunkPathData);
+      for (let i = 0; i < a.branches.length; i++) {
+        expect(a.branches[i].pathData).toBe(b.branches[i].pathData);
+      }
+    });
+  });
+
   // ─── All species ──────────────────────────────────────────────────────────
 
   describe("all species at day 30", () => {
