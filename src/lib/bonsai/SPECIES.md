@@ -7,21 +7,51 @@ to assist with adding new species in future.
 
 ## Parameter Reference
 
-### Currently used by the tree generator
+The redesigned generator (phases 0–9) reads every field below. Older "Reserved
+for phase X" placeholders are now active.
+
+### Gameplay
 
 | Parameter | Type | Meaning |
 |---|---|---|
 | `regrowthDays` | number | Days for a pruned branch to regrow |
+
+### Trunk
+
+| Parameter | Type | Meaning |
+|---|---|---|
 | `maxTrunkHeight` | number | SVG units (200×300 viewBox) at full maturity |
 | `trunkCurvature` | 0–1+ | 0 = straight; higher = more lateral bend. Applied as a bezier offset of `curvature × height × 0.4`. |
+| `trunkTaperPower` | exponent | Trunk taper profile. 1 = linear; >1 = concave (flared base, slim top); <1 = convex. |
+| `trunkJaggedness` | 0–1 | Roughness added to the trunk silhouette. 0 = smooth bezier; higher = bark/shari texture. |
+| `nebariSpread` | 0–1+ | Basal flare as a fraction of base trunk width — drives visible surface roots. |
+
+### Branch architecture
+
+| Parameter | Type | Meaning |
+|---|---|---|
 | `branchAngleBase` | radians | Angle above horizontal for a mid-height primary branch. Negative = drooping below horizontal. |
 | `branchAngleRamp` | radians | Total angle ramp from bottom branch to top branch. Positive → upper branches more vertical (typical upright); negative → upper branches droop more (cascade). |
 | `firstBranchFrac` | 0–1 | Height of the lowest branch as a fraction of trunk height. ~0.28–0.33 for upright styles; 0.58–0.68 for cascade/semi-cascade where branches cluster near the apex. |
 | `branchFrequency` | days | Days between new primary branches appearing. Lower = faster-growing species. |
 | `maxBranchPairs` | number | Cap on primary branches (single branches, not pairs) |
-| `splitDiverge` | radians | Angle divergence when a branch forks into two children. Smaller = tight columnar; larger = wide spreading. |
+| `splitDiverge` | radians | Angle divergence when a branch forks. Smaller = tight columnar; larger = wide spreading. |
 | `branchThicknessFactor` | 0–1 | Base thickness of primary branches as a fraction of trunk width at the attachment point. |
 | `branchCurvature` | SVG units | Max lateral midpoint offset applied randomly per branch for natural curvature. Higher = wispier, more arching branches. |
+| `phyllotaxy` | enum | `opposite` / `alternate` / `whorled` — primary-branch emergence pattern around the trunk. |
+| `whorlSize` | number | Branches per whorl node when `phyllotaxy === "whorled"`. Ignored otherwise. |
+| `maxDepth` | number | Max branching depth (0 = primary only). Higher values enable finer ramification. |
+| `childCountByDepth` | number[] | Children per fork at each depth. e.g. `[3, 2, 2]` = primary forks 3 ways, deeper forks 2. The array length should be ≥ `maxDepth`; out-of-range depths default to 2. A trailing `1` produces an unforked twig segment at the deepest level. |
+| `apicalDominance` | 0–1 | Strength of the apex shoot. 1 = strong leader (pine, oak); 0 = weak (cascade, vase). |
+| `branchWander` | 0–1+ | Random per-branch angle deviation producing kinks. 0 = perfectly straight. |
+| `azimuthSpread` | radians | Yaw range around the trunk axis across which branches emerge. `PI*2` = full 360°. |
+| `crownDepthFactor` | 0–1 | Crown depth along the z-axis. 0 = flat silhouette; 1 = roughly spherical. |
+| `tipDroop` | -1 to 1 | Tip behaviour on final-depth twigs. `(π/2)·tipDroop` over the last 30% of length. Negative = weeping; 0 = horizontal; positive = upturn. |
+
+### Foliage
+
+| Parameter | Type | Meaning |
+|---|---|---|
 | `leafShape` | enum | `needle` / `oval` / `palmate` / `lobed` / `scale` / `pinnate` — controls SVG leaf renderer |
 | `leafSize` | SVG units | Base size. Interpretation varies by shape (see below). |
 | `foliageDistribution` | enum | `terminal` / `pad` / `scattered` / `pendent` — see Foliage Distribution doc in `speciesConfig.ts`. |
@@ -29,28 +59,22 @@ to assist with adding new species in future.
 | `interiorPadDensity` | 0–1 | For `pad` mode: chance a near-tip non-terminal branch grows an extra interior pad. Fills the bare crown centre. |
 | `leavesPerPad` | [min, max] | Randomised leaf count placed within each pad. |
 
-### Reserved for the natural-growth redesign
-
-These fields are declared in `SpeciesConfig` and filled for every species but are
-not yet read by `treeGenerator.ts`. Each phase of the redesign (see
-`docs/bonsai-snapshots/`) will switch one or more of them on, surfacing the
-rendered change as a PNG diff in `git log`.
+### Per-individual variation
 
 | Parameter | Type | Meaning |
 |---|---|---|
-| `trunkTaperPower` | exponent | Trunk taper profile. 1 = linear; >1 = concave (flared base, slim top); <1 = convex. |
-| `trunkJaggedness` | 0–1 | Roughness added to the trunk silhouette. 0 = smooth bezier; higher = bark/shari texture. |
-| `nebariSpread` | 0–1+ | Basal flare as a fraction of base trunk width — drives visible surface roots. |
-| `phyllotaxy` | enum | `opposite` / `alternate` / `whorled` — primary-branch emergence pattern around the trunk. |
-| `whorlSize` | number | Branches per whorl node when `phyllotaxy === "whorled"`. Ignored otherwise. |
-| `maxDepth` | number | Max branching depth (0 = primary only). Higher values enable finer ramification. |
-| `childCountByDepth` | number[] | Children per fork at each depth. e.g. `[3, 2, 2]` = primary forks 3 ways, deeper forks 2. |
-| `apicalDominance` | 0–1 | Strength of the apex shoot. 1 = strong leader (pine, oak); 0 = weak (cascade, vase). |
-| `branchWander` | 0–1+ | Random per-branch angle deviation producing kinks. 0 = perfectly straight. |
-| `azimuthSpread` | radians | Yaw range around the trunk axis across which branches emerge. `PI*2` = full 360°. |
-| `crownDepthFactor` | 0–1 | Crown depth along the z-axis. 0 = flat silhouette; 1 = roughly spherical. |
-| `tipDroop` | radians | Additional downward droop at branch tips. ~0.5 = heavily drooping (wisteria). |
-| `individualVariability` | 0–1 | Scale of per-tree parameter scatter — higher = more visible differences between same-species trees. |
+| `individualVariability` | 0–1 | Scale of per-tree parameter scatter — higher = more visible differences between same-species trees. Drives jitter on azimuth, pitch, child count, branch wander, and pad radius. |
+
+### Flowers (optional)
+
+| Parameter | Type | Meaning |
+|---|---|---|
+| `flowers.floweringAge` | days | `activeDaysCount` at which flowers first appear. |
+| `flowers.flowerShape` | enum | `raceme` / `cluster` / `catkin` / `berry` |
+| `flowers.flowerColor` | hex | Primary flower colour. |
+| `flowers.flowerColorAccent` | hex | Optional accent (streaked petal, catkin bumps). |
+| `flowers.flowerSize` | SVG units | Base size of an individual floret / berry. |
+| `flowers.racemeLength` | SVG units | Wisteria-only — length of the hanging raceme stem. |
 
 ### `leafSize` interpretation by shape
 
@@ -137,7 +161,9 @@ cherries are known for. `foliageDistribution: "terminal"` with `padRadius: 5`,
 
 **Redesign params**: `phyllotaxy: "alternate"` for cherry's spiral bud arrangement.
 Moderate `apicalDominance: 0.6` and low `branchWander: 0.2` produce a tidy
-spreading crown.
+spreading crown. `maxDepth: 3` with `childCountByDepth: [2, 2, 1]` adds a
+non-forking depth-3 twig segment so terminal pads sit on visibly finer
+sub-branches without doubling pad count.
 
 **Pruning speed**: Moderate-fast — cherry heals quickly. `regrowthDays: 10`.
 
@@ -192,10 +218,12 @@ silhouette. `foliageDistribution: "terminal"` with `padRadius: 6`, `leavesPerPad
 `leafSize: 6.0`.
 
 **Redesign params**: `phyllotaxy: "alternate"` with strong `apicalDominance: 0.7`
-reflects oak's powerful straight-leader growth. `childCountByDepth: [2, 3, 2]` lets the
-middle fork widen into oak's signature stout three-way crown-scaffolds. High
-`crownDepthFactor: 0.9` models oak's full, rounded canopy volume. `trunkJaggedness: 0.5`
-and `trunkTaperPower: 1.5` capture the furrowed, muscular trunk taper.
+reflects oak's powerful straight-leader growth. `maxDepth: 3` with
+`childCountByDepth: [2, 3, 2]` lets the middle fork widen into oak's signature
+three-way crown-scaffolds, then ramifies once more at depth 3 for the dense
+twig structure of a mature canopy. High `crownDepthFactor: 0.9` models oak's
+full, rounded canopy volume. `trunkJaggedness: 0.5` and `trunkTaperPower: 1.5`
+capture the furrowed, muscular trunk taper.
 
 **Pruning speed**: Slowest in the set — oaks grow deliberately. `regrowthDays: 18`.
 
@@ -224,10 +252,13 @@ chain of smaller pads — the defining drape of mature wisteria. `padRadius: 5`,
 **Colour**: Lavender-purple (`#9b59b6`), representing the iconic hanging raceme flowers as
 much as the foliage — the main visual appeal of wisteria bonsai.
 
-**Redesign params**: High `tipDroop: 0.5` models the heavy hanging habit. Weak
-`apicalDominance: 0.3` and strong `branchWander: 0.6` produce the gnarled semi-cascade
-character; high `trunkJaggedness: 0.6` gives bark texture. `azimuthSpread: PI * 1.6`
-narrows the crown to one display side, matching typical wisteria presentation.
+**Redesign params**: Strongly negative `tipDroop: -0.9` models the heavy hanging
+habit (the racemes plunge near-vertical). Weak `apicalDominance: 0.3` and
+strong `branchWander: 0.6` produce the gnarled semi-cascade character; high
+`trunkJaggedness: 0.6` gives bark texture. `azimuthSpread: PI * 1.6` narrows
+the crown to one display side, matching typical wisteria presentation.
+`maxDepth: 3` with `childCountByDepth: [2, 2, 1]` ensures each pendent raceme
+hangs from a sub-fork rather than directly off a primary branch.
 
 **Pruning speed**: Moderate — wisteria back-buds well. `regrowthDays: 12`.
 
@@ -270,9 +301,74 @@ Bonsai Society); tropical bonsai forums.
 
 ## Adding a New Species
 
-1. Pick a `SpeciesId` slug and add it to `SpeciesIdSchema` in `schema.ts`.
-2. Fill in the `SpeciesConfig` fields — use the table above as a guide.
-3. Choose `leafShape` from the existing enum; add a new shape constant to `TreeView.tsx`
-   and a rendering branch in the leaf map if needed.
-4. Add the seed to `SHOP_CATALOG` with an appropriate point cost.
-5. Document the research for the new species in this file following the pattern above.
+A complete checklist for the post-redesign generator. Work top-to-bottom — the
+silhouette decisions (1–3) drive the parameter choices in (4–8).
+
+### 1. Identify the species
+
+- Pick a `SpeciesId` slug (kebab-case) and add it to `SpeciesIdSchema` in `schema.ts`.
+- Sketch or pull 2–3 reference photos at maturity, ideally one bonsai and one
+  field specimen so silhouette and habit are both grounded.
+
+### 2. Choose the silhouette family
+
+- **Style**: upright (`firstBranchFrac` ~0.3, `branchAngleBase` > 0) vs cascade
+  (`firstBranchFrac` ~0.6, `branchAngleBase` < 0).
+- **Crown shape**: rounded (`crownDepthFactor` ~0.9), flat-topped (~0.3), or
+  one-sided (`azimuthSpread: PI * 1.6` for cascade displays).
+- **Tip behaviour**: weeping (`tipDroop` < 0), upturned (> 0), or neutral (0).
+
+### 3. Choose phyllotaxy & ramification
+
+- `phyllotaxy`: `whorled` (conifers, set `whorlSize` 3–5), `opposite` (maples,
+  flame tree), or `alternate` (most broadleaves).
+- `maxDepth`: 3 for most species; 2 only for very sparse silhouettes.
+- `childCountByDepth`: one entry per depth level. End with `1` to add a twig
+  segment without forking. Common patterns: `[3, 2, 2]` (conifer whorl), `[2, 3, 2]`
+  (broadleaf scaffold), `[2, 2, 1]` (sparse with fine twigs).
+- `apicalDominance`: 0.7–0.8 for strong leaders (pine, oak); 0.2–0.4 for vase
+  or cascade species.
+- `branchWander`: 0.1–0.2 for clean branches (cherry, flame tree); 0.5–0.7 for
+  gnarled species (juniper, wisteria).
+
+### 4. Trunk shape
+
+- `trunkCurvature`: 0.1–0.2 for upright species; 0.4–0.7 for *moyogi* / cascade.
+- `trunkTaperPower`: 1.0–1.5 (≥1 means flared base, slim apex).
+- `trunkJaggedness`: 0.1–0.3 for smooth bark; 0.5+ for shari/aged texture.
+- `nebariSpread`: 0.3–0.8 — visible root flare at the trunk base.
+
+### 5. Foliage distribution
+
+- Open-canopy broadleaves (cherry, oak): `foliageDistribution: "terminal"` with
+  `padRadius` 5–6 and small `leavesPerPad` ranges.
+- Dense pad species (pine, juniper, flame tree): `foliageDistribution: "pad"`
+  with `padRadius` 10–16, higher `interiorPadDensity` (0.6–0.8) to fill the
+  crown centre.
+- Weeping species (wisteria): `foliageDistribution: "pendent"` — overrides
+  `padRadius`; pair with strongly negative `tipDroop`.
+- Pick `leafShape` from the existing enum; add a renderer in `TreeView.tsx` only
+  if no existing shape fits.
+
+### 6. Per-individual variability
+
+- `individualVariability`: 0.15 for clean cultivars, 0.25–0.40 for species
+  prized for variation (juniper, wisteria). Drives jitter on azimuth, pitch,
+  child count, branch wander, and pad radius.
+
+### 7. Flowers (optional)
+
+- Skip the `flowers` field entirely for non-ornamental species (pine).
+- Otherwise pick `flowerShape` (`raceme` / `cluster` / `catkin` / `berry`),
+  set `floweringAge` realistically (cherry 15 days, oak 90 days, wisteria 55),
+  and reuse `flowerColorAccent` for two-tone effects.
+
+### 8. Wire it up & verify
+
+- Add the seed to `SHOP_CATALOG` in `catalog.ts` with an appropriate point
+  cost (slow-growing species cost more).
+- Add a notes section to this file using the existing per-species pattern
+  (Trunk, Branches/Style, Foliage, Redesign params, Pruning speed, Sources).
+- Run `pnpm exec tsx scripts/snapshot-grid.ts --species=<slug>` and inspect
+  `docs/bonsai-snapshots/<slug>-grid.png` at all six growth stages.
+- Run `pnpm test src/lib/bonsai/` and `pnpm exec tsc --noEmit`.
