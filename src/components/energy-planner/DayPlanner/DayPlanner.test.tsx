@@ -976,4 +976,127 @@ describe("DayPlanner with populated data", () => {
       expect(overlay).toHaveTextContent("Activity 1");
     });
   });
+
+  it("handles drag start with unknown instance ID (no-op)", async () => {
+    const user = userEvent.setup();
+    const mockOnEditActivity = vi.fn();
+    const today = new Date().toISOString().split("T")[0];
+
+    const activity1 = {
+      id: "a1",
+      title: "Activity 1",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+    };
+
+    await storeActivities([activity1]);
+    await storeDayPlan(today, {
+      date: today,
+      plannedInstances: [
+        {
+          id: "inst-a1",
+          sourceActivityId: "a1",
+          completed: false,
+          zoneId: "morning",
+        },
+      ],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    const mockOnOpenCreateActivity = vi.fn();
+    render(
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Activity 1")).toBeInTheDocument();
+    });
+
+    // Drag start with an ID that doesn't exist in resolvedActivities — hits the false branch
+    const startDragBtn = screen.getByTestId("trigger-drag-start-default");
+    startDragBtn.setAttribute("data-active", "nonexistent-id");
+    await user.click(startDragBtn);
+
+    // Overlay should be empty since no activity matched
+    const overlay = screen.getByTestId("drag-overlay");
+    expect(overlay).toBeEmptyDOMElement();
+  });
+
+  it("handles drag end with no drop target (null over)", async () => {
+    const user = userEvent.setup();
+    const mockOnEditActivity = vi.fn();
+    const today = new Date().toISOString().split("T")[0];
+
+    const activity1 = {
+      id: "a1",
+      title: "Activity 1",
+      energyCost: { physical: 10, social: 10, executive: 10 },
+      factors: {
+        initiationDifficulty: 5,
+        terminationDifficulty: 3,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+    };
+
+    await storeActivities([activity1]);
+    await storeDayPlan(today, {
+      date: today,
+      plannedInstances: [
+        {
+          id: "inst-a1",
+          sourceActivityId: "a1",
+          completed: false,
+          zoneId: "morning",
+        },
+      ],
+      dailyCapacity: { physical: 100, social: 100, executive: 100 },
+    });
+
+    const mockOnOpenCreateActivity = vi.fn();
+    render(
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <DayPlanner
+            onEditActivity={mockOnEditActivity}
+            onOpenCreateActivity={mockOnOpenCreateActivity}
+          />
+        </EnergyPlannerProvider>
+      </PointsProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Activity 1")).toBeInTheDocument();
+    });
+
+    // Empty data-over → mock passes null as `over`, hitting the early return
+    const dragBtn = screen.getByTestId("trigger-drag-default");
+    dragBtn.setAttribute("data-active", "inst-a1");
+    dragBtn.setAttribute("data-over", "");
+    await user.click(dragBtn);
+
+    // Activity should still be in morning zone (no zone change)
+    await waitFor(async () => {
+      const { fetchDayPlan } = await import(
+        "../../../lib/energy-planner/storage"
+      );
+      const plan = await fetchDayPlan(today);
+      const a1 = plan?.plannedInstances?.find(
+        (i) => i.sourceActivityId === "a1",
+      );
+      expect(a1?.zoneId).toBe("morning");
+    });
+  });
 });

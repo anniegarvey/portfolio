@@ -278,7 +278,8 @@ const parallel = [{ name: "tsc", cmd: "pnpm exec tsc --noEmit" }];
 if (hasVitest) {
   // Disable coverage for scoped runs — thresholds rely on cross-file
   // coverage from the full suite and produce false failures in isolation.
-  // Coverage is still enforced by `pnpm validate` on the full suite.
+  // Coverage is enforced by the pre-push hook, which runs `pnpm test` (full
+  // suite) before any push reaches the remote.
   parallel.push({
     name: "test",
     cmd: `pnpm exec vitest run --coverage.enabled=false ${vitestFiles.join(" ")}`,
