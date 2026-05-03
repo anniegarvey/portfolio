@@ -5,7 +5,10 @@
       "Bash(pnpm exec tsc --noEmit *)",
       "Bash(pnpm lint *)",
       "Bash(pnpm test --run *)",
-      "Bash(pnpm vitest run *)"
+      "Bash(pnpm vitest run *)",
+      "Bash(pnpm exec biome check --error-on-warnings *)",
+      "Bash(pnpm exec tsx scripts/snapshot-grid.ts *)",
+      "Bash(npx tsc --noEmit *)"
     ]
   },
   "hooks": {
