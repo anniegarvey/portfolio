@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import type {
   Activity,
   EnergyCost,
@@ -8,10 +8,10 @@ import type {
 } from "@/lib/energy-planner/schema";
 import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
 import { useActivities } from "./useActivities";
+import { useAvailableActivities } from "./useAvailableActivities";
 import { useDayPlan } from "./useDayPlan";
 import { useEnergyTypes } from "./useEnergyTypes";
 import { useZones } from "./useZones";
-import { fetchOneOffPlanningState, type OneOffPlanningState } from "./utils";
 
 export function useEnergyPlannerState() {
   const {
@@ -77,22 +77,18 @@ export function useEnergyPlannerState() {
     [resolveActivities, activityMap],
   );
 
-  const [oneOffPlanningState, setOneOffPlanningState] =
-    useState<OneOffPlanningState>(() => ({
-      uncompleted: [],
-      scheduledOneOffIds: new Set<string>(),
-      completedOneOffIds: new Set<string>(),
-    }));
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: dayPlanVersion intentionally triggers re-fetch after storage changes
-  useEffect(() => {
-    if (activitiesLoading) return;
-
-    (async () => {
-      const state = await fetchOneOffPlanningState(currentDate, activityMap);
-      setOneOffPlanningState(state);
-    })();
-  }, [activitiesLoading, currentDate, dayPlanVersion, activityMap]);
+  const {
+    availableActivities,
+    uncompletedActivities,
+    scheduleActivity,
+    unscheduleActivity,
+  } = useAvailableActivities({
+    date: currentDate,
+    oneOffActivities,
+    activityMap,
+    activitiesLoading,
+    dayPlanVersion,
+  });
 
   const addActivity = useCallback(
     (activityData: Omit<Activity, "id" | "createdAt">) => {
@@ -109,13 +105,9 @@ export function useEnergyPlannerState() {
         return;
       }
       addActivityToDayPlan(activity, zoneId);
-
-      setOneOffPlanningState((prev) => ({
-        ...prev,
-        scheduledOneOffIds: new Set([...prev.scheduledOneOffIds, activityId]),
-      }));
+      scheduleActivity(activityId);
     },
-    [activityMap, addActivityToDayPlan],
+    [activityMap, addActivityToDayPlan, scheduleActivity],
   );
 
   const removeFromPlan = useCallback(
@@ -131,16 +123,15 @@ export function useEnergyPlannerState() {
       removeFromPlanBase(instanceId);
 
       if (activity && !activity.repeatConfig && sourceActivityId) {
-        setOneOffPlanningState((prev) => {
-          const scheduledOneOffIds = new Set(prev.scheduledOneOffIds);
-          const completedOneOffIds = new Set(prev.completedOneOffIds);
-          scheduledOneOffIds.delete(sourceActivityId);
-          completedOneOffIds.delete(sourceActivityId);
-          return { ...prev, scheduledOneOffIds, completedOneOffIds };
-        });
+        unscheduleActivity(sourceActivityId);
       }
     },
-    [removeFromPlanBase, dayPlan.plannedInstances, activityMap],
+    [
+      removeFromPlanBase,
+      dayPlan.plannedInstances,
+      activityMap,
+      unscheduleActivity,
+    ],
   );
 
   const moveActivityToUnplanned = useCallback(
@@ -153,7 +144,7 @@ export function useEnergyPlannerState() {
         );
         sourceActivityId = instance?.sourceActivityId;
       } else {
-        const uncompletedItem = oneOffPlanningState.uncompleted.find(
+        const uncompletedItem = uncompletedActivities.find(
           (u) => u.instanceId === instanceId,
         );
         sourceActivityId = uncompletedItem?.activity.id;
@@ -166,21 +157,16 @@ export function useEnergyPlannerState() {
       await moveActivityToUnplannedBase(instanceId, fromDate);
 
       if (activity && !activity.repeatConfig && sourceActivityId) {
-        setOneOffPlanningState((prev) => {
-          const scheduledOneOffIds = new Set(prev.scheduledOneOffIds);
-          const completedOneOffIds = new Set(prev.completedOneOffIds);
-          scheduledOneOffIds.delete(sourceActivityId);
-          completedOneOffIds.delete(sourceActivityId);
-          return { ...prev, scheduledOneOffIds, completedOneOffIds };
-        });
+        unscheduleActivity(sourceActivityId);
       }
     },
     [
       moveActivityToUnplannedBase,
-      oneOffPlanningState.uncompleted,
+      uncompletedActivities,
       dayPlan.plannedInstances,
       activityMap,
       currentDate,
+      unscheduleActivity,
     ],
   );
 
@@ -237,13 +223,7 @@ export function useEnergyPlannerState() {
           // Converted from repeating to one-off: replace the projection with a
           // concrete instance and mark it as scheduled in the index.
           addActivityToDayPlan(activity, projectedInstance.zoneId);
-          setOneOffPlanningState((prev) => ({
-            ...prev,
-            scheduledOneOffIds: new Set([
-              ...prev.scheduledOneOffIds,
-              activity.id,
-            ]),
-          }));
+          scheduleActivity(activity.id);
         }
       }
 
@@ -254,28 +234,12 @@ export function useEnergyPlannerState() {
       deleteFromPlan,
       dayPlan.plannedInstances,
       addActivityToDayPlan,
+      scheduleActivity,
     ],
   );
 
   const isLoading =
     activitiesLoading || dayPlanLoading || typesLoading || zonesLoading;
-
-  // Available = one-offs with no concrete instance scheduled or completed anywhere
-  const availableActivities = useMemo(
-    () =>
-      oneOffActivities.filter(
-        (a) =>
-          !(
-            oneOffPlanningState.scheduledOneOffIds.has(a.id) ||
-            oneOffPlanningState.completedOneOffIds.has(a.id)
-          ),
-      ),
-    [
-      oneOffActivities,
-      oneOffPlanningState.scheduledOneOffIds,
-      oneOffPlanningState.completedOneOffIds,
-    ],
-  );
 
   return {
     oneOffActivities,
@@ -301,7 +265,7 @@ export function useEnergyPlannerState() {
     moveActivityToDate,
     calculateEnergyUsage,
     checkExceedsCapacity,
-    uncompletedActivities: oneOffPlanningState.uncompleted,
+    uncompletedActivities,
     availableActivities,
     repeatingActivities,
     energyTypes,
