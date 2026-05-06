@@ -108,10 +108,11 @@ export function useAvailableActivities({
   }, [activitiesLoading, date, dayPlanVersion, activityMap]);
 
   const scheduleActivity = useCallback((activityId: string) => {
-    setPlanningState((prev) => ({
-      ...prev,
-      scheduledOneOffIds: new Set([...prev.scheduledOneOffIds, activityId]),
-    }));
+    setPlanningState((prev) => {
+      const scheduledOneOffIds = new Set(prev.scheduledOneOffIds);
+      scheduledOneOffIds.add(activityId);
+      return { ...prev, scheduledOneOffIds };
+    });
   }, []);
 
   const unscheduleActivity = useCallback((activityId: string) => {
