@@ -1,5 +1,4 @@
 import type {
-  Activity,
   DayPlan,
   EnergyCost,
   EnergyTypeConfig,
@@ -10,14 +9,6 @@ import {
   fetchDayPlan,
   storeDayPlan,
 } from "@/lib/energy-planner/storage";
-
-export interface OneOffPlanningState {
-  uncompleted: { activity: Activity; instanceId: string; fromDate: string }[];
-  /** Source activity IDs with a concrete instance in any day plan */
-  scheduledOneOffIds: Set<string>;
-  /** Source activity IDs whose instance is marked completed in any day plan */
-  completedOneOffIds: Set<string>;
-}
 
 /**
  * Creates a default capacity object from energy types
@@ -77,82 +68,6 @@ export function createEmptyDayPlan(date: string): DayPlan {
  */
 export async function getAllStoredDates(): Promise<string[]> {
   return fetchAllDayPlanDates();
-}
-
-function processInstance(
-  instance: {
-    sourceActivityId: string;
-    completed: boolean;
-    isProjected?: boolean;
-    id: string;
-  },
-  date: string,
-  today: string,
-  activityMap: Map<string, Activity>,
-  state: OneOffPlanningState,
-): void {
-  if (instance.isProjected) return;
-
-  const activity = activityMap.get(instance.sourceActivityId);
-  if (!activity || activity.repeatConfig) return;
-
-  state.scheduledOneOffIds.add(instance.sourceActivityId);
-
-  if (instance.completed) {
-    state.completedOneOffIds.add(instance.sourceActivityId);
-  } else if (date < today) {
-    state.uncompleted.push({
-      activity,
-      instanceId: instance.id,
-      fromDate: date,
-    });
-  }
-}
-
-/**
- * Scans all stored day plans in a single pass and returns:
- * - uncompleted: one-off instances from past days that were not completed
- * - scheduledOneOffIds: one-off source IDs with any concrete instance across all days
- * - completedOneOffIds: one-off source IDs whose instance is marked completed
- *
- * Repeating activities (those with repeatConfig) are excluded — their completion
- * is tracked per-instance in the day plan and they can recur.
- */
-export async function fetchOneOffPlanningState(
-  today: string,
-  activityMap: Map<string, Activity>,
-): Promise<OneOffPlanningState> {
-  const state: OneOffPlanningState = {
-    uncompleted: [],
-    scheduledOneOffIds: new Set<string>(),
-    completedOneOffIds: new Set<string>(),
-  };
-
-  const storedDates = await getAllStoredDates();
-
-  const dayPlans = await Promise.all(
-    storedDates.map((d) => fetchDayPlanForDate(d)),
-  );
-
-  for (const [i, dayPlan] of dayPlans.entries()) {
-    if (!dayPlan?.plannedInstances) continue;
-    const date = storedDates[i];
-
-    for (const instance of dayPlan.plannedInstances) {
-      processInstance(instance, date, today, activityMap, state);
-    }
-  }
-
-  return state;
-}
-
-/** @deprecated Use fetchOneOffPlanningState instead */
-export async function getUncompletedActivities(
-  today: string,
-  activityMap: Map<string, Activity>,
-): Promise<{ activity: Activity; instanceId: string; fromDate: string }[]> {
-  const { uncompleted } = await fetchOneOffPlanningState(today, activityMap);
-  return uncompleted;
 }
 
 /**
