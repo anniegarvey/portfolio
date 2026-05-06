@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type {
   Activity,
@@ -8,12 +8,8 @@ import type {
   PlannedInstance,
   ResolvedActivity,
 } from "@/lib/energy-planner/schema";
-import {
-  calculateNextDueDate,
-  checkIsActivityDue,
-  mergeInstancesWithOrder,
-  projectedInstanceId,
-} from "./dayPlanUtils";
+import { mergeInstancesWithOrder } from "./dayPlanUtils";
+import { useProjectedActivities } from "./useProjectedActivities";
 import {
   createEmptyDayPlan,
   defaultCapacity,
@@ -30,158 +26,127 @@ export function useDayPlan(
 ) {
   const [currentDate, setCurrentDate] = useState<string>(getTodayDateString());
   const [isLoading, setIsLoading] = useState(true);
-  // Version counter to trigger re-renders when storage is modified for other dates
   const [dayPlanVersion, storeDayPlanVersion] = useState(0);
-  const [dayPlan, storeDayPlan] = useState<DayPlan>({
+  // basePlan holds only concrete (non-projected) instances
+  const [basePlan, setBasePlan] = useState<DayPlan>({
     date: getTodayDateString(),
     plannedInstances: [],
     dailyCapacity: defaultCapacity,
   });
 
-  // Use refs to always have access to the latest values in callbacks
-  const repeatingActivitiesRef = useRef(repeatingActivities);
-  repeatingActivitiesRef.current = repeatingActivities;
+  const basePlanRef = useRef(basePlan);
+  basePlanRef.current = basePlan;
+  const isLoadingRef = useRef(isLoading);
+  isLoadingRef.current = isLoading;
   const onUpdateActivityRef = useRef(onUpdateActivity);
   onUpdateActivityRef.current = onUpdateActivity;
 
-  const dayPlanRef = useRef(dayPlan);
-  dayPlanRef.current = dayPlan;
-  const isLoadingRef = useRef(isLoading);
-  isLoadingRef.current = isLoading;
+  const onSkip = useCallback((sourceActivityId: string) => {
+    setBasePlan((prev) => ({
+      ...prev,
+      skippedSourceActivityIds: [
+        ...(prev.skippedSourceActivityIds ?? []),
+        sourceActivityId,
+      ],
+    }));
+  }, []);
 
-  // Load day plan when date changes
+  const { projectedInstances, handleComplete, handleSkip } =
+    useProjectedActivities({
+      repeatingActivities,
+      basePlan,
+      date: currentDate,
+      onUpdateActivity: onUpdateActivityRef.current ?? (() => {}),
+      onSkip,
+    });
+
+  // Merge concrete + projected instances into a single ordered list for consumers
+  const dayPlan = useMemo(
+    () => ({
+      ...basePlan,
+      plannedInstances: mergeInstancesWithOrder(
+        [...basePlan.plannedInstances, ...projectedInstances],
+        basePlan.activityOrder,
+      ),
+    }),
+    [basePlan, projectedInstances],
+  );
+
+  const projectedInstancesRef = useRef(projectedInstances);
+  projectedInstancesRef.current = projectedInstances;
+
+  // Load day plan when date changes (no longer depends on repeatingActivities —
+  // projections are derived reactively by useProjectedActivities)
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
 
     (async () => {
-      let basePlan: DayPlan | null = null;
+      let loaded: DayPlan | null = null;
 
-      // Optimization: If staying on same day AND not initial load, use current state
-      if (!isLoadingRef.current && currentDate === dayPlanRef.current.date) {
-        basePlan = {
-          ...dayPlanRef.current,
-          plannedInstances: dayPlanRef.current.plannedInstances.filter(
-            (i) => !i.isProjected,
-          ),
-        };
+      // Optimization: same day and not initial load — reuse current concrete state
+      if (!isLoadingRef.current && currentDate === basePlanRef.current.date) {
+        loaded = basePlanRef.current;
       }
 
-      if (!basePlan) {
-        basePlan = await fetchDayPlanForDate(currentDate);
+      if (!loaded) {
+        loaded = await fetchDayPlanForDate(currentDate);
       }
 
       if (cancelled) return;
 
-      if (!basePlan) {
-        basePlan = createEmptyDayPlan(currentDate);
-      }
-
-      // Project repeating activities that don't already have a concrete instance
-      // and weren't explicitly skipped for this date
-      const storedSourceIds = new Set(
-        basePlan.plannedInstances
-          .filter((i) => !i.isProjected)
-          .map((i) => i.sourceActivityId),
-      );
-      const skippedIds = new Set(basePlan.skippedSourceActivityIds ?? []);
-
-      const projectedInstances: PlannedInstance[] = repeatingActivities
-        .filter((ra) => !storedSourceIds.has(ra.id))
-        .filter((ra) => !skippedIds.has(ra.id))
-        .filter((ra) => checkIsActivityDue(ra, currentDate))
-        .map(
-          (ra): PlannedInstance => ({
-            id: projectedInstanceId(ra.id, currentDate),
-            sourceActivityId: ra.id,
-            zoneId: ra.repeatConfig?.defaultZoneId,
-            completed: false,
-            isProjected: true,
-          }),
-        );
-
-      // Merge stored and projected instances using persisted order
-      const allInstances = [
-        ...basePlan.plannedInstances,
-        ...projectedInstances,
-      ];
-      const orderedInstances = mergeInstancesWithOrder(
-        allInstances,
-        basePlan.activityOrder,
-      );
-
-      storeDayPlan({
-        date: basePlan.date,
-        dailyCapacity: basePlan.dailyCapacity,
-        plannedInstances: orderedInstances,
-        activityOrder: basePlan.activityOrder,
-        skippedSourceActivityIds: basePlan.skippedSourceActivityIds,
-      });
-
+      setBasePlan(loaded ?? createEmptyDayPlan(currentDate));
       setIsLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [currentDate, repeatingActivities]);
+  }, [currentDate]);
 
-  // Save day plan when it changes
+  // Save whenever the concrete plan or projected order changes
   useEffect(() => {
     if (!isLoading) {
-      // Filter out projected instances before saving
-      const instancesToSave = dayPlan.plannedInstances.filter(
-        (i) => !i.isProjected,
-      );
-      const activityOrder = dayPlan.plannedInstances.map((i) => i.id);
       saveDayPlanForDate(currentDate, {
-        ...dayPlan,
-        plannedInstances: instancesToSave,
-        activityOrder,
+        ...basePlan,
+        activityOrder: mergeInstancesWithOrder(
+          [...basePlan.plannedInstances, ...projectedInstancesRef.current],
+          basePlan.activityOrder,
+        ).map((i) => i.id),
       });
     }
-  }, [dayPlan, currentDate, isLoading]);
+  }, [basePlan, currentDate, isLoading]);
 
-  const toggleActivityCompletion = useCallback((instanceId: string) => {
-    storeDayPlan((prev) => {
-      const idx = prev.plannedInstances.findIndex((i) => i.id === instanceId);
-      if (idx === -1) return prev;
+  const toggleActivityCompletion = useCallback(
+    (instanceId: string) => {
+      const projected = projectedInstancesRef.current.find(
+        (i) => i.id === instanceId,
+      );
 
-      const instance = prev.plannedInstances[idx];
-      const isCompleting = !instance.completed;
-      const updatedInstance: PlannedInstance = {
-        ...instance,
-        completed: isCompleting,
-        // Solidify on any interaction
-        isProjected: undefined,
-      };
-
-      const newInstances = [...prev.plannedInstances];
-      newInstances[idx] = updatedInstance;
-
-      // When completing a projected repeating instance, advance the nextDueDate
-      if (isCompleting && instance.isProjected) {
-        const repeatingActivity = repeatingActivitiesRef.current.find(
-          (ra) => ra.id === instance.sourceActivityId,
-        );
-        if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
-          const nextDate = calculateNextDueDate(
-            repeatingActivity.repeatConfig.nextDueDate,
-            repeatingActivity.repeatConfig,
-          );
-          onUpdateActivityRef.current({
-            ...repeatingActivity,
-            repeatConfig: {
-              ...repeatingActivity.repeatConfig,
-              nextDueDate: nextDate,
-            },
-          });
-        }
+      if (projected) {
+        // Solidify the projected instance as a concrete completed instance
+        setBasePlan((prev) => ({
+          ...prev,
+          plannedInstances: [
+            ...prev.plannedInstances,
+            { ...projected, completed: true, isProjected: undefined },
+          ],
+        }));
+        handleComplete(instanceId);
+        return;
       }
 
-      return { ...prev, plannedInstances: newInstances };
-    });
-  }, []);
+      setBasePlan((prev) => {
+        const idx = prev.plannedInstances.findIndex((i) => i.id === instanceId);
+        if (idx === -1) return prev;
+        const instance = prev.plannedInstances[idx];
+        const newInstances = [...prev.plannedInstances];
+        newInstances[idx] = { ...instance, completed: !instance.completed };
+        return { ...prev, plannedInstances: newInstances };
+      });
+    },
+    [handleComplete],
+  );
 
   // Mark an instance as complete on a specific date (for uncompleted activities)
   const markActivityCompleteOnDate = useCallback(
@@ -205,19 +170,14 @@ export function useDayPlan(
     [currentDate, toggleActivityCompletion],
   );
 
-  // Add a one-off activity to today's plan
   const addActivityToDayPlan = useCallback(
     (activity: Activity, zoneId?: string) => {
-      storeDayPlan((prev) => {
-        // Avoid duplicates (same sourceActivityId already in plan, explicitly concrete)
+      setBasePlan((prev) => {
         if (
-          prev.plannedInstances.some(
-            (i) => i.sourceActivityId === activity.id && !i.isProjected,
-          )
+          prev.plannedInstances.some((i) => i.sourceActivityId === activity.id)
         ) {
           return prev;
         }
-
         const newInstance: PlannedInstance = {
           id: uuidv4(),
           sourceActivityId: activity.id,
@@ -233,13 +193,14 @@ export function useDayPlan(
     [],
   );
 
-  // Remove an instance from the current day plan (returns the instance for callers)
   const removeFromPlan = useCallback(
     (instanceId: string): PlannedInstance | undefined => {
-      const removed = dayPlan.plannedInstances.find((i) => i.id === instanceId);
+      const removed = basePlanRef.current.plannedInstances.find(
+        (i) => i.id === instanceId,
+      );
       if (!removed) return undefined;
 
-      storeDayPlan((prev) => ({
+      setBasePlan((prev) => ({
         ...prev,
         plannedInstances: prev.plannedInstances.filter(
           (i) => i.id !== instanceId,
@@ -248,12 +209,11 @@ export function useDayPlan(
 
       return removed;
     },
-    [dayPlan.plannedInstances],
+    [],
   );
 
-  // Forcefully remove an instance (no return value)
   const deleteFromPlan = useCallback((instanceId: string) => {
-    storeDayPlan((prev) => ({
+    setBasePlan((prev) => ({
       ...prev,
       plannedInstances: prev.plannedInstances.filter(
         (i) => i.id !== instanceId,
@@ -261,7 +221,6 @@ export function useDayPlan(
     }));
   }, []);
 
-  // Move an instance from a past day to today
   const moveActivityToToday = useCallback(
     async (instanceId: string, fromDate: string) => {
       const today = getTodayDateString();
@@ -273,9 +232,8 @@ export function useDayPlan(
       );
       if (!instanceToMove) return;
 
-      // Remove from old date
       if (currentDate === fromDate) {
-        storeDayPlan((prev) => ({
+        setBasePlan((prev) => ({
           ...prev,
           plannedInstances: prev.plannedInstances.filter(
             (i) => i.id !== instanceId,
@@ -290,9 +248,8 @@ export function useDayPlan(
         });
       }
 
-      // Add to today
       if (currentDate === today) {
-        storeDayPlan((prev) => {
+        setBasePlan((prev) => {
           if (prev.plannedInstances.some((i) => i.id === instanceId))
             return prev;
           return {
@@ -316,7 +273,6 @@ export function useDayPlan(
     [currentDate],
   );
 
-  // Return an instance to "unplanned" — removes from plan, returns it to caller
   const moveActivityToUnplanned = useCallback(
     async (
       instanceId: string,
@@ -347,9 +303,30 @@ export function useDayPlan(
     [currentDate, removeFromPlan],
   );
 
-  // Move an instance to a specific future date (creates a fresh instance on that date)
   const moveActivityToDate = useCallback(
     async (instanceId: string, targetDate: string) => {
+      // Check projected instances first — they're not in basePlan so removeFromPlan won't find them
+      const projected = projectedInstancesRef.current.find(
+        (i) => i.id === instanceId,
+      );
+      if (projected) {
+        onSkip(projected.sourceActivityId);
+        const targetPlan =
+          (await fetchDayPlanForDate(targetDate)) ||
+          createEmptyDayPlan(targetDate);
+        const newInstance: PlannedInstance = {
+          id: uuidv4(),
+          sourceActivityId: projected.sourceActivityId,
+          zoneId: projected.zoneId,
+          completed: false,
+        };
+        await saveDayPlanForDate(targetDate, {
+          ...targetPlan,
+          plannedInstances: [...targetPlan.plannedInstances, newInstance],
+        });
+        return;
+      }
+
       const removedInstance = removeFromPlan(instanceId);
       if (!removedInstance) return;
 
@@ -357,7 +334,6 @@ export function useDayPlan(
         (await fetchDayPlanForDate(targetDate)) ||
         createEmptyDayPlan(targetDate);
 
-      // Create a clean new instance for the target date (not projected, not completed)
       const newInstance: PlannedInstance = {
         id: uuidv4(),
         sourceActivityId: removedInstance.sourceActivityId,
@@ -370,79 +346,43 @@ export function useDayPlan(
         plannedInstances: [...targetPlan.plannedInstances, newInstance],
       });
     },
-    [removeFromPlan],
+    [removeFromPlan, onSkip],
   );
 
   const skipActivity = useCallback(
     (instanceId: string) => {
-      const instance = dayPlan.plannedInstances.find(
-        (i) => i.id === instanceId,
-      );
-      if (!instance) return;
-
-      const repeatingActivity = repeatingActivitiesRef.current.find(
-        (ra) => ra.id === instance.sourceActivityId,
-      );
-
-      if (repeatingActivity?.repeatConfig && onUpdateActivityRef.current) {
-        // Guard against reload before the activity's nextDueDate write persists.
-        storeDayPlan((prev) => ({
-          ...prev,
-          plannedInstances: prev.plannedInstances.filter(
-            (i) => i.id !== instanceId,
-          ),
-          skippedSourceActivityIds: [
-            ...(prev.skippedSourceActivityIds ?? []),
-            instance.sourceActivityId,
-          ],
-        }));
-
-        const nextDate = calculateNextDueDate(
-          currentDate,
-          repeatingActivity.repeatConfig,
-        );
-
-        if (nextDate) {
-          onUpdateActivityRef.current({
-            ...repeatingActivity,
-            repeatConfig: {
-              ...repeatingActivity.repeatConfig,
-              nextDueDate: nextDate,
-            },
-          });
-        }
-      }
+      handleSkip(instanceId);
     },
-    [currentDate, dayPlan.plannedInstances],
+    [handleSkip],
   );
 
   const reorderPlannedActivitiesWithIds = useCallback((itemIds: string[]) => {
-    storeDayPlan((prev) => {
-      const instanceMap = new Map(prev.plannedInstances.map((i) => [i.id, i]));
-      const newInstances = itemIds
-        .map((id) => instanceMap.get(id))
-        .filter((i): i is PlannedInstance => !!i);
-
-      if (newInstances.length !== prev.plannedInstances.length) return prev;
-
-      return { ...prev, plannedInstances: newInstances };
-    });
+    setBasePlan((prev) => ({ ...prev, activityOrder: itemIds }));
   }, []);
 
   const assignActivityToZone = useCallback(
     (instanceId: string, zoneId: string) => {
-      storeDayPlan((prev) => {
+      const projected = projectedInstancesRef.current.find(
+        (i) => i.id === instanceId,
+      );
+
+      if (projected) {
+        // Solidify with the requested zone, preserving the projected instance's ID
+        setBasePlan((prev) => ({
+          ...prev,
+          plannedInstances: [
+            ...prev.plannedInstances,
+            { ...projected, zoneId, isProjected: undefined },
+          ],
+        }));
+        return;
+      }
+
+      setBasePlan((prev) => {
         const idx = prev.plannedInstances.findIndex((i) => i.id === instanceId);
         if (idx === -1) return prev;
-
         const newInstances = [...prev.plannedInstances];
-        newInstances[idx] = {
-          ...newInstances[idx],
-          zoneId,
-          // Solidify on any interaction
-          isProjected: undefined,
-        };
-
+        newInstances[idx] = { ...newInstances[idx], zoneId };
         return { ...prev, plannedInstances: newInstances };
       });
     },
@@ -470,18 +410,14 @@ export function useDayPlan(
   }, []);
 
   const setDailyCapacity = useCallback((capacity: DayPlan["dailyCapacity"]) => {
-    storeDayPlan((prev) => ({ ...prev, dailyCapacity: capacity }));
+    setBasePlan((prev) => ({ ...prev, dailyCapacity: capacity }));
   }, []);
 
-  /**
-   * Resolve the current day plan's instances against an activity map.
-   * Returns only instances whose source activity still exists.
-   */
   const resolveActivities = useCallback(
     (activityMap: Map<string, Activity>): ResolvedActivity[] => {
       return dayPlan.plannedInstances.flatMap((instance) => {
         const activity = activityMap.get(instance.sourceActivityId);
-        if (!activity) return []; // Dangling reference — activity was deleted
+        if (!activity) return [];
         return [{ instance, activity }];
       });
     },
