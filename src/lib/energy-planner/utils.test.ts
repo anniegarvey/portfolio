@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Activity, ResolvedActivity } from "./schema";
-import { calculateEnergyUsage, getReorderedItems } from "./utils";
+import type { Activity, EnergyTypeConfig, ResolvedActivity } from "./schema";
+import { getReorderedItems, validateEnergyCapacity } from "./utils";
+
+const mockEnergyTypes: EnergyTypeConfig[] = [
+  { id: "physical", label: "Physical", color: "#14b8a6", isPreset: true },
+  { id: "social", label: "Social", color: "#f43f5e", isPreset: true },
+  { id: "executive", label: "Executive", color: "#f97316", isPreset: true },
+];
 
 const mockActivities: Activity[] = [
   {
@@ -48,20 +54,62 @@ const makeResolved = (activities: Activity[]): ResolvedActivity[] =>
     },
   }));
 
-describe("calculateEnergyUsage", () => {
-  it("calculates energy usage for selected activities correctly", () => {
+describe("validateEnergyCapacity", () => {
+  it("calculates usage correctly for selected activities", () => {
     const resolved = makeResolved([mockActivities[0], mockActivities[1]]);
-    const usage = calculateEnergyUsage(resolved);
-    expect(usage).toEqual({
-      physical: 15,
-      social: 20,
-      executive: 20,
+    const { usage } = validateEnergyCapacity(resolved, mockEnergyTypes, {
+      physical: 100,
+      social: 100,
+      executive: 100,
     });
+    expect(usage).toEqual({ physical: 15, social: 20, executive: 20 });
   });
 
-  it("returns zero usage when no activities are selected", () => {
-    const usage = calculateEnergyUsage([]);
+  it("returns zero usage per energy type when no activities are planned", () => {
+    const { usage } = validateEnergyCapacity([], mockEnergyTypes, {
+      physical: 50,
+      social: 50,
+      executive: 50,
+    });
     expect(usage).toEqual({ physical: 0, social: 0, executive: 0 });
+  });
+
+  it("returns empty warnings when within capacity", () => {
+    const resolved = makeResolved([mockActivities[0]]);
+    const { warnings } = validateEnergyCapacity(resolved, mockEnergyTypes, {
+      physical: 50,
+      social: 50,
+      executive: 50,
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it("returns warning labels for exceeded energy types", () => {
+    const resolved = makeResolved([mockActivities[2]]);
+    const { warnings } = validateEnergyCapacity(resolved, mockEnergyTypes, {
+      physical: 20,
+      social: 100,
+      executive: 20,
+    });
+    expect(warnings).toEqual(["Physical", "Executive"]);
+  });
+
+  it("does not warn when usage exactly equals capacity", () => {
+    const resolved = makeResolved([mockActivities[0]]);
+    const { warnings } = validateEnergyCapacity(resolved, mockEnergyTypes, {
+      physical: 10,
+      social: 20,
+      executive: 5,
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it("uses zero baseline from energyTypes rather than hardcoded defaults", () => {
+    const customTypes: EnergyTypeConfig[] = [
+      { id: "creative", label: "Creative", color: "#8b5cf6", isPreset: false },
+    ];
+    const { usage } = validateEnergyCapacity([], customTypes, { creative: 50 });
+    expect(usage).toEqual({ creative: 0 });
   });
 });
 

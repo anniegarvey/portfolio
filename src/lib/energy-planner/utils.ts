@@ -1,6 +1,6 @@
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import type { EnergyCost, ResolvedActivity } from "./schema";
+import type { EnergyCost, EnergyTypeConfig, ResolvedActivity } from "./schema";
 
 /**
  * Calculates the new order of items after a drag and drop operation.
@@ -31,16 +31,23 @@ export function getReorderedItems<T>(
   return null;
 }
 
-export const calculateEnergyUsage = (
+export function validateEnergyCapacity(
   resolvedActivities: ResolvedActivity[],
-): EnergyCost => {
-  return resolvedActivities.reduce(
-    (acc, { activity }) => {
-      for (const key in activity.energyCost) {
-        acc[key] = (acc[key] || 0) + activity.energyCost[key];
-      }
-      return acc;
-    },
-    { physical: 0, social: 0, executive: 0 } as EnergyCost,
-  );
-};
+  energyTypes: EnergyTypeConfig[],
+  dailyCapacity: EnergyCost,
+): { usage: EnergyCost; warnings: string[] } {
+  const baseline = Object.fromEntries(energyTypes.map((t) => [t.id, 0]));
+
+  const usage = resolvedActivities.reduce((acc, { activity }) => {
+    for (const key in activity.energyCost) {
+      acc[key] = (acc[key] ?? 0) + activity.energyCost[key];
+    }
+    return acc;
+  }, baseline as EnergyCost);
+
+  const warnings = energyTypes
+    .filter((type) => (usage[type.id] ?? 0) > (dailyCapacity[type.id] ?? 0))
+    .map((type) => type.label);
+
+  return { usage, warnings };
+}
