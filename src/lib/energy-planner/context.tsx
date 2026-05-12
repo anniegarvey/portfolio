@@ -37,8 +37,8 @@ interface EnergyPlannerContextType {
   moveActivityToToday: (instanceId: string, fromDate: string) => void;
   moveActivityToUnplanned: (instanceId: string, fromDate: string) => void;
   moveActivityToDate: (instanceId: string, targetDate: string) => void;
-  calculateEnergyUsage: () => EnergyCost;
-  checkExceedsCapacity: () => { exceeded: boolean; message?: string };
+  energyUsage: EnergyCost;
+  capacityWarnings: string[];
   uncompletedActivities: {
     activity: Activity;
     instanceId: string;

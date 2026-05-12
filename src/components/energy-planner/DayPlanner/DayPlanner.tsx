@@ -43,7 +43,7 @@ export function DayPlanner({
     viewedUncompletedActivities,
     energyTypes,
     usage,
-    warning,
+    capacityWarnings,
     dailyCapacity,
     zones,
     activitiesByZone,
@@ -114,8 +114,11 @@ export function DayPlanner({
         usage={usage}
       />
 
-      {viewingToday && warning.exceeded ? (
-        <Warning>{warning.message}</Warning>
+      {viewingToday && capacityWarnings.length > 0 ? (
+        <Warning>
+          Warning: You have exceeded your {capacityWarnings.join(", ")} energy
+          capacity!
+        </Warning>
       ) : null}
 
       <UncompletedActivitiesSection activities={viewedUncompletedActivities} />

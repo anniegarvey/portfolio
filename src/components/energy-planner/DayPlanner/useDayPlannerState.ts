@@ -37,8 +37,8 @@ export function useDayPlannerState({
     removeFromPlan,
     removeActivity,
     toggleActivityCompletion,
-    checkExceedsCapacity,
-    calculateEnergyUsage,
+    energyUsage,
+    capacityWarnings,
     energyTypes,
     uncompletedActivities,
     availableActivities,
@@ -69,9 +69,6 @@ export function useDayPlannerState({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-
-  const usage = useMemo(() => calculateEnergyUsage(), [calculateEnergyUsage]);
-  const warning = useMemo(() => checkExceedsCapacity(), [checkExceedsCapacity]);
 
   const viewingToday = isToday(currentDate);
   const viewedUncompletedActivities = viewingToday ? uncompletedActivities : [];
@@ -208,8 +205,8 @@ export function useDayPlannerState({
     viewedUncompletedActivities,
     // Energy
     energyTypes,
-    usage,
-    warning,
+    usage: energyUsage,
+    capacityWarnings,
     dailyCapacity,
     // Zones
     zones,
