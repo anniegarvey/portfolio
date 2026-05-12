@@ -141,8 +141,7 @@ describe("EnergyPlannerContext", () => {
         ),
       ).toBe(true);
 
-      const usage = result.current.calculateEnergyUsage();
-      expect(usage.physical).toBe(50);
+      expect(result.current.energyUsage.physical).toBe(50);
     }, 5000);
   });
 
@@ -186,10 +185,7 @@ describe("EnergyPlannerContext", () => {
         await result.current.addToPlan(activity.id);
       });
 
-      const check = result.current.checkExceedsCapacity();
-
-      expect(check.exceeded).toBe(true);
-      expect(check.message).toContain("Physical");
+      expect(result.current.capacityWarnings).toContain("Physical");
     }, 5000);
   });
 
@@ -229,9 +225,7 @@ describe("EnergyPlannerContext", () => {
         await result.current.addToPlan(activity.id);
       });
 
-      const check = result.current.checkExceedsCapacity();
-
-      expect(check.exceeded).toBe(false);
+      expect(result.current.capacityWarnings).toEqual([]);
     }, 5000);
 
     it("prevents duplicate activity addition to plan", async () => {

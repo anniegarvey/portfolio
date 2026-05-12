@@ -338,16 +338,15 @@ describe("useEnergyPlannerState", () => {
       await result.current.addToPlan(activityId);
     });
 
-    const usage = result.current.calculateEnergyUsage();
-    expect(usage).toEqual({
+    expect(result.current.energyUsage).toEqual({
       physical: 10,
       social: 10,
       executive: 10,
     });
 
-    const warning = result.current.checkExceedsCapacity();
-    expect(warning.exceeded).toBe(true);
-    expect(warning.message).toContain("Physical, Social, Executive");
+    expect(result.current.capacityWarnings).toContain("Physical");
+    expect(result.current.capacityWarnings).toContain("Social");
+    expect(result.current.capacityWarnings).toContain("Executive");
   });
 
   it("should make activity available again when unplanned from current day", async () => {
@@ -455,7 +454,7 @@ describe("useEnergyPlannerState", () => {
     expect(result.current.oneOffActivities).toHaveLength(0);
   });
 
-  it("checks capacity returns exceeded: false when within limits", async () => {
+  it("returns empty capacityWarnings when within limits", async () => {
     const { result } = renderHook(() => useEnergyPlannerState());
 
     await waitFor(() => {
@@ -488,8 +487,7 @@ describe("useEnergyPlannerState", () => {
       await result.current.addToPlan(activityId);
     });
 
-    const status = result.current.checkExceedsCapacity();
-    expect(status.exceeded).toBe(false);
+    expect(result.current.capacityWarnings).toEqual([]);
   });
 
   it("removes projected repeating activity from today when nextDueDate is changed to a future date", async () => {

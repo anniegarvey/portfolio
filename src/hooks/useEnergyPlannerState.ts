@@ -1,12 +1,8 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import type {
-  Activity,
-  EnergyCost,
-  ResolvedActivity,
-} from "@/lib/energy-planner/schema";
-import { calculateEnergyUsage as calcUsage } from "@/lib/energy-planner/utils";
+import type { Activity, ResolvedActivity } from "@/lib/energy-planner/schema";
+import { validateEnergyCapacity } from "@/lib/energy-planner/utils";
 import { useActivities } from "./useActivities";
 import { useAvailableActivities } from "./useAvailableActivities";
 import { useDayPlan } from "./useDayPlan";
@@ -183,30 +179,15 @@ export function useEnergyPlannerState() {
     [removeActivityState, deleteFromPlan, dayPlan.plannedInstances],
   );
 
-  const calculateEnergyUsage = useCallback((): EnergyCost => {
-    return calcUsage(resolvedActivities);
-  }, [resolvedActivities]);
-
-  const checkExceedsCapacity = useCallback(() => {
-    const usage = calculateEnergyUsage();
-    const exceededTypes: string[] = [];
-
-    energyTypes.forEach((type) => {
-      const usageValue = usage[type.id] || 0;
-      const capacityValue = dayPlan.dailyCapacity[type.id] || 0;
-      if (usageValue > capacityValue) {
-        exceededTypes.push(type.label);
-      }
-    });
-
-    if (exceededTypes.length > 0) {
-      return {
-        exceeded: true,
-        message: `Warning: You have exceeded your ${exceededTypes.join(", ")} energy capacity!`,
-      };
-    }
-    return { exceeded: false };
-  }, [calculateEnergyUsage, energyTypes, dayPlan.dailyCapacity]);
+  const { usage: energyUsage, warnings: capacityWarnings } = useMemo(
+    () =>
+      validateEnergyCapacity(
+        resolvedActivities,
+        energyTypes,
+        dayPlan.dailyCapacity,
+      ),
+    [resolvedActivities, energyTypes, dayPlan.dailyCapacity],
+  );
 
   const handleUpdateActivity = useCallback(
     (activity: Activity) => {
@@ -263,8 +244,8 @@ export function useEnergyPlannerState() {
     moveActivityToToday,
     moveActivityToUnplanned,
     moveActivityToDate,
-    calculateEnergyUsage,
-    checkExceedsCapacity,
+    energyUsage,
+    capacityWarnings,
     uncompletedActivities,
     availableActivities,
     repeatingActivities,
