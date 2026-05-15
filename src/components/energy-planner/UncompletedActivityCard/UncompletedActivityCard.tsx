@@ -5,7 +5,10 @@ import { styled } from "next-yak";
 import { Button } from "@/components/Button";
 import { formatDateForDisplay } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
-import { useEnergyPlanner } from "@/lib/energy-planner/context";
+import {
+  useDayPlanActions,
+  useEnergyConfiguration,
+} from "@/lib/energy-planner/hooks";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { usePoints } from "@/lib/points/context";
 
@@ -20,12 +23,12 @@ export function UncompletedActivityCard({
   instanceId,
   fromDate,
 }: UncompletedActivityCardProps) {
+  const { energyTypes } = useEnergyConfiguration();
   const {
-    energyTypes,
     markActivityCompleteOnDate,
     moveActivityToToday,
     moveActivityToUnplanned,
-  } = useEnergyPlanner();
+  } = useDayPlanActions();
   const { awardPoints } = usePoints();
 
   const handleMarkComplete = (e: React.MouseEvent<HTMLButtonElement>) => {

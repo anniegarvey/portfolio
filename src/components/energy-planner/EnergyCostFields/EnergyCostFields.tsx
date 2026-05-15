@@ -2,7 +2,7 @@
 
 import { styled } from "next-yak";
 import { useId } from "react";
-import { useEnergyPlanner } from "../../../lib/energy-planner/context";
+import { useEnergyConfiguration } from "../../../lib/energy-planner/hooks";
 import type { EnergyCost } from "../../../lib/energy-planner/schema";
 
 interface EnergyCostFieldsProps {
@@ -15,7 +15,7 @@ export function EnergyCostFields({
   onChange,
 }: EnergyCostFieldsProps) {
   const idPrefix = useId();
-  const { energyTypes } = useEnergyPlanner();
+  const { energyTypes } = useEnergyConfiguration();
 
   return (
     <>

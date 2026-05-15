@@ -9,11 +9,15 @@ import { ImportExport } from "@/components/energy-planner/ImportExport";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { isToday } from "@/hooks/utils";
-import { useEnergyPlanner } from "@/lib/energy-planner/context";
+import {
+  useDayPlanActions,
+  useEnergyConfiguration,
+} from "@/lib/energy-planner/hooks";
 import type { Activity } from "@/lib/energy-planner/schema";
 
 export function EnergyPlanner() {
-  const { currentDate, dailyCapacity, isLoading } = useEnergyPlanner();
+  const { currentDate, isLoading } = useDayPlanActions();
+  const { dailyCapacity } = useEnergyConfiguration();
 
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | undefined>(

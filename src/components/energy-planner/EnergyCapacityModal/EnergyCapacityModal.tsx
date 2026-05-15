@@ -5,7 +5,10 @@ import { styled } from "next-yak";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { formatDateForDisplay, isToday } from "@/hooks/utils";
-import { useEnergyPlanner } from "../../../lib/energy-planner/context";
+import {
+  useDayPlanActions,
+  useEnergyConfiguration,
+} from "../../../lib/energy-planner/hooks";
 import { usePoints } from "../../../lib/points/context";
 import { Modal } from "../../Modal";
 import { EnergyTypeManagerModal } from "../EnergyTypeManager";
@@ -19,8 +22,9 @@ export function EnergyCapacityModal({
   isOpen,
   onClose,
 }: EnergyCapacityModalProps) {
-  const { dailyCapacity, setDailyCapacity, energyTypes, currentDate } =
-    useEnergyPlanner();
+  const { dailyCapacity, setDailyCapacity, energyTypes } =
+    useEnergyConfiguration();
+  const { currentDate } = useDayPlanActions();
   const { awardPoints } = usePoints();
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 

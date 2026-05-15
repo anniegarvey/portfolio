@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useId, useMemo, useState } from "react";
-import { useEnergyPlanner } from "@/lib/energy-planner/context";
+import {
+  useActivityManagement,
+  useDayPlanActions,
+  useEnergyConfiguration,
+} from "@/lib/energy-planner/hooks";
 import type {
   Activity,
   EnergyCost,
@@ -31,12 +35,12 @@ export function useActivityForm({
   const {
     addActivity,
     updateActivity,
-    addToPlan,
     isLoading,
-    zones,
     oneOffActivities,
     repeatingActivities,
-  } = useEnergyPlanner();
+  } = useActivityManagement();
+  const { addToPlan } = useDayPlanActions();
+  const { zones } = useEnergyConfiguration();
   const formId = useId();
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(

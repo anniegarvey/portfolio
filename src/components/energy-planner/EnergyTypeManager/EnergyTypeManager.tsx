@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { styled } from "next-yak";
 import { useId, useState } from "react";
 import { Button } from "@/components/Button";
-import { useEnergyPlanner } from "../../../lib/energy-planner/context";
+import { useEnergyConfiguration } from "../../../lib/energy-planner/hooks";
 import { PRESET_ENERGY_TYPES } from "../../../lib/energy-planner/schema";
 import { Modal } from "../../Modal";
 
@@ -98,7 +98,7 @@ function EnergyTypeDialog({
 
 function EnergyTypeManagerContent() {
   const { energyTypes, addEnergyType, updateEnergyType, removeEnergyType } =
-    useEnergyPlanner();
+    useEnergyConfiguration();
   const [isOpen, setIsOpen] = useState(false);
   const [editingType, setEditingType] = useState<string | null>(null);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(

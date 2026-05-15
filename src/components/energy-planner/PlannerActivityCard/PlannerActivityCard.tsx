@@ -18,7 +18,10 @@ import {
 import { css, styled } from "next-yak";
 import { Button } from "@/components/Button";
 import { getNextDay } from "../../../hooks/utils";
-import { useEnergyPlanner } from "../../../lib/energy-planner/context";
+import {
+  useDayPlanActions,
+  useEnergyConfiguration,
+} from "../../../lib/energy-planner/hooks";
 import type {
   Activity,
   PlannedInstance,
@@ -57,7 +60,7 @@ export function PlannedActivityCard({
   onMove,
   dragHandleProps,
 }: PlannedActivityCardProps) {
-  const { energyTypes } = useEnergyPlanner();
+  const { energyTypes } = useEnergyConfiguration();
   const { awardPoints } = usePoints();
   const isToday = dayContext === "today";
   const isPast = dayContext === "past";
@@ -154,7 +157,7 @@ function MoveDropdown({
   onMove,
   onRemove,
 }: MoveDropdownProps) {
-  const { currentDate, moveActivityToDate, skipActivity } = useEnergyPlanner();
+  const { currentDate, moveActivityToDate, skipActivity } = useDayPlanActions();
   const tomorrow = getNextDay(currentDate);
   const dayAfter = getNextDay(tomorrow);
   const handleMove = onMove ?? moveActivityToDate;
@@ -219,7 +222,7 @@ export function AvailableActivityCard({
   onDelete,
   dragHandleProps,
 }: AvailableActivityCardProps) {
-  const { energyTypes } = useEnergyPlanner();
+  const { energyTypes } = useEnergyConfiguration();
   const { awardPoints } = usePoints();
 
   return (
