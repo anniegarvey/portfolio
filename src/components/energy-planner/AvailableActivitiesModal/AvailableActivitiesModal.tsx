@@ -17,10 +17,14 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { styled } from "next-yak";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/Button";
-import type { Activity } from "@/lib/energy-planner/schema";
-import { getReorderedItems } from "@/lib/energy-planner/utils";
+import type { Activity, ZoneConfig } from "@/lib/energy-planner/schema";
+import {
+  applyRepeatingDrag,
+  getReorderedItems,
+  sortRepeatingByZone,
+} from "@/lib/energy-planner/utils";
 import { Modal } from "../../Modal";
 import { AvailableActivityCard } from "../PlannerActivityCard";
 import { SortableItem } from "../SortableItem";
@@ -30,6 +34,7 @@ interface AvailableActivitiesModalProps {
   onClose: () => void;
   availableActivities: Activity[];
   repeatingActivities: Activity[];
+  zones: ZoneConfig[];
   onOpenCreateActivity: (
     onCreatedWithType: (type: "one-off" | "repeating") => void,
   ) => void;
@@ -45,6 +50,7 @@ export function AvailableActivitiesModal({
   onClose,
   availableActivities,
   repeatingActivities,
+  zones,
   onOpenCreateActivity,
   onEditActivity,
   onAddActivity,
@@ -78,11 +84,15 @@ export function AvailableActivitiesModal({
     }
   };
 
-  const handleRepeatingDragEnd = (event: DragEndEvent) => {
-    const newItems = getReorderedItems(repeatingActivities, event, (a) => a.id);
+  const sortedRepeatingActivities = useMemo(
+    () => sortRepeatingByZone(repeatingActivities, zones),
+    [repeatingActivities, zones],
+  );
 
-    if (newItems) {
-      onReorderRepeatingActivities(newItems);
+  const handleRepeatingDragEnd = (event: DragEndEvent) => {
+    const updated = applyRepeatingDrag(sortedRepeatingActivities, event, zones);
+    if (updated) {
+      onReorderRepeatingActivities(updated);
     }
   };
 
@@ -184,16 +194,16 @@ export function AvailableActivitiesModal({
               sensors={sensors}
             >
               <SortableContext
-                items={repeatingActivities.map((a) => a.id)}
+                items={sortedRepeatingActivities.map((a) => a.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <ModalActivityList>
-                  {repeatingActivities.length === 0 ? (
+                  {sortedRepeatingActivities.length === 0 ? (
                     <ModalEmptyState>
                       No repeating activities configured.
                     </ModalEmptyState>
                   ) : (
-                    repeatingActivities.map((activity) => (
+                    sortedRepeatingActivities.map((activity) => (
                       <SortableItem id={activity.id} key={activity.id}>
                         {({ dragHandleProps }) => (
                           <AvailableActivityCard

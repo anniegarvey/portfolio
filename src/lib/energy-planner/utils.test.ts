@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { Activity, EnergyTypeConfig, ResolvedActivity } from "./schema";
-import { getReorderedItems, validateEnergyCapacity } from "./utils";
+import type {
+  Activity,
+  EnergyTypeConfig,
+  ResolvedActivity,
+  ZoneConfig,
+} from "./schema";
+import {
+  applyRepeatingDrag,
+  getReorderedItems,
+  sortRepeatingByZone,
+  validateEnergyCapacity,
+} from "./utils";
 
 const mockEnergyTypes: EnergyTypeConfig[] = [
   { id: "physical", label: "Physical", color: "#14b8a6", isPreset: true },
@@ -164,5 +174,175 @@ describe("getReorderedItems", () => {
       (id) => id,
     );
     expect(result).toBeNull();
+  });
+});
+
+describe("sortRepeatingByZone", () => {
+  const zones: ZoneConfig[] = [
+    { id: "morning", name: "Morning", order: 0 },
+    { id: "afternoon", name: "Afternoon", order: 1 },
+    { id: "evening", name: "Evening", order: 2 },
+  ];
+
+  const makeRepeating = (
+    id: string,
+    title: string,
+    defaultZoneId?: string,
+  ): Activity => ({
+    id,
+    title,
+    createdAt: new Date(),
+    energyCost: {},
+    factors: {
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
+      isRestorative: false,
+    },
+    repeatConfig: {
+      frequency: 1,
+      unit: "days",
+      ...(defaultZoneId ? { defaultZoneId } : {}),
+    },
+  });
+
+  it("places no-default-zone activities at the top", () => {
+    const activities: Activity[] = [
+      makeRepeating("a", "Has zone", "morning"),
+      makeRepeating("b", "No zone"),
+    ];
+    const sorted = sortRepeatingByZone(activities, zones);
+    expect(sorted.map((a) => a.id)).toEqual(["b", "a"]);
+  });
+
+  it("groups by zone in zone order", () => {
+    const activities: Activity[] = [
+      makeRepeating("e", "Evening item", "evening"),
+      makeRepeating("m", "Morning item", "morning"),
+      makeRepeating("a", "Afternoon item", "afternoon"),
+    ];
+    const sorted = sortRepeatingByZone(activities, zones);
+    expect(sorted.map((a) => a.id)).toEqual(["m", "a", "e"]);
+  });
+
+  it("preserves stored order within each bucket", () => {
+    const activities: Activity[] = [
+      makeRepeating("m2", "Morning second", "morning"),
+      makeRepeating("m1", "Morning first", "morning"),
+      makeRepeating("n2", "No zone second"),
+      makeRepeating("n1", "No zone first"),
+    ];
+    const sorted = sortRepeatingByZone(activities, zones);
+    expect(sorted.map((a) => a.id)).toEqual(["n2", "n1", "m2", "m1"]);
+  });
+
+  it("treats a dangling defaultZoneId (deleted zone) as no zone", () => {
+    const activities: Activity[] = [
+      makeRepeating("orphan", "Was in deleted zone", "deleted-zone"),
+      makeRepeating("m", "Morning", "morning"),
+    ];
+    const sorted = sortRepeatingByZone(activities, zones);
+    expect(sorted.map((a) => a.id)).toEqual(["orphan", "m"]);
+  });
+
+  it("re-derives order live when zones are reordered", () => {
+    const activities: Activity[] = [
+      makeRepeating("m", "Morning item", "morning"),
+      makeRepeating("e", "Evening item", "evening"),
+    ];
+    const reorderedZones: ZoneConfig[] = [
+      { id: "evening", name: "Evening", order: 0 },
+      { id: "morning", name: "Morning", order: 1 },
+    ];
+    const sorted = sortRepeatingByZone(activities, reorderedZones);
+    expect(sorted.map((a) => a.id)).toEqual(["e", "m"]);
+  });
+
+  it("returns an empty array for empty input", () => {
+    expect(sortRepeatingByZone([], zones)).toEqual([]);
+  });
+});
+
+describe("applyRepeatingDrag", () => {
+  const zones: ZoneConfig[] = [
+    { id: "morning", name: "Morning", order: 0 },
+    { id: "afternoon", name: "Afternoon", order: 1 },
+    { id: "evening", name: "Evening", order: 2 },
+  ];
+
+  const makeRepeating = (
+    id: string,
+    title: string,
+    defaultZoneId?: string,
+  ): Activity => ({
+    id,
+    title,
+    createdAt: new Date(),
+    energyCost: {},
+    factors: {
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
+      isRestorative: false,
+    },
+    repeatConfig: {
+      frequency: 1,
+      unit: "days",
+      ...(defaultZoneId ? { defaultZoneId } : {}),
+    },
+  });
+
+  it("reorders within the same zone bucket without touching defaultZoneId", () => {
+    const sorted = [
+      makeRepeating("m1", "Morning 1", "morning"),
+      makeRepeating("m2", "Morning 2", "morning"),
+    ];
+    const updated = applyRepeatingDrag(
+      sorted,
+      { active: { id: "m2" }, over: { id: "m1" } },
+      zones,
+    );
+    expect(updated?.map((a) => a.id)).toEqual(["m2", "m1"]);
+    expect(updated?.[0].repeatConfig?.defaultZoneId).toBe("morning");
+  });
+
+  it("updates defaultZoneId when dragged across a bucket boundary", () => {
+    const sorted = [
+      makeRepeating("n1", "No zone 1"),
+      makeRepeating("m1", "Morning 1", "morning"),
+    ];
+    // Drag the no-zone item down past the morning item.
+    const updated = applyRepeatingDrag(
+      sorted,
+      { active: { id: "n1" }, over: { id: "m1" } },
+      zones,
+    );
+    expect(updated).not.toBeNull();
+    const moved = updated?.find((a) => a.id === "n1");
+    expect(moved?.repeatConfig?.defaultZoneId).toBe("morning");
+  });
+
+  it("clears defaultZoneId when dragged into the no-zone bucket", () => {
+    const sorted = [
+      makeRepeating("m1", "Morning 1", "morning"),
+      makeRepeating("n1", "No zone 1"),
+    ];
+    // Drag morning up past the no-zone item — it joins the no-zone bucket.
+    const updated = applyRepeatingDrag(
+      sorted,
+      { active: { id: "m1" }, over: { id: "n1" } },
+      zones,
+    );
+    expect(updated).not.toBeNull();
+    const moved = updated?.find((a) => a.id === "m1");
+    expect(moved?.repeatConfig?.defaultZoneId).toBeUndefined();
+  });
+
+  it("returns null when the drag is invalid (no over target)", () => {
+    const sorted = [makeRepeating("m1", "Morning 1", "morning")];
+    const updated = applyRepeatingDrag(
+      sorted,
+      { active: { id: "m1" }, over: null },
+      zones,
+    );
+    expect(updated).toBeNull();
   });
 });
