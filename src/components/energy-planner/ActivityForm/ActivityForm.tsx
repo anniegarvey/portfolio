@@ -204,7 +204,7 @@ export function ActivityForm({
 
       <Field>
         <CheckboxLabel>
-          <input
+          <CheckboxInput
             checked={isRepeating}
             onChange={(e) => setIsRepeating(e.target.checked)}
             type="checkbox"
@@ -281,6 +281,14 @@ const CheckboxLabel = styled.label`
     gap: 0.5rem;
     font-size: 0.875rem;
     font-weight: 500;
+    cursor: pointer;
+`;
+
+const CheckboxInput = styled.input`
+    width: 1.5rem;
+    height: 1.5rem;
+    accent-color: var(--color-primary-600);
+    flex-shrink: 0;
     cursor: pointer;
 `;
 
