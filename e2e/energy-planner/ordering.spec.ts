@@ -1,4 +1,4 @@
-import type { Activity } from "@/lib/energy-planner/schema";
+import type { Activity, PlannedInstance } from "@/lib/energy-planner/schema";
 import { expect, test } from "../utils/accessibility-test";
 import { DEFAULT_CAPACITY, TODAY } from "../utils/mocks";
 import { goToEnergyPlannerWithSeed } from "../utils/seed-storage";
@@ -23,6 +23,18 @@ const baseActivity = (
     nextDueDate: TODAY,
     ...(defaultZoneId ? { defaultZoneId } : {}),
   },
+});
+
+const oneOffActivity = (id: string, title: string): Activity => ({
+  id,
+  title,
+  energyCost: { physical: 5, social: 5, executive: 5 },
+  factors: {
+    initiationDifficulty: 1,
+    terminationDifficulty: 1,
+    isRestorative: false,
+  },
+  createdAt: new Date("2025-01-01T00:00:00.000Z"),
 });
 
 test.describe("Ordering", () => {
@@ -116,5 +128,85 @@ test.describe("Ordering", () => {
     ).map((t) => t.split("\n")[0].trim());
 
     expect(afterTitles).toEqual(["Rep A", "Rep B", "Rep C"]);
+  });
+
+  test("mixed one-off + repeating: completing any item keeps every slot stable", async ({
+    page,
+  }) => {
+    // Two one-offs (pre-planned) plus two repeating activities, all in the
+    // Morning zone. Default merge order is [concrete..., projected...] so the
+    // visible order is One-off 1, One-off 2, Rep A, Rep B. We then complete
+    // both a repeating and a one-off and assert nothing reshuffles.
+    const oneOff1 = oneOffActivity(
+      "11111111-aaaa-aaaa-aaaa-111111111111",
+      "One-off 1",
+    );
+    const oneOff2 = oneOffActivity(
+      "22222222-aaaa-aaaa-aaaa-222222222222",
+      "One-off 2",
+    );
+    const repA = baseActivity(
+      "aaaaaaaa-bbbb-bbbb-bbbb-aaaaaaaaaaaa",
+      "Rep A",
+      "morning",
+    );
+    const repB = baseActivity(
+      "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "Rep B",
+      "morning",
+    );
+
+    const oneOff1Instance: PlannedInstance = {
+      id: "11111111-cccc-cccc-cccc-111111111111",
+      sourceActivityId: oneOff1.id,
+      zoneId: "morning",
+      completed: false,
+    };
+    const oneOff2Instance: PlannedInstance = {
+      id: "22222222-cccc-cccc-cccc-222222222222",
+      sourceActivityId: oneOff2.id,
+      zoneId: "morning",
+      completed: false,
+    };
+
+    await goToEnergyPlannerWithSeed(page, {
+      activities: [oneOff1, oneOff2, repA, repB],
+      dayPlans: {
+        [TODAY]: {
+          dailyCapacity: DEFAULT_CAPACITY,
+          plannedInstances: [oneOff1Instance, oneOff2Instance],
+        },
+      },
+    });
+
+    const morning = page.getByTestId("zone-activities-morning");
+    const titlesIn = async () =>
+      (
+        await morning
+          .locator("article")
+          .filter({ hasText: /(One-off|Rep) [12AB]/ })
+          .allInnerTexts()
+      ).map((t) => t.split("\n")[0].trim());
+
+    const expected = ["One-off 1", "One-off 2", "Rep A", "Rep B"];
+    expect(await titlesIn()).toEqual(expected);
+
+    // Complete Rep A — its slot must not change.
+    await morning
+      .locator("article")
+      .filter({ hasText: "Rep A" })
+      .first()
+      .getByRole("button", { name: "Mark as done" })
+      .click();
+    expect(await titlesIn()).toEqual(expected);
+
+    // Complete One-off 1 — its slot must not change either.
+    await morning
+      .locator("article")
+      .filter({ hasText: "One-off 1" })
+      .first()
+      .getByRole("button", { name: "Mark as done" })
+      .click();
+    expect(await titlesIn()).toEqual(expected);
   });
 });

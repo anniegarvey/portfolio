@@ -600,6 +600,78 @@ describe("useDayPlan", () => {
     ).toEqual(["concrete-first", "rep-middle", "concrete-last"]);
   });
 
+  it("keeps interleaved one-off + repeating order stable through completions", async () => {
+    // Mixed-type scenario: a one-off and a projected (repeating) activity
+    // share a slot pattern. After manually interleaving them, completing
+    // either type must leave every slot in place.
+    const today = new Date().toISOString().split("T")[0];
+    const oneOff1 = mockActivity("one-off-1", "One-off 1");
+    const oneOff2 = mockActivity("one-off-2", "One-off 2");
+    const rep = (id: string, title: string) =>
+      ({
+        ...mockActivity(id, title),
+        repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
+      }) as const;
+    const repA = rep("rep-a", "Rep A");
+    const repB = rep("rep-b", "Rep B");
+    const stableList = [oneOff1, oneOff2, repA, repB];
+
+    const { result } = renderHook(() => useDayPlan(stableList, vi.fn()));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      result.current.addActivityToDayPlan(oneOff1);
+    });
+    await act(async () => {
+      result.current.addActivityToDayPlan(oneOff2);
+    });
+
+    const findId = (sourceId: string) =>
+      result.current.dayPlan.plannedInstances.find(
+        (i) => i.sourceActivityId === sourceId,
+      )?.id;
+
+    const oneOff1Id = findId("one-off-1");
+    const oneOff2Id = findId("one-off-2");
+    const repAId = findId("rep-a");
+    const repBId = findId("rep-b");
+    if (!(oneOff1Id && oneOff2Id && repAId && repBId)) {
+      throw new Error("missing instance ids");
+    }
+
+    // Interleave: [one-off 1, rep A, one-off 2, rep B]
+    await act(async () => {
+      result.current.reorderPlannedActivities([
+        oneOff1Id,
+        repAId,
+        oneOff2Id,
+        repBId,
+      ]);
+    });
+
+    const interleavedOrder = ["one-off-1", "rep-a", "one-off-2", "rep-b"];
+    expect(
+      result.current.dayPlan.plannedInstances.map((i) => i.sourceActivityId),
+    ).toEqual(interleavedOrder);
+
+    // Complete the repeating in slot 2 — order must not change.
+    await act(async () => {
+      result.current.toggleActivityCompletion(repAId);
+    });
+    expect(
+      result.current.dayPlan.plannedInstances.map((i) => i.sourceActivityId),
+    ).toEqual(interleavedOrder);
+
+    // Complete the one-off in slot 1 — order must not change.
+    await act(async () => {
+      result.current.toggleActivityCompletion(oneOff1Id);
+    });
+    expect(
+      result.current.dayPlan.plannedInstances.map((i) => i.sourceActivityId),
+    ).toEqual(interleavedOrder);
+  });
+
   it("keeps a projected instance's position when completed even without prior manual reorder", async () => {
     // Reproduces the user-reported bug: on a fresh day plan with no
     // activityOrder yet persisted, completing a projected instance in
