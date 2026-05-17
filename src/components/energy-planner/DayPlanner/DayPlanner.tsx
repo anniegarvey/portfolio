@@ -150,6 +150,7 @@ export function DayPlanner({
         onReorderActivities={reorderActivities}
         onReorderRepeatingActivities={reorderRepeatingActivities}
         repeatingActivities={repeatingActivities}
+        zones={zones}
       />
 
       <ZoneManagerModal
