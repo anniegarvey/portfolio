@@ -5,10 +5,9 @@ description: Use this whenever a code change is requested. Covers planning, work
 
 # Code Change
 
-- Use the grill-me skill to flesh out the plan first
-- Start from up-to-date main branch
-- Create a new worktree. Keep all changes inside the worktree
-- Run `pnpm i` then `pnpm dev` and share the port number from the `.port` file
+- Use /grill-me to flesh out the plan first
+- Starting from up-to-date main branch, create a new worktree. Keep all changes inside the worktree
 - Implement the feature, breaking work into small, focused commits
-- Check your changes using vercel-composition-patterns, vercel-react-best-practices and web-design-guidelines skills and apply recommended fixes
+- If you need to run the dev server, run `pnpm i` then `pnpm dev`. The port number will be in the `.port` file
+- Check your changes using vercel-composition-patterns, vercel-react-best-practices and web-design-guidelines skills when relevant, and apply recommended fixes
 - Create a PR using the github CLI once the feature is complete and ready for review. Explain how you proved it's working
