@@ -75,6 +75,12 @@ export function useDayPlan(
   const projectedInstancesRef = useRef(projectedInstances);
   projectedInstancesRef.current = projectedInstances;
 
+  // Tracks the *displayed* merged order so mutations that solidify a projected
+  // instance can lock the order in place, preventing the activity from jumping
+  // to a different slot when basePlan.activityOrder is not yet populated.
+  const mergedInstancesRef = useRef(dayPlan.plannedInstances);
+  mergedInstancesRef.current = dayPlan.plannedInstances;
+
   // Load day plan when date changes (no longer depends on repeatingActivities —
   // projections are derived reactively by useProjectedActivities)
   useEffect(() => {
@@ -124,13 +130,18 @@ export function useDayPlan(
       );
 
       if (projected) {
-        // Solidify the projected instance as a concrete completed instance
+        // Solidify the projected instance as a concrete completed instance.
+        // Lock in the current merged order so the newly concrete instance
+        // stays in its visible slot instead of jumping to the end of the
+        // concrete list.
+        const lockedOrder = mergedInstancesRef.current.map((i) => i.id);
         setBasePlan((prev) => ({
           ...prev,
           plannedInstances: [
             ...prev.plannedInstances,
             { ...projected, completed: true, isProjected: undefined },
           ],
+          activityOrder: lockedOrder,
         }));
         handleComplete(instanceId);
         return;
@@ -367,13 +378,16 @@ export function useDayPlan(
       );
 
       if (projected) {
-        // Solidify with the requested zone, preserving the projected instance's ID
+        // Solidify with the requested zone, preserving the projected
+        // instance's ID and its current slot in the merged list.
+        const lockedOrder = mergedInstancesRef.current.map((i) => i.id);
         setBasePlan((prev) => ({
           ...prev,
           plannedInstances: [
             ...prev.plannedInstances,
             { ...projected, zoneId, isProjected: undefined },
           ],
+          activityOrder: lockedOrder,
         }));
         return;
       }

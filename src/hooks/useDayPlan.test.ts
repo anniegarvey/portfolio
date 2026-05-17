@@ -548,6 +548,100 @@ describe("useDayPlan", () => {
     expect(mockOnUpdateActivity).toHaveBeenCalled();
   });
 
+  it("keeps a projected instance's position when it is completed", async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const concreteFirst = mockActivity("concrete-first", "Concrete First");
+    const concreteLast = mockActivity("concrete-last", "Concrete Last");
+    const repeatingMiddle = {
+      ...mockActivity("rep-middle", "Repeating Middle"),
+      repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
+    } as const;
+    const stableList = [concreteFirst, repeatingMiddle, concreteLast];
+
+    const { result } = renderHook(() => useDayPlan(stableList, vi.fn()));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      result.current.addActivityToDayPlan(concreteFirst);
+    });
+
+    await act(async () => {
+      result.current.addActivityToDayPlan(concreteLast);
+    });
+
+    const projectedId = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "rep-middle",
+    )?.id;
+    if (!projectedId) throw new Error("projected instance not found");
+
+    const firstId = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "concrete-first",
+    )?.id;
+    const lastId = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "concrete-last",
+    )?.id;
+    if (!(firstId && lastId)) throw new Error("concrete instance not found");
+
+    await act(async () => {
+      result.current.reorderPlannedActivities([firstId, projectedId, lastId]);
+    });
+
+    expect(
+      result.current.dayPlan.plannedInstances.map((i) => i.sourceActivityId),
+    ).toEqual(["concrete-first", "rep-middle", "concrete-last"]);
+
+    await act(async () => {
+      result.current.toggleActivityCompletion(projectedId);
+    });
+
+    expect(
+      result.current.dayPlan.plannedInstances.map((i) => i.sourceActivityId),
+    ).toEqual(["concrete-first", "rep-middle", "concrete-last"]);
+  });
+
+  it("keeps a projected instance's position when completed even without prior manual reorder", async () => {
+    // Reproduces the user-reported bug: on a fresh day plan with no
+    // activityOrder yet persisted, completing a projected instance in
+    // the middle of the list must not push it to the end.
+    const today = new Date().toISOString().split("T")[0];
+    const rep = (id: string, title: string) =>
+      ({
+        ...mockActivity(id, title),
+        repeatConfig: { frequency: 1, unit: "days", nextDueDate: today },
+      }) as const;
+
+    const stableList = [
+      rep("rep-a", "Rep A"),
+      rep("rep-b", "Rep B"),
+      rep("rep-c", "Rep C"),
+    ];
+
+    const { result } = renderHook(() => useDayPlan(stableList, vi.fn()));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const beforeOrder = result.current.dayPlan.plannedInstances.map(
+      (i) => i.sourceActivityId,
+    );
+    expect(beforeOrder).toEqual(["rep-a", "rep-b", "rep-c"]);
+
+    const middleId = result.current.dayPlan.plannedInstances.find(
+      (i) => i.sourceActivityId === "rep-b",
+    )?.id;
+    if (!middleId) throw new Error("projected instance not found");
+
+    await act(async () => {
+      result.current.toggleActivityCompletion(middleId);
+    });
+
+    const afterOrder = result.current.dayPlan.plannedInstances.map(
+      (i) => i.sourceActivityId,
+    );
+
+    expect(afterOrder).toEqual(beforeOrder);
+  });
+
   it("marks an activity as complete on the current day", async () => {
     const { result } = renderHook(() => useDayPlan(STABLE_EMPTY_ACTIVITIES));
     const activity1 = mockActivity("activity-1", "Activity 1");
