@@ -59,15 +59,17 @@ export function ActivityFactorFields({
           />
         </Field>
         <Field>
-          <Label htmlFor={`${idPrefix}-restorative`}>Restorative?</Label>
-          <CheckboxInput
-            checked={factors.isRestorative}
-            id={`${idPrefix}-restorative`}
-            onChange={(e) =>
-              onChange({ ...factors, isRestorative: e.target.checked })
-            }
-            type="checkbox"
-          />
+          <CheckboxLabel htmlFor={`${idPrefix}-restorative`}>
+            <CheckboxInput
+              checked={factors.isRestorative}
+              id={`${idPrefix}-restorative`}
+              onChange={(e) =>
+                onChange({ ...factors, isRestorative: e.target.checked })
+              }
+              type="checkbox"
+            />
+            Restorative?
+          </CheckboxLabel>
         </Field>
       </Grid>
     </>
@@ -107,8 +109,19 @@ const NumberInput = styled.input`
     color: inherit;
 `;
 
+const CheckboxLabel = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+`;
+
 const CheckboxInput = styled.input`
     width: 1.5rem;
     height: 1.5rem;
     accent-color: var(--color-primary-600);
+    flex-shrink: 0;
+    cursor: pointer;
 `;
