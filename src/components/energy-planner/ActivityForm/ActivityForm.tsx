@@ -80,6 +80,11 @@ export function ActivityForm({
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [frequencyText, setFrequencyText] = useState(String(frequency));
+
+  useEffect(() => {
+    setFrequencyText(String(frequency));
+  }, [frequency]);
 
   // Notify parent so it can intercept Escape before the dialog closes
   const notifySuggestionsChange = useEffectEvent(
@@ -222,9 +227,22 @@ export function ActivityForm({
               data-testid="frequency-input"
               max={31}
               min={1}
-              onChange={(e) => setFrequency(parseInt(e.target.value, 10) || 1)}
+              onBlur={() => {
+                const parsed = parseInt(frequencyText, 10);
+                if (Number.isNaN(parsed) || parsed < 1) {
+                  setFrequency(1);
+                  setFrequencyText("1");
+                }
+              }}
+              onChange={(e) => {
+                setFrequencyText(e.target.value);
+                const parsed = parseInt(e.target.value, 10);
+                if (!Number.isNaN(parsed) && parsed >= 1) {
+                  setFrequency(parsed);
+                }
+              }}
               type="number"
-              value={frequency}
+              value={frequencyText}
             />
             <Select
               onValueChange={(val: RepeatUnit) => setUnit(val)}
