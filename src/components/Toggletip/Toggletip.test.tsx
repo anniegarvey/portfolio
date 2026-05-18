@@ -10,7 +10,7 @@ describe("Toggletip", () => {
   it("renders the trigger button", () => {
     render(<Toggletip content={CONTENT} />);
     expect(
-      screen.getByRole("button", { name: "More information" }),
+      screen.getByRole("button", { name: "About" }),
     ).toBeInTheDocument();
   });
 
@@ -24,7 +24,7 @@ describe("Toggletip", () => {
   it("shows the popover when the button is clicked", async () => {
     const user = userEvent.setup();
     render(<Toggletip content={CONTENT} />);
-    await user.click(screen.getByRole("button", { name: "More information" }));
+    await user.click(screen.getByRole("button", { name: "About" }));
     expect(screen.getByRole("status")).toBeVisible();
     expect(screen.getByText(CONTENT)).toBeVisible();
   });
@@ -32,7 +32,7 @@ describe("Toggletip", () => {
   it("hides the popover on a second click (toggle off)", async () => {
     const user = userEvent.setup();
     render(<Toggletip content={CONTENT} />);
-    const btn = screen.getByRole("button", { name: "More information" });
+    const btn = screen.getByRole("button", { name: "About" });
     await user.click(btn);
     await user.click(btn);
     expect(
@@ -43,7 +43,7 @@ describe("Toggletip", () => {
   it("hides the popover when Escape is pressed", async () => {
     const user = userEvent.setup();
     render(<Toggletip content={CONTENT} />);
-    await user.click(screen.getByRole("button", { name: "More information" }));
+    await user.click(screen.getByRole("button", { name: "About" }));
     await user.keyboard("{Escape}");
     expect(
       screen.getByRole("status", { hidden: true }),
@@ -58,7 +58,7 @@ describe("Toggletip", () => {
         <button type="button">Outside</button>
       </div>,
     );
-    await user.click(screen.getByRole("button", { name: "More information" }));
+    await user.click(screen.getByRole("button", { name: "About" }));
     expect(screen.getByRole("status")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Outside" }));
     expect(
@@ -69,7 +69,7 @@ describe("Toggletip", () => {
   it("sets aria-expanded correctly", async () => {
     const user = userEvent.setup();
     render(<Toggletip content={CONTENT} />);
-    const btn = screen.getByRole("button", { name: "More information" });
+    const btn = screen.getByRole("button", { name: "About" });
     expect(btn).toHaveAttribute("aria-expanded", "false");
     await user.click(btn);
     expect(btn).toHaveAttribute("aria-expanded", "true");
@@ -83,7 +83,7 @@ describe("Toggletip", () => {
   it("has no accessibility violations when open", async () => {
     const user = userEvent.setup();
     const { container } = render(<Toggletip content={CONTENT} />);
-    await user.click(screen.getByRole("button", { name: "More information" }));
+    await user.click(screen.getByRole("button", { name: "About" }));
     expect(await axe(container)).toHaveNoViolations();
   });
 });

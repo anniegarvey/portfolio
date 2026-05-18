@@ -3,6 +3,7 @@
 import { Info } from "lucide-react";
 import { styled } from "next-yak";
 import { useEffect, useId, useRef, useState } from "react";
+import { Button } from "@/components/Button";
 
 interface ToggletipProps {
   content: string;
@@ -35,15 +36,16 @@ export function Toggletip({ content }: ToggletipProps) {
 
   return (
     <Wrapper ref={wrapperRef}>
-      <TriggerButton
+      <Button
         aria-controls={id}
         aria-expanded={open}
-        aria-label="More information"
+        intent="secondary"
+        leftIcon={<Info aria-hidden size={16} />}
         onClick={() => setOpen((v) => !v)}
-        type="button"
+        variant="outline"
       >
-        <Info aria-hidden size={16} />
-      </TriggerButton>
+        About
+      </Button>
       <Popover hidden={!open} id={id} role="status">
         {content}
       </Popover>
@@ -57,29 +59,6 @@ const Wrapper = styled.span`
   align-items: center;
 `;
 
-const TriggerButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  padding: 2px;
-  border-radius: 50%;
-  cursor: pointer;
-  color: light-dark(var(--color-grey-500), var(--color-grey-400));
-  line-height: 0;
-  transition: color 0.15s, background-color 0.15s;
-
-  &:hover {
-    color: light-dark(var(--color-grey-700), var(--color-grey-200));
-    background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-primary-500);
-    outline-offset: 2px;
-  }
-`;
 
 const Popover = styled.span`
   position: absolute;

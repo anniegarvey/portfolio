@@ -77,11 +77,11 @@ export function EnergyPlanner() {
   return (
     <MaxWidthWrapper as="main">
       <PageHeader>
-        <TitleRow>
-          <PageTitle>Energy Planner</PageTitle>
+        <PageTitle>Energy Planner</PageTitle>
+        <ActionRow>
           <Toggletip content="Plan your day according to your energy levels. Based on extended Spoon Theory." />
-        </TitleRow>
-        <ImportExport />
+          <ImportExport />
+        </ActionRow>
       </PageHeader>
 
       <Layout>
@@ -112,10 +112,10 @@ export function EnergyPlanner() {
   );
 }
 
-const TitleRow = styled.div`
+const ActionRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 `;
 
 const Layout = styled.div`
