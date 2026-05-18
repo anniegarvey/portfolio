@@ -8,6 +8,7 @@ import { EnergyCapacityModal } from "@/components/energy-planner/EnergyCapacityM
 import { ImportExport } from "@/components/energy-planner/ImportExport";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
+import { Toggletip } from "@/components/Toggletip";
 import { isToday } from "@/hooks/utils";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
@@ -76,12 +77,11 @@ export function EnergyPlanner() {
   return (
     <MaxWidthWrapper as="main">
       <PageHeader>
-        <PageTitle>Energy Planner</PageTitle>
+        <TitleRow>
+          <PageTitle>Energy Planner</PageTitle>
+          <Toggletip content="Plan your day according to your energy levels. Based on extended Spoon Theory." />
+        </TitleRow>
         <ImportExport />
-        <p>
-          Plan your day according to your energy levels. Based on extended Spoon
-          Theory.
-        </p>
       </PageHeader>
 
       <Layout>
@@ -111,6 +111,12 @@ export function EnergyPlanner() {
     </MaxWidthWrapper>
   );
 }
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
 
 const Layout = styled.div`
   display: flex;
