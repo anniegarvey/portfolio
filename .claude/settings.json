@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import sys,json,subprocess; d=json.load(sys.stdin); p=d.get('worktree_path',d.get('path','')); p and subprocess.run(['pnpm','i'],cwd=p)\" || true",
+            "command": "python3 -c \"import sys,json,subprocess; d=json.load(sys.stdin); p=d['cwd']+'/.claude/worktrees/'+d['name']; subprocess.run(['pnpm','i'],cwd=p)\" || true",
             "statusMessage": "Installing dependencies in worktree..."
           }
         ]
