@@ -15,64 +15,61 @@ export function ActivityFactorFields({
 }: ActivityFactorFieldsProps) {
   const idPrefix = useId();
   return (
-    <>
-      <SectionTitle>Activity Factors</SectionTitle>
-      <Grid>
-        <Field>
-          <Label htmlFor={`${idPrefix}-start`}>Start Difficulty (0-10)</Label>
-          <NumberInput
-            id={`${idPrefix}-start`}
-            max="10"
-            min="0"
+    <Grid>
+      <Field>
+        <Label htmlFor={`${idPrefix}-start`}>Start Difficulty (0-10)</Label>
+        <NumberInput
+          id={`${idPrefix}-start`}
+          max="10"
+          min="0"
+          onChange={(e) =>
+            onChange({
+              ...factors,
+              initiationDifficulty: Number(e.target.value),
+            })
+          }
+          type="number"
+          value={
+            factors.initiationDifficulty === 0
+              ? ""
+              : factors.initiationDifficulty
+          }
+        />
+      </Field>
+      <Field>
+        <Label htmlFor={`${idPrefix}-stop`}>Stop Difficulty (0-10)</Label>
+        <NumberInput
+          id={`${idPrefix}-stop`}
+          max="10"
+          min="0"
+          onChange={(e) =>
+            onChange({
+              ...factors,
+              terminationDifficulty: Number(e.target.value),
+            })
+          }
+          type="number"
+          value={
+            factors.terminationDifficulty === 0
+              ? ""
+              : factors.terminationDifficulty
+          }
+        />
+      </Field>
+      <Field>
+        <CheckboxLabel htmlFor={`${idPrefix}-restorative`}>
+          <CheckboxInput
+            checked={factors.isRestorative}
+            id={`${idPrefix}-restorative`}
             onChange={(e) =>
-              onChange({
-                ...factors,
-                initiationDifficulty: Number(e.target.value),
-              })
+              onChange({ ...factors, isRestorative: e.target.checked })
             }
-            type="number"
-            value={
-              factors.initiationDifficulty === 0
-                ? ""
-                : factors.initiationDifficulty
-            }
+            type="checkbox"
           />
-        </Field>
-        <Field>
-          <Label htmlFor={`${idPrefix}-stop`}>Stop Difficulty (0-10)</Label>
-          <NumberInput
-            id={`${idPrefix}-stop`}
-            max="10"
-            min="0"
-            onChange={(e) =>
-              onChange({
-                ...factors,
-                terminationDifficulty: Number(e.target.value),
-              })
-            }
-            type="number"
-            value={
-              factors.terminationDifficulty === 0
-                ? ""
-                : factors.terminationDifficulty
-            }
-          />
-        </Field>
-        <Field>
-          <CheckboxLabel htmlFor={`${idPrefix}-restorative`}>
-            <CheckboxInput
-              checked={factors.isRestorative}
-              id={`${idPrefix}-restorative`}
-              onChange={(e) =>
-                onChange({ ...factors, isRestorative: e.target.checked })
-              }
-              type="checkbox"
-            />
-            Restorative?
-          </CheckboxLabel>
-        </Field>
-      </Grid>
-    </>
+          Restorative?
+        </CheckboxLabel>
+      </Field>
+    </Grid>
   );
 }
 
@@ -80,13 +77,6 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
   gap: 0.75rem;
-`;
-
-const SectionTitle = styled.div`
-    font-size: 0.875rem;
-    font-weight: bold;
-    margin-top: 0.5rem;
-    color: light-dark(var(--color-grey-700), var(--color-grey-300));
 `;
 
 const Field = styled.div`

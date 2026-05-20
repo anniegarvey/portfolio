@@ -20,7 +20,7 @@
     "configFile": "vitest.config.ts"
   },
   "ignoreStatic": true,
-  "ignorePatterns": [".claude/**"],
+  "ignorePatterns": [".claude/**", ".bash_profile", ".bashrc", ".gitconfig", ".gitmodules", ".idea", ".mcp.json", ".profile", ".ripgreprc", ".vscode", ".zprofile", ".zshrc"],
   "incremental": true,
   "incrementalFile": "reports/stryker-incremental.json",
   "concurrency": 2
