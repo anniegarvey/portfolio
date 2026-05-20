@@ -183,8 +183,6 @@ export function ActivityForm({
 
       <EnergyCostFields energyCost={energyCost} onChange={setEnergyCost} />
 
-      <ActivityFactorFields factors={factors} onChange={setFactors} />
-
       <Field>
         <Label htmlFor={`${formId}-defaultZoneId`}>Default Zone</Label>
         <Select
@@ -221,7 +219,7 @@ export function ActivityForm({
       {isRepeating && (
         <RepeatConfigRow>
           <RepeatFrequency>
-            <div>Every</div>
+            <RepeatLabel>Every</RepeatLabel>
             <FrequencyInput
               aria-label="Frequency"
               data-testid="frequency-input"
@@ -260,12 +258,7 @@ export function ActivityForm({
             </Select>
           </RepeatFrequency>
           <RepeatNextDate>
-            <Label
-              htmlFor={`${formId}-nextDueDate`}
-              style={{ fontSize: "0.8rem" }}
-            >
-              Next:
-            </Label>
+            <Label htmlFor={`${formId}-nextDueDate`}>Next:</Label>
             <FrequencyInput
               aria-label="Next Due Date"
               id={`${formId}-nextDueDate`}
@@ -277,6 +270,11 @@ export function ActivityForm({
           </RepeatNextDate>
         </RepeatConfigRow>
       )}
+
+      <FactorsDisclosure>
+        <FactorsSummary>Activity Factors</FactorsSummary>
+        <ActivityFactorFields factors={factors} onChange={setFactors} />
+      </FactorsDisclosure>
 
       <StickyBottom>
         <Button
@@ -426,4 +424,23 @@ const TextArea = styled.textarea`
 const StickyBottom = styled.div`
   position: sticky;
   bottom: 0;
+`;
+
+const RepeatLabel = styled.span`
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const FactorsDisclosure = styled.details`
+  &[open] > summary {
+    margin-bottom: 0.5rem;
+  }
+`;
+
+const FactorsSummary = styled.summary`
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+  cursor: pointer;
+  user-select: none;
 `;

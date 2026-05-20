@@ -108,17 +108,4 @@ describe("ActivityFactorFields", () => {
       isRestorative: true,
     });
   });
-
-  it("displays section title", () => {
-    const mockOnChange = vi.fn();
-    const factors = {
-      initiationDifficulty: 5,
-      terminationDifficulty: 5,
-      isRestorative: false,
-    };
-
-    render(<ActivityFactorFields factors={factors} onChange={mockOnChange} />);
-
-    expect(screen.getByText("Activity Factors")).toBeInTheDocument();
-  });
 });

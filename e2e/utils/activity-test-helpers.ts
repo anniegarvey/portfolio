@@ -75,6 +75,7 @@ export async function fillActivityForm(modal: Locator, activity: ActivityData) {
   await modal.getByLabel("Physical").fill(activity.physical);
   await modal.getByLabel("Social").fill(activity.social);
   await modal.getByLabel("Executive").fill(activity.executive);
+  await modal.getByText("Activity Factors").click();
   await modal
     .getByLabel("Start Difficulty (0-10)")
     .fill(activity.startDifficulty);
