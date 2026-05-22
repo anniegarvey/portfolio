@@ -1,5 +1,78 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+pnpm dev          # start dev server (auto-selects an available port, written to .port)
+pnpm build        # production build
+pnpm test         # unit tests (vitest, single run)
+pnpm lint         # biome check (errors on warnings)
+pnpm format       # biome format --write
+pnpm validate     # full suite: lint --fix + tsc + vitest + playwright
+pnpm validate:smart  # smart suite: only runs checks relevant to staged files (used by pre-commit)
+
+# Run a single unit test file
+pnpm vitest run src/hooks/useDayPlan.test.ts
+
+# E2E tests
+pnpm playwright test              # headless
+pnpm playwright test --ui         # interactive UI mode
+pnpm playwright show-report       # view last report
+
+# Mutation tests (run after unit test changes)
+pnpm stryker run --mutate "src/path/to/file.ts"  # 80%+ kill rate expected
+```
+
+**Hooks**: pre-commit runs `validate:smart`; pre-push runs `pnpm test`.
+
+WSL browser fix for E2E debugging: `npx @dbalabka/chrome-wsl`
+
+## Architecture
+
+**Next.js 16 app** (`src/app/`) with React 19, TypeScript, [next-yak](https://github.com/DigitecGalaxus/next-yak) for CSS-in-JS that works in Server Components, and React Compiler enabled.
+
+### Route structure
+
+| Route | Feature |
+|---|---|
+| `/` | Portfolio home (hero, projects, about) |
+| `/energy-planner` | Energy Planner app |
+| `/bonsai` | Bonsai Garden game |
+| `/projects/energy-planner`, `/projects/bonsai`, etc. | Project showcase pages |
+
+### Feature modules
+
+Each feature lives under `src/lib/<feature>/`:
+
+**`src/lib/energy-planner/`** — schema (Zod), storage (IndexedDB via idb-keyval), context (React), utils  
+**`src/lib/bonsai/`** — schema, storage, context, growth engine, shop/inventory/pruning modules, SVG tree generator  
+**`src/lib/points/`** — cross-cutting currency shared between Energy Planner and Bonsai; handles localStorage persistence, particle animations, and sound
+
+Feature-specific React hooks live in `src/hooks/` (all Energy Planner domain logic). Feature-specific components live in `src/components/energy-planner/` and `src/components/bonsai/`.
+
+### Data flow (Energy Planner)
+
+`schema.ts` (Zod types) → `storage.ts` (idb-keyval IndexedDB) → `hooks/use*.ts` (state management) → `lib/energy-planner/context.tsx` (React context) → components
+
+All state is client-side; no server-side data fetching in feature pages.
+
+### Domain vocabulary
+
+See `CONTEXT.md` for canonical terms (Activity, Planned instance, Projected instance, Day plan, Zone, etc.). Use these exact terms in code, issues, and tests — don't invent synonyms.
+
+### Testing
+
+- Unit tests co-located with source (`*.test.ts` / `*.test.tsx`), run with vitest + jsdom
+- E2E tests in `e2e/` by feature area (`energy-planner/`, `bonsai/`, `navigation/`)
+- IndexedDB is mocked via `fake-indexeddb`; `src/lib/energy-planner/__mocks__/storage.ts` for unit tests
+- Coverage thresholds enforced per-file; see `vitest.config.ts`
+- Flaky tests tracked in `e2e/FLAKY_TESTS.md`
+- `scripts/validate-map.json` maps source globs to e2e directories for smart validation
+
+---
+
 These rules apply to every task in this project unless explicitly overridden.
 Bias: caution over speed on non-trivial work. Use judgement on trivial tasks.
 
