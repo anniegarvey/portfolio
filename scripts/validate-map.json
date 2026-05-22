@@ -33,6 +33,7 @@
     "public/**",
     "docs/**",
     "plans/**",
-    "reports/**"
+    "reports/**",
+    "skills-lock.json"
   ]
 }
