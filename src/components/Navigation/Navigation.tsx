@@ -5,6 +5,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ChevronDown, Menu, Monitor, Moon, Sun, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { styled } from "next-yak";
 import { useState } from "react";
 import { PointsDisplay } from "@/components/PointsDisplay";
@@ -50,6 +51,7 @@ function ThemeToggle() {
 }
 
 export function Navigation() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [playgroundOpen, setPlaygroundOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -72,6 +74,14 @@ export function Navigation() {
       {/* Desktop Navigation */}
       <DesktopNav aria-label="Main navigation">
         <NavList>
+          <NavItem>
+            <NavLink
+              aria-current={pathname === "/" ? "page" : undefined}
+              href="/"
+            >
+              Home
+            </NavLink>
+          </NavItem>
           <ProjectsMenu />
         </NavList>
       </DesktopNav>
@@ -142,7 +152,7 @@ export function Navigation() {
                       onClick={() => setProjectsOpen((v) => !v)}
                       type="button"
                     >
-                      Projects
+                      Case Studies
                       <ChevronDown
                         aria-hidden="true"
                         data-open={projectsOpen || undefined}
@@ -277,6 +287,50 @@ const NavList = styled.ul`
   gap: 1rem;
   list-style: none;
   padding-left: 1rem;
+`;
+
+const NavItem = styled.li``;
+
+const NavLink = styled(Link)`
+  font-weight: 600;
+  font-size: 1.6rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+
+  background: linear-gradient(
+    to top,
+    light-dark(var(--color-primary-600), var(--color-primary-400)) 0%,
+    light-dark(var(--color-primary-600), var(--color-primary-400)) 47%,
+    light-dark(var(--color-grey-900), var(--color-grey-100)) 53%,
+    light-dark(var(--color-grey-900), var(--color-grey-100)) 100%
+  );
+  background-size: 100% 200%;
+  background-position: 0% 0%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  --speed: 1000ms;
+  transition: background-position calc(var(--speed) * 3) cubic-bezier(0.19, 1, 0.22, 1);
+
+  &:hover,
+  &:focus-visible {
+    background-position: 0% 100%;
+    transition: background-position var(--speed) var(--ease-out);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover,
+    &:focus-visible {
+      transition: none;
+    }
+  }
 `;
 
 const HamburgerButton = styled.button`

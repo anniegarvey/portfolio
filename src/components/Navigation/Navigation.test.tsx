@@ -23,6 +23,10 @@ vi.mock("next/image", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+}));
+
 vi.mock("next/link", () => ({
   default: ({
     children,
@@ -70,6 +74,22 @@ describe("Navigation", () => {
     expect(
       within(desktopNav).getByRole("button", { name: /projects/i }),
     ).toBeInTheDocument();
+  });
+
+  it("Home link has aria-current=page on the home route", () => {
+    renderWithTheme();
+    const { within } = require("@testing-library/dom");
+    const desktopNav = screen.getByLabelText("Main navigation");
+    const homeLink = within(desktopNav).getByRole("link", { name: /^home$/i });
+    expect(homeLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("Projects trigger has aria-controls referencing the panel", () => {
+    renderWithTheme();
+    const trigger = screen.getByRole("button", { name: /projects/i });
+    const panelId = trigger.getAttribute("aria-controls");
+    expect(panelId).toBeTruthy();
+    expect(document.getElementById(panelId ?? "")).toBeInTheDocument();
   });
 
   it("renders hamburger button", () => {
@@ -170,7 +190,9 @@ describe("Navigation", () => {
     );
     await screen.findByRole("dialog");
 
-    const projectsToggle = screen.getByRole("button", { name: /^projects$/i });
+    const projectsToggle = screen.getByRole("button", {
+      name: /^case studies$/i,
+    });
     expect(projectsToggle).toHaveAttribute("aria-expanded", "false");
 
     await user.click(projectsToggle);

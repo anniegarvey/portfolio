@@ -79,6 +79,29 @@ describe("ProjectsMenu", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("returns focus to trigger on Escape when focus is inside the panel", async () => {
+    const user = userEvent.setup();
+    const { trigger, navItem } = renderMenu();
+
+    hoverOpen(navItem);
+    // First tab lands on the trigger button, second enters the panel
+    await user.tab();
+    await user.tab();
+    expect(document.activeElement).not.toBe(trigger);
+
+    await user.keyboard("{Escape}");
+
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("trigger has aria-controls referencing the panel id", () => {
+    const { trigger } = renderMenu();
+    const panelId = trigger.getAttribute("aria-controls");
+    expect(panelId).toBeTruthy();
+    expect(document.getElementById(panelId ?? "")).toBeInTheDocument();
+  });
+
   it("closes on outside mousedown", async () => {
     const user = userEvent.setup();
     const { trigger, navItem } = renderMenu();

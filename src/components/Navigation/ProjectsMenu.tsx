@@ -3,7 +3,7 @@
 import { ArrowRight, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { styled } from "next-yak";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   CASE_STUDIES,
   CASE_STUDIES_TAGLINE,
@@ -16,6 +16,11 @@ const CLOSE_DELAY_MS = 140;
 
 export function ProjectsMenu() {
   const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const playgroundId = useId();
+  const caseStudiesId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const suppressNextFocusOpen = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -34,11 +39,20 @@ export function ProjectsMenu() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+        // Return focus to trigger when Escape is pressed from inside the panel.
+        // Suppress the onFocusCapture re-open that would otherwise fire when
+        // focus() returns to the trigger button.
+        if (wrapperRef.current?.contains(document.activeElement)) {
+          suppressNextFocusOpen.current = true;
+          triggerRef.current?.focus();
+        }
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -57,6 +71,10 @@ export function ProjectsMenu() {
         }
       }}
       onFocusCapture={() => {
+        if (suppressNextFocusOpen.current) {
+          suppressNextFocusOpen.current = false;
+          return;
+        }
         cancelClose();
         setOpen(true);
       }}
@@ -68,9 +86,10 @@ export function ProjectsMenu() {
       ref={wrapperRef}
     >
       <TriggerButton
+        aria-controls={panelId}
         aria-expanded={open}
-        aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
+        ref={triggerRef}
         type="button"
       >
         <TriggerLabel>Projects</TriggerLabel>
@@ -81,18 +100,17 @@ export function ProjectsMenu() {
         />
       </TriggerButton>
 
-      <Mega data-open={open || undefined} inert={!open} role="menu">
+      <Mega data-open={open || undefined} id={panelId} inert={!open}>
         <Column>
           <Eyebrow>Live</Eyebrow>
-          <Heading>{PLAYGROUND_LABEL}</Heading>
+          <Heading id={playgroundId}>{PLAYGROUND_LABEL}</Heading>
           <Tagline>{PLAYGROUND_TAGLINE}</Tagline>
-          <LiveList>
+          <LiveList aria-labelledby={playgroundId}>
             {LIVE_APPS.map((app) => (
               <li key={app.slug}>
                 <LiveLink
                   href={app.href}
                   onClick={() => setOpen(false)}
-                  role="menuitem"
                   style={{ "--row-accent": app.accent } as React.CSSProperties}
                 >
                   <Swatch
@@ -114,15 +132,14 @@ export function ProjectsMenu() {
 
         <Column>
           <Eyebrow>Read</Eyebrow>
-          <Heading>Case Studies</Heading>
+          <Heading id={caseStudiesId}>Case Studies</Heading>
           <Tagline>{CASE_STUDIES_TAGLINE}</Tagline>
-          <CaseGrid>
+          <CaseGrid aria-labelledby={caseStudiesId}>
             {CASE_STUDIES.map((cs) => (
               <li key={cs.slug}>
                 <CaseCard
                   href={cs.href}
                   onClick={() => setOpen(false)}
-                  role="menuitem"
                   style={{ "--row-accent": cs.accent } as React.CSSProperties}
                 >
                   <CardStripe />
