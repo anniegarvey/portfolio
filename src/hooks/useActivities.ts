@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { getTodayDateString } from "@/lib/date";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { fetchActivities, storeActivities } from "@/lib/energy-planner/storage";
 
@@ -41,8 +42,7 @@ export function useActivities() {
         repeatConfig: {
           ...activityData.repeatConfig,
           nextDueDate:
-            activityData.repeatConfig.nextDueDate ||
-            new Date().toISOString().split("T")[0],
+            activityData.repeatConfig.nextDueDate || getTodayDateString(),
         },
       }),
     };

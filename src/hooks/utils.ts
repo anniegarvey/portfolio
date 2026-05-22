@@ -13,6 +13,7 @@ import {
 /**
  * Creates a default capacity object from energy types
  */
+
 export function getDefaultCapacity(
   energyTypes: EnergyTypeConfig[],
 ): EnergyCost {
@@ -24,13 +25,6 @@ export function getDefaultCapacity(
 
 export const defaultCapacity: EnergyCost =
   getDefaultCapacity(DEFAULT_ENERGY_TYPES);
-
-/**
- * Get today's date in YYYY-MM-DD format
- */
-export function getTodayDateString(): string {
-  return new Date().toISOString().split("T")[0];
-}
 
 /**
  * Load a day plan for a specific date from IndexedDB
@@ -68,44 +62,6 @@ export function createEmptyDayPlan(date: string): DayPlan {
  */
 export async function getAllStoredDates(): Promise<string[]> {
   return fetchAllDayPlanDates();
-}
-
-/**
- * Format a date string for display (e.g., "Tuesday, January 14, 2026")
- */
-export function formatDateForDisplay(dateString: string): string {
-  const date = new Date(`${dateString}T12:00:00`); // Add time to avoid timezone issues
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-/**
- * Check if a date string is today
- */
-export function isToday(dateString: string): boolean {
-  return dateString === getTodayDateString();
-}
-
-/**
- * Get the previous day's date string
- */
-export function getPreviousDay(dateString: string): string {
-  const date = new Date(`${dateString}T12:00:00`);
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().split("T")[0];
-}
-
-/**
- * Get the next day's date string
- */
-export function getNextDay(dateString: string): string {
-  const date = new Date(`${dateString}T12:00:00`);
-  date.setDate(date.getDate() + 1);
-  return date.toISOString().split("T")[0];
 }
 
 /**

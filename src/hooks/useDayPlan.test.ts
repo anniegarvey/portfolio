@@ -1,10 +1,10 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getNextDay, getTodayDateString } from "@/lib/date";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { fetchDayPlan, storeDayPlan } from "@/lib/energy-planner/storage";
 import { useDayPlan } from "./useDayPlan";
-import { getNextDay, getTodayDateString } from "./utils";
 
 vi.mock("@/lib/energy-planner/storage");
 

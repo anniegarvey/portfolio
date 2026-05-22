@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { getNextDay, getPreviousDay, getTodayDateString } from "@/lib/date";
 import type {
   Activity,
   DayPlan,
@@ -14,9 +15,6 @@ import {
   createEmptyDayPlan,
   defaultCapacity,
   fetchDayPlanForDate,
-  getNextDay,
-  getPreviousDay,
-  getTodayDateString,
   saveDayPlanForDate,
 } from "./utils";
 

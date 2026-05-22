@@ -4,7 +4,7 @@ import { Settings } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
 import { Button } from "@/components/Button";
-import { formatDateForDisplay, isToday } from "@/hooks/utils";
+import { formatDateForDisplay, isToday } from "@/lib/date";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import { usePoints } from "../../../lib/points/context";
 import { Modal } from "../../Modal";

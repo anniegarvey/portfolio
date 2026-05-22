@@ -3,8 +3,8 @@
 import { ArrowRight, Check, Undo2 } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
-import { formatDateForDisplay } from "@/hooks/utils";
 import { QUERIES } from "@/lib/constants";
+import { formatDateForDisplay } from "@/lib/date";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
 import { usePoints } from "@/lib/points/context";

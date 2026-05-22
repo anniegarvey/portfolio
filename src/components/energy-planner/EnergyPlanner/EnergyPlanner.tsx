@@ -9,7 +9,7 @@ import { ImportExport } from "@/components/energy-planner/ImportExport";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { Toggletip } from "@/components/Toggletip";
-import { isToday } from "@/hooks/utils";
+import { isToday } from "@/lib/date";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
 

@@ -10,7 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useMemo, useState } from "react";
-import { getTodayDateString, isToday } from "@/hooks/utils";
+import { getTodayDateString, isToday } from "@/lib/date";
 import { getReorderedItems } from "@/lib/energy-planner/utils";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
 import type { ResolvedActivity } from "../../../lib/energy-planner/schema";

@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { getTodayDateString } from "@/lib/date";
 import { LAST_ACTIVE_DATE_KEY } from "./keys";
 import { playCollectSound, playDepositSound } from "./sounds";
 
@@ -178,10 +179,7 @@ export function PointsProvider({ children }: { children: ReactNode }) {
 
   const awardPoints = useCallback((amount: number, rect: DOMRect) => {
     if (typeof window === "undefined") return;
-    localStorage.setItem(
-      LAST_ACTIVE_DATE_KEY,
-      new Date().toISOString().split("T")[0],
-    );
+    localStorage.setItem(LAST_ACTIVE_DATE_KEY, getTodayDateString());
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
 

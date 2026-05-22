@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { getTodayDateString } from "@/lib/date";
 import { type BonsaiGameState, BonsaiGameStateSchema } from "./schema";
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
@@ -82,7 +83,7 @@ export function createInitialState(): BonsaiGameState {
         speciesId: "pine",
         name: "Pine 1",
         activeDaysCount: 0,
-        acquiredAt: new Date().toISOString().split("T")[0],
+        acquiredAt: getTodayDateString(),
         prunedBranches: [],
         gardenPosition: { x: 50, y: 50 },
         equippedPotId: "simple-clay-small",

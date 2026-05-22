@@ -8,6 +8,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
 import { LAST_ACTIVE_DATE_KEY } from "@/lib/points/keys";
 import { SHOP_CATALOG } from "./catalog";
@@ -67,10 +68,6 @@ const BonsaiContext = createContext<BonsaiContextType | undefined>(undefined);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function today(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
 // ─── Empty state used for the initial SSR render ──────────────────────────────
 // This constant is the same on both server and client, so there is no
 // hydration mismatch. The real state (from localStorage) is loaded in the
@@ -115,7 +112,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loaded = loadBonsaiState();
     const lastActiveDateEP = localStorage.getItem(LAST_ACTIVE_DATE_KEY);
-    const todayStr = today();
+    const todayStr = getTodayDateString();
 
     setState((_prev) => {
       let next = cleanRegrownBranches(loaded ?? createInitialState());
@@ -145,7 +142,10 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
 
   const confirmPlantAt = useCallback(
     (speciesId: SpeciesId, position: GardenPosition) => {
-      setState((prev) => plantTree(prev, speciesId, position, today()) ?? prev);
+      setState(
+        (prev) =>
+          plantTree(prev, speciesId, position, getTodayDateString()) ?? prev,
+      );
       setPlacingSpeciesId(null);
     },
     [setState],
@@ -230,7 +230,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
   );
 
   const advanceDay = useCallback(() => {
-    const todayStr = today();
+    const todayStr = getTodayDateString();
     setState((prev) => growWateredTrees(prev, todayStr));
   }, [setState]);
 
