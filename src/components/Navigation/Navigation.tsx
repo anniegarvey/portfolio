@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Menu, Monitor, Moon, Sun, X } from "lucide-react";
+import { ChevronDown, Menu, Monitor, Moon, Sun, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { styled } from "next-yak";
@@ -10,6 +10,8 @@ import { useState } from "react";
 import { PointsDisplay } from "@/components/PointsDisplay";
 import { type ThemeSetting, useTheme } from "@/components/ThemeProvider";
 import { QUERIES } from "@/lib/constants";
+import { ProjectsMenu } from "./ProjectsMenu";
+import { CASE_STUDIES, LIVE_APPS, PLAYGROUND_LABEL } from "./projects";
 
 const THEME_META: Record<
   ThemeSetting,
@@ -47,15 +49,10 @@ function ThemeToggle() {
   );
 }
 
-const MOBILE_HOME = { href: "/", label: "Home" };
-const NAV_ITEMS = [
-  { href: "/colour-palette", label: "Colour Palette" },
-  { href: "/energy-planner", label: "Energy Planner" },
-  { href: "/bonsai", label: "Bonsai" },
-] as const;
-
 export function Navigation() {
   const [open, setOpen] = useState(false);
+  const [playgroundOpen, setPlaygroundOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
 
   const handleLinkClick = () => setOpen(false);
 
@@ -75,11 +72,7 @@ export function Navigation() {
       {/* Desktop Navigation */}
       <DesktopNav aria-label="Main navigation">
         <NavList>
-          {NAV_ITEMS.map((item) => (
-            <NavItem key={item.href}>
-              <NavLink href={item.href}>{item.label}</NavLink>
-            </NavItem>
-          ))}
+          <ProjectsMenu />
         </NavList>
       </DesktopNav>
 
@@ -102,15 +95,81 @@ export function Navigation() {
                 <CloseButton aria-label="Close navigation menu">
                   <X aria-hidden="true" size={32} />
                 </CloseButton>
+
                 <MobileNavList>
-                  {[MOBILE_HOME, ...NAV_ITEMS].map((item) => (
-                    <MobileNavItem key={item.href}>
-                      <MobileNavLink href={item.href} onClick={handleLinkClick}>
-                        {item.label}
-                      </MobileNavLink>
-                    </MobileNavItem>
-                  ))}
+                  <MobileNavItem>
+                    <MobileNavLink href="/" onClick={handleLinkClick}>
+                      Home
+                    </MobileNavLink>
+                  </MobileNavItem>
+
+                  <MobileSection>
+                    <MobileToggle
+                      aria-expanded={playgroundOpen}
+                      onClick={() => setPlaygroundOpen((v) => !v)}
+                      type="button"
+                    >
+                      {PLAYGROUND_LABEL}
+                      <ChevronDown
+                        aria-hidden="true"
+                        data-open={playgroundOpen || undefined}
+                        size={18}
+                      />
+                    </MobileToggle>
+                    <MobileSub data-open={playgroundOpen || undefined}>
+                      <MobileSubInner>
+                        {LIVE_APPS.map((app) => (
+                          <li key={app.slug}>
+                            <MobileSubLink
+                              href={app.href}
+                              onClick={handleLinkClick}
+                            >
+                              <MobileSwatch
+                                aria-hidden="true"
+                                style={{ background: app.accent }}
+                              />
+                              {app.title}
+                            </MobileSubLink>
+                          </li>
+                        ))}
+                      </MobileSubInner>
+                    </MobileSub>
+                  </MobileSection>
+
+                  <MobileSection>
+                    <MobileToggle
+                      aria-expanded={projectsOpen}
+                      onClick={() => setProjectsOpen((v) => !v)}
+                      type="button"
+                    >
+                      Projects
+                      <ChevronDown
+                        aria-hidden="true"
+                        data-open={projectsOpen || undefined}
+                        size={18}
+                      />
+                    </MobileToggle>
+                    <MobileSub data-open={projectsOpen || undefined}>
+                      <MobileSubInner>
+                        {CASE_STUDIES.map((cs) => (
+                          <li key={cs.slug}>
+                            <MobileSubLink
+                              href={cs.href}
+                              onClick={handleLinkClick}
+                            >
+                              <MobileSwatch
+                                aria-hidden="true"
+                                style={{ background: cs.accent }}
+                              />
+                              {cs.title}
+                            </MobileSubLink>
+                          </li>
+                        ))}
+                      </MobileSubInner>
+                    </MobileSub>
+                  </MobileSection>
                 </MobileNavList>
+
                 <MobileThemeSection>
                   <MobileThemeLabel>Theme</MobileThemeLabel>
                   <ThemeToggle />
@@ -170,6 +229,7 @@ const DesktopNav = styled.nav`
   @media (${QUERIES.TABLET_UP}) {
     display: flex;
     align-items: center;
+    justify-content: center;
   }
 `;
 
@@ -219,48 +279,6 @@ const NavList = styled.ul`
   padding-left: 1rem;
 `;
 
-const NavItem = styled.li``;
-
-const NavLink = styled(Link)`
-  font-weight: 600;
-  font-size: 1.6rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  text-decoration: none;
-
-  /* Liquid fills the text glyphs from bottom to top */
-  background: linear-gradient(
-    to top,
-    light-dark(var(--color-primary-600), var(--color-primary-400)) 0%,
-    light-dark(var(--color-primary-600), var(--color-primary-400)) 47%,
-    light-dark(var(--color-grey-900), var(--color-grey-100)) 53%,
-    light-dark(var(--color-grey-900), var(--color-grey-100)) 100%
-  );
-  background-size: 100% 200%;
-  background-position: 0% 0%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  --speed: 1000ms;
-  transition: background-position calc(var(--speed) * 3) cubic-bezier(0.19, 1, 0.22, 1);
-
-  &:hover,
-  &:focus-visible {
-    background-position: 0% 100%;
-    transition: background-position var(--speed) var(--ease-out);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-primary-400);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover, &:focus-visible { transition: none; }
-  }
-`;
-
 const HamburgerButton = styled.button`
   background: none;
   border: none;
@@ -305,6 +323,8 @@ const StyledContent = styled.div`
   box-shadow: var(--elevation-lg);
   overscroll-behavior: contain;
   animation: slideInFromRight 300ms ease;
+  display: flex;
+  flex-direction: column;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -335,7 +355,7 @@ const CloseButton = styled(Dialog.Close)`
 const MobileNavList = styled.ul`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.25rem;
   list-style: none;
   margin-top: 3rem;
 `;
@@ -350,10 +370,9 @@ const MobileNavLink = styled(Link)`
   font-size: 1.6rem;
   text-decoration: none;
   display: block;
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 0.5rem;
   border-radius: 4px;
 
-  /* Liquid fills the text glyphs from bottom to top */
   background: linear-gradient(
     to top,
     var(--color-primary-500) 0%,
@@ -383,6 +402,107 @@ const MobileNavLink = styled(Link)`
     transition: none;
     &:hover, &:focus-visible { transition: none; }
   }
+`;
+
+const MobileSection = styled.li`
+  border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-800));
+  padding-bottom: 0.25rem;
+  list-style: none;
+`;
+
+const MobileToggle = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.5rem 0.5rem;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 1.6rem;
+  color: light-dark(var(--color-grey-900), var(--color-grey-100));
+  border-radius: 4px;
+
+  & > svg {
+    color: light-dark(var(--color-grey-600), var(--color-grey-300));
+    transition: transform 200ms var(--ease-out), color 200ms ease;
+  }
+  & > svg[data-open] {
+    transform: rotate(180deg);
+    color: var(--color-primary-400);
+  }
+
+  &[aria-expanded="true"] {
+    color: var(--color-primary-400);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    & > svg { transition: none; }
+  }
+`;
+
+const MobileSub = styled.div`
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms var(--ease-out);
+
+  &[data-open] {
+    grid-template-rows: 1fr;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const MobileSubInner = styled.ul`
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.25rem 0 0.5rem 0.5rem;
+  list-style: none;
+`;
+
+const MobileSubLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 500;
+  border-radius: 4px;
+  color: light-dark(var(--color-grey-900), var(--color-grey-100));
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--color-primary-400);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+`;
+
+const MobileSwatch = styled.span`
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 1px oklch(100% 0 0 / 0.12),
+    0 1px 2px oklch(0% 0 0 / 0.25);
 `;
 
 const DesktopSide = styled.div`
@@ -426,13 +546,11 @@ const ThemeToggleButton = styled.button`
 `;
 
 const MobileThemeSection = styled.div`
-  position: absolute;
-  bottom: 2rem;
+  margin-top: auto;
   width: 100%;
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-top: 1.5rem;
   padding-top: 1.5rem;
 `;
 

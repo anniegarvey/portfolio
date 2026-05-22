@@ -61,16 +61,14 @@ describe("Navigation", () => {
     expect(logo).toBeInTheDocument();
   });
 
-  it("renders desktop navigation links", () => {
+  it("renders desktop navigation with Projects trigger", () => {
     renderWithTheme();
-    // Desktop links are in a nav with aria-label="Main navigation"
     const desktopNav = screen.getByLabelText("Main navigation");
     expect(desktopNav).toBeInTheDocument();
 
-    // Use within() to scope queries to desktop navigation
     const { within } = require("@testing-library/dom");
     expect(
-      within(desktopNav).getByRole("link", { name: "Colour Palette" }),
+      within(desktopNav).getByRole("button", { name: /projects/i }),
     ).toBeInTheDocument();
   });
 
@@ -127,28 +125,56 @@ describe("Navigation", () => {
     const user = userEvent.setup();
     renderWithTheme();
 
-    // Open first
     const hamburgerButton = screen.getByRole("button", {
       name: "Toggle navigation menu",
     });
     await user.click(hamburgerButton);
 
-    // Find links in the dialog
     const dialog = await screen.findByRole("dialog");
 
-    // Let's use `within`
     const { within } = require("@testing-library/dom");
 
-    const mobileNavLink = within(dialog).getByRole("link", {
-      name: /^Colour Palette$/,
-    });
+    const mobileNavLink = within(dialog).getByRole("link", { name: /^Home$/ });
 
     await user.click(mobileNavLink);
 
-    // Verify dialog is closed
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("expands Playground section in mobile menu", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    await screen.findByRole("dialog");
+
+    const playgroundToggle = screen.getByRole("button", {
+      name: /playground/i,
+    });
+    expect(playgroundToggle).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(playgroundToggle);
+    expect(playgroundToggle).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("expands Projects section in mobile menu", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    await screen.findByRole("dialog");
+
+    const projectsToggle = screen.getByRole("button", { name: /^projects$/i });
+    expect(projectsToggle).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(projectsToggle);
+    expect(projectsToggle).toHaveAttribute("aria-expanded", "true");
   });
 
   it("renders theme toggle button defaulting to system mode", () => {
