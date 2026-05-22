@@ -9,16 +9,12 @@ const CONTENT = "Plan your day according to your energy levels.";
 describe("Toggletip", () => {
   it("renders the trigger button", () => {
     render(<Toggletip content={CONTENT} />);
-    expect(
-      screen.getByRole("button", { name: "About" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "About" })).toBeInTheDocument();
   });
 
   it("hides the popover by default", () => {
     render(<Toggletip content={CONTENT} />);
-    expect(
-      screen.getByRole("status", { hidden: true }),
-    ).not.toBeVisible();
+    expect(screen.getByRole("status", { hidden: true })).not.toBeVisible();
   });
 
   it("shows the popover when the button is clicked", async () => {
@@ -35,9 +31,7 @@ describe("Toggletip", () => {
     const btn = screen.getByRole("button", { name: "About" });
     await user.click(btn);
     await user.click(btn);
-    expect(
-      screen.getByRole("status", { hidden: true }),
-    ).not.toBeVisible();
+    expect(screen.getByRole("status", { hidden: true })).not.toBeVisible();
   });
 
   it("hides the popover when Escape is pressed", async () => {
@@ -45,9 +39,7 @@ describe("Toggletip", () => {
     render(<Toggletip content={CONTENT} />);
     await user.click(screen.getByRole("button", { name: "About" }));
     await user.keyboard("{Escape}");
-    expect(
-      screen.getByRole("status", { hidden: true }),
-    ).not.toBeVisible();
+    expect(screen.getByRole("status", { hidden: true })).not.toBeVisible();
   });
 
   it("hides the popover when clicking outside", async () => {
@@ -61,9 +53,7 @@ describe("Toggletip", () => {
     await user.click(screen.getByRole("button", { name: "About" }));
     expect(screen.getByRole("status")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Outside" }));
-    expect(
-      screen.getByRole("status", { hidden: true }),
-    ).not.toBeVisible();
+    expect(screen.getByRole("status", { hidden: true })).not.toBeVisible();
   });
 
   it("sets aria-expanded correctly", async () => {

@@ -21,7 +21,10 @@ export function Toggletip({ content }: ToggletipProps) {
       if (e.key === "Escape") setOpen(false);
     };
     const onOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -58,7 +61,6 @@ const Wrapper = styled.span`
   display: inline-flex;
   align-items: center;
 `;
-
 
 const Popover = styled.span`
   position: absolute;

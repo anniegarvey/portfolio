@@ -12,6 +12,20 @@
   "ignoreStatic": true,
   "incremental": true,
   "incrementalFile": "reports/stryker-incremental.json",
-  "ignorePatterns": ["/reports", ".claude/**", ".bash_profile", ".bashrc", ".gitconfig", ".gitmodules", ".idea", ".mcp.json", ".profile", ".ripgreprc", ".vscode", ".zprofile", ".zshrc"],
+  "ignorePatterns": [
+    "/reports",
+    ".claude/**",
+    ".bash_profile",
+    ".bashrc",
+    ".gitconfig",
+    ".gitmodules",
+    ".idea",
+    ".mcp.json",
+    ".profile",
+    ".ripgreprc",
+    ".vscode",
+    ".zprofile",
+    ".zshrc"
+  ],
   "concurrency": 2
 }
