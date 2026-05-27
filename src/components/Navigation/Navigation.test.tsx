@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { usePathname } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { PointsProvider } from "@/lib/points/context";
@@ -21,6 +22,10 @@ vi.mock("next/image", () => ({
     // biome-ignore lint/performance/noImgElement: This is a mock component for testing
     <img alt={alt} {...props} />
   ),
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn().mockReturnValue("/"),
 }));
 
 vi.mock("next/link", () => ({
@@ -53,6 +58,7 @@ describe("Navigation", () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
+    vi.mocked(usePathname).mockReturnValue("/");
   });
 
   it("renders the logo with correct alt text", () => {
@@ -61,17 +67,40 @@ describe("Navigation", () => {
     expect(logo).toBeInTheDocument();
   });
 
-  it("renders desktop navigation links", () => {
+  it("renders desktop navigation with Projects trigger", () => {
     renderWithTheme();
-    // Desktop links are in a nav with aria-label="Main navigation"
     const desktopNav = screen.getByLabelText("Main navigation");
     expect(desktopNav).toBeInTheDocument();
 
-    // Use within() to scope queries to desktop navigation
     const { within } = require("@testing-library/dom");
     expect(
-      within(desktopNav).getByRole("link", { name: "Colour Palette" }),
+      within(desktopNav).getByRole("button", { name: /projects/i }),
     ).toBeInTheDocument();
+  });
+
+  it("Home link has aria-current=page on the home route", () => {
+    renderWithTheme();
+    const { within } = require("@testing-library/dom");
+    const desktopNav = screen.getByLabelText("Main navigation");
+    const homeLink = within(desktopNav).getByRole("link", { name: /^home$/i });
+    expect(homeLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("Home link has no aria-current on other routes", () => {
+    vi.mocked(usePathname).mockReturnValue("/energy-planner");
+    renderWithTheme();
+    const { within } = require("@testing-library/dom");
+    const desktopNav = screen.getByLabelText("Main navigation");
+    const homeLink = within(desktopNav).getByRole("link", { name: /^home$/i });
+    expect(homeLink).not.toHaveAttribute("aria-current");
+  });
+
+  it("Projects trigger has aria-controls referencing the panel", () => {
+    renderWithTheme();
+    const trigger = screen.getByRole("button", { name: /projects/i });
+    const panelId = trigger.getAttribute("aria-controls");
+    expect(panelId).toBeTruthy();
+    expect(document.getElementById(panelId ?? "")).toBeInTheDocument();
   });
 
   it("renders hamburger button", () => {
@@ -127,28 +156,58 @@ describe("Navigation", () => {
     const user = userEvent.setup();
     renderWithTheme();
 
-    // Open first
     const hamburgerButton = screen.getByRole("button", {
       name: "Toggle navigation menu",
     });
     await user.click(hamburgerButton);
 
-    // Find links in the dialog
     const dialog = await screen.findByRole("dialog");
 
-    // Let's use `within`
     const { within } = require("@testing-library/dom");
 
-    const mobileNavLink = within(dialog).getByRole("link", {
-      name: /^Colour Palette$/,
-    });
+    const mobileNavLink = within(dialog).getByRole("link", { name: /^Home$/ });
 
     await user.click(mobileNavLink);
 
-    // Verify dialog is closed
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("expands Playground section in mobile menu", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    await screen.findByRole("dialog");
+
+    const playgroundToggle = screen.getByRole("button", {
+      name: /playground/i,
+    });
+    expect(playgroundToggle).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(playgroundToggle);
+    expect(playgroundToggle).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("expands Projects section in mobile menu", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    await screen.findByRole("dialog");
+
+    const projectsToggle = screen.getByRole("button", {
+      name: /^case studies$/i,
+    });
+    expect(projectsToggle).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(projectsToggle);
+    expect(projectsToggle).toHaveAttribute("aria-expanded", "true");
   });
 
   it("renders theme toggle button defaulting to system mode", () => {
