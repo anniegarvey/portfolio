@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { usePathname } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { PointsProvider } from "@/lib/points/context";
@@ -24,7 +25,7 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: vi.fn().mockReturnValue("/"),
 }));
 
 vi.mock("next/link", () => ({
@@ -57,6 +58,7 @@ describe("Navigation", () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
+    vi.mocked(usePathname).mockReturnValue("/");
   });
 
   it("renders the logo with correct alt text", () => {
@@ -82,6 +84,15 @@ describe("Navigation", () => {
     const desktopNav = screen.getByLabelText("Main navigation");
     const homeLink = within(desktopNav).getByRole("link", { name: /^home$/i });
     expect(homeLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("Home link has no aria-current on other routes", () => {
+    vi.mocked(usePathname).mockReturnValue("/energy-planner");
+    renderWithTheme();
+    const { within } = require("@testing-library/dom");
+    const desktopNav = screen.getByLabelText("Main navigation");
+    const homeLink = within(desktopNav).getByRole("link", { name: /^home$/i });
+    expect(homeLink).not.toHaveAttribute("aria-current");
   });
 
   it("Projects trigger has aria-controls referencing the panel", () => {
