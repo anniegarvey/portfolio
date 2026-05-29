@@ -45,6 +45,28 @@ A one-off activity that was planned on a past date but never marked complete. Su
 
 ---
 
+## Wellness Check
+
+A periodic self-tracking prompt within the Energy Planner. The user configures how often it appears and which subjective metrics it captures, building a longitudinal record of personal warning signs (tiredness, irritability, poor sleep, etc.). Distinct from an **Activity** — it captures structured data rather than being completed/skipped, and does not consume **Daily capacity** or award **Points** the same way.
+
+### Terms
+
+**Wellness check**
+The single, user-configurable prompt. Holds a calendar-anchored schedule (`anchorDate`, `frequency`, `unit`) and an ordered list of **Metrics**. Unlike a **Repeating activity**, it has no mutable `nextDueDate` — due-ness is *derived* from the schedule plus the **Wellness entry** history. Borrows the frequency/unit vocabulary but not the projection machinery.
+
+**Period**
+One occurrence window in the check's schedule (e.g. each Mon–Sun for a weekly check), defined by the anchor date and frequency. The check is **pending** whenever the period containing today has no **Wellness entry**; the prompt carries forward through the whole period until filled, then closes when the next period begins. There is no skip action — an unfilled period simply ends with no entry.
+
+**Metric**
+A named dimension the user rates each check, on a fixed 1–5 scale, with optional free-text labels for the low and high ends (e.g. "1 = Exhausted … 5 = Energised"). User-defined; the source of truth for what is asked. Raw values only — no "good/bad direction" semantics.
+
+**Wellness entry**
+The captured record for one filled check, dated to the day it was filled in (the actual report day, even if the period started earlier). Snapshots each configured metric's id, label, and value at capture time (value may be null for an unanswered metric), plus an optional free-text note — making entries self-describing, immutable historical records that survive later edits or deletion of a **Metric**. Must contain at least one answered metric or a note to count as filled.
+
+_Avoid_: "mood log", "journal entry" (a wellness entry is structured ratings, not prose).
+
+---
+
 ## Bonsai Garden
 
 An idle-game-style tree collection. Users grow trees by watering daily, buy equipment and species with points, apply fertilizers, and prune branches.
