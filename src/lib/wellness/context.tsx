@@ -1,0 +1,120 @@
+"use client";
+
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { v4 as uuidv4 } from "uuid";
+import { getTodayDateString } from "@/lib/date";
+import { isCheckPending } from "./schedule";
+import type {
+  WellnessConfig,
+  WellnessEntry,
+  WellnessEntryMetric,
+} from "./schema";
+import { DEFAULT_WELLNESS_METRICS } from "./schema";
+import {
+  fetchWellnessConfig,
+  fetchWellnessEntries,
+  storeWellnessConfig,
+  storeWellnessEntries,
+} from "./storage";
+
+export interface WellnessCheckContextType {
+  config: WellnessConfig;
+  entries: WellnessEntry[];
+  isPending: boolean;
+  isLoading: boolean;
+  saveEntry: (metrics: WellnessEntryMetric[]) => Promise<void>;
+}
+
+// biome-ignore lint/style/useComponentExportOnlyModules: context + provider + hook in one module
+export const WellnessCheckContext = createContext<
+  WellnessCheckContextType | undefined
+>(undefined);
+
+export function WellnessProvider({ children }: { children: ReactNode }) {
+  const [config, setConfig] = useState<WellnessConfig>(() => ({
+    enabled: true,
+    anchorDate: getTodayDateString(),
+    frequency: 1,
+    unit: "weeks",
+    metrics: DEFAULT_WELLNESS_METRICS,
+  }));
+  const [entries, setEntries] = useState<WellnessEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [storedConfig, storedEntries] = await Promise.all([
+        fetchWellnessConfig(),
+        fetchWellnessEntries(),
+      ]);
+
+      if (cancelled) return;
+
+      if (storedConfig) {
+        setConfig(storedConfig);
+      } else {
+        const defaultConfig: WellnessConfig = {
+          enabled: true,
+          anchorDate: getTodayDateString(),
+          frequency: 1,
+          unit: "weeks",
+          metrics: DEFAULT_WELLNESS_METRICS,
+        };
+        await storeWellnessConfig(defaultConfig);
+        setConfig(defaultConfig);
+      }
+
+      setEntries(storedEntries);
+      setIsLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isPending = useMemo(
+    () => isCheckPending(config, entries, getTodayDateString()),
+    [config, entries],
+  );
+
+  const saveEntry = useCallback(
+    async (metrics: WellnessEntryMetric[]) => {
+      const entry: WellnessEntry = {
+        id: uuidv4(),
+        date: getTodayDateString(),
+        metrics,
+      };
+      const newEntries = [...entries, entry];
+      await storeWellnessEntries(newEntries);
+      setEntries(newEntries);
+    },
+    [entries],
+  );
+
+  return (
+    <WellnessCheckContext.Provider
+      value={{ config, entries, isPending, isLoading, saveEntry }}
+    >
+      {children}
+    </WellnessCheckContext.Provider>
+  );
+}
+
+// biome-ignore lint/style/useComponentExportOnlyModules: Standard pattern for Context + Hook
+export function useWellnessCheck() {
+  const context = use(WellnessCheckContext);
+  if (context === undefined) {
+    throw new Error("useWellnessCheck must be used within a WellnessProvider");
+  }
+  return context;
+}

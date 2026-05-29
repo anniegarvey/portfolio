@@ -39,7 +39,7 @@ export async function goToEnergyPlanner(
     const executiveSlider = page.getByRole("slider", { name: "Executive" });
     await executiveSlider.fill(executive);
 
-    await page.getByRole("button", { name: "Save" }).click();
+    await modal.getByRole("button", { name: "Save" }).click();
     await modal.waitFor({ state: "hidden", timeout: 2000 });
   } catch {
     // Modal didn't appear, that's fine
