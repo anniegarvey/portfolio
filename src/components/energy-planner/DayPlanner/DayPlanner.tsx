@@ -2,8 +2,11 @@
 
 import { Pencil, Plus } from "lucide-react";
 import { styled } from "next-yak";
+import { use } from "react";
 import { Button } from "@/components/Button";
+import { WellnessCheckCard } from "@/components/energy-planner/WellnessCheckCard";
 import { QUERIES } from "@/lib/constants";
+import { WellnessCheckContext } from "@/lib/wellness/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
@@ -29,6 +32,8 @@ export function DayPlanner({
   onOpenCreateActivity,
   onOpenCapacityModal,
 }: DayPlannerProps) {
+  const wellnessCtx = use(WellnessCheckContext);
+
   const {
     isLoading,
     currentDate,
@@ -122,6 +127,10 @@ export function DayPlanner({
       ) : null}
 
       <UncompletedActivitiesSection activities={viewedUncompletedActivities} />
+
+      {wellnessCtx?.isPending && !wellnessCtx.isLoading ? (
+        <WellnessCheckCard />
+      ) : null}
 
       <PlannedActivitiesDndSection
         activeResolved={activeResolved}

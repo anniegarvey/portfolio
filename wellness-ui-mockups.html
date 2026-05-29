@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wellness Check — UI option comparison</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #f0f1f4;
+    --border: #e2e5ea;
+    --text: #1c2230;
+    --text-dim: #6b7280;
+    --text-faint: #9aa1ad;
+    --accent: #7c5cfc;      /* wellness violet — distinct from energy-type colours */
+    --accent-soft: #ece7ff;
+    --accent-2: #14b8a6;
+    --rose: #f43f5e;
+    --orange: #f97316;
+    --shadow: 0 1px 2px rgba(20,25,40,.06), 0 6px 20px rgba(20,25,40,.06);
+    --radius: 14px;
+  }
+  [data-theme="dark"] {
+    --bg: #0f1218;
+    --surface: #181c24;
+    --surface-2: #20252f;
+    --border: #2a303b;
+    --text: #e8ebf0;
+    --text-dim: #9aa3b2;
+    --text-faint: #6b7280;
+    --accent: #9d83ff;
+    --accent-soft: #2a2350;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .wrap { max-width: 1180px; padding: 32px 24px 96px; margin: 0 auto; }
+  header.page { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.02em; }
+  .lede { max-width: 680px; margin: 0 0 4px; color: var(--text-dim); }
+  .theme-btn {
+    padding: 8px 16px; font-size: 14px; color: var(--text);white-space: nowrap;cursor: pointer; background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: 999px; 
+    box-shadow: var(--shadow);
+  }
+  .theme-btn:hover { border-color: var(--accent); }
+
+  section.block { margin-top: 56px; }
+  .block-head { padding-bottom: 10px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+  .block-head h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -.01em; }
+  .block-head p { max-width: 760px; margin: 0; font-size: 14px; color: var(--text-dim); }
+  .tag { display:inline-block; padding: 3px 9px; margin-bottom:8px; font-size:11px; font-weight:700; 
+         color: var(--accent); text-transform:uppercase;letter-spacing:.06em; background: var(--accent-soft); border-radius: 999px; }
+
+  .grid { display: grid; gap: 20px; }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 920px){ .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; } }
+
+  .variant { display:flex; flex-direction:column; }
+  .variant > h3 { margin: 0 0 2px; font-size: 14px; }
+  .variant > .note { min-height: 32px; margin: 0 0 12px; font-size: 12.5px; color: var(--text-dim); }
+
+  /* the simulated planner context behind a card */
+  .planner-ctx {
+    display:flex; flex-direction:column; gap:12px;
+    padding: 16px;
+    background: var(--surface-2);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+  .ctx-label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing:.06em; }
+
+  /* ===== the wellness card chrome ===== */
+  .wcard {
+    position: relative;
+    padding: 16px 16px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .wcard-head { display:flex; gap:8px; align-items:center; margin-bottom: 14px; }
+  .wcard-head .ico {
+    display:grid; flex: 0 0 auto;place-items:center; 
+    width: 26px; height: 26px; color: var(--accent);background: var(--accent-soft); border-radius: 8px;
+  }
+  .wcard-head .title { font-size: 15px; font-weight: 650; }
+  .wcard-head .sub { font-size: 12px; color: var(--text-faint); }
+  .wcard-head .spacer { flex:1; }
+  .optout { padding:4px; font-size:12px; color: var(--text-faint); cursor:pointer; background:none; border:none; border-radius:6px; }
+  .optout:hover { color: var(--rose); background: var(--surface-2); }
+
+  .metric-row { margin-bottom: 12px; }
+  .metric-row .m-label { display:flex; justify-content:space-between; margin-bottom: 7px; font-size: 13.5px; font-weight: 550; }
+  .ends { display:flex; justify-content:space-between; margin-top: 5px; font-size: 11px; color: var(--text-faint); }
+
+  /* numbered segmented control */
+  .seg { display:flex; gap:6px; }
+  .seg button {
+    flex:1; padding: 9px 4px; font-size: 14px; font-weight:600; line-height:1;color: var(--text-dim);
+    white-space: nowrap; cursor:pointer; background: var(--surface); border:1px solid var(--border); 
+    border-radius: 9px; transition: all .12s;
+  }
+  .seg button.end { flex: 2.2; }
+  .seg button:hover { color: var(--text); border-color: var(--accent); }
+  .seg button.sel { color:#fff; background: var(--accent); border-color: var(--accent); }
+  .seg button .el { font-size:12px; font-weight:500; opacity:.7; }
+  .seg button.sel .el { opacity:.9; }
+
+  /* dot scale */
+  .dots { display:flex; gap:10px; align-items:center; }
+  .dots button {
+    position:relative;
+    width: 30px; height: 30px; padding:0; 
+    cursor:pointer; background: var(--surface);border:2px solid var(--border); border-radius:50%; transition: all .12s;
+  }
+  .dots button:hover { border-color: var(--accent); }
+  .dots button.sel { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+  /* faces scale */
+  .faces { display:flex; gap:8px; }
+  .faces button {
+    flex:1; padding:8px 0;
+    font-size: 24px; line-height:1; cursor:pointer; background: var(--surface); border:1px solid var(--border); border-radius:10px; filter: grayscale(.5) opacity(.7);transition: all .12s;
+  }
+  .faces button:hover { border-color: var(--accent); filter:none; transform: translateY(-2px); }
+  .faces button.sel { background: var(--accent-soft); border-color: var(--accent); filter:none; transform: translateY(-2px); }
+
+  /* slider */
+  .slider-wrap { padding: 4px 2px; }
+  input[type=range]{ width:100%; height: 22px; accent-color: var(--accent); }
+  .slider-val { font-weight:700; font-variant-numeric: tabular-nums; color: var(--accent); }
+
+  .note-toggle { padding:6px 0; font-size:12.5px; color: var(--accent); cursor:pointer; background:none; border:none; }
+  .note-field { display:none; width:100%; min-height:48px; 
+                padding:8px 10px; margin-top:4px; font:inherit; font-size:13px; color:var(--text);resize:vertical; background:var(--surface-2); border:1px solid var(--border); border-radius:9px; }
+  .note-field.show { display:block; }
+  .wcard-foot { display:flex; gap:10px; align-items:center; margin-top: 8px; }
+  .submit { padding:9px 18px; font-size:13.5px; font-weight:600; color:#fff; cursor:pointer; background: var(--accent); border:none; border-radius:9px; }
+  .submit:hover { filter: brightness(1.07); }
+  .submit:disabled { cursor:not-allowed; opacity:.5; }
+  .foot-hint { font-size:12px; color: var(--text-faint); }
+
+  /* faux day-planner zone chips for context realism */
+  .zone-chip { display:flex; gap:8px; align-items:center; padding:10px 12px; font-size:13px; color:var(--text-dim); background: var(--surface); border:1px solid var(--border); border-radius:10px; }
+  .zone-chip .swatch { width:9px;height:9px;border-radius:50%; }
+
+  /* ===== dashboard ===== */
+  .dash {
+    min-height: 100%;padding: 18px; 
+    background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .dash h4 { margin:0 0 2px; font-size:15px; }
+  .dash .range { margin-bottom:14px; font-size:12px; color:var(--text-faint); }
+  .chart-card { padding:12px 12px 6px; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
+  .chart-card .ch-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2px; }
+  .chart-card .ch-title { font-size:13px; font-weight:600; }
+  .chart-card .ch-latest { font-size:12px; color:var(--text-dim); }
+  .chart-card .ch-latest b { font-size:15px; color:var(--text); }
+  svg.chart { display:block; width:100%; overflow: visible; }
+  .legend { display:flex; flex-wrap:wrap; gap:14px; margin: 4px 2px 14px; font-size:12px; color:var(--text-dim); }
+  .legend span { display:inline-flex; gap:6px; align-items:center; }
+  .legend i { display:inline-block; width:12px; height:3px; border-radius:2px; }
+  .sm-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .entries { margin-top: 6px; }
+  .entries h5 { margin: 14px 0 8px; font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; }
+  .entry { display:flex; gap:12px; align-items:center; padding:9px 4px; font-size:13px; border-top:1px solid var(--border); }
+  .entry .date { flex:0 0 auto; width:74px; font-variant-numeric:tabular-nums; color:var(--text-dim); }
+  .entry .vals { display:flex; flex:1; flex-wrap:wrap; gap:6px; }
+  .pill { padding:2px 9px; font-size:12px; color:var(--text-dim); background:var(--surface-2); border-radius:999px; }
+  .entry .pill b { color:var(--text); }
+  .entry .note-ico { font-size:12px; color:var(--text-faint); }
+
+  /* ===== config modal ===== */
+  .modal-scrim { display:grid; place-items:center; padding: 22px; background: var(--surface-2); border:1px dashed var(--border); border-radius: var(--radius); }
+  .modal {
+    width: 100%; max-width: 440px; padding: 20px;
+    background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .modal h4 { margin:0 0 2px; font-size:16px; }
+  .modal .msub { margin:0 0 16px; font-size:13px; color:var(--text-dim); }
+  .field { margin-bottom:16px; }
+  .field label { display:block; margin-bottom:6px; font-size:12.5px; font-weight:600; color:var(--text-dim); }
+  .freq-row { display:flex; gap:8px; align-items:center; }
+  .freq-row select, .freq-row input { padding:8px 10px; font:inherit; font-size:13px; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:8px; }
+  .freq-row input { width:64px; }
+  .metric-edit { display:flex; gap:8px; align-items:center; padding:8px; margin-bottom:8px; background:var(--surface-2); border:1px solid var(--border); border-radius:9px; }
+  .metric-edit .drag { color:var(--text-faint); cursor:grab; }
+  .metric-edit input.mname { flex:1; padding:6px 9px; font:inherit; font-size:13px; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:7px; }
+  .metric-edit .del { font-size:16px; color:var(--text-faint); cursor:pointer; background:none; border:none; }
+  .metric-edit .del:hover { color: var(--rose); }
+  .add-metric { width:100%; padding:9px; font-size:13px; font-weight:600; color:var(--accent); cursor:pointer; background:none; border:1px dashed var(--border); border-radius:9px; }
+  .modal-foot { display:flex; align-items:center; justify-content:space-between; padding-top:14px; margin-top:18px; border-top:1px solid var(--border); }
+  .danger-link { font-size:13px; color:var(--rose); cursor:pointer; background:none;border:none; }
+  .modal .save { padding:9px 18px; font-weight:600; color:#fff; cursor:pointer; background:var(--accent); border:none; border-radius:9px; }
+
+  /* ===== planner header entry point ===== */
+  .hdr {
+    display:flex; gap:16px;align-items:center;justify-content:space-between; padding: 14px 18px; 
+    background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .hdr .ptitle { font-size:20px; font-weight:700; letter-spacing:-.01em; }
+  .hdr .actions { display:flex; gap:8px; align-items:center; }
+  .hbtn {
+    position:relative;
+    display:inline-flex; gap:6px; align-items:center; padding:7px 12px; font-size:13px; 
+    color: var(--text-dim); cursor:pointer; background: var(--surface);border:1px solid var(--border); border-radius:9px;
+  }
+  .hbtn:hover { color: var(--text); border-color: var(--accent); }
+  .hbtn.iconly { justify-content:center; width:34px; height:34px; padding:7px; }
+  .hbtn .wico { font-size:14px; color: var(--accent); }
+  .info-dot { display:grid;place-items:center;width:32px;height:32px;font-size:13px; color:var(--text-dim);border:1px solid var(--border);border-radius:8px; }
+  .hbtn.accent { font-weight:600; color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+  [data-theme="dark"] .hbtn.accent { color: var(--text); }
+  .pending-dot { position:absolute; top:-3px; right:-3px; width:9px; height:9px; background: var(--rose); border:2px solid var(--surface); border-radius:50%; }
+  .hdr-states { display:flex; flex-direction:column; gap:12px; }
+  .hdr-states .srow { display:flex; gap:12px; align-items:center; }
+  .hdr-states .scap { flex:0 0 auto; width:64px; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; }
+
+  .pick-hint { padding:12px 14px; margin-top:8px; font-size:13px; color:var(--text-dim); background:var(--accent-soft); border-radius:10px; }
+  [data-theme="dark"] .pick-hint { color: var(--text); }
+  code { padding:1px 6px; font-size:12.5px; background: var(--surface-2); border-radius:5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <div>
+      <h1>Wellness Check — UI options</h1>
+      <p class="lede">Side-by-side mockups for the three surfaces we designed. Click ratings to feel the interaction. Pick a favourite (or mix) per section — I'll build to whatever you choose.</p>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">◐ Toggle light / dark</button>
+  </header>
+
+  <!-- ============ SECTION 1: PENDING CARD ============ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">Surface 1 · daily touch</span>
+      <h2>The pending card — inline capture</h2>
+      <p>Pinned at the top of the day planner when a check is due. Default is the single “Overall mood” metric. The only thing changing between these is the <b>1–5 rating control</b> — chrome, opt-out (×) and notes are identical. Optimise for: tap-and-done.</p>
+    </div>
+
+    <div class="grid cols-2">
+      <!-- A1 segmented numbers -->
+      <div class="variant">
+        <h3>A1 · Numbered segments</h3>
+        <p class="note">Explicit 1–5 buttons with endpoint labels. Most legible &amp; unambiguous; scales cleanly to many metrics.</p>
+        <div class="planner-ctx">
+          <span class="ctx-label">Day planner · Fri 29 May</span>
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="ico">♡</span>
+              <div><div class="title">Wellness check</div><div class="sub">This week</div></div>
+              <span class="spacer"></span>
+              <button class="optout" title="Turn off wellness checks">×</button>
+            </div>
+            <div class="metric-row">
+              <div class="m-label">Overall mood</div>
+              <div class="seg" data-rate>
+                <button class="end" aria-label="1, Low"><span class="n">1</span><span class="el"> – Low</span></button>
+                <button aria-label="2">2</button><button aria-label="3">3</button><button aria-label="4">4</button>
+                <button class="end" aria-label="5, Great"><span class="n">5</span><span class="el"> – Great</span></button>
+              </div>
+            </div>
+            <button class="note-toggle" data-notetoggle>+ Add note</button>
+            <textarea class="note-field" placeholder="Anything worth remembering about this week…"></textarea>
+            <div class="wcard-foot">
+              <button class="submit" disabled data-submit>Save check</button>
+              <span class="foot-hint">Earns a few points</span>
+            </div>
+          </div>
+          <div class="zone-chip"><span class="swatch" style="background:#14b8a6"></span> Morning · 2 activities</div>
+        </div>
+      </div>
+
+      <!-- A2 dots -->
+      <div class="variant">
+        <h3>A2 · Dot scale</h3>
+        <p class="note">Five tappable dots, fill on select. Calm and minimal, smallest footprint; numbers implied not shown.</p>
+        <div class="planner-ctx">
+          <span class="ctx-label">Day planner · Fri 29 May</span>
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="ico">♡</span>
+              <div><div class="title">Wellness check</div><div class="sub">This week</div></div>
+              <span class="spacer"></span>
+              <button class="optout" title="Turn off wellness checks">×</button>
+            </div>
+            <div class="metric-row">
+              <div class="m-label">Overall mood</div>
+              <div class="dots" data-rate>
+                <button></button><button></button><button></button><button></button><button></button>
+              </div>
+              <div class="ends"><span>Low</span><span>Great</span></div>
+            </div>
+            <button class="note-toggle" data-notetoggle>+ Add note</button>
+            <textarea class="note-field" placeholder="Anything worth remembering about this week…"></textarea>
+            <div class="wcard-foot">
+              <button class="submit" disabled data-submit>Save check</button>
+              <span class="foot-hint">Earns a few points</span>
+            </div>
+          </div>
+          <div class="zone-chip"><span class="swatch" style="background:#14b8a6"></span> Morning · 2 activities</div>
+        </div>
+      </div>
+
+      <!-- A3 faces -->
+      <div class="variant">
+        <h3>A3 · Faces</h3>
+        <p class="note">Emoji scale — instant, friendly, ideal for “mood”. Weakest for abstract metrics (e.g. “poor sleep”) and feels less clinical.</p>
+        <div class="planner-ctx">
+          <span class="ctx-label">Day planner · Fri 29 May</span>
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="ico">♡</span>
+              <div><div class="title">Wellness check</div><div class="sub">This week</div></div>
+              <span class="spacer"></span>
+              <button class="optout" title="Turn off wellness checks">×</button>
+            </div>
+            <div class="metric-row">
+              <div class="m-label">Overall mood</div>
+              <div class="faces" data-rate>
+                <button>😣</button><button>🙁</button><button>😐</button><button>🙂</button><button>😄</button>
+              </div>
+            </div>
+            <button class="note-toggle" data-notetoggle>+ Add note</button>
+            <textarea class="note-field" placeholder="Anything worth remembering about this week…"></textarea>
+            <div class="wcard-foot">
+              <button class="submit" disabled data-submit>Save check</button>
+              <span class="foot-hint">Earns a few points</span>
+            </div>
+          </div>
+          <div class="zone-chip"><span class="swatch" style="background:#14b8a6"></span> Morning · 2 activities</div>
+        </div>
+      </div>
+
+      <!-- A4 slider -->
+      <div class="variant">
+        <h3>A4 · Slider</h3>
+        <p class="note">One drag per metric. Feels continuous, but a 1–5 slider is fiddly to land precisely and weakest on touch. Least recommended.</p>
+        <div class="planner-ctx">
+          <span class="ctx-label">Day planner · Fri 29 May</span>
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="ico">♡</span>
+              <div><div class="title">Wellness check</div><div class="sub">This week</div></div>
+              <span class="spacer"></span>
+              <button class="optout" title="Turn off wellness checks">×</button>
+            </div>
+            <div class="metric-row">
+              <div class="m-label"><span>Overall mood</span> <span class="slider-val" data-sval>3</span></div>
+              <div class="slider-wrap">
+                <input type="range" min="1" max="5" value="3" data-slider />
+              </div>
+              <div class="ends"><span>1 · Low</span><span>Great · 5</span></div>
+            </div>
+            <button class="note-toggle" data-notetoggle>+ Add note</button>
+            <textarea class="note-field" placeholder="Anything worth remembering about this week…"></textarea>
+            <div class="wcard-foot">
+              <button class="submit" data-submit>Save check</button>
+              <span class="foot-hint">Earns a few points</span>
+            </div>
+          </div>
+          <div class="zone-chip"><span class="swatch" style="background:#14b8a6"></span> Morning · 2 activities</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pick-hint">Scaling check: here's the recommended <b>A1 (numbered segments)</b> style with a power-user's three metrics, notes collapsed — this is how the card grows if someone adds metrics.</div>
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="variant">
+        <h3>A1 with 3 metrics</h3>
+        <p class="note">Tidy and stackable. Card height grows linearly; still scannable.</p>
+        <div class="planner-ctx">
+          <span class="ctx-label">Day planner · Fri 29 May</span>
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="ico">♡</span>
+              <div><div class="title">Wellness check</div><div class="sub">This week</div></div>
+              <span class="spacer"></span>
+              <button class="optout" title="Turn off wellness checks">×</button>
+            </div>
+            <div class="metric-row">
+              <div class="m-label">Tiredness</div>
+              <div class="seg" data-rate><button class="end" aria-label="1, Wired"><span class="n">1</span><span class="el"> – Wired</span></button><button aria-label="2">2</button><button aria-label="3">3</button><button aria-label="4">4</button><button class="end" aria-label="5, Exhausted"><span class="n">5</span><span class="el"> – Exhausted</span></button></div>
+            </div>
+            <div class="metric-row">
+              <div class="m-label">Irritability</div>
+              <div class="seg" data-rate><button class="end" aria-label="1, Calm"><span class="n">1</span><span class="el"> – Calm</span></button><button aria-label="2">2</button><button aria-label="3">3</button><button aria-label="4">4</button><button class="end" aria-label="5, On edge"><span class="n">5</span><span class="el"> – On edge</span></button></div>
+            </div>
+            <div class="metric-row">
+              <div class="m-label">Poor sleep</div>
+              <div class="seg" data-rate><button class="end" aria-label="1, Rested"><span class="n">1</span><span class="el"> – Rested</span></button><button aria-label="2">2</button><button aria-label="3">3</button><button aria-label="4">4</button><button class="end" aria-label="5, Wrecked"><span class="n">5</span><span class="el"> – Wrecked</span></button></div>
+            </div>
+            <button class="note-toggle" data-notetoggle>+ Add note</button>
+            <textarea class="note-field" placeholder="Anything worth remembering…"></textarea>
+            <div class="wcard-foot">
+              <button class="submit" disabled data-submit>Save check</button>
+              <span class="foot-hint">Partial OK · ≥1 answer needed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="variant">
+        <h3>A2 (dots) with 3 metrics</h3>
+        <p class="note">More compact vertically, but loses the endpoint clarity that abstract metrics benefit from.</p>
+        <div class="planner-ctx">
+          <span class="ctx-label">Day planner · Fri 29 May</span>
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="ico">♡</span>
+              <div><div class="title">Wellness check</div><div class="sub">This week</div></div>
+              <span class="spacer"></span>
+              <button class="optout" title="Turn off wellness checks">×</button>
+            </div>
+            <div class="metric-row"><div class="m-label">Tiredness</div><div class="dots" data-rate><button></button><button></button><button></button><button></button><button></button></div></div>
+            <div class="metric-row"><div class="m-label">Irritability</div><div class="dots" data-rate><button></button><button></button><button></button><button></button><button></button></div></div>
+            <div class="metric-row"><div class="m-label">Poor sleep</div><div class="dots" data-rate><button></button><button></button><button></button><button></button><button></button></div></div>
+            <button class="note-toggle" data-notetoggle>+ Add note</button>
+            <textarea class="note-field" placeholder="Anything worth remembering…"></textarea>
+            <div class="wcard-foot">
+              <button class="submit" disabled data-submit>Save check</button>
+              <span class="foot-hint">Partial OK · ≥1 answer needed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 2: DASHBOARD ============ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">Surface 2 · occasional review</span>
+      <h2>The trends dashboard — <code>/energy-planner/wellness</code></h2>
+      <p>Hand-rolled SVG charts of the same sample data (12 weekly entries across 3 metrics). The fork is how the lines are laid out. Optimise for: spotting a creeping decline at a glance.</p>
+    </div>
+
+    <div class="grid cols-3">
+      <!-- B1 stacked -->
+      <div class="variant">
+        <h3>B1 · Stacked charts</h3>
+        <p class="note">One full-width chart per metric. Clearest per-metric trend; each gets its own breathing room. Taller page.</p>
+        <div class="dash" id="dash-b1">
+          <h4>Wellness trends</h4>
+          <div class="range">Last 12 weeks</div>
+          <!-- charts injected -->
+        </div>
+      </div>
+
+      <!-- B2 small multiples -->
+      <div class="variant">
+        <h3>B2 · Small multiples</h3>
+        <p class="note">Compact sparkline grid. Whole picture above the fold; harder to read fine detail. Great as an overview.</p>
+        <div class="dash" id="dash-b2">
+          <h4>Wellness trends</h4>
+          <div class="range">Last 12 weeks</div>
+          <div class="sm-grid"><!-- injected --></div>
+        </div>
+      </div>
+
+      <!-- B3 overlaid -->
+      <div class="variant">
+        <h3>B3 · Overlaid lines</h3>
+        <p class="note">All metrics on one axis + legend. Best for spotting correlations between signs; busier, and only works because every metric shares the 1–5 scale.</p>
+        <div class="dash" id="dash-b3">
+          <h4>Wellness trends</h4>
+          <div class="range">Last 12 weeks · all metrics</div>
+          <!-- injected -->
+        </div>
+      </div>
+    </div>
+
+    <div class="pick-hint">All three share the same <b>entries list</b> below the charts (shown once here):</div>
+    <div class="dash" style="margin-top:16px">
+      <div class="entries" id="entries-list">
+        <h5>Recent entries</h5>
+        <!-- injected -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3: CONFIG MODAL ============ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">Surface 3 · setup</span>
+      <h2>The config modal</h2>
+      <p>Reached from the card or the dashboard. Sets cadence, edits the metric list (name + endpoint labels), and holds the easy opt-out. Two density options.</p>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="variant">
+        <h3>C1 · List editor</h3>
+        <p class="note">Each metric is an editable row with drag-reorder and delete. Clear, matches the zone/energy-type managers.</p>
+        <div class="modal-scrim">
+          <div class="modal">
+            <h4>Wellness check</h4>
+            <p class="msub">A gentle periodic check-in. Track whatever matters to you.</p>
+            <div class="field">
+              <label>How often</label>
+              <div class="freq-row">
+                Every <input type="number" value="1" min="1" />
+                <select><option>day</option><option selected>week</option><option>month</option></select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Metrics</label>
+              <div class="metric-edit"><span class="drag">⠿</span><input class="mname" value="Overall mood" /><button class="del">🗑</button></div>
+              <div class="metric-edit"><span class="drag">⠿</span><input class="mname" value="Tiredness" /><button class="del">🗑</button></div>
+              <button class="add-metric">+ Add metric</button>
+            </div>
+            <div class="modal-foot">
+              <button class="danger-link">Turn off wellness checks</button>
+              <button class="save">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="variant">
+        <h3>C2 · List editor + endpoint labels expanded</h3>
+        <p class="note">Same, but each metric shows its low/high anchor inputs inline. More setup surface; clarifies what 1 and 5 mean per metric.</p>
+        <div class="modal-scrim">
+          <div class="modal">
+            <h4>Wellness check</h4>
+            <p class="msub">A gentle periodic check-in. Track whatever matters to you.</p>
+            <div class="field">
+              <label>How often</label>
+              <div class="freq-row">
+                Every <input type="number" value="1" min="1" />
+                <select><option>day</option><option selected>week</option><option>month</option></select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Metrics</label>
+              <div class="metric-edit" style="flex-direction:column; align-items:stretch; gap:6px">
+                <div style="display:flex;align-items:center;gap:8px"><span class="drag">⠿</span><input class="mname" value="Overall mood" /><button class="del">🗑</button></div>
+                <div class="freq-row" style="gap:6px"><input class="mname" placeholder="1 = Low" value="Low" /><span style="color:var(--text-faint)">→</span><input class="mname" placeholder="5 = High" value="Great" /></div>
+              </div>
+              <button class="add-metric">+ Add metric</button>
+            </div>
+            <div class="modal-foot">
+              <button class="danger-link">Turn off wellness checks</button>
+              <button class="save">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 4: HEADER ENTRY POINT ============ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">Surface 4 · the way back in</span>
+      <h2>The planner header entry point</h2>
+      <p>A persistent control in the Energy Planner page header (alongside the info tooltip and Import / Export) that links to <code>/energy-planner/wellness</code>. It's the durable way back after opting out — so it must be visible <b>regardless of on/off state</b>. Options differ in how loud it is and whether it signals status.</p>
+    </div>
+
+    <div class="grid cols-3">
+      <!-- H1 labeled button -->
+      <div class="variant">
+        <h3>H1 · Labeled button</h3>
+        <p class="note">A plain “Wellness” button matching the existing header actions. Clear and discoverable; adds one item to the row.</p>
+        <div class="hdr">
+          <span class="ptitle">Energy Planner</span>
+          <div class="actions">
+            <span class="info-dot">ⓘ</span>
+            <button class="hbtn">↑↓ Import / Export</button>
+            <button class="hbtn"><span class="wico">♡</span> Wellness</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- H2 icon only -->
+      <div class="variant">
+        <h3>H2 · Icon only</h3>
+        <p class="note">Just a heart icon (tooltip on hover). Most compact, keeps the header lean; slightly less obvious what it does.</p>
+        <div class="hdr">
+          <span class="ptitle">Energy Planner</span>
+          <div class="actions">
+            <span class="info-dot">ⓘ</span>
+            <button class="hbtn">↑↓ Import / Export</button>
+            <button class="hbtn iconly" title="Wellness"><span class="wico">♡</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- H3 labeled + status -->
+      <div class="variant">
+        <h3>H3 · Labeled + status dot</h3>
+        <p class="note">Labeled button that shows a red dot when a check is pending — doubles as a subtle nudge. Most informative; a touch more to build.</p>
+        <div class="hdr">
+          <span class="ptitle">Energy Planner</span>
+          <div class="actions">
+            <span class="info-dot">ⓘ</span>
+            <button class="hbtn">↑↓ Import / Export</button>
+            <button class="hbtn"><span class="wico">♡</span> Wellness<span class="pending-dot"></span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pick-hint">How the recommended <b>H3</b> reads across the three states it has to cover (pending / done this period / opted out):</div>
+    <div class="hdr" style="margin-top:16px">
+      <span class="ptitle">Energy Planner</span>
+      <div class="hdr-states">
+        <div class="srow"><span class="scap">Pending</span><button class="hbtn"><span class="wico">♡</span> Wellness<span class="pending-dot"></span></button><span class="note" style="margin:0">red dot = a check is waiting</span></div>
+        <div class="srow"><span class="scap">Done</span><button class="hbtn"><span class="wico">♡</span> Wellness</button><span class="note" style="margin:0">no dot once filled this period</span></div>
+        <div class="srow"><span class="scap">Off</span><button class="hbtn"><span class="wico" style="opacity:.5">♡</span> Wellness</button><span class="note" style="margin:0">still present → opens history + “turn back on”</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // biome-ignore lint/correctness/noUnusedVariables: called via onclick attribute
+  function toggleTheme(){
+    const h = document.documentElement;
+    h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  }
+
+  // ---- rating interactions (segments / dots / faces) ----
+  document.querySelectorAll('[data-rate]').forEach(group => {
+    const btns = [...group.querySelectorAll('button')];
+    btns.forEach((b, i) => { b.addEventListener('click', () => {
+      const isDots = group.classList.contains('dots');
+      btns.forEach((x, j) => { x.classList.toggle('sel', isDots ? j <= i : j === i); });
+      const card = group.closest('.wcard');
+      const submit = card?.querySelector('[data-submit]');
+      if (submit) submit.disabled = false;
+    }); });
+  });
+
+  // ---- sliders ----
+  document.querySelectorAll('[data-slider]').forEach(s => {
+    const out = s.closest('.metric-row').querySelector('[data-sval]');
+    s.addEventListener('input', () => { if (out) out.textContent = s.value; });
+  });
+
+  // ---- note toggles ----
+  document.querySelectorAll('[data-notetoggle]').forEach(t => {
+    t.addEventListener('click', () => {
+      const f = t.parentElement.querySelector('.note-field');
+      f.classList.toggle('show');
+      t.textContent = f.classList.contains('show') ? '− Hide note' : '+ Add note';
+      if (f.classList.contains('show')) f.focus();
+    });
+  });
+
+  // ====== sample data: 12 weekly entries, 1-5 ======
+  const weeks = ['Mar 7','Mar 14','Mar 21','Mar 28','Apr 4','Apr 11','Apr 18','Apr 25','May 2','May 9','May 16','May 23'];
+  const series = {
+    'Overall mood': { color: getCss('--accent'), data: [4,4,3,3,2,3,2,2,3,4,4,3] },
+    'Tiredness':    { color: getCss('--rose'),   data: [2,3,3,4,4,5,4,5,4,3,3,4] },
+    'Irritability': { color: getCss('--orange'), data: [2,2,3,3,4,4,5,4,3,3,2,3] },
+  };
+  function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#7c5cfc'; }
+
+  function lineChart(data, color, w, h, opts={}) {
+    const pad = opts.pad ?? 6;
+    const min = 1, max = 5;
+    const n = data.length;
+    const x = i => pad + (i/(n-1)) * (w - pad*2);
+    const y = v => h - pad - ((v-min)/(max-min)) * (h - pad*2);
+    const pts = data.map((v,i)=>[x(i),y(v)]);
+    const path = pts.map((p,i)=> (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    const area = path + ` L ${x(n-1).toFixed(1)} ${h-pad} L ${x(0).toFixed(1)} ${h-pad} Z`;
+    const dots = opts.dots ? pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${opts.dotR||2.5}" fill="${color}"/>`).join('') : '';
+    const last = pts[pts.length-1];
+    const lastDot = opts.lastDot ? `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="${color}" stroke="var(--surface)" stroke-width="2"/>` : '';
+    const fill = opts.fill ? `<path d="${area}" fill="${color}" opacity="0.10"/>` : '';
+    // gridlines at 1..5
+    let grid = '';
+    if (opts.grid) for (let g=1; g<=5; g++){ const gy=y(g); grid += `<line x1="${pad}" y1="${gy.toFixed(1)}" x2="${w-pad}" y2="${gy.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`; }
+    return `<svg class="chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${grid}${fill}<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${dots}${lastDot}</svg>`;
+  }
+
+  // B1 stacked
+  (()=> {
+    const host = document.getElementById('dash-b1');
+    Object.entries(series).forEach(([name, s]) => {
+      const card = document.createElement('div'); card.className='chart-card';
+      card.innerHTML = `<div class="ch-head"><span class="ch-title">${name}</span><span class="ch-latest">latest <b>${s.data.at(-1)}</b>/5</span></div>${lineChart(s.data, s.color, 320, 70, {fill:true, grid:true, lastDot:true})}`;
+      host.appendChild(card);
+    });
+  })();
+
+  // B2 small multiples
+  (()=> {
+    const host = document.querySelector('#dash-b2 .sm-grid');
+    Object.entries(series).forEach(([name, s]) => {
+      const card = document.createElement('div'); card.className='chart-card'; card.style.margin='0';
+      card.innerHTML = `<div class="ch-title" style="font-size:12px">${name} · <b>${s.data.at(-1)}</b></div>${lineChart(s.data, s.color, 150, 44, {lastDot:true})}`;
+      host.appendChild(card);
+    });
+    // filler to balance grid
+    const f = document.createElement('div'); f.className='chart-card'; f.style.margin='0'; f.style.display='grid'; f.style.placeItems='center'; f.style.color='var(--text-faint)'; f.style.fontSize='12px';
+    f.textContent='+ add metric'; host.appendChild(f);
+  })();
+
+  // B3 overlaid
+  (()=> {
+    const host = document.getElementById('dash-b3');
+    const w=320,h=150,pad=8,min=1,max=5,n=12;
+    const x=i=>pad+(i/(n-1))*(w-pad*2), y=v=>h-pad-((v-min)/(max-min))*(h-pad*2);
+    let grid=''; for(let g=1; g<=5; g++){const gy=y(g); grid+=`<line x1="${pad}" y1="${gy}" x2="${w-pad}" y2="${gy}" stroke="var(--border)"/>`;}
+    let paths='';
+    Object.values(series).forEach(s=>{
+      const p=s.data.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+      const last=[x(n-1),y(s.data.at(-1))];
+      paths+=`<path d="${p}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`;
+    });
+    const legend = `<div class="legend">${Object.entries(series).map(([nm,s])=>`<span><i style="background:${s.color}"></i>${nm}</span>`).join('')}</div>`;
+    const card=document.createElement('div'); card.className='chart-card';
+    card.innerHTML = `<svg class="chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${grid}${paths}</svg>`;
+    host.appendChild(card); host.insertAdjacentHTML('beforeend', legend);
+  })();
+
+  // entries list
+  (()=> {
+    const host = document.getElementById('entries-list');
+    const notes = {0:true, 2:true, 5:true};
+    for (let i = weeks.length-1; i >= weeks.length-5; i--) {
+      const row = document.createElement('div'); row.className='entry';
+      const vals = Object.entries(series).map(([nm,s])=>`<span class="pill">${nm.split(' ')[0]} <b>${s.data[i]}</b></span>`).join('');
+      row.innerHTML = `<span class="date">${weeks[i]}</span><span class="vals">${vals}</span>${notes[i]?'<span class="note-ico">📝 note</span>':''}`;
+      host.appendChild(row);
+    }
+  })();
+</script>
+</body>
+</html>

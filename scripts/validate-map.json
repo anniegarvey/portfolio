@@ -1,6 +1,7 @@
 {
   "areas": {
     "src/**/energy-planner/**": "e2e/energy-planner",
+    "src/lib/wellness/**": "e2e/energy-planner",
     "src/lib/points/**": "e2e/energy-planner",
     "src/hooks/**": "e2e/energy-planner",
     "src/**/bonsai/**": "e2e/bonsai",
@@ -21,6 +22,7 @@
   "skip": [
     "*.md",
     "**/*.md",
+    "*.html",
     "*.pen",
     ".agent/**",
     ".agents/**",
