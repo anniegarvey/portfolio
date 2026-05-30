@@ -85,4 +85,44 @@ describe("useWellnessCheck", () => {
       DEFAULT_WELLNESS_METRICS[0].id,
     );
   });
+
+  it("deleteEntry removes the entry by id", async () => {
+    const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const countBefore = result.current.entries.length;
+
+    await act(async () => {
+      await result.current.saveEntry([
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 4,
+        },
+      ]);
+    });
+    expect(result.current.entries).toHaveLength(countBefore + 1);
+    const id = result.current.entries[result.current.entries.length - 1].id;
+
+    await act(async () => {
+      await result.current.deleteEntry(id);
+    });
+    expect(result.current.entries).toHaveLength(countBefore);
+    expect(result.current.entries.find((e) => e.id === id)).toBeUndefined();
+  });
+
+  it("saveConfig updates the config and persists it", async () => {
+    const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.saveConfig({
+        ...result.current.config,
+        frequency: 2,
+        unit: "months",
+      });
+    });
+    expect(result.current.config.frequency).toBe(2);
+    expect(result.current.config.unit).toBe("months");
+  });
 });

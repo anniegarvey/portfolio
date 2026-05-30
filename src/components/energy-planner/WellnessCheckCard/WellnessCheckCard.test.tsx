@@ -8,7 +8,10 @@ import {
 import { DEFAULT_WELLNESS_METRICS } from "@/lib/wellness/schema";
 import { WellnessCheckCard } from "./WellnessCheckCard";
 
-function renderCard(overrides: Partial<WellnessCheckContextType> = {}) {
+function renderCard(
+  overrides: Partial<WellnessCheckContextType> = {},
+  props: { onOpenConfig?: () => void } = {},
+) {
   const saveEntry = vi.fn().mockResolvedValue(undefined);
   const ctx: WellnessCheckContextType = {
     config: {
@@ -23,12 +26,13 @@ function renderCard(overrides: Partial<WellnessCheckContextType> = {}) {
     isLoading: false,
     saveEntry,
     deleteEntry: vi.fn().mockResolvedValue(undefined),
+    saveConfig: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
   render(
     <WellnessCheckContext.Provider value={ctx}>
-      <WellnessCheckCard />
+      <WellnessCheckCard {...props} />
     </WellnessCheckContext.Provider>,
   );
 
@@ -95,6 +99,30 @@ describe("WellnessCheckCard", () => {
     ]);
   });
 
+  it("does not render settings button when onOpenConfig is not provided", () => {
+    renderCard();
+    expect(
+      screen.queryByRole("button", { name: "Configure wellness check" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders settings button when onOpenConfig is provided", () => {
+    renderCard({}, { onOpenConfig: vi.fn() });
+    expect(
+      screen.getByRole("button", { name: "Configure wellness check" }),
+    ).toBeInTheDocument();
+  });
+
+  it("calls onOpenConfig when settings button is clicked", async () => {
+    const user = userEvent.setup();
+    const onOpenConfig = vi.fn();
+    renderCard({}, { onOpenConfig });
+    await user.click(
+      screen.getByRole("button", { name: "Configure wellness check" }),
+    );
+    expect(onOpenConfig).toHaveBeenCalledOnce();
+  });
+
   it("unanswered metrics get value null in the snapshot", async () => {
     const user = userEvent.setup();
     const multiMetricConfig = {
@@ -120,6 +148,7 @@ describe("WellnessCheckCard", () => {
           isLoading: false,
           saveEntry,
           deleteEntry: vi.fn().mockResolvedValue(undefined),
+          saveConfig: vi.fn().mockResolvedValue(undefined),
         }}
       >
         <WellnessCheckCard />

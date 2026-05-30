@@ -32,6 +32,7 @@ export interface WellnessCheckContextType {
   isLoading: boolean;
   saveEntry: (metrics: WellnessEntryMetric[]) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
+  saveConfig: (config: WellnessConfig) => Promise<void>;
 }
 
 // biome-ignore lint/style/useComponentExportOnlyModules: context + provider + hook in one module
@@ -111,9 +112,22 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
     [entries],
   );
 
+  const saveConfig = useCallback(async (newConfig: WellnessConfig) => {
+    await storeWellnessConfig(newConfig);
+    setConfig(newConfig);
+  }, []);
+
   return (
     <WellnessCheckContext.Provider
-      value={{ config, entries, isPending, isLoading, saveEntry, deleteEntry }}
+      value={{
+        config,
+        entries,
+        isPending,
+        isLoading,
+        saveEntry,
+        deleteEntry,
+        saveConfig,
+      }}
     >
       {children}
     </WellnessCheckContext.Provider>

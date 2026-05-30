@@ -8,6 +8,7 @@ import {
   storeDayPlan,
 } from "../../../lib/energy-planner/storage";
 import { PointsProvider } from "../../../lib/points/context";
+import { WellnessProvider } from "../../../lib/wellness/context";
 import { DayPlanner } from ".";
 
 describe("DayPlanner", () => {
@@ -1097,6 +1098,112 @@ describe("DayPlanner with populated data", () => {
         (i) => i.sourceActivityId === "a1",
       );
       expect(a1?.zoneId).toBe("morning");
+    });
+  });
+});
+
+describe("DayPlanner – wellness integration", () => {
+  beforeEach(async () => {
+    await clearAll();
+    vi.clearAllMocks();
+  });
+
+  function renderWithWellness() {
+    return render(
+      <PointsProvider>
+        <EnergyPlannerProvider>
+          <WellnessProvider>
+            <DayPlanner
+              onEditActivity={vi.fn()}
+              onOpenCreateActivity={vi.fn()}
+            />
+          </WellnessProvider>
+        </EnergyPlannerProvider>
+      </PointsProvider>,
+    );
+  }
+
+  it("shows Wellness button in header", async () => {
+    renderWithWellness();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Wellness" }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("opens the wellness config modal when Wellness button is clicked", async () => {
+    const user = userEvent.setup();
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Wellness" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Wellness" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Wellness Check Settings" }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("shows wellness check card when check is pending", async () => {
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Wellness check")).toBeInTheDocument();
+    });
+  });
+
+  it("gear button on wellness card opens the config modal", async () => {
+    const user = userEvent.setup();
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Configure wellness check" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Configure wellness check" }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Wellness Check Settings" }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("closes wellness config modal when Cancel is clicked", async () => {
+    const user = userEvent.setup();
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Wellness" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Wellness" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Wellness Check Settings" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Wellness Check Settings" }),
+      ).not.toBeInTheDocument();
     });
   });
 });

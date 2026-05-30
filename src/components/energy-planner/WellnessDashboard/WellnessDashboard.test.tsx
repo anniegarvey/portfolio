@@ -28,6 +28,7 @@ function makeCtx(overrides: Partial<WellnessCheckContextType> = {}) {
     isLoading: false,
     saveEntry: vi.fn().mockResolvedValue(undefined),
     deleteEntry: vi.fn().mockResolvedValue(undefined),
+    saveConfig: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
   return ctx;
