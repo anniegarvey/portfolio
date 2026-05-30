@@ -22,6 +22,7 @@ function renderCard(overrides: Partial<WellnessCheckContextType> = {}) {
     isPending: true,
     isLoading: false,
     saveEntry,
+    deleteEntry: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
@@ -118,6 +119,7 @@ describe("WellnessCheckCard", () => {
           isPending: true,
           isLoading: false,
           saveEntry,
+          deleteEntry: vi.fn().mockResolvedValue(undefined),
         }}
       >
         <WellnessCheckCard />
