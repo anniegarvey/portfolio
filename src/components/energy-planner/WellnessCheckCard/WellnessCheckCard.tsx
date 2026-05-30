@@ -1,12 +1,17 @@
 "use client";
 
+import { Settings } from "lucide-react";
 import { css, styled } from "next-yak";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { useWellnessCheck } from "@/lib/wellness/context";
 import type { WellnessMetric } from "@/lib/wellness/schema";
 
-export function WellnessCheckCard() {
+interface WellnessCheckCardProps {
+  onOpenConfig?: () => void;
+}
+
+export function WellnessCheckCard({ onOpenConfig }: WellnessCheckCardProps) {
   const { config, saveEntry } = useWellnessCheck();
   const [ratings, setRatings] = useState<Record<string, number | null>>(() =>
     Object.fromEntries(config.metrics.map((m) => [m.id, null])),
@@ -29,7 +34,20 @@ export function WellnessCheckCard() {
 
   return (
     <Card aria-label="Wellness check">
-      <CardTitle>Wellness Check</CardTitle>
+      <CardHeader>
+        <CardTitle>Wellness Check</CardTitle>
+        {onOpenConfig && (
+          <Button
+            aria-label="Configure wellness check"
+            intent="secondary"
+            onClick={onOpenConfig}
+            size="icon"
+            variant="ghost"
+          >
+            <Settings size={16} />
+          </Button>
+        )}
+      </CardHeader>
       {config.metrics.map((metric) => (
         <MetricRow key={metric.id}>
           <MetricLabel>{metric.label}</MetricLabel>
@@ -75,6 +93,12 @@ const Card = styled.section`
   display: flex;
   flex-direction: column;
   gap: 12px;
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const CardTitle = styled.h3`

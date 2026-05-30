@@ -1,10 +1,11 @@
 "use client";
 
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Settings } from "lucide-react";
 import { styled } from "next-yak";
-import { use } from "react";
+import { use, useState } from "react";
 import { Button } from "@/components/Button";
 import { WellnessCheckCard } from "@/components/energy-planner/WellnessCheckCard";
+import { WellnessConfigModal } from "@/components/energy-planner/WellnessConfigModal";
 import { QUERIES } from "@/lib/constants";
 import { WellnessCheckContext } from "@/lib/wellness/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
@@ -77,6 +78,8 @@ export function DayPlanner({
     handleDragEnd,
   } = useDayPlannerState({ onOpenCreateActivity });
 
+  const [isWellnessConfigOpen, setIsWellnessConfigOpen] = useState(false);
+
   if (isLoading) {
     return <DayPlannerSkeleton />;
   }
@@ -105,6 +108,14 @@ export function DayPlanner({
             Edit Capacity
           </Button>
           <Button
+            intent="secondary"
+            leftIcon={<Settings size={14} />}
+            onClick={() => setIsWellnessConfigOpen(true)}
+            variant="outline"
+          >
+            Wellness
+          </Button>
+          <Button
             leftIcon={<Plus size={16} />}
             onClick={handleOpenManageActivities}
           >
@@ -129,7 +140,7 @@ export function DayPlanner({
       <UncompletedActivitiesSection activities={viewedUncompletedActivities} />
 
       {wellnessCtx?.isPending && !wellnessCtx.isLoading ? (
-        <WellnessCheckCard />
+        <WellnessCheckCard onOpenConfig={() => setIsWellnessConfigOpen(true)} />
       ) : null}
 
       <PlannedActivitiesDndSection
@@ -171,6 +182,13 @@ export function DayPlanner({
         onUpdateZone={updateZone}
         zones={zones}
       />
+
+      {wellnessCtx && (
+        <WellnessConfigModal
+          isOpen={isWellnessConfigOpen}
+          onClose={() => setIsWellnessConfigOpen(false)}
+        />
+      )}
     </Container>
   );
 }
