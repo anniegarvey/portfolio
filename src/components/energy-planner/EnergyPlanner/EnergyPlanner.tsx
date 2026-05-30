@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { styled } from "next-yak";
 import { useEffect, useState } from "react";
 import { CreateActivity } from "@/components/energy-planner/CreateActivity";
@@ -80,6 +81,7 @@ export function EnergyPlanner() {
         <PageTitle>Energy Planner</PageTitle>
         <ActionRow>
           <Toggletip content="Plan your day according to your energy levels. Based on extended Spoon Theory." />
+          <WellnessLink href="/energy-planner/wellness">Wellness</WellnessLink>
           <ImportExport />
         </ActionRow>
       </PageHeader>
@@ -116,6 +118,34 @@ const ActionRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+`;
+
+const WellnessLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+  white-space: nowrap;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+
+  &:hover {
+    background-color: light-dark(var(--color-grey-100), var(--color-grey-800));
+    color: light-dark(var(--color-grey-900), var(--color-grey-100));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
 `;
 
 const Layout = styled.div`
