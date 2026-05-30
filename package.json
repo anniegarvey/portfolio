@@ -12,6 +12,7 @@
     "test": "vitest run",
     "prepare": "husky",
     "ngrok": "ngrok http $(cat .port 2>/dev/null || echo 3000)",
+    "kill-port": "bash scripts/kill-port.sh",
     "validate": "pnpm lint --fix && concurrently --kill-others-on-fail --names \"tsc,test,e2e\" \"tsc --noEmit\" \"pnpm test\" \"pnpm playwright test\"",
     "validate:smart": "node scripts/smart-validate.js",
     "generate-snapshots": "tsx scripts/generate-bonsai-snapshots.ts"

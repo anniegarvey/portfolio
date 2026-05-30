@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 pnpm dev          # start dev server (auto-selects an available port, written to .port)
+pnpm kill-port    # stop ONLY this worktree's dev server (reads .port). NEVER use `pkill -f next` — it kills every worktree's server
 pnpm build        # production build
 pnpm test         # unit tests (vitest, single run)
 pnpm lint         # biome check (errors on warnings)

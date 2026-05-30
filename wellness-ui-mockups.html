@@ -679,8 +679,8 @@
     const x = i => pad + (i/(n-1)) * (w - pad*2);
     const y = v => h - pad - ((v-min)/(max-min)) * (h - pad*2);
     const pts = data.map((v,i)=>[x(i),y(v)]);
-    const path = pts.map((p,i)=> (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-    const area = path + ` L ${x(n-1).toFixed(1)} ${h-pad} L ${x(0).toFixed(1)} ${h-pad} Z`;
+    const path = pts.map((p,i)=> `${(i?'L':'M')+p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+    const area = `${path} L ${x(n-1).toFixed(1)} ${h-pad} L ${x(0).toFixed(1)} ${h-pad} Z`;
     const dots = opts.dots ? pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${opts.dotR||2.5}" fill="${color}"/>`).join('') : '';
     const last = pts[pts.length-1];
     const lastDot = opts.lastDot ? `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="${color}" stroke="var(--surface)" stroke-width="2"/>` : '';
@@ -722,7 +722,7 @@
     let grid=''; for(let g=1; g<=5; g++){const gy=y(g); grid+=`<line x1="${pad}" y1="${gy}" x2="${w-pad}" y2="${gy}" stroke="var(--border)"/>`;}
     let paths='';
     Object.values(series).forEach(s=>{
-      const p=s.data.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+      const p=s.data.map((v,i)=>`${(i?'L':'M')+x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
       const last=[x(n-1),y(s.data.at(-1))];
       paths+=`<path d="${p}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`;
     });
