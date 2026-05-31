@@ -30,7 +30,7 @@ export interface WellnessCheckContextType {
   entries: WellnessEntry[];
   isPending: boolean;
   isLoading: boolean;
-  saveEntry: (metrics: WellnessEntryMetric[]) => Promise<void>;
+  saveEntry: (metrics: WellnessEntryMetric[], note?: string) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   saveConfig: (config: WellnessConfig) => Promise<void>;
 }
@@ -90,11 +90,12 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
   );
 
   const saveEntry = useCallback(
-    async (metrics: WellnessEntryMetric[]) => {
+    async (metrics: WellnessEntryMetric[], note?: string) => {
       const entry: WellnessEntry = {
         id: uuidv4(),
         date: getTodayDateString(),
         metrics,
+        ...(note ? { note } : {}),
       };
       const newEntries = [...entries, entry];
       await storeWellnessEntries(newEntries);

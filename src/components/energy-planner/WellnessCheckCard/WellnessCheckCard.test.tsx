@@ -1,12 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { usePoints } from "@/lib/points/context";
 import {
   WellnessCheckContext,
   type WellnessCheckContextType,
 } from "@/lib/wellness/context";
 import { DEFAULT_WELLNESS_METRICS } from "@/lib/wellness/schema";
 import { WellnessCheckCard } from "./WellnessCheckCard";
+
+vi.mock("@/lib/points/context");
+
+const mockAwardPoints = vi.fn();
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  (usePoints as unknown as Mock).mockReturnValue({
+    awardPoints: mockAwardPoints,
+  });
+});
 
 function renderCard(
   overrides: Partial<WellnessCheckContextType> = {},
@@ -90,13 +102,16 @@ describe("WellnessCheckCard", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(saveEntry).toHaveBeenCalledOnce();
-    expect(saveEntry).toHaveBeenCalledWith([
-      {
-        metricId: DEFAULT_WELLNESS_METRICS[0].id,
-        label: "Overall mood",
-        value: 3,
-      },
-    ]);
+    expect(saveEntry).toHaveBeenCalledWith(
+      [
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 3,
+        },
+      ],
+      undefined,
+    );
   });
 
   it("does not render settings button when onOpenConfig is not provided", () => {
@@ -160,17 +175,159 @@ describe("WellnessCheckCard", () => {
     await user.click(ratingButtons[0]);
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(saveEntry).toHaveBeenCalledWith([
-      {
-        metricId: DEFAULT_WELLNESS_METRICS[0].id,
-        label: "Overall mood",
-        value: 3,
-      },
-      {
-        metricId: "b3f8d1c2-7b4e-4f9a-8c6d-1e2f3a4b5c6e",
-        label: "Sleep quality",
-        value: null,
-      },
-    ]);
+    expect(saveEntry).toHaveBeenCalledWith(
+      [
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 3,
+        },
+        {
+          metricId: "b3f8d1c2-7b4e-4f9a-8c6d-1e2f3a4b5c6e",
+          label: "Sleep quality",
+          value: null,
+        },
+      ],
+      undefined,
+    );
+  });
+
+  describe("note expander", () => {
+    it("renders 'Add note' toggle button", () => {
+      renderCard();
+      expect(
+        screen.getByRole("button", { name: "Add note" }),
+      ).toBeInTheDocument();
+    });
+
+    it("note textarea is hidden by default", () => {
+      renderCard();
+      expect(
+        screen.queryByRole("textbox", { name: "Note" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("clicking 'Add note' reveals the note textarea", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+
+      expect(screen.getByRole("textbox", { name: "Note" })).toBeInTheDocument();
+    });
+
+    it("toggle label changes to 'Hide note' when expanded", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+
+      expect(
+        screen.getByRole("button", { name: "Hide note" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Add note" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("clicking 'Hide note' collapses the textarea", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+      await user.click(screen.getByRole("button", { name: "Hide note" }));
+
+      expect(
+        screen.queryByRole("textbox", { name: "Note" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("note-only entry (extended fill floor)", () => {
+    it("save button remains disabled with empty note and no rating", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+      // textarea is visible but empty
+
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    });
+
+    it("save button enables when a note is entered with no rating", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+      await user.type(
+        screen.getByRole("textbox", { name: "Note" }),
+        "Feeling tired today",
+      );
+
+      expect(screen.getByRole("button", { name: "Save" })).not.toBeDisabled();
+    });
+
+    it("saveEntry is called with note and null metrics for a note-only entry", async () => {
+      const user = userEvent.setup();
+      const { saveEntry } = renderCard();
+
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+      await user.type(
+        screen.getByRole("textbox", { name: "Note" }),
+        "Feeling tired today",
+      );
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(saveEntry).toHaveBeenCalledOnce();
+      expect(saveEntry).toHaveBeenCalledWith(
+        [
+          {
+            metricId: DEFAULT_WELLNESS_METRICS[0].id,
+            label: "Overall mood",
+            value: null,
+          },
+        ],
+        "Feeling tired today",
+      );
+    });
+  });
+
+  describe("flat points award", () => {
+    it("awards points when saving a check with a rating", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      await user.click(screen.getByRole("button", { name: "3" }));
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(mockAwardPoints).toHaveBeenCalledOnce();
+      expect(mockAwardPoints).toHaveBeenCalledWith(5, expect.any(Object));
+    });
+
+    it("awards points when saving a note-only check", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+      await user.type(
+        screen.getByRole("textbox", { name: "Note" }),
+        "Just a note",
+      );
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(mockAwardPoints).toHaveBeenCalledOnce();
+      expect(mockAwardPoints).toHaveBeenCalledWith(5, expect.any(Object));
+    });
+
+    it("awarded points amount does not vary with rating value", async () => {
+      const user = userEvent.setup();
+      renderCard();
+
+      // Rate with 1 (lowest)
+      await user.click(screen.getByRole("button", { name: "1 – Low" }));
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(mockAwardPoints).toHaveBeenCalledWith(5, expect.any(Object));
+    });
   });
 });
