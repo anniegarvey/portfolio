@@ -22,9 +22,13 @@
       "Bash(pnpm exec biome check --error-on-warnings *)",
       "Bash(pnpm exec tsx scripts/snapshot-grid.ts *)",
       "Bash(npx tsc --noEmit *)",
-      "Bash(pnpm playwright test *)",
-      "Bash(pnpm exec playwright test *)",
-      "Bash(pnpm exec biome check *)"
+      "Bash(pnpm kill-port)"
+    ]
+  },
+  "sandbox": {
+    "excludedCommands": [
+      "pnpm dev",
+      "pnpm kill-port"
     ]
   },
   "hooks": {
