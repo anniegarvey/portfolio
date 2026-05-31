@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings } from "lucide-react";
+import { Settings, X } from "lucide-react";
 import { css, styled } from "next-yak";
 import { useState } from "react";
 import { Button } from "@/components/Button";
@@ -12,10 +12,14 @@ const WELLNESS_CHECK_POINTS = 5;
 
 interface WellnessCheckCardProps {
   onOpenConfig?: () => void;
+  onOptOut?: () => void;
 }
 
-export function WellnessCheckCard({ onOpenConfig }: WellnessCheckCardProps) {
-  const { config, saveEntry } = useWellnessCheck();
+export function WellnessCheckCard({
+  onOpenConfig,
+  onOptOut,
+}: WellnessCheckCardProps) {
+  const { config, saveEntry, disableCheck } = useWellnessCheck();
   const { awardPoints } = usePoints();
   const [ratings, setRatings] = useState<Record<string, number | null>>(() =>
     Object.fromEntries(config.metrics.map((m) => [m.id, null])),
@@ -39,21 +43,37 @@ export function WellnessCheckCard({ onOpenConfig }: WellnessCheckCardProps) {
     await saveEntry(metrics, note.trim() || undefined);
   };
 
+  const handleOptOut = async () => {
+    await disableCheck();
+    onOptOut?.();
+  };
+
   return (
     <Card aria-label="Wellness check">
       <CardHeader>
         <CardTitle>Wellness Check</CardTitle>
-        {onOpenConfig && (
+        <HeaderActions>
+          {onOpenConfig && (
+            <Button
+              aria-label="Configure wellness check"
+              intent="secondary"
+              onClick={onOpenConfig}
+              size="icon"
+              variant="ghost"
+            >
+              <Settings size={16} />
+            </Button>
+          )}
           <Button
-            aria-label="Configure wellness check"
+            aria-label="Turn off wellness checks"
             intent="secondary"
-            onClick={onOpenConfig}
+            onClick={handleOptOut}
             size="icon"
             variant="ghost"
           >
-            <Settings size={16} />
+            <X size={16} />
           </Button>
-        )}
+        </HeaderActions>
       </CardHeader>
       {config.metrics.map((metric) => (
         <MetricRow key={metric.id}>
@@ -132,6 +152,12 @@ const CardHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const CardTitle = styled.h3`

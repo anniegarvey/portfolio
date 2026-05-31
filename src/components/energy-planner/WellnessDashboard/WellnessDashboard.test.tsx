@@ -29,6 +29,8 @@ function makeCtx(overrides: Partial<WellnessCheckContextType> = {}) {
     saveEntry: vi.fn().mockResolvedValue(undefined),
     deleteEntry: vi.fn().mockResolvedValue(undefined),
     saveConfig: vi.fn().mockResolvedValue(undefined),
+    disableCheck: vi.fn().mockResolvedValue(undefined),
+    enableCheck: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
   return ctx;
@@ -185,6 +187,72 @@ describe("WellnessDashboard", () => {
 
       expect(ctx.deleteEntry).toHaveBeenCalledOnce();
       expect(ctx.deleteEntry).toHaveBeenCalledWith("entry-to-delete");
+    });
+  });
+
+  describe("disabled state", () => {
+    const disabledConfig = {
+      enabled: false,
+      anchorDate: "2024-01-01",
+      frequency: 1,
+      unit: "weeks" as const,
+      metrics: [metricA],
+    };
+
+    it("shows the turn back on CTA when check is disabled", () => {
+      renderDashboard({ config: disabledConfig });
+      expect(
+        screen.getByRole("button", { name: /turn wellness checks back on/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("does not show the empty-state message when disabled with no entries", () => {
+      renderDashboard({ config: disabledConfig, entries: [] });
+      expect(
+        screen.queryByText(/no wellness check entries yet/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows preserved history when disabled with entries", () => {
+      renderDashboard({
+        config: disabledConfig,
+        entries: [
+          {
+            id: "e1",
+            date: "2024-01-05",
+            metrics: [{ metricId: metricA.id, label: metricA.label, value: 4 }],
+          },
+        ],
+      });
+      expect(
+        screen.getByRole("list", { name: /wellness entries/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("05/01/24")).toBeInTheDocument();
+    });
+
+    it("does not show delete buttons in preserved history (read-only)", () => {
+      renderDashboard({
+        config: disabledConfig,
+        entries: [
+          {
+            id: "e1",
+            date: "2024-01-05",
+            metrics: [{ metricId: metricA.id, label: metricA.label, value: 4 }],
+          },
+        ],
+      });
+      expect(
+        screen.queryByRole("button", { name: /delete entry from/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("clicking turn back on calls enableCheck", async () => {
+      const user = userEvent.setup();
+      const ctx = renderDashboard({ config: disabledConfig });
+      await user.click(
+        screen.getByRole("button", { name: /turn wellness checks back on/i }),
+      );
+      expect(ctx.enableCheck).toHaveBeenCalledOnce();
     });
   });
 });

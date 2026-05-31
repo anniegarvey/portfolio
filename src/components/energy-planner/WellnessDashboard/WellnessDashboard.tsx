@@ -160,7 +160,8 @@ function MetricChart({ series }: { series: MetricSeries }) {
 }
 
 export function WellnessDashboard() {
-  const { config, entries, isLoading, deleteEntry } = useWellnessCheck();
+  const { config, entries, isLoading, deleteEntry, enableCheck } =
+    useWellnessCheck();
 
   const series = useMemo(
     () => buildTrends(entries, config.metrics),
@@ -173,6 +174,51 @@ export function WellnessDashboard() {
   );
 
   if (isLoading) return null;
+
+  if (!config.enabled) {
+    return (
+      <Dashboard>
+        <DisabledBanner>
+          <DisabledText>Wellness checks are turned off.</DisabledText>
+          <Button onClick={enableCheck} size="sm">
+            Turn wellness checks back on
+          </Button>
+        </DisabledBanner>
+        {entries.length > 0 && (
+          <>
+            <ChartsSection aria-label="Wellness trends">
+              {series.map((s) => (
+                <MetricChart key={s.metricId} series={s} />
+              ))}
+            </ChartsSection>
+            <EntriesSection>
+              <SectionTitle>History</SectionTitle>
+              <EntriesList aria-label="Wellness entries">
+                {sortedEntries.map((entry) => (
+                  <EntryRow key={entry.id}>
+                    <EntryDate>{formatDate(entry.date)}</EntryDate>
+                    <EntryRatings>
+                      {entry.metrics
+                        .filter((m) => m.value !== null)
+                        .map((m) => (
+                          <Rating key={m.metricId}>
+                            <RatingLabel>{m.label}</RatingLabel>
+                            <RatingValue>{m.value}</RatingValue>
+                          </Rating>
+                        ))}
+                      {entry.metrics.every((m) => m.value === null) && (
+                        <RatingLabel>No ratings recorded</RatingLabel>
+                      )}
+                    </EntryRatings>
+                  </EntryRow>
+                ))}
+              </EntriesList>
+            </EntriesSection>
+          </>
+        )}
+      </Dashboard>
+    );
+  }
 
   if (entries.length === 0) {
     return (
@@ -355,6 +401,24 @@ const RatingLabel = styled.span`
 const RatingValue = styled.span`
   font-weight: 700;
   color: light-dark(var(--color-primary-700), var(--color-primary-400));
+`;
+
+const DisabledBanner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background-color: light-dark(var(--color-grey-50), oklch(18% 0.02 270));
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  border-radius: 8px;
+  padding: 16px;
+`;
+
+const DisabledText = styled.p`
+  margin: 0;
+  font-size: 0.9rem;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 
 const EmptyState = styled.div`

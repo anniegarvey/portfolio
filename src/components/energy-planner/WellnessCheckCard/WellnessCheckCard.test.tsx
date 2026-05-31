@@ -22,7 +22,7 @@ beforeEach(() => {
 
 function renderCard(
   overrides: Partial<WellnessCheckContextType> = {},
-  props: { onOpenConfig?: () => void } = {},
+  props: { onOpenConfig?: () => void; onOptOut?: () => void } = {},
 ) {
   const saveEntry = vi.fn().mockResolvedValue(undefined);
   const ctx: WellnessCheckContextType = {
@@ -39,6 +39,8 @@ function renderCard(
     saveEntry,
     deleteEntry: vi.fn().mockResolvedValue(undefined),
     saveConfig: vi.fn().mockResolvedValue(undefined),
+    disableCheck: vi.fn().mockResolvedValue(undefined),
+    enableCheck: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
@@ -48,7 +50,7 @@ function renderCard(
     </WellnessCheckContext.Provider>,
   );
 
-  return { saveEntry };
+  return { saveEntry, ctx };
 }
 
 describe("WellnessCheckCard", () => {
@@ -164,6 +166,8 @@ describe("WellnessCheckCard", () => {
           saveEntry,
           deleteEntry: vi.fn().mockResolvedValue(undefined),
           saveConfig: vi.fn().mockResolvedValue(undefined),
+          disableCheck: vi.fn().mockResolvedValue(undefined),
+          enableCheck: vi.fn().mockResolvedValue(undefined),
         }}
       >
         <WellnessCheckCard />
@@ -329,5 +333,31 @@ describe("WellnessCheckCard", () => {
 
       expect(mockAwardPoints).toHaveBeenCalledWith(5, expect.any(Object));
     });
+  });
+
+  it("renders an opt-out button", () => {
+    renderCard();
+    expect(
+      screen.getByRole("button", { name: "Turn off wellness checks" }),
+    ).toBeInTheDocument();
+  });
+
+  it("clicking opt-out calls disableCheck", async () => {
+    const user = userEvent.setup();
+    const { ctx } = renderCard();
+    await user.click(
+      screen.getByRole("button", { name: "Turn off wellness checks" }),
+    );
+    expect(ctx.disableCheck).toHaveBeenCalledOnce();
+  });
+
+  it("clicking opt-out calls onOptOut prop", async () => {
+    const user = userEvent.setup();
+    const onOptOut = vi.fn();
+    renderCard({}, { onOptOut });
+    await user.click(
+      screen.getByRole("button", { name: "Turn off wellness checks" }),
+    );
+    expect(onOptOut).toHaveBeenCalledOnce();
   });
 });
