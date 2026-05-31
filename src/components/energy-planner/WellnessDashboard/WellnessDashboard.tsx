@@ -199,19 +199,22 @@ export function WellnessDashboard() {
           {sortedEntries.map((entry) => (
             <EntryRow key={entry.id}>
               <EntryDate>{formatDate(entry.date)}</EntryDate>
-              <EntryRatings>
-                {entry.metrics
-                  .filter((m) => m.value !== null)
-                  .map((m) => (
-                    <Rating key={m.metricId}>
-                      <RatingLabel>{m.label}</RatingLabel>
-                      <RatingValue>{m.value}</RatingValue>
-                    </Rating>
-                  ))}
-                {entry.metrics.every((m) => m.value === null) && (
-                  <RatingLabel>No ratings recorded</RatingLabel>
-                )}
-              </EntryRatings>
+              <EntryBody>
+                <EntryRatings>
+                  {entry.metrics
+                    .filter((m) => m.value !== null)
+                    .map((m) => (
+                      <Rating key={m.metricId}>
+                        <RatingLabel>{m.label}</RatingLabel>
+                        <RatingValue>{m.value}</RatingValue>
+                      </Rating>
+                    ))}
+                  {entry.metrics.every((m) => m.value === null) && (
+                    <RatingLabel>No ratings recorded</RatingLabel>
+                  )}
+                </EntryRatings>
+                {entry.note && <EntryNote>{entry.note}</EntryNote>}
+              </EntryBody>
               <Button
                 aria-label={`Delete entry from ${formatDate(entry.date)}`}
                 intent="danger"
@@ -318,11 +321,24 @@ const EntryDate = styled.span`
   min-width: 5rem;
 `;
 
+const EntryBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+`;
+
 const EntryRatings = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  flex: 1;
+`;
+
+const EntryNote = styled.p`
+  font-size: 0.8rem;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+  margin: 0;
+  font-style: italic;
 `;
 
 const Rating = styled.span`

@@ -4,8 +4,11 @@ import { Settings } from "lucide-react";
 import { css, styled } from "next-yak";
 import { useState } from "react";
 import { Button } from "@/components/Button";
+import { usePoints } from "@/lib/points/context";
 import { useWellnessCheck } from "@/lib/wellness/context";
 import type { WellnessMetric } from "@/lib/wellness/schema";
+
+const WELLNESS_CHECK_POINTS = 5;
 
 interface WellnessCheckCardProps {
   onOpenConfig?: () => void;
@@ -13,11 +16,15 @@ interface WellnessCheckCardProps {
 
 export function WellnessCheckCard({ onOpenConfig }: WellnessCheckCardProps) {
   const { config, saveEntry } = useWellnessCheck();
+  const { awardPoints } = usePoints();
   const [ratings, setRatings] = useState<Record<string, number | null>>(() =>
     Object.fromEntries(config.metrics.map((m) => [m.id, null])),
   );
+  const [noteExpanded, setNoteExpanded] = useState(false);
+  const [note, setNote] = useState("");
 
   const hasAnyRating = config.metrics.some((m) => ratings[m.id] !== null);
+  const isFilled = hasAnyRating || note.trim().length > 0;
 
   const handleRate = (metricId: string, value: number) => {
     setRatings((prev) => ({ ...prev, [metricId]: value }));
@@ -29,7 +36,7 @@ export function WellnessCheckCard({ onOpenConfig }: WellnessCheckCardProps) {
       label: m.label,
       value: ratings[m.id] ?? null,
     }));
-    await saveEntry(metrics);
+    await saveEntry(metrics, note.trim() || undefined);
   };
 
   return (
@@ -67,8 +74,34 @@ export function WellnessCheckCard({ onOpenConfig }: WellnessCheckCardProps) {
           </SegmentedControl>
         </MetricRow>
       ))}
+      <NoteToggle
+        aria-expanded={noteExpanded}
+        onClick={() => setNoteExpanded((v) => !v)}
+        type="button"
+      >
+        {noteExpanded ? "Hide note" : "Add note"}
+      </NoteToggle>
+      {noteExpanded && (
+        <NoteTextarea
+          aria-label="Note"
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="How are you feeling?"
+          rows={3}
+          value={note}
+        />
+      )}
       <SaveRow>
-        <Button disabled={!hasAnyRating} onClick={handleSave} size="sm">
+        <Button
+          disabled={!isFilled}
+          onClick={async (e) => {
+            awardPoints(
+              WELLNESS_CHECK_POINTS,
+              e.currentTarget.getBoundingClientRect(),
+            );
+            await handleSave();
+          }}
+          size="sm"
+        >
           Save
         </Button>
       </SaveRow>
@@ -167,6 +200,40 @@ const SegmentButton = styled.button<{ $selected: boolean }>`
       );
       color: white;
     `}
+`;
+
+const NoteToggle = styled.button`
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: light-dark(var(--color-primary-600), var(--color-primary-400));
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+`;
+
+const NoteTextarea = styled.textarea`
+  width: 100%;
+  padding: 8px;
+  font-size: 0.875rem;
+  border-radius: 4px;
+  border: 1px solid light-dark(var(--color-primary-300), var(--color-primary-700));
+  background-color: light-dark(white, var(--color-grey-900));
+  color: light-dark(var(--color-grey-800), var(--color-grey-200));
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
 `;
 
 const SaveRow = styled.div`

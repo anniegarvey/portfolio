@@ -31,6 +31,7 @@ export const WellnessEntrySchema = z.object({
   id: z.string().uuid(),
   date: z.string(),
   metrics: z.array(WellnessEntryMetricSchema),
+  note: z.string().optional(),
 });
 export type WellnessEntry = z.infer<typeof WellnessEntrySchema>;
 
