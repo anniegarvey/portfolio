@@ -22,13 +22,13 @@
       "Bash(pnpm exec biome check --error-on-warnings *)",
       "Bash(pnpm exec tsx scripts/snapshot-grid.ts *)",
       "Bash(npx tsc --noEmit *)",
-      "Bash(pnpm kill-port)"
+      "Bash(pnpm kill-server)"
     ]
   },
   "sandbox": {
     "excludedCommands": [
       "pnpm dev",
-      "pnpm kill-port"
+      "pnpm kill-server"
     ]
   },
   "hooks": {
