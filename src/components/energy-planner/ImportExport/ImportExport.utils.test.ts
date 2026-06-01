@@ -10,6 +10,10 @@ import {
   storeEnergyTypes,
 } from "@/lib/energy-planner/storage";
 import {
+  fetchWellnessConfig,
+  fetchWellnessEntries,
+} from "@/lib/wellness/storage";
+import {
   exportEnergyPlannerData,
   importEnergyPlannerData,
 } from "./ImportExport.utils";
@@ -81,12 +85,14 @@ describe("exportEnergyPlannerData", () => {
     return new Promise<void>((resolve) => {
       reader.onload = () => {
         const exportedData = JSON.parse(reader.result as string);
-        expect(exportedData).toHaveProperty("version", "5.0.0");
+        expect(exportedData).toHaveProperty("version", "6.0.0");
         expect(exportedData).toHaveProperty("exportDate");
         expect(exportedData.data).toHaveProperty("oneOffActivities");
         expect(exportedData.data).toHaveProperty("repeatingActivities");
         expect(exportedData.data).toHaveProperty("energyTypes");
         expect(exportedData.data).toHaveProperty("zones");
+        expect(exportedData.data).toHaveProperty("wellnessConfig");
+        expect(exportedData.data).toHaveProperty("wellnessEntries");
         resolve();
       };
     });
@@ -338,5 +344,66 @@ describe("importEnergyPlannerData - data handling", () => {
     await expect(importEnergyPlannerData(file)).rejects.toThrow(
       "Invalid file format. Missing required fields.",
     );
+  });
+
+  it("round-trips wellness config and entries", async () => {
+    const validData = {
+      version: "6.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffActivities: null,
+        repeatingActivities: null,
+        energyTypes: null,
+        zones: null,
+        dayPlans: null,
+        wellnessConfig: {
+          enabled: true,
+          anchorDate: "2026-01-01",
+          frequency: 1,
+          unit: "weeks",
+          metrics: [
+            {
+              id: "a3f8d1c2-7b4e-4f9a-8c6d-1e2f3a4b5c6d",
+              label: "Overall mood",
+              lowLabel: "Low",
+              highLabel: "Great",
+            },
+          ],
+        },
+        wellnessEntries: [
+          {
+            id: "dddddddd-0000-0000-0000-000000000001",
+            date: "2026-01-01",
+            metrics: [
+              {
+                metricId: "a3f8d1c2-7b4e-4f9a-8c6d-1e2f3a4b5c6d",
+                label: "Overall mood",
+                value: 4,
+              },
+            ],
+            note: "Feeling good",
+          },
+        ],
+      },
+    };
+
+    const fileContent = JSON.stringify(validData);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+
+    const restoredConfig = await fetchWellnessConfig();
+    expect(restoredConfig?.enabled).toBe(true);
+    expect(restoredConfig?.metrics).toHaveLength(1);
+    expect(restoredConfig?.metrics[0].label).toBe("Overall mood");
+
+    const restoredEntries = await fetchWellnessEntries();
+    expect(restoredEntries).toHaveLength(1);
+    expect(restoredEntries[0].date).toBe("2026-01-01");
+    expect(restoredEntries[0].metrics[0].value).toBe(4);
+    expect(restoredEntries[0].note).toBe("Feeling good");
   });
 });
