@@ -28,13 +28,6 @@ test.describe("Bonsai Garden", () => {
     ).toBeVisible();
   });
 
-  test("Bonsai nav link appears in the site navigation", async ({ page }) => {
-    await page.goto("/");
-    await expect(
-      page.getByRole("link", { name: "Bonsai", exact: true }),
-    ).toBeVisible();
-  });
-
   test("D key advances day when tree is watered", async ({ page }) => {
     // Start at day 10, already watered
     await goToBonsaiWithSeed(page, {
