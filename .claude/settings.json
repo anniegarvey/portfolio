@@ -26,6 +26,13 @@
     ]
   },
   "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "api.github.com",
+        "fonts.googleapis.com",
+        "fonts.gstatic.com"
+      ]
+    },
     "excludedCommands": [
       "pnpm dev",
       "pnpm kill-server"
