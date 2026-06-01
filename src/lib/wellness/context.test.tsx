@@ -125,4 +125,54 @@ describe("useWellnessCheck", () => {
     expect(result.current.config.frequency).toBe(2);
     expect(result.current.config.unit).toBe("months");
   });
+
+  it("disableCheck sets enabled to false and preserves entries", async () => {
+    const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const countBefore = result.current.entries.length;
+
+    await act(async () => {
+      await result.current.saveEntry([
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 3,
+        },
+      ]);
+    });
+    expect(result.current.entries).toHaveLength(countBefore + 1);
+
+    await act(async () => {
+      await result.current.disableCheck();
+    });
+    expect(result.current.config.enabled).toBe(false);
+    expect(result.current.entries).toHaveLength(countBefore + 1);
+  });
+
+  it("enableCheck sets enabled to true and preserves entries", async () => {
+    const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const countBefore = result.current.entries.length;
+
+    await act(async () => {
+      await result.current.saveEntry([
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 5,
+        },
+      ]);
+      await result.current.disableCheck();
+    });
+    expect(result.current.config.enabled).toBe(false);
+    expect(result.current.entries).toHaveLength(countBefore + 1);
+
+    await act(async () => {
+      await result.current.enableCheck();
+    });
+    expect(result.current.config.enabled).toBe(true);
+    expect(result.current.entries).toHaveLength(countBefore + 1);
+  });
 });

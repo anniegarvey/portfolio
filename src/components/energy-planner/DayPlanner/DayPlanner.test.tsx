@@ -9,6 +9,8 @@ import {
 } from "../../../lib/energy-planner/storage";
 import { PointsProvider } from "../../../lib/points/context";
 import { WellnessProvider } from "../../../lib/wellness/context";
+import { DEFAULT_WELLNESS_METRICS } from "../../../lib/wellness/schema";
+import { storeWellnessConfig } from "../../../lib/wellness/storage";
 import { DayPlanner } from ".";
 
 describe("DayPlanner", () => {
@@ -1105,6 +1107,13 @@ describe("DayPlanner with populated data", () => {
 describe("DayPlanner – wellness integration", () => {
   beforeEach(async () => {
     await clearAll();
+    await storeWellnessConfig({
+      enabled: true,
+      anchorDate: "2024-01-01",
+      frequency: 1,
+      unit: "weeks",
+      metrics: DEFAULT_WELLNESS_METRICS,
+    });
     vi.clearAllMocks();
   });
 
@@ -1177,6 +1186,50 @@ describe("DayPlanner – wellness integration", () => {
       expect(
         screen.getByRole("dialog", { name: "Wellness Check Settings" }),
       ).toBeInTheDocument();
+    });
+  });
+
+  it("shows undo toast after clicking opt-out on the wellness card", async () => {
+    const user = userEvent.setup();
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Wellness check")).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Turn off wellness checks" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Wellness check")).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/wellness checks turned off/i),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    });
+  });
+
+  it("clicking Undo re-enables the wellness card", async () => {
+    const user = userEvent.setup();
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Wellness check")).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Turn off wellness checks" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Undo" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Wellness check")).toBeInTheDocument();
     });
   });
 

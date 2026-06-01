@@ -1,8 +1,8 @@
 "use client";
 
-import { Pencil, Plus, Settings } from "lucide-react";
+import { Pencil, Plus, Settings, X as XIcon } from "lucide-react";
 import { styled } from "next-yak";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { WellnessCheckCard } from "@/components/energy-planner/WellnessCheckCard";
 import { WellnessConfigModal } from "@/components/energy-planner/WellnessConfigModal";
@@ -79,6 +79,20 @@ export function DayPlanner({
   } = useDayPlannerState({ onOpenCreateActivity });
 
   const [isWellnessConfigOpen, setIsWellnessConfigOpen] = useState(false);
+  const [showWellnessUndo, setShowWellnessUndo] = useState(false);
+
+  useEffect(() => {
+    if (!showWellnessUndo) return;
+    const timer = setTimeout(() => setShowWellnessUndo(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showWellnessUndo]);
+
+  const handleWellnessOptOut = () => setShowWellnessUndo(true);
+
+  const handleWellnessUndo = async () => {
+    await wellnessCtx?.enableCheck();
+    setShowWellnessUndo(false);
+  };
 
   if (isLoading) {
     return <DayPlannerSkeleton />;
@@ -140,7 +154,28 @@ export function DayPlanner({
       <UncompletedActivitiesSection activities={viewedUncompletedActivities} />
 
       {wellnessCtx?.isPending && !wellnessCtx.isLoading ? (
-        <WellnessCheckCard onOpenConfig={() => setIsWellnessConfigOpen(true)} />
+        <WellnessCheckCard
+          onOpenConfig={() => setIsWellnessConfigOpen(true)}
+          onOptOut={handleWellnessOptOut}
+        />
+      ) : showWellnessUndo && !wellnessCtx?.isLoading ? (
+        <WellnessUndoBanner role="status">
+          <span>Wellness checks turned off.</span>
+          <WellnessUndoActions>
+            <Button onClick={handleWellnessUndo} size="sm" variant="outline">
+              Undo
+            </Button>
+            <Button
+              aria-label="Dismiss"
+              intent="secondary"
+              onClick={() => setShowWellnessUndo(false)}
+              size="icon"
+              variant="ghost"
+            >
+              <XIcon size={14} />
+            </Button>
+          </WellnessUndoActions>
+        </WellnessUndoBanner>
       ) : null}
 
       <PlannedActivitiesDndSection
@@ -232,6 +267,26 @@ const ButtonGroup = styled.div`
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+`;
+
+const WellnessUndoBanner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background-color: light-dark(var(--color-grey-100), oklch(22% 0.02 270));
+  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-700));
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+`;
+
+const WellnessUndoActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 `;
 
 const Warning = styled.div`

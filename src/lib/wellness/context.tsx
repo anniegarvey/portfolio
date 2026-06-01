@@ -33,6 +33,8 @@ export interface WellnessCheckContextType {
   saveEntry: (metrics: WellnessEntryMetric[], note?: string) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   saveConfig: (config: WellnessConfig) => Promise<void>;
+  disableCheck: () => Promise<void>;
+  enableCheck: () => Promise<void>;
 }
 
 // biome-ignore lint/style/useComponentExportOnlyModules: context + provider + hook in one module
@@ -118,6 +120,16 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
     setConfig(newConfig);
   }, []);
 
+  const disableCheck = useCallback(
+    () => saveConfig({ ...config, enabled: false }),
+    [config, saveConfig],
+  );
+
+  const enableCheck = useCallback(
+    () => saveConfig({ ...config, enabled: true }),
+    [config, saveConfig],
+  );
+
   return (
     <WellnessCheckContext.Provider
       value={{
@@ -128,6 +140,8 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
         saveEntry,
         deleteEntry,
         saveConfig,
+        disableCheck,
+        enableCheck,
       }}
     >
       {children}

@@ -66,6 +66,8 @@ function makeCtx(
     saveEntry: vi.fn().mockResolvedValue(undefined),
     deleteEntry: vi.fn().mockResolvedValue(undefined),
     saveConfig: vi.fn().mockResolvedValue(undefined),
+    disableCheck: vi.fn().mockResolvedValue(undefined),
+    enableCheck: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
