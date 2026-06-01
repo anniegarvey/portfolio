@@ -15,6 +15,13 @@ import {
   storeEnergyTypes,
   storeZones,
 } from "@/lib/energy-planner/storage";
+import type { WellnessConfig, WellnessEntry } from "@/lib/wellness/schema";
+import {
+  fetchWellnessConfig,
+  fetchWellnessEntries,
+  storeWellnessConfig,
+  storeWellnessEntries,
+} from "@/lib/wellness/storage";
 
 export interface EnergyPlannerExportData {
   version: string;
@@ -25,10 +32,12 @@ export interface EnergyPlannerExportData {
     energyTypes: EnergyTypeConfig[] | null;
     zones: ZoneConfig[] | null;
     dayPlans: { date: string; plan: DayPlan }[] | null;
+    wellnessConfig: WellnessConfig | null;
+    wellnessEntries: WellnessEntry[] | null;
   };
 }
 
-const EXPORT_VERSION = "5.0.0"; // Added activityOrder to day plans for ordering persistence
+const EXPORT_VERSION = "6.0.0"; // Added wellness config and entries to export
 
 /**
  * Exports all energy planner data from IndexedDB to a JSON file
@@ -44,7 +53,15 @@ export async function exportEnergyPlannerData(): Promise<void> {
     }
   }
 
-  const allActivities = await fetchActivities();
+  const [allActivities, energyTypes, zones, wellnessConfig, wellnessEntries] =
+    await Promise.all([
+      fetchActivities(),
+      fetchEnergyTypes(),
+      fetchZones(),
+      fetchWellnessConfig(),
+      fetchWellnessEntries(),
+    ]);
+
   const exportData: EnergyPlannerExportData = {
     version: EXPORT_VERSION,
     exportDate: new Date().toISOString(),
@@ -52,9 +69,11 @@ export async function exportEnergyPlannerData(): Promise<void> {
       oneOffActivities: allActivities?.filter((a) => !a.repeatConfig) ?? null,
       repeatingActivities:
         allActivities?.filter((a) => !!a.repeatConfig) ?? null,
-      energyTypes: (await fetchEnergyTypes()) ?? null,
-      zones: (await fetchZones()) ?? null,
+      energyTypes: energyTypes ?? null,
+      zones: zones ?? null,
       dayPlans: dayPlans.length > 0 ? dayPlans : null,
+      wellnessConfig: wellnessConfig ?? null,
+      wellnessEntries: wellnessEntries.length > 0 ? wellnessEntries : null,
     },
   };
 
@@ -107,6 +126,12 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
     for (const { date, plan } of data.data.dayPlans) {
       await storeDayPlan(date, plan);
     }
+  }
+  if (data.data.wellnessConfig) {
+    await storeWellnessConfig(data.data.wellnessConfig);
+  }
+  if (data.data.wellnessEntries) {
+    await storeWellnessEntries(data.data.wellnessEntries);
   }
 
   // Reload the page to reflect the imported data
