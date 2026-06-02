@@ -1,9 +1,10 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Settings, Trash2 } from "lucide-react";
 import { styled } from "next-yak";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/Button";
+import { WellnessConfigModal } from "@/components/energy-planner/WellnessConfigModal";
 import { useWellnessCheck } from "@/lib/wellness/context";
 import {
   buildTrends,
@@ -162,6 +163,7 @@ function MetricChart({ series }: { series: MetricSeries }) {
 export function WellnessDashboard() {
   const { config, entries, isLoading, deleteEntry, enableCheck } =
     useWellnessCheck();
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   const series = useMemo(
     () => buildTrends(entries, config.metrics),
@@ -175,28 +177,71 @@ export function WellnessDashboard() {
 
   if (isLoading) return null;
 
-  if (!config.enabled) {
-    return (
-      <Dashboard>
+  return (
+    <Dashboard>
+      <DashboardActions>
+        <Button
+          aria-label="Configure wellness checks"
+          intent="secondary"
+          leftIcon={<Settings size={14} />}
+          onClick={() => setIsConfigOpen(true)}
+          size="sm"
+          variant="outline"
+        >
+          Settings
+        </Button>
+      </DashboardActions>
+
+      {!config.enabled && (
         <DisabledBanner>
           <DisabledText>Wellness checks are turned off.</DisabledText>
           <Button onClick={enableCheck} size="sm">
             Turn wellness checks back on
           </Button>
         </DisabledBanner>
-        {entries.length > 0 && (
-          <>
-            <ChartsSection aria-label="Wellness trends">
-              {series.map((s) => (
-                <MetricChart key={s.metricId} series={s} />
-              ))}
-            </ChartsSection>
-            <EntriesSection>
-              <SectionTitle>History</SectionTitle>
-              <EntriesList aria-label="Wellness entries">
-                {sortedEntries.map((entry) => (
-                  <EntryRow key={entry.id}>
-                    <EntryDate>{formatDate(entry.date)}</EntryDate>
+      )}
+
+      {config.enabled && entries.length === 0 && (
+        <EmptyState>
+          <EmptyStateText>
+            No wellness check entries yet. Complete a check on the Energy
+            Planner to start tracking your trends.
+          </EmptyStateText>
+        </EmptyState>
+      )}
+
+      {entries.length > 0 && (
+        <>
+          <ChartsSection aria-label="Wellness trends">
+            {series.map((s) => (
+              <MetricChart key={s.metricId} series={s} />
+            ))}
+          </ChartsSection>
+
+          <EntriesSection>
+            <SectionTitle>History</SectionTitle>
+            <EntriesList aria-label="Wellness entries">
+              {sortedEntries.map((entry) => (
+                <EntryRow key={entry.id}>
+                  <EntryDate>{formatDate(entry.date)}</EntryDate>
+                  {config.enabled ? (
+                    <EntryBody>
+                      <EntryRatings>
+                        {entry.metrics
+                          .filter((m) => m.value !== null)
+                          .map((m) => (
+                            <Rating key={m.metricId}>
+                              <RatingLabel>{m.label}</RatingLabel>
+                              <RatingValue>{m.value}</RatingValue>
+                            </Rating>
+                          ))}
+                        {entry.metrics.every((m) => m.value === null) && (
+                          <RatingLabel>No ratings recorded</RatingLabel>
+                        )}
+                      </EntryRatings>
+                      {entry.note && <EntryNote>{entry.note}</EntryNote>}
+                    </EntryBody>
+                  ) : (
                     <EntryRatings>
                       {entry.metrics
                         .filter((m) => m.value !== null)
@@ -210,71 +255,30 @@ export function WellnessDashboard() {
                         <RatingLabel>No ratings recorded</RatingLabel>
                       )}
                     </EntryRatings>
-                  </EntryRow>
-                ))}
-              </EntriesList>
-            </EntriesSection>
-          </>
-        )}
-      </Dashboard>
-    );
-  }
-
-  if (entries.length === 0) {
-    return (
-      <EmptyState>
-        <EmptyStateText>
-          No wellness check entries yet. Complete a check on the Energy Planner
-          to start tracking your trends.
-        </EmptyStateText>
-      </EmptyState>
-    );
-  }
-
-  return (
-    <Dashboard>
-      <ChartsSection aria-label="Wellness trends">
-        {series.map((s) => (
-          <MetricChart key={s.metricId} series={s} />
-        ))}
-      </ChartsSection>
-
-      <EntriesSection>
-        <SectionTitle>History</SectionTitle>
-        <EntriesList aria-label="Wellness entries">
-          {sortedEntries.map((entry) => (
-            <EntryRow key={entry.id}>
-              <EntryDate>{formatDate(entry.date)}</EntryDate>
-              <EntryBody>
-                <EntryRatings>
-                  {entry.metrics
-                    .filter((m) => m.value !== null)
-                    .map((m) => (
-                      <Rating key={m.metricId}>
-                        <RatingLabel>{m.label}</RatingLabel>
-                        <RatingValue>{m.value}</RatingValue>
-                      </Rating>
-                    ))}
-                  {entry.metrics.every((m) => m.value === null) && (
-                    <RatingLabel>No ratings recorded</RatingLabel>
                   )}
-                </EntryRatings>
-                {entry.note && <EntryNote>{entry.note}</EntryNote>}
-              </EntryBody>
-              <Button
-                aria-label={`Delete entry from ${formatDate(entry.date)}`}
-                intent="danger"
-                onClick={() => deleteEntry(entry.id)}
-                size="icon"
-                title={`Delete entry from ${formatDate(entry.date)}`}
-                variant="ghost"
-              >
-                <Trash2 size={16} />
-              </Button>
-            </EntryRow>
-          ))}
-        </EntriesList>
-      </EntriesSection>
+                  {config.enabled && (
+                    <Button
+                      aria-label={`Delete entry from ${formatDate(entry.date)}`}
+                      intent="danger"
+                      onClick={() => deleteEntry(entry.id)}
+                      size="icon"
+                      title={`Delete entry from ${formatDate(entry.date)}`}
+                      variant="ghost"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  )}
+                </EntryRow>
+              ))}
+            </EntriesList>
+          </EntriesSection>
+        </>
+      )}
+
+      <WellnessConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+      />
     </Dashboard>
   );
 }
@@ -283,6 +287,11 @@ const Dashboard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2rem;
+`;
+
+const DashboardActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const ChartsSection = styled.section`
