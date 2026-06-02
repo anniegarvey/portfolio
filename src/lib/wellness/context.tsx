@@ -11,7 +11,7 @@ import {
 } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { getTodayDateString } from "@/lib/date";
-import { isCheckPending } from "./schedule";
+import { getPeriodForDate, isCheckPending } from "./schedule";
 import type {
   WellnessConfig,
   WellnessEntry,
@@ -30,7 +30,13 @@ export interface WellnessCheckContextType {
   entries: WellnessEntry[];
   isPending: boolean;
   isLoading: boolean;
+  currentPeriodEntry: WellnessEntry | undefined;
   saveEntry: (metrics: WellnessEntryMetric[], note?: string) => Promise<void>;
+  amendEntry: (
+    id: string,
+    metrics: WellnessEntryMetric[],
+    note?: string,
+  ) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   saveConfig: (config: WellnessConfig) => Promise<void>;
   disableCheck: () => Promise<void>;
@@ -91,6 +97,13 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
     [config, entries],
   );
 
+  const currentPeriodEntry = useMemo(() => {
+    const today = getTodayDateString();
+    const period = getPeriodForDate(config, today);
+    if (!period) return undefined;
+    return entries.find((e) => e.date >= period.start && e.date < period.end);
+  }, [config, entries]);
+
   const saveEntry = useCallback(
     async (metrics: WellnessEntryMetric[], note?: string) => {
       const entry: WellnessEntry = {
@@ -100,6 +113,23 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
         ...(note ? { note } : {}),
       };
       const newEntries = [...entries, entry];
+      await storeWellnessEntries(newEntries);
+      setEntries(newEntries);
+    },
+    [entries],
+  );
+
+  const amendEntry = useCallback(
+    async (id: string, metrics: WellnessEntryMetric[], note?: string) => {
+      const existing = entries.find((e) => e.id === id);
+      if (!existing) return;
+      const amended: WellnessEntry = {
+        id: uuidv4(),
+        date: existing.date,
+        metrics,
+        ...(note ? { note } : {}),
+      };
+      const newEntries = entries.filter((e) => e.id !== id).concat(amended);
       await storeWellnessEntries(newEntries);
       setEntries(newEntries);
     },
@@ -137,7 +167,9 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
         entries,
         isPending,
         isLoading,
+        currentPeriodEntry,
         saveEntry,
+        amendEntry,
         deleteEntry,
         saveConfig,
         disableCheck,

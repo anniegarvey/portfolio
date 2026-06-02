@@ -6,26 +6,39 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { usePoints } from "@/lib/points/context";
 import { useWellnessCheck } from "@/lib/wellness/context";
-import type { WellnessMetric } from "@/lib/wellness/schema";
+import type { WellnessEntry, WellnessMetric } from "@/lib/wellness/schema";
 
 const WELLNESS_CHECK_POINTS = 5;
 
 interface WellnessCheckCardProps {
   onOpenConfig?: () => void;
   onOptOut?: () => void;
+  initialEntry?: WellnessEntry;
+  onSave?: () => void;
 }
 
 export function WellnessCheckCard({
   onOpenConfig,
   onOptOut,
+  initialEntry,
+  onSave,
 }: WellnessCheckCardProps) {
-  const { config, saveEntry, disableCheck } = useWellnessCheck();
+  const { config, saveEntry, amendEntry, disableCheck } = useWellnessCheck();
   const { awardPoints } = usePoints();
-  const [ratings, setRatings] = useState<Record<string, number | null>>(() =>
-    Object.fromEntries(config.metrics.map((m) => [m.id, null])),
+  const [ratings, setRatings] = useState<Record<string, number | null>>(() => {
+    const base: Record<string, number | null> = Object.fromEntries(
+      config.metrics.map((m) => [m.id, null]),
+    );
+    if (!initialEntry) return base;
+    for (const m of initialEntry.metrics) {
+      if (m.metricId in base) base[m.metricId] = m.value;
+    }
+    return base;
+  });
+  const [noteExpanded, setNoteExpanded] = useState(() =>
+    Boolean(initialEntry?.note),
   );
-  const [noteExpanded, setNoteExpanded] = useState(false);
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(() => initialEntry?.note ?? "");
 
   const hasAnyRating = config.metrics.some((m) => ratings[m.id] !== null);
   const isFilled = hasAnyRating || note.trim().length > 0;
@@ -40,7 +53,12 @@ export function WellnessCheckCard({
       label: m.label,
       value: ratings[m.id] ?? null,
     }));
-    await saveEntry(metrics, note.trim() || undefined);
+    if (initialEntry) {
+      await amendEntry(initialEntry.id, metrics, note.trim() || undefined);
+      onSave?.();
+    } else {
+      await saveEntry(metrics, note.trim() || undefined);
+    }
   };
 
   const handleOptOut = async () => {
@@ -114,10 +132,12 @@ export function WellnessCheckCard({
         <Button
           disabled={!isFilled}
           onClick={async (e) => {
-            awardPoints(
-              WELLNESS_CHECK_POINTS,
-              e.currentTarget.getBoundingClientRect(),
-            );
+            if (!initialEntry) {
+              awardPoints(
+                WELLNESS_CHECK_POINTS,
+                e.currentTarget.getBoundingClientRect(),
+              );
+            }
             await handleSave();
           }}
           size="sm"

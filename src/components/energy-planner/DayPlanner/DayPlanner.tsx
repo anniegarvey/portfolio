@@ -28,6 +28,77 @@ interface DayPlannerProps {
   onOpenCapacityModal?: () => void;
 }
 
+function WellnessSection({ onOpenConfig }: { onOpenConfig: () => void }) {
+  const ctx = use(WellnessCheckContext);
+  const [isAmending, setIsAmending] = useState(false);
+  const [showUndo, setShowUndo] = useState(false);
+
+  useEffect(() => {
+    if (!showUndo) return;
+    const timer = setTimeout(() => setShowUndo(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showUndo]);
+
+  if (!ctx || ctx.isLoading) return null;
+
+  if (ctx.isPending) {
+    return (
+      <WellnessCheckCard
+        onOpenConfig={onOpenConfig}
+        onOptOut={() => setShowUndo(true)}
+      />
+    );
+  }
+
+  if (isAmending) {
+    return (
+      <WellnessCheckCard
+        initialEntry={ctx.currentPeriodEntry}
+        onSave={() => setIsAmending(false)}
+      />
+    );
+  }
+
+  if (showUndo) {
+    return (
+      <WellnessUndoBanner role="status">
+        <span>Wellness checks turned off.</span>
+        <WellnessUndoActions>
+          <Button
+            onClick={async () => {
+              await ctx.enableCheck();
+              setShowUndo(false);
+            }}
+            size="sm"
+            variant="outline"
+          >
+            Undo
+          </Button>
+          <Button
+            aria-label="Dismiss"
+            intent="secondary"
+            onClick={() => setShowUndo(false)}
+            size="icon"
+            variant="ghost"
+          >
+            <XIcon size={14} />
+          </Button>
+        </WellnessUndoActions>
+      </WellnessUndoBanner>
+    );
+  }
+
+  if (ctx.currentPeriodEntry && ctx.config.enabled) {
+    return (
+      <WellnessAmendButton onClick={() => setIsAmending(true)} type="button">
+        Edit today&apos;s check
+      </WellnessAmendButton>
+    );
+  }
+
+  return null;
+}
+
 export function DayPlanner({
   onEditActivity,
   onOpenCreateActivity,
@@ -79,20 +150,6 @@ export function DayPlanner({
   } = useDayPlannerState({ onOpenCreateActivity });
 
   const [isWellnessConfigOpen, setIsWellnessConfigOpen] = useState(false);
-  const [showWellnessUndo, setShowWellnessUndo] = useState(false);
-
-  useEffect(() => {
-    if (!showWellnessUndo) return;
-    const timer = setTimeout(() => setShowWellnessUndo(false), 5000);
-    return () => clearTimeout(timer);
-  }, [showWellnessUndo]);
-
-  const handleWellnessOptOut = () => setShowWellnessUndo(true);
-
-  const handleWellnessUndo = async () => {
-    await wellnessCtx?.enableCheck();
-    setShowWellnessUndo(false);
-  };
 
   if (isLoading) {
     return <DayPlannerSkeleton />;
@@ -153,30 +210,7 @@ export function DayPlanner({
 
       <UncompletedActivitiesSection activities={viewedUncompletedActivities} />
 
-      {wellnessCtx?.isPending && !wellnessCtx.isLoading ? (
-        <WellnessCheckCard
-          onOpenConfig={() => setIsWellnessConfigOpen(true)}
-          onOptOut={handleWellnessOptOut}
-        />
-      ) : showWellnessUndo && !wellnessCtx?.isLoading ? (
-        <WellnessUndoBanner role="status">
-          <span>Wellness checks turned off.</span>
-          <WellnessUndoActions>
-            <Button onClick={handleWellnessUndo} size="sm" variant="outline">
-              Undo
-            </Button>
-            <Button
-              aria-label="Dismiss"
-              intent="secondary"
-              onClick={() => setShowWellnessUndo(false)}
-              size="icon"
-              variant="ghost"
-            >
-              <XIcon size={14} />
-            </Button>
-          </WellnessUndoActions>
-        </WellnessUndoBanner>
-      ) : null}
+      <WellnessSection onOpenConfig={() => setIsWellnessConfigOpen(true)} />
 
       <PlannedActivitiesDndSection
         activeResolved={activeResolved}
@@ -287,6 +321,22 @@ const WellnessUndoActions = styled.div`
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+`;
+
+const WellnessAmendButton = styled.button`
+  background: none;
+  border: none;
+  color: light-dark(var(--color-primary-600), var(--color-primary-400));
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  align-self: flex-start;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 `;
 
 const Warning = styled.div`

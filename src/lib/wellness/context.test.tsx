@@ -150,6 +150,98 @@ describe("useWellnessCheck", () => {
     expect(result.current.entries).toHaveLength(countBefore + 1);
   });
 
+  it("currentPeriodEntry is defined after saving an entry", async () => {
+    const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.saveEntry([
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 3,
+        },
+      ]);
+    });
+
+    expect(result.current.currentPeriodEntry).toBeDefined();
+    const ids = result.current.entries.map((e) => e.id);
+    expect(ids).toContain(result.current.currentPeriodEntry?.id);
+  });
+
+  it("amendEntry replaces the entry preserving the original date", async () => {
+    const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const countBefore = result.current.entries.length;
+
+    await act(async () => {
+      await result.current.saveEntry([
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 2,
+        },
+      ]);
+    });
+
+    expect(result.current.entries).toHaveLength(countBefore + 1);
+    const original = result.current.entries[result.current.entries.length - 1];
+    expect(original.metrics[0].value).toBe(2);
+
+    await act(async () => {
+      await result.current.amendEntry(
+        original.id,
+        [
+          {
+            metricId: DEFAULT_WELLNESS_METRICS[0].id,
+            label: "Overall mood",
+            value: 5,
+          },
+        ],
+        "Updated note",
+      );
+    });
+
+    expect(result.current.entries).toHaveLength(countBefore + 1);
+    const amended = result.current.entries.find(
+      (e) => e.note === "Updated note",
+    );
+    expect(amended).toBeDefined();
+    expect(amended?.metrics[0].value).toBe(5);
+    expect(amended?.date).toBe(original.date);
+    expect(amended?.id).not.toBe(original.id);
+  });
+
+  it("amendEntry with unknown id is a no-op", async () => {
+    const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.saveEntry([
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 3,
+        },
+      ]);
+    });
+
+    const countBefore = result.current.entries.length;
+
+    await act(async () => {
+      await result.current.amendEntry("nonexistent-id", [
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 1,
+        },
+      ]);
+    });
+
+    expect(result.current.entries).toHaveLength(countBefore);
+  });
+
   it("enableCheck sets enabled to true and preserves entries", async () => {
     const { result } = renderHook(() => useWellnessCheck(), { wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
