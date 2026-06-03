@@ -22,9 +22,15 @@ beforeEach(() => {
 
 function renderCard(
   overrides: Partial<WellnessCheckContextType> = {},
-  props: { onOpenConfig?: () => void; onOptOut?: () => void } = {},
+  props: {
+    onOpenConfig?: () => void;
+    onOptOut?: () => void;
+    initialEntry?: import("@/lib/wellness/schema").WellnessEntry;
+    onSave?: () => void;
+  } = {},
 ) {
   const saveEntry = vi.fn().mockResolvedValue(undefined);
+  const amendEntry = vi.fn().mockResolvedValue(undefined);
   const ctx: WellnessCheckContextType = {
     config: {
       enabled: true,
@@ -36,7 +42,9 @@ function renderCard(
     entries: [],
     isPending: true,
     isLoading: false,
+    currentPeriodEntry: undefined,
     saveEntry,
+    amendEntry,
     deleteEntry: vi.fn().mockResolvedValue(undefined),
     saveConfig: vi.fn().mockResolvedValue(undefined),
     disableCheck: vi.fn().mockResolvedValue(undefined),
@@ -50,7 +58,7 @@ function renderCard(
     </WellnessCheckContext.Provider>,
   );
 
-  return { saveEntry, ctx };
+  return { saveEntry, amendEntry, ctx };
 }
 
 describe("WellnessCheckCard", () => {
@@ -163,7 +171,9 @@ describe("WellnessCheckCard", () => {
           entries: [],
           isPending: true,
           isLoading: false,
+          currentPeriodEntry: undefined,
           saveEntry,
+          amendEntry: vi.fn().mockResolvedValue(undefined),
           deleteEntry: vi.fn().mockResolvedValue(undefined),
           saveConfig: vi.fn().mockResolvedValue(undefined),
           disableCheck: vi.fn().mockResolvedValue(undefined),
@@ -359,5 +369,96 @@ describe("WellnessCheckCard", () => {
       screen.getByRole("button", { name: "Turn off wellness checks" }),
     );
     expect(onOptOut).toHaveBeenCalledOnce();
+  });
+});
+
+describe("amend mode (initialEntry provided)", () => {
+  const existingEntry: import("@/lib/wellness/schema").WellnessEntry = {
+    id: "test-entry-id",
+    date: "2024-01-03",
+    metrics: [
+      {
+        metricId: DEFAULT_WELLNESS_METRICS[0].id,
+        label: "Overall mood",
+        value: 4,
+      },
+    ],
+    note: "Feeling okay",
+  };
+
+  it("pre-fills rating from the existing entry", () => {
+    renderCard({}, { initialEntry: existingEntry });
+    expect(screen.getByRole("button", { name: "4" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("pre-fills and expands note from the existing entry", () => {
+    renderCard({}, { initialEntry: existingEntry });
+    expect(screen.getByRole("textbox", { name: "Note" })).toHaveValue(
+      "Feeling okay",
+    );
+  });
+
+  it("save calls amendEntry instead of saveEntry", async () => {
+    const user = userEvent.setup();
+    const { saveEntry, amendEntry } = renderCard(
+      {},
+      { initialEntry: existingEntry },
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(amendEntry).toHaveBeenCalledOnce();
+    expect(amendEntry).toHaveBeenCalledWith(
+      "test-entry-id",
+      [
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 4,
+        },
+      ],
+      "Feeling okay",
+    );
+    expect(saveEntry).not.toHaveBeenCalled();
+  });
+
+  it("does not award points on amend save", async () => {
+    const user = userEvent.setup();
+    renderCard({}, { initialEntry: existingEntry });
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(mockAwardPoints).not.toHaveBeenCalled();
+  });
+
+  it("calls onSave after amend save", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    renderCard({}, { initialEntry: existingEntry, onSave });
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledOnce();
+  });
+
+  it("entry without note does not expand note section", () => {
+    const entryWithoutNote: import("@/lib/wellness/schema").WellnessEntry = {
+      id: "test-entry-id-2",
+      date: "2024-01-03",
+      metrics: [
+        {
+          metricId: DEFAULT_WELLNESS_METRICS[0].id,
+          label: "Overall mood",
+          value: 2,
+        },
+      ],
+    };
+    renderCard({}, { initialEntry: entryWithoutNote });
+    expect(
+      screen.queryByRole("textbox", { name: "Note" }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -10,7 +10,10 @@ import {
 import { PointsProvider } from "../../../lib/points/context";
 import { WellnessProvider } from "../../../lib/wellness/context";
 import { DEFAULT_WELLNESS_METRICS } from "../../../lib/wellness/schema";
-import { storeWellnessConfig } from "../../../lib/wellness/storage";
+import {
+  storeWellnessConfig,
+  storeWellnessEntries,
+} from "../../../lib/wellness/storage";
 import { DayPlanner } from ".";
 
 describe("DayPlanner", () => {
@@ -1257,6 +1260,139 @@ describe("DayPlanner – wellness integration", () => {
       expect(
         screen.queryByRole("dialog", { name: "Wellness Check Settings" }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  it("dismiss button on the undo banner hides the banner", async () => {
+    const user = userEvent.setup();
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Wellness check")).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Turn off wellness checks" }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Dismiss" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/wellness checks turned off/i),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows 'Edit today's check' when current period has a saved entry", async () => {
+    const today = new Date().toISOString().split("T")[0];
+    await storeWellnessEntries([
+      {
+        id: "test-entry-amend",
+        date: today,
+        metrics: [
+          {
+            metricId: DEFAULT_WELLNESS_METRICS[0].id,
+            label: "Overall mood",
+            value: 3,
+          },
+        ],
+      },
+    ]);
+
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Edit today's check" }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("clicking 'Edit today's check' opens the amend card pre-filled", async () => {
+    const user = userEvent.setup();
+    const today = new Date().toISOString().split("T")[0];
+    await storeWellnessEntries([
+      {
+        id: "test-entry-amend-2",
+        date: today,
+        metrics: [
+          {
+            metricId: DEFAULT_WELLNESS_METRICS[0].id,
+            label: "Overall mood",
+            value: 4,
+          },
+        ],
+      },
+    ]);
+
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Edit today's check" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Edit today's check" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Wellness check")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "4" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("saving the amend card closes it and shows 'Edit today's check' again", async () => {
+    const user = userEvent.setup();
+    const today = new Date().toISOString().split("T")[0];
+    await storeWellnessEntries([
+      {
+        id: "test-entry-amend-3",
+        date: today,
+        metrics: [
+          {
+            metricId: DEFAULT_WELLNESS_METRICS[0].id,
+            label: "Overall mood",
+            value: 4,
+          },
+        ],
+      },
+    ]);
+
+    renderWithWellness();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Edit today's check" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Edit today's check" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Wellness check")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Wellness check")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Edit today's check" }),
+      ).toBeInTheDocument();
     });
   });
 });
