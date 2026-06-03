@@ -8,6 +8,17 @@ import {
 import { DEFAULT_WELLNESS_METRICS } from "@/lib/wellness/schema";
 import { WellnessDashboard } from "./WellnessDashboard";
 
+vi.mock("@dnd-kit/core", async () => {
+  const actual =
+    await vi.importActual<typeof import("@dnd-kit/core")>("@dnd-kit/core");
+  return {
+    ...actual,
+    DndContext: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+  };
+});
+
 const metricA = DEFAULT_WELLNESS_METRICS[0];
 const metricB = {
   id: "bbb-bbb-bbb-bbb-bbb",
@@ -253,6 +264,66 @@ describe("WellnessDashboard", () => {
         screen.getByRole("button", { name: /turn wellness checks back on/i }),
       );
       expect(ctx.enableCheck).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("settings button", () => {
+    it("is visible when checks are enabled with entries", () => {
+      renderDashboard({
+        entries: [
+          {
+            id: "e1",
+            date: "2024-01-05",
+            metrics: [{ metricId: metricA.id, label: metricA.label, value: 3 }],
+          },
+        ],
+      });
+      expect(
+        screen.getByRole("button", { name: /configure wellness checks/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("is visible in empty state (enabled, no entries)", () => {
+      renderDashboard({ entries: [] });
+      expect(
+        screen.getByRole("button", { name: /configure wellness checks/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("is visible when checks are disabled", () => {
+      renderDashboard({
+        config: {
+          enabled: false,
+          anchorDate: "2024-01-01",
+          frequency: 1,
+          unit: "weeks",
+          metrics: [metricA],
+        },
+      });
+      expect(
+        screen.getByRole("button", { name: /configure wellness checks/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("opens the config modal when clicked", async () => {
+      const user = userEvent.setup();
+      renderDashboard();
+      await user.click(
+        screen.getByRole("button", { name: /configure wellness checks/i }),
+      );
+      expect(screen.getByText("Wellness Check Settings")).toBeInTheDocument();
+    });
+
+    it("closes the config modal via Cancel", async () => {
+      const user = userEvent.setup();
+      renderDashboard();
+      await user.click(
+        screen.getByRole("button", { name: /configure wellness checks/i }),
+      );
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(
+        screen.queryByText("Wellness Check Settings"),
+      ).not.toBeInTheDocument();
     });
   });
 });
