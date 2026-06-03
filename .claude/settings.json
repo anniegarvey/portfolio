@@ -22,7 +22,11 @@
       "Bash(pnpm exec biome check --error-on-warnings *)",
       "Bash(pnpm exec tsx scripts/snapshot-grid.ts *)",
       "Bash(npx tsc --noEmit *)",
-      "Bash(pnpm kill-server)"
+      "Bash(pnpm kill-server)",
+      "Bash(pnpm playwright test *)",
+      "Bash(pnpm playwright test)",
+      "Bash(pnpm playwright show-report)",
+      "Bash(pnpm playwright test --config temp.playwright.config.ts *)"
     ]
   },
   "sandbox": {
@@ -75,7 +79,7 @@
     ]
   },
   "enabledPlugins": {
-    "playwright-skill@playwright-skill": true,
+    "playwright-skill@playwright-skill": false,
     "frontend-design@claude-plugins-official": true
   }
 }

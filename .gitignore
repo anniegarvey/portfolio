@@ -89,6 +89,9 @@ Thumbs.db
 .stryker-tmp
 reports
 
+# Scratch / ad-hoc scripts
+/temp/
+
 # Playwright
 /test-results/
 /playwright-report/
