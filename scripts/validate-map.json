@@ -36,6 +36,7 @@
     "docs/**",
     "plans/**",
     "reports/**",
-    "skills-lock.json"
+    "skills-lock.json",
+    ".gitignore"
   ]
 }
