@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
   Activity,
   DayPlan,
@@ -16,6 +17,10 @@ import {
   storeZones,
 } from "@/lib/energy-planner/storage";
 import type { WellnessConfig, WellnessEntry } from "@/lib/wellness/schema";
+import {
+  WellnessConfigSchema,
+  WellnessEntrySchema,
+} from "@/lib/wellness/schema";
 import {
   fetchWellnessConfig,
   fetchWellnessEntries,
@@ -128,10 +133,22 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
     }
   }
   if (data.data.wellnessConfig) {
-    await storeWellnessConfig(data.data.wellnessConfig);
+    const configResult = WellnessConfigSchema.safeParse(
+      data.data.wellnessConfig,
+    );
+    if (!configResult.success) {
+      throw new Error("Invalid wellness config in backup file.");
+    }
+    await storeWellnessConfig(configResult.data);
   }
   if (data.data.wellnessEntries) {
-    await storeWellnessEntries(data.data.wellnessEntries);
+    const entriesResult = z
+      .array(WellnessEntrySchema)
+      .safeParse(data.data.wellnessEntries);
+    if (!entriesResult.success) {
+      throw new Error("Invalid wellness entries in backup file.");
+    }
+    await storeWellnessEntries(entriesResult.data);
   }
 
   // Reload the page to reflect the imported data

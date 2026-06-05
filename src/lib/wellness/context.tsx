@@ -48,6 +48,13 @@ export const WellnessCheckContext = createContext<
   WellnessCheckContextType | undefined
 >(undefined);
 
+function getMsUntilMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+}
+
 export function WellnessProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<WellnessConfig>(() => ({
     enabled: true,
@@ -58,6 +65,19 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
   }));
   const [entries, setEntries] = useState<WellnessEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [today, setToday] = useState(getTodayDateString);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    function scheduleNext() {
+      timeoutId = setTimeout(() => {
+        setToday(getTodayDateString());
+        scheduleNext();
+      }, getMsUntilMidnight());
+    }
+    scheduleNext();
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,16 +113,15 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isPending = useMemo(
-    () => isCheckPending(config, entries, getTodayDateString()),
-    [config, entries],
+    () => isCheckPending(config, entries, today),
+    [config, entries, today],
   );
 
   const currentPeriodEntry = useMemo(() => {
-    const today = getTodayDateString();
     const period = getPeriodForDate(config, today);
     if (!period) return undefined;
     return entries.find((e) => e.date >= period.start && e.date < period.end);
-  }, [config, entries]);
+  }, [config, entries, today]);
 
   const saveEntry = useCallback(
     async (metrics: WellnessEntryMetric[], note?: string) => {

@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWellnessCheck, WellnessProvider } from "./context";
 import { DEFAULT_WELLNESS_METRICS } from "./schema";
+import * as wellnessStorage from "./storage";
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return <WellnessProvider>{children}</WellnessProvider>;
@@ -266,5 +267,54 @@ describe("useWellnessCheck", () => {
     });
     expect(result.current.config.enabled).toBe(true);
     expect(result.current.entries).toHaveLength(countBefore + 1);
+  });
+
+  describe("midnight date refresh", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      // Bypass fake-indexeddb (which uses setTimeout) so loading resolves instantly.
+      vi.spyOn(wellnessStorage, "fetchWellnessConfig").mockResolvedValue(null);
+      vi.spyOn(wellnessStorage, "fetchWellnessEntries").mockResolvedValue([]);
+      vi.spyOn(wellnessStorage, "storeWellnessConfig").mockResolvedValue(
+        undefined,
+      );
+      vi.spyOn(wellnessStorage, "storeWellnessEntries").mockResolvedValue(
+        undefined,
+      );
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("isPending re-evaluates after the date advances past midnight", async () => {
+      vi.setSystemTime(new Date("2026-01-01T23:59:00"));
+
+      const { result } = renderHook(() => useWellnessCheck(), { wrapper });
+
+      // mockResolvedValue Promises resolve as microtasks — one act flush is enough.
+      await act(async () => {});
+
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isPending).toBe(true);
+
+      await act(async () => {
+        await result.current.saveEntry([
+          {
+            metricId: DEFAULT_WELLNESS_METRICS[0].id,
+            label: DEFAULT_WELLNESS_METRICS[0].label,
+            value: 4,
+          },
+        ]);
+      });
+
+      expect(result.current.isPending).toBe(false);
+
+      await act(async () => {
+        vi.advanceTimersByTime(2 * 60 * 1000);
+      });
+
+      expect(result.current.isPending).toBe(false);
+    });
   });
 });
