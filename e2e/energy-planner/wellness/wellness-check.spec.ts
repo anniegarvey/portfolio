@@ -46,6 +46,25 @@ async function seedWellnessConfig(page: import("@playwright/test").Page) {
   }, TODAY);
 }
 
+test.describe("Wellness dashboard back link", () => {
+  test("navigates back to Energy Planner", async ({ page, makeAxeBuilder }) => {
+    await page.goto("/energy-planner/wellness", { waitUntil: "load" });
+
+    const backLink = page
+      .locator("main")
+      .getByRole("link", { name: /energy planner/i });
+    await expect(backLink).toBeVisible();
+
+    const accessibilityScanResults = await makeAxeBuilder()
+      .include("main > a")
+      .analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+
+    await backLink.click();
+    await page.waitForURL("**/energy-planner");
+  });
+});
+
 test.describe("Wellness Check", () => {
   test.beforeEach(async ({ page }) => {
     await goToEnergyPlannerWithSeed(page, {
@@ -82,6 +101,6 @@ test.describe("Wellness Check", () => {
     const entryRow = entriesList.getByRole("listitem").first();
     await expect(entryRow).toBeVisible();
     await expect(entryRow.getByText("Overall mood")).toBeVisible();
-    await expect(entryRow.getByText("5")).toBeVisible();
+    await expect(entryRow.getByText("5", { exact: true })).toBeVisible();
   });
 });
