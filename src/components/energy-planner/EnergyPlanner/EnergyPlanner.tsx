@@ -1,5 +1,6 @@
 "use client";
 
+import { Heart } from "lucide-react";
 import Link from "next/link";
 import { styled } from "next-yak";
 import { useEffect, useState } from "react";
@@ -81,7 +82,10 @@ export function EnergyPlanner() {
         <PageTitle>Energy Planner</PageTitle>
         <ActionRow>
           <Toggletip content="Plan your day according to your energy levels. Based on extended Spoon Theory." />
-          <WellnessLink href="/energy-planner/wellness">Wellness</WellnessLink>
+          <WellnessLink href="/energy-planner/wellness">
+            <Heart size={14} />
+            Wellness
+          </WellnessLink>
           <ImportExport />
         </ActionRow>
       </PageHeader>
@@ -117,6 +121,7 @@ export function EnergyPlanner() {
 const ActionRow = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 `;
 

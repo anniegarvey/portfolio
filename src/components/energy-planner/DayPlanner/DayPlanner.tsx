@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus, Settings, X as XIcon } from "lucide-react";
+import { Pencil, Plus, X as XIcon } from "lucide-react";
 import { styled } from "next-yak";
 import { use, useEffect, useState } from "react";
 import { Button } from "@/components/Button";
@@ -177,14 +177,6 @@ export function DayPlanner({
             variant="outline"
           >
             Edit Capacity
-          </Button>
-          <Button
-            intent="secondary"
-            leftIcon={<Settings size={14} />}
-            onClick={() => setIsWellnessConfigOpen(true)}
-            variant="outline"
-          >
-            Wellness
           </Button>
           <Button
             leftIcon={<Plus size={16} />}
