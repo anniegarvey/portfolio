@@ -96,6 +96,31 @@ export async function exportEnergyPlannerData(): Promise<void> {
 }
 
 /**
+ * Validates and stores the wellness config and entries from imported data.
+ * @throws Error if either the config or entries fail schema validation
+ */
+async function importWellnessData(
+  data: EnergyPlannerExportData["data"],
+): Promise<void> {
+  if (data.wellnessConfig) {
+    const configResult = WellnessConfigSchema.safeParse(data.wellnessConfig);
+    if (!configResult.success) {
+      throw new Error("Invalid wellness config in backup file.");
+    }
+    await storeWellnessConfig(configResult.data);
+  }
+  if (data.wellnessEntries) {
+    const entriesResult = z
+      .array(WellnessEntrySchema)
+      .safeParse(data.wellnessEntries);
+    if (!entriesResult.success) {
+      throw new Error("Invalid wellness entries in backup file.");
+    }
+    await storeWellnessEntries(entriesResult.data);
+  }
+}
+
+/**
  * Imports energy planner data from a JSON file into IndexedDB
  * @param file - The JSON file to import
  * @throws Error if file is invalid or parsing fails
@@ -132,24 +157,7 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
       await storeDayPlan(date, plan);
     }
   }
-  if (data.data.wellnessConfig) {
-    const configResult = WellnessConfigSchema.safeParse(
-      data.data.wellnessConfig,
-    );
-    if (!configResult.success) {
-      throw new Error("Invalid wellness config in backup file.");
-    }
-    await storeWellnessConfig(configResult.data);
-  }
-  if (data.data.wellnessEntries) {
-    const entriesResult = z
-      .array(WellnessEntrySchema)
-      .safeParse(data.data.wellnessEntries);
-    if (!entriesResult.success) {
-      throw new Error("Invalid wellness entries in backup file.");
-    }
-    await storeWellnessEntries(entriesResult.data);
-  }
+  await importWellnessData(data.data);
 
   // Reload the page to reflect the imported data
   window.location.reload();
