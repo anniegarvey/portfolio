@@ -242,19 +242,22 @@ export function WellnessDashboard() {
                       {entry.note && <EntryNote>{entry.note}</EntryNote>}
                     </EntryBody>
                   ) : (
-                    <EntryRatings>
-                      {entry.metrics
-                        .filter((m) => m.value !== null)
-                        .map((m) => (
-                          <Rating key={m.metricId}>
-                            <RatingLabel>{m.label}</RatingLabel>
-                            <RatingValue>{m.value}</RatingValue>
-                          </Rating>
-                        ))}
-                      {entry.metrics.every((m) => m.value === null) && (
-                        <RatingLabel>No ratings recorded</RatingLabel>
-                      )}
-                    </EntryRatings>
+                    <EntryBody>
+                      <EntryRatings>
+                        {entry.metrics
+                          .filter((m) => m.value !== null)
+                          .map((m) => (
+                            <Rating key={m.metricId}>
+                              <RatingLabel>{m.label}</RatingLabel>
+                              <RatingValue>{m.value}</RatingValue>
+                            </Rating>
+                          ))}
+                        {entry.metrics.every((m) => m.value === null) && (
+                          <RatingLabel>No ratings recorded</RatingLabel>
+                        )}
+                      </EntryRatings>
+                      {entry.note && <EntryNote>{entry.note}</EntryNote>}
+                    </EntryBody>
                   )}
                   {config.enabled && (
                     <Button

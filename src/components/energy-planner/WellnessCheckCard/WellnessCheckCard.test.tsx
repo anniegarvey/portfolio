@@ -113,14 +113,8 @@ describe("WellnessCheckCard", () => {
 
     expect(saveEntry).toHaveBeenCalledOnce();
     expect(saveEntry).toHaveBeenCalledWith(
-      [
-        {
-          metricId: DEFAULT_WELLNESS_METRICS[0].id,
-          label: "Overall mood",
-          value: 3,
-        },
-      ],
-      undefined,
+      { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
+      "",
     );
   });
 
@@ -190,19 +184,11 @@ describe("WellnessCheckCard", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(saveEntry).toHaveBeenCalledWith(
-      [
-        {
-          metricId: DEFAULT_WELLNESS_METRICS[0].id,
-          label: "Overall mood",
-          value: 3,
-        },
-        {
-          metricId: "b3f8d1c2-7b4e-4f9a-8c6d-1e2f3a4b5c6e",
-          label: "Sleep quality",
-          value: null,
-        },
-      ],
-      undefined,
+      {
+        [DEFAULT_WELLNESS_METRICS[0].id]: 3,
+        "b3f8d1c2-7b4e-4f9a-8c6d-1e2f3a4b5c6e": null,
+      },
+      "",
     );
   });
 
@@ -294,13 +280,7 @@ describe("WellnessCheckCard", () => {
 
       expect(saveEntry).toHaveBeenCalledOnce();
       expect(saveEntry).toHaveBeenCalledWith(
-        [
-          {
-            metricId: DEFAULT_WELLNESS_METRICS[0].id,
-            label: "Overall mood",
-            value: null,
-          },
-        ],
+        { [DEFAULT_WELLNESS_METRICS[0].id]: null },
         "Feeling tired today",
       );
     });
@@ -413,13 +393,7 @@ describe("amend mode (initialEntry provided)", () => {
     expect(amendEntry).toHaveBeenCalledOnce();
     expect(amendEntry).toHaveBeenCalledWith(
       "test-entry-id",
-      [
-        {
-          metricId: DEFAULT_WELLNESS_METRICS[0].id,
-          label: "Overall mood",
-          value: 4,
-        },
-      ],
+      { [DEFAULT_WELLNESS_METRICS[0].id]: 4 },
       "Feeling okay",
     );
     expect(saveEntry).not.toHaveBeenCalled();

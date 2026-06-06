@@ -372,7 +372,7 @@ describe("importEnergyPlannerData - data handling", () => {
         },
         wellnessEntries: [
           {
-            id: "dddddddd-0000-0000-0000-000000000001",
+            id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
             date: "2026-01-01",
             metrics: [
               {
@@ -405,5 +405,80 @@ describe("importEnergyPlannerData - data handling", () => {
     expect(restoredEntries[0].date).toBe("2026-01-01");
     expect(restoredEntries[0].metrics[0].value).toBe(4);
     expect(restoredEntries[0].note).toBe("Feeling good");
+  });
+
+  it("throws for invalid wellnessConfig shape", async () => {
+    const data = {
+      version: "6.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffActivities: null,
+        repeatingActivities: null,
+        energyTypes: null,
+        zones: null,
+        dayPlans: null,
+        wellnessConfig: { enabled: "yes" },
+        wellnessEntries: null,
+      },
+    };
+    const file = new File([JSON.stringify(data)], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(JSON.stringify(data));
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid wellness config in backup file.",
+    );
+  });
+
+  it("throws for invalid wellnessEntries shape", async () => {
+    const data = {
+      version: "6.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffActivities: null,
+        repeatingActivities: null,
+        energyTypes: null,
+        zones: null,
+        dayPlans: null,
+        wellnessConfig: null,
+        wellnessEntries: [
+          {
+            id: "not-a-uuid",
+            date: "2026-01-01",
+            metrics: [{ metricId: "bad", label: "x", value: 99 }],
+          },
+        ],
+      },
+    };
+    const file = new File([JSON.stringify(data)], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(JSON.stringify(data));
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid wellness entries in backup file.",
+    );
+  });
+
+  it("imports pre-v6 files without wellness fields successfully", async () => {
+    const data = {
+      version: "5.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffActivities: null,
+        repeatingActivities: null,
+        energyTypes: null,
+        zones: null,
+        dayPlans: null,
+      },
+    };
+    const file = new File([JSON.stringify(data)], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(JSON.stringify(data));
+
+    await expect(importEnergyPlannerData(file)).resolves.toBeUndefined();
+    expect(reloadSpy).toHaveBeenCalled();
   });
 });

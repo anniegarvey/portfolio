@@ -9,14 +9,10 @@ import {
   useMemo,
   useState,
 } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { getTodayDateString } from "@/lib/date";
+import { buildEntry } from "./entry";
 import { getPeriodForDate, isCheckPending } from "./schedule";
-import type {
-  WellnessConfig,
-  WellnessEntry,
-  WellnessEntryMetric,
-} from "./schema";
+import type { WellnessConfig, WellnessEntry } from "./schema";
 import { DEFAULT_WELLNESS_METRICS } from "./schema";
 import {
   fetchWellnessConfig,
@@ -31,11 +27,14 @@ export interface WellnessCheckContextType {
   isPending: boolean;
   isLoading: boolean;
   currentPeriodEntry: WellnessEntry | undefined;
-  saveEntry: (metrics: WellnessEntryMetric[], note?: string) => Promise<void>;
+  saveEntry: (
+    responses: Record<string, number | null>,
+    note: string,
+  ) => Promise<void>;
   amendEntry: (
     id: string,
-    metrics: WellnessEntryMetric[],
-    note?: string,
+    responses: Record<string, number | null>,
+    note: string,
   ) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   saveConfig: (config: WellnessConfig) => Promise<void>;
@@ -48,6 +47,13 @@ export const WellnessCheckContext = createContext<
   WellnessCheckContextType | undefined
 >(undefined);
 
+function getMsUntilMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+}
+
 export function WellnessProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<WellnessConfig>(() => ({
     enabled: true,
@@ -58,6 +64,19 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
   }));
   const [entries, setEntries] = useState<WellnessEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [today, setToday] = useState(getTodayDateString);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    function scheduleNext() {
+      timeoutId = setTimeout(() => {
+        setToday(getTodayDateString());
+        scheduleNext();
+      }, getMsUntilMidnight());
+    }
+    scheduleNext();
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,47 +112,40 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isPending = useMemo(
-    () => isCheckPending(config, entries, getTodayDateString()),
-    [config, entries],
+    () => isCheckPending(config, entries, today),
+    [config, entries, today],
   );
 
   const currentPeriodEntry = useMemo(() => {
-    const today = getTodayDateString();
     const period = getPeriodForDate(config, today);
     if (!period) return undefined;
     return entries.find((e) => e.date >= period.start && e.date < period.end);
-  }, [config, entries]);
+  }, [config, entries, today]);
 
   const saveEntry = useCallback(
-    async (metrics: WellnessEntryMetric[], note?: string) => {
-      const entry: WellnessEntry = {
-        id: uuidv4(),
-        date: getTodayDateString(),
-        metrics,
-        ...(note ? { note } : {}),
-      };
+    async (responses: Record<string, number | null>, note: string) => {
+      const entry = buildEntry(config, responses, note, getTodayDateString());
       const newEntries = [...entries, entry];
       await storeWellnessEntries(newEntries);
       setEntries(newEntries);
     },
-    [entries],
+    [config, entries],
   );
 
   const amendEntry = useCallback(
-    async (id: string, metrics: WellnessEntryMetric[], note?: string) => {
+    async (
+      id: string,
+      responses: Record<string, number | null>,
+      note: string,
+    ) => {
       const existing = entries.find((e) => e.id === id);
       if (!existing) return;
-      const amended: WellnessEntry = {
-        id: uuidv4(),
-        date: existing.date,
-        metrics,
-        ...(note ? { note } : {}),
-      };
+      const amended = buildEntry(config, responses, note, existing.date);
       const newEntries = entries.filter((e) => e.id !== id).concat(amended);
       await storeWellnessEntries(newEntries);
       setEntries(newEntries);
     },
-    [entries],
+    [config, entries],
   );
 
   const deleteEntry = useCallback(
