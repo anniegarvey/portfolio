@@ -2,6 +2,7 @@
 
 import { ArrowRight, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { styled } from "next-yak";
 import { useEffect, useId, useRef, useState } from "react";
 import {
@@ -15,6 +16,7 @@ import {
 const CLOSE_DELAY_MS = 140;
 
 export function ProjectsMenu() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const playgroundId = useId();
@@ -109,6 +111,7 @@ export function ProjectsMenu() {
             {LIVE_APPS.map((app) => (
               <li key={app.slug}>
                 <LiveLink
+                  aria-current={pathname === app.href ? "page" : undefined}
                   href={app.href}
                   onClick={() => setOpen(false)}
                   style={{ "--row-accent": app.accent } as React.CSSProperties}
@@ -138,6 +141,7 @@ export function ProjectsMenu() {
             {CASE_STUDIES.map((cs) => (
               <li key={cs.slug}>
                 <CaseCard
+                  aria-current={pathname === cs.href ? "page" : undefined}
                   href={cs.href}
                   onClick={() => setOpen(false)}
                   style={{ "--row-accent": cs.accent } as React.CSSProperties}
@@ -350,6 +354,13 @@ const LiveLink = styled(Link)`
     transform: translateX(2px);
   }
 
+  &[aria-current="page"] {
+    background: light-dark(var(--color-grey-200), oklch(28% 0.03 290 / 0.7));
+  }
+  &[aria-current="page"] ${Name} {
+    color: light-dark(var(--color-primary-700), var(--color-primary-300));
+  }
+
   &:focus-visible {
     outline: 2px solid var(--color-primary-400);
     outline-offset: 2px;
@@ -401,6 +412,13 @@ const CaseCard = styled(Link)`
   &:focus-visible {
     background: light-dark(var(--color-grey-200), oklch(28% 0.03 290 / 0.65));
     transform: translateY(-1px);
+  }
+
+  &[aria-current="page"] {
+    background: light-dark(var(--color-grey-200), oklch(28% 0.03 290 / 0.65));
+  }
+  &[aria-current="page"] ${Name} {
+    color: light-dark(var(--color-primary-700), var(--color-primary-300));
   }
 
   &:focus-visible {

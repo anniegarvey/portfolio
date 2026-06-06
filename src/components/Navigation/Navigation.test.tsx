@@ -124,6 +124,33 @@ describe("Navigation", () => {
     expect(homeLink).not.toHaveAttribute("aria-current");
   });
 
+  it("mobile project sublink has aria-current=page on its route", async () => {
+    vi.mocked(usePathname).mockReturnValue("/energy-planner");
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+
+    const liveLink = dialog.querySelector('a[href="/energy-planner"]');
+    expect(liveLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("mobile project sublinks have no aria-current on the home route", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+
+    const liveLink = dialog.querySelector('a[href="/energy-planner"]');
+    expect(liveLink).not.toHaveAttribute("aria-current");
+  });
+
   it("Projects trigger has aria-controls referencing the panel", () => {
     renderWithTheme();
     const trigger = screen.getByRole("button", { name: /projects/i });

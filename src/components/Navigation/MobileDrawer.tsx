@@ -69,6 +69,9 @@ export function MobileDrawer() {
                       {LIVE_APPS.map((app) => (
                         <li key={app.slug}>
                           <MobileSubLink
+                            aria-current={
+                              pathname === app.href ? "page" : undefined
+                            }
                             href={app.href}
                             onClick={handleLinkClick}
                           >
@@ -102,6 +105,9 @@ export function MobileDrawer() {
                       {CASE_STUDIES.map((cs) => (
                         <li key={cs.slug}>
                           <MobileSubLink
+                            aria-current={
+                              pathname === cs.href ? "page" : undefined
+                            }
                             href={cs.href}
                             onClick={handleLinkClick}
                           >
@@ -356,7 +362,8 @@ const MobileSubLink = styled(Link)`
   text-decoration: none;
 
   &:hover,
-  &:focus-visible {
+  &:focus-visible,
+  &[aria-current="page"] {
     color: var(--color-primary-400);
   }
 
