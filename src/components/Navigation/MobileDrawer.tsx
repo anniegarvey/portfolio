@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ChevronDown, Menu, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { styled } from "next-yak";
 import { useState } from "react";
 import { PointsDisplay } from "@/components/PointsDisplay";
@@ -12,6 +13,7 @@ import { CASE_STUDIES, LIVE_APPS, PLAYGROUND_LABEL } from "./projects";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function MobileDrawer() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [playgroundOpen, setPlaygroundOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -40,7 +42,11 @@ export function MobileDrawer() {
 
               <MobileNavList>
                 <MobileNavItem>
-                  <MobileNavLink href="/" onClick={handleLinkClick}>
+                  <MobileNavLink
+                    aria-current={pathname === "/" ? "page" : undefined}
+                    href="/"
+                    onClick={handleLinkClick}
+                  >
                     Home
                   </MobileNavLink>
                 </MobileNavItem>
@@ -247,7 +253,8 @@ const MobileNavLink = styled(Link)`
   transition: background-position 1200ms cubic-bezier(0.19, 1, 0.22, 1);
 
   &:hover,
-  &:focus-visible {
+  &:focus-visible,
+  &[aria-current="page"] {
     background-position: 0% 100%;
     transition: background-position 400ms var(--ease-out);
   }

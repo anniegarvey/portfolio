@@ -95,6 +95,35 @@ describe("Navigation", () => {
     expect(homeLink).not.toHaveAttribute("aria-current");
   });
 
+  it("mobile Home link has aria-current=page on the home route", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+
+    const { within } = require("@testing-library/dom");
+    const homeLink = within(dialog).getByRole("link", { name: /^home$/i });
+    expect(homeLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("mobile Home link has no aria-current on other routes", async () => {
+    vi.mocked(usePathname).mockReturnValue("/energy-planner");
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+
+    const { within } = require("@testing-library/dom");
+    const homeLink = within(dialog).getByRole("link", { name: /^home$/i });
+    expect(homeLink).not.toHaveAttribute("aria-current");
+  });
+
   it("Projects trigger has aria-controls referencing the panel", () => {
     renderWithTheme();
     const trigger = screen.getByRole("button", { name: /projects/i });
