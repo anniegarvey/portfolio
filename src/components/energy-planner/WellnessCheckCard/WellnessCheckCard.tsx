@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { usePoints } from "@/lib/points/context";
 import { useWellnessCheck } from "@/lib/wellness/context";
+import { isEntryFilled } from "@/lib/wellness/entry";
 import type { WellnessEntry, WellnessMetric } from "@/lib/wellness/schema";
 
 const WELLNESS_CHECK_POINTS = 5;
@@ -40,24 +41,18 @@ export function WellnessCheckCard({
   );
   const [note, setNote] = useState(() => initialEntry?.note ?? "");
 
-  const hasAnyRating = config.metrics.some((m) => ratings[m.id] !== null);
-  const isFilled = hasAnyRating || note.trim().length > 0;
+  const isFilled = isEntryFilled(ratings, note);
 
   const handleRate = (metricId: string, value: number) => {
     setRatings((prev) => ({ ...prev, [metricId]: value }));
   };
 
   const handleSave = async () => {
-    const metrics = config.metrics.map((m) => ({
-      metricId: m.id,
-      label: m.label,
-      value: ratings[m.id] ?? null,
-    }));
     if (initialEntry) {
-      await amendEntry(initialEntry.id, metrics, note.trim() || undefined);
+      await amendEntry(initialEntry.id, ratings, note.trim());
       onSave?.();
     } else {
-      await saveEntry(metrics, note.trim() || undefined);
+      await saveEntry(ratings, note.trim());
     }
   };
 

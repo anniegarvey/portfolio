@@ -9,14 +9,10 @@ import {
   useMemo,
   useState,
 } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { getTodayDateString } from "@/lib/date";
+import { buildEntry } from "./entry";
 import { getPeriodForDate, isCheckPending } from "./schedule";
-import type {
-  WellnessConfig,
-  WellnessEntry,
-  WellnessEntryMetric,
-} from "./schema";
+import type { WellnessConfig, WellnessEntry } from "./schema";
 import { DEFAULT_WELLNESS_METRICS } from "./schema";
 import {
   fetchWellnessConfig,
@@ -31,11 +27,14 @@ export interface WellnessCheckContextType {
   isPending: boolean;
   isLoading: boolean;
   currentPeriodEntry: WellnessEntry | undefined;
-  saveEntry: (metrics: WellnessEntryMetric[], note?: string) => Promise<void>;
+  saveEntry: (
+    responses: Record<string, number | null>,
+    note: string,
+  ) => Promise<void>;
   amendEntry: (
     id: string,
-    metrics: WellnessEntryMetric[],
-    note?: string,
+    responses: Record<string, number | null>,
+    note: string,
   ) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   saveConfig: (config: WellnessConfig) => Promise<void>;
@@ -124,35 +123,29 @@ export function WellnessProvider({ children }: { children: ReactNode }) {
   }, [config, entries, today]);
 
   const saveEntry = useCallback(
-    async (metrics: WellnessEntryMetric[], note?: string) => {
-      const entry: WellnessEntry = {
-        id: uuidv4(),
-        date: getTodayDateString(),
-        metrics,
-        ...(note ? { note } : {}),
-      };
+    async (responses: Record<string, number | null>, note: string) => {
+      const entry = buildEntry(config, responses, note, getTodayDateString());
       const newEntries = [...entries, entry];
       await storeWellnessEntries(newEntries);
       setEntries(newEntries);
     },
-    [entries],
+    [config, entries],
   );
 
   const amendEntry = useCallback(
-    async (id: string, metrics: WellnessEntryMetric[], note?: string) => {
+    async (
+      id: string,
+      responses: Record<string, number | null>,
+      note: string,
+    ) => {
       const existing = entries.find((e) => e.id === id);
       if (!existing) return;
-      const amended: WellnessEntry = {
-        id: uuidv4(),
-        date: existing.date,
-        metrics,
-        ...(note ? { note } : {}),
-      };
+      const amended = buildEntry(config, responses, note, existing.date);
       const newEntries = entries.filter((e) => e.id !== id).concat(amended);
       await storeWellnessEntries(newEntries);
       setEntries(newEntries);
     },
-    [entries],
+    [config, entries],
   );
 
   const deleteEntry = useCallback(
