@@ -160,7 +160,8 @@ const NavLink = styled(Link)`
     cubic-bezier(0.19, 1, 0.22, 1);
 
   &:hover,
-  &:focus-visible {
+  &:focus-visible,
+  &[aria-current="page"] {
     background-position: 0% 100%;
     transition: background-position var(--speed) var(--ease-out);
   }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WELLNESS_METRICS } from "./schema";
-import type { WellnessConfig } from "./schema";
 import { buildEntry, isEntryFilled } from "./entry";
+import type { WellnessConfig } from "./schema";
+import { DEFAULT_WELLNESS_METRICS } from "./schema";
 
 const BASE_CONFIG: WellnessConfig = {
   enabled: true,

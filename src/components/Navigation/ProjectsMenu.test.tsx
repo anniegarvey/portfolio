@@ -1,8 +1,13 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { usePathname } from "next/navigation";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectsMenu } from "./ProjectsMenu";
 import { CASE_STUDIES, LIVE_APPS, PLAYGROUND_LABEL } from "./projects";
+
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn().mockReturnValue("/"),
+}));
 
 vi.mock("next/link", () => ({
   default: ({
@@ -35,6 +40,10 @@ function hoverOpen(navItem: HTMLElement) {
 }
 
 describe("ProjectsMenu", () => {
+  beforeEach(() => {
+    vi.mocked(usePathname).mockReturnValue("/");
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -178,6 +187,32 @@ describe("ProjectsMenu", () => {
     await user.click(link);
 
     expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("marks the live app link active when on its route", () => {
+    vi.mocked(usePathname).mockReturnValue("/energy-planner");
+    const { navItem } = renderMenu();
+    hoverOpen(navItem);
+
+    const link = navItem.querySelector('a[href="/energy-planner"]');
+    expect(link).toHaveAttribute("aria-current", "page");
+  });
+
+  it("marks the case study link active when on its route", () => {
+    vi.mocked(usePathname).mockReturnValue("/projects/one-anthem");
+    const { navItem } = renderMenu();
+    hoverOpen(navItem);
+
+    const link = navItem.querySelector('a[href="/projects/one-anthem"]');
+    expect(link).toHaveAttribute("aria-current", "page");
+  });
+
+  it("marks no menu link active when on the home route", () => {
+    const { navItem } = renderMenu();
+    hoverOpen(navItem);
+
+    const active = navItem.querySelectorAll('a[aria-current="page"]');
+    expect(active).toHaveLength(0);
   });
 
   it("closes menu when a case study link is clicked", async () => {
