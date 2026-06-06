@@ -147,11 +147,6 @@ const ProjectCardDescription = styled.p`
   color: rgba(255, 255, 255, 0.9);
   max-width: 32ch;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 0.3s var(--ease-out),
-    transform 0.3s var(--ease-out);
 `;
 
 const ProjectCard = styled(Link)`
@@ -162,7 +157,9 @@ const ProjectCard = styled(Link)`
   text-decoration: none;
   color: white;
   box-shadow: light-dark(var(--shadow-sm), var(--project-glow));
-  transition: box-shadow 0.3s var(--ease-out);
+  transition:
+    box-shadow 0.3s var(--ease-out),
+    filter 0.3s var(--ease-out);
 
   /* Per-project coloured accent bar */
   &::before {
@@ -196,14 +193,27 @@ const ProjectCard = styled(Link)`
     );
   }
 
-  &:hover ${ProjectCardDescription},
-  &:focus-visible ${ProjectCardDescription} {
-    opacity: 1;
-    transform: translateY(0);
+  /* Subtle whole-card lift for pointer/keyboard users — additive, not
+     revelatory. The description is already visible at rest, so this only
+     enriches the resting state rather than uncovering hidden content. */
+  &:focus-within {
+    filter: brightness(1.08);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(1.08);
+    }
   }
 
   &:focus-visible {
     outline: 3px solid var(--color-primary-400);
     outline-offset: -3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* Keep the card-shadow transition (unchanged behaviour) but drop the
+       animated brightness transition for the lift enhancement. */
+    transition: box-shadow 0.3s var(--ease-out);
   }
 `;
