@@ -2,10 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(pnpm tsc --noEmit *)",
+      "Bash(pnpm tsc --noEmit)",
       "Bash(pnpm exec tsc --noEmit *)",
       "Bash(pnpm lint *)",
+      "Bash(pnpm lint)",
       "Bash(pnpm test *)",
+      "Bash(pnpm test)",
       "Bash(pnpm vitest run *)",
+      "Bash(pnpm vitest run)",
       "Bash(pnpm exec vitest run *)",
       "Bash(pnpm i *)",
       "Bash(pnpm i)",
@@ -26,7 +30,9 @@
       "Bash(pnpm playwright test *)",
       "Bash(pnpm playwright test)",
       "Bash(pnpm playwright show-report)",
-      "Bash(pnpm playwright test --config temp.playwright.config.ts *)"
+      "Bash(pnpm playwright test --config temp.playwright.config.ts *)",
+      "Bash(pnpm stryker run *)",
+      "Bash(pnpm exec stryker run *)"
     ]
   },
   "sandbox": {
