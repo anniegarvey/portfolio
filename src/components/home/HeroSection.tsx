@@ -1,10 +1,7 @@
 import { Github, Linkedin } from "lucide-react";
 import Image from "next/image";
 import { styled } from "next-yak";
-import { QUERIES } from "@/lib/constants";
-
-const GITHUB_URL = "https://github.com/anniegarvey";
-const LINKEDIN_URL = "https://www.linkedin.com/in/annie-garvey-208895110/";
+import { GITHUB_URL, LINKEDIN_URL, QUERIES } from "@/lib/constants";
 
 export function HeroSection() {
   return (
