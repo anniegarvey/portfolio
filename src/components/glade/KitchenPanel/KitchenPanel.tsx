@@ -11,9 +11,11 @@ import {
 } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import { canCook } from "@/lib/glade/cookingModule";
+import { usePoints } from "@/lib/points/context";
 
 export function KitchenPanel() {
   const { state, cookTreat, buyIngredient } = useGlade();
+  const { points } = usePoints();
   const cookingTier = state.skills["treat-cooking"].tier;
 
   return (
@@ -27,6 +29,7 @@ export function KitchenPanel() {
                 {INGREDIENTS[id].name} ×{state.pantry.ingredients[id] ?? 0}
               </ItemName>
               <Button
+                disabled={points < INGREDIENTS[id].cost}
                 onClick={() => buyIngredient(id)}
                 size="sm"
                 variant="outline"

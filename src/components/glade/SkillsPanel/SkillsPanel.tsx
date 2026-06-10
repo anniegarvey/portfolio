@@ -7,6 +7,7 @@ import { MAX_TIER, SKILL_NAMES, xpThresholdFor } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { SkillId } from "@/lib/glade/schema";
 import { canBuyLesson, nextLessonCost } from "@/lib/glade/skillsModule";
+import { usePoints } from "@/lib/points/context";
 
 const SKILL_DESCRIPTIONS: Record<SkillId, string> = {
   "treat-cooking":
@@ -21,6 +22,7 @@ const SKILL_IDS = Object.keys(SKILL_NAMES) as SkillId[];
 
 export function SkillsPanel() {
   const { state, buyLesson } = useGlade();
+  const { points } = usePoints();
 
   return (
     <Panel>
@@ -56,7 +58,11 @@ export function SkillsPanel() {
             {maxed ? (
               <Mastered>Mastered</Mastered>
             ) : canBuyLesson(state, skillId) ? (
-              <Button onClick={() => buyLesson(skillId)} size="sm">
+              <Button
+                disabled={cost !== null && points < cost}
+                onClick={() => buyLesson(skillId)}
+                size="sm"
+              >
                 Take lesson <Coins aria-hidden size={13} /> {cost}
               </Button>
             ) : (

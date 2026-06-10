@@ -32,10 +32,12 @@ import {
 
 // ─── Context Type ─────────────────────────────────────────────────────────────
 
+/** The most recent taming action, tagged with its visitor for feedback UI. */
+export type VisitorActionResult = ActionResult & { visitorId: string };
+
 export interface GladeContextType {
   state: GladeState;
-  /** Result of the most recent taming action, for feedback UI. */
-  lastAction: ActionResult | null;
+  lastAction: VisitorActionResult | null;
   offerTreat: (visitorId: string, treatId: TreatId) => void;
   approachVisitor: (visitorId: string, posture: Posture) => void;
   petVisitor: (visitorId: string, spot: PetSpot) => void;
@@ -66,7 +68,9 @@ const EMPTY_STATE: GladeState = {
 export function GladeProvider({ children }: { children: ReactNode }) {
   const { spendPoints } = usePoints();
   const [state, setStateRaw] = useState<GladeState>(EMPTY_STATE);
-  const [lastAction, setLastAction] = useState<ActionResult | null>(null);
+  const [lastAction, setLastAction] = useState<VisitorActionResult | null>(
+    null,
+  );
 
   // Persist every state change
   const setState = useCallback((updater: (prev: GladeState) => GladeState) => {
@@ -98,7 +102,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         treatId,
         getTodayDateString(),
       );
-      setLastAction(result);
+      setLastAction({ ...result, visitorId });
       setState(() => result.state);
     },
     [state, setState],
@@ -112,7 +116,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         posture,
         getTodayDateString(),
       );
-      setLastAction(result);
+      setLastAction({ ...result, visitorId });
       setState(() => result.state);
     },
     [state, setState],
@@ -121,7 +125,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   const handlePetVisitor = useCallback(
     (visitorId: string, spot: PetSpot) => {
       const result = petVisitor(state, visitorId, spot, getTodayDateString());
-      setLastAction(result);
+      setLastAction({ ...result, visitorId });
       setState(() => result.state);
     },
     [state, setState],

@@ -1,7 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useId, useState } from "react";
+import { useId } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import {
@@ -28,8 +28,6 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const { state, lastAction, offerTreat, approachVisitor, petVisitor } =
     useGlade();
   const headingId = useId();
-  // Feedback for the most recent action taken on *this* card
-  const [acted, setActed] = useState(false);
 
   const species = SPECIES[visitor.speciesId];
   const threshold = tameThresholdFor(visitor.speciesId);
@@ -38,8 +36,11 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
     (id) => (state.pantry.treats[id] ?? 0) > 0,
   );
 
+  // Feedback for the most recent action, only on the card it was taken on
   const feedback =
-    acted && lastAction !== null && lastAction.trustGained !== null
+    lastAction !== null &&
+    lastAction.visitorId === visitor.id &&
+    lastAction.trustGained !== null
       ? lastAction.matched
         ? `+${lastAction.trustGained} trust — just right!`
         : `+${lastAction.trustGained} trust`
@@ -85,10 +86,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
               {availableTreats.map((treatId: TreatId) => (
                 <Button
                   key={treatId}
-                  onClick={() => {
-                    offerTreat(visitor.id, treatId);
-                    setActed(true);
-                  }}
+                  onClick={() => offerTreat(visitor.id, treatId)}
                   size="sm"
                   variant="outline"
                 >
@@ -108,10 +106,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
               {POSTURES.map((posture) => (
                 <Button
                   key={posture}
-                  onClick={() => {
-                    approachVisitor(visitor.id, posture);
-                    setActed(true);
-                  }}
+                  onClick={() => approachVisitor(visitor.id, posture)}
                   size="sm"
                   variant="outline"
                 >
@@ -131,10 +126,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
               {PET_SPOTS.map((spot) => (
                 <Button
                   key={spot}
-                  onClick={() => {
-                    petVisitor(visitor.id, spot);
-                    setActed(true);
-                  }}
+                  onClick={() => petVisitor(visitor.id, spot)}
                   size="sm"
                   variant="outline"
                 >
