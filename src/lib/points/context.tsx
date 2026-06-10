@@ -11,10 +11,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { getTodayDateString } from "@/lib/date";
-import { LAST_ACTIVE_DATE_KEY } from "./keys";
+import { LAST_ACTIVE_DATE_KEY, POINTS_STORAGE_KEY } from "./keys";
 import { playCollectSound, playDepositSound } from "./sounds";
 
-const POINTS_STORAGE_KEY = "energy-planner-points";
 const MAX_PARTICLE_COUNT = 50;
 const BURST_DURATION_MS = 280;
 const FLY_DURATION_MS = 680;
