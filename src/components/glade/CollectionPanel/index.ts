@@ -1,0 +1,1 @@
+export { CollectionPanel } from "./CollectionPanel";

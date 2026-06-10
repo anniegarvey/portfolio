@@ -1,0 +1,1 @@
+export { CreatureSVG } from "./CreatureSVG";

@@ -2,30 +2,22 @@
 
 import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
-import { useEffect, useState } from "react";
-import { BonsaiShop } from "@/components/bonsai/BonsaiShop";
-import { GardenView } from "@/components/bonsai/GardenView";
-import { InventoryPanel } from "@/components/bonsai/InventoryPanel";
-import { TendingModal } from "@/components/bonsai/TendingModal";
-import { TreeCollection } from "@/components/bonsai/TreeCollection";
+import { useEffect, useId } from "react";
+import { CollectionPanel } from "@/components/glade/CollectionPanel";
+import { GladeScene } from "@/components/glade/GladeScene";
+import { KitchenPanel } from "@/components/glade/KitchenPanel";
+import { SkillsPanel } from "@/components/glade/SkillsPanel";
+import { VisitorCard } from "@/components/glade/VisitorCard";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
-import { useBonsai } from "@/lib/bonsai/context";
-import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { QUERIES } from "@/lib/constants";
+import { useGlade } from "@/lib/glade/context";
 
-export function BonsaiPage() {
-  const { state, advanceDay } = useBonsai();
-  const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("collection");
-  const [focusShopItemId, setFocusShopItemId] = useState<string | undefined>();
+export function GladePage() {
+  const { state, advanceDay } = useGlade();
+  const visitorsHeadingId = useId();
 
-  const handleNavigateToShop = (itemId: string) => {
-    setTendingTreeId(null);
-    setActiveTab("shop");
-    setFocusShopItemId(itemId);
-  };
-
+  // Same dev shortcut as the Bonsai Garden: "d" ticks the day forward.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -41,50 +33,48 @@ export function BonsaiPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [advanceDay]);
 
-  const tendingTree =
-    tendingTreeId !== null
-      ? (state.trees.find((t) => t.id === tendingTreeId) ?? null)
-      : null;
-
   return (
     <MaxWidthWrapper as="main">
       <PageHeader>
-        <PageTitle>Bonsai Garden</PageTitle>
+        <PageTitle>Creature Glade</PageTitle>
       </PageHeader>
 
       <Layout>
-        <GardenView
-          onNavigateToShop={handleNavigateToShop}
-          onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
-        />
+        <GladeScene />
 
-        <PageTabs onValueChange={setActiveTab} value={activeTab}>
-          <PageTabsList aria-label="Bonsai sections">
+        <section aria-labelledby={visitorsHeadingId}>
+          <SectionTitle id={visitorsHeadingId}>Wild visitors</SectionTitle>
+          {state.visitors.length === 0 ? (
+            <EmptyVisitors>
+              No wild creatures right now — someone new may wander in tomorrow.
+            </EmptyVisitors>
+          ) : (
+            <VisitorGrid>
+              {state.visitors.map((visitor) => (
+                <VisitorCard key={visitor.id} visitor={visitor} />
+              ))}
+            </VisitorGrid>
+          )}
+        </section>
+
+        <PageTabs defaultValue="kitchen">
+          <PageTabsList aria-label="Glade sections">
+            <PageTab value="kitchen">Kitchen</PageTab>
+            <PageTab value="skills">Skills</PageTab>
             <PageTab value="collection">Collection</PageTab>
-            <PageTab value="shop">Shop</PageTab>
-            <PageTab value="inventory">Inventory</PageTab>
           </PageTabsList>
 
+          <Tabs.Content value="kitchen">
+            <KitchenPanel />
+          </Tabs.Content>
+          <Tabs.Content value="skills">
+            <SkillsPanel />
+          </Tabs.Content>
           <Tabs.Content value="collection">
-            <TreeCollection
-              onNavigateToShop={handleNavigateToShop}
-              onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
-            />
-          </Tabs.Content>
-          <Tabs.Content value="shop">
-            <BonsaiShop focusItemId={focusShopItemId} />
-          </Tabs.Content>
-          <Tabs.Content value="inventory">
-            <InventoryPanel />
+            <CollectionPanel />
           </Tabs.Content>
         </PageTabs>
       </Layout>
-
-      <TendingModal
-        onClose={() => setTendingTreeId(null)}
-        onNavigateToShop={handleNavigateToShop}
-        tree={tendingTree}
-      />
     </MaxWidthWrapper>
   );
 }
@@ -96,6 +86,23 @@ const Layout = styled.div`
   flex-direction: column;
   gap: 2rem;
   padding-bottom: 3rem;
+`;
+
+const SectionTitle = styled.h2`
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+`;
+
+const EmptyVisitors = styled.p`
+  margin: 0;
+  font-style: italic;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const VisitorGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
 `;
 
 const PageTabs = styled(Tabs.Root)`

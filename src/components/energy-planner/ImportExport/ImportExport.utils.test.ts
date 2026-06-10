@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  createInitialState as createInitialBonsaiState,
+  loadBonsaiState,
+  saveBonsaiState,
+} from "@/lib/bonsai/storage";
+import {
   clearAll,
   fetchActivities,
   fetchDayPlan,
@@ -9,6 +14,12 @@ import {
   storeDayPlan,
   storeEnergyTypes,
 } from "@/lib/energy-planner/storage";
+import {
+  createInitialState as createInitialGladeState,
+  loadGladeState,
+  saveGladeState,
+} from "@/lib/glade/storage";
+import { POINTS_STORAGE_KEY } from "@/lib/points/keys";
 import {
   fetchWellnessConfig,
   fetchWellnessEntries,
@@ -30,6 +41,7 @@ describe("exportEnergyPlannerData", () => {
 
   async function setupExportMocks() {
     await clearAll();
+    localStorage.clear();
     // Pre-populate storage with a one-off activity (no repeatConfig)
     await storeActivities([
       {
@@ -85,7 +97,7 @@ describe("exportEnergyPlannerData", () => {
     return new Promise<void>((resolve) => {
       reader.onload = () => {
         const exportedData = JSON.parse(reader.result as string);
-        expect(exportedData).toHaveProperty("version", "6.0.0");
+        expect(exportedData).toHaveProperty("version", "7.0.0");
         expect(exportedData).toHaveProperty("exportDate");
         expect(exportedData.data).toHaveProperty("oneOffActivities");
         expect(exportedData.data).toHaveProperty("repeatingActivities");
@@ -93,6 +105,31 @@ describe("exportEnergyPlannerData", () => {
         expect(exportedData.data).toHaveProperty("zones");
         expect(exportedData.data).toHaveProperty("wellnessConfig");
         expect(exportedData.data).toHaveProperty("wellnessEntries");
+        expect(exportedData.data).toHaveProperty("points", null);
+        expect(exportedData.data).toHaveProperty("bonsaiGameState", null);
+        expect(exportedData.data).toHaveProperty("gladeGameState", null);
+        resolve();
+      };
+    });
+  });
+
+  it("exports points and game state when present", async () => {
+    localStorage.setItem(POINTS_STORAGE_KEY, "150");
+    saveBonsaiState(createInitialBonsaiState());
+    saveGladeState(createInitialGladeState());
+
+    await exportEnergyPlannerData();
+
+    const blobCall = createObjectURLSpy.mock.calls[0][0] as Blob;
+    const reader = new FileReader();
+    reader.readAsText(blobCall);
+
+    return new Promise<void>((resolve) => {
+      reader.onload = () => {
+        const exportedData = JSON.parse(reader.result as string);
+        expect(exportedData.data.points).toBe(150);
+        expect(exportedData.data.bonsaiGameState.trees).toHaveLength(1);
+        expect(exportedData.data.gladeGameState.visitors).toHaveLength(1);
         resolve();
       };
     });
@@ -458,6 +495,77 @@ describe("importEnergyPlannerData - data handling", () => {
 
     await expect(importEnergyPlannerData(file)).rejects.toThrow(
       "Invalid wellness entries in backup file.",
+    );
+  });
+
+  it("round-trips points and both game states", async () => {
+    localStorage.clear();
+    const bonsaiState = createInitialBonsaiState();
+    const gladeState = createInitialGladeState();
+    const data = {
+      version: "7.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        oneOffActivities: null,
+        repeatingActivities: null,
+        energyTypes: null,
+        zones: null,
+        dayPlans: null,
+        wellnessConfig: null,
+        wellnessEntries: null,
+        points: 150,
+        bonsaiGameState: bonsaiState,
+        gladeGameState: gladeState,
+      },
+    };
+    const fileContent = JSON.stringify(data);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+
+    expect(localStorage.getItem(POINTS_STORAGE_KEY)).toBe("150");
+    expect(loadBonsaiState()).toEqual(bonsaiState);
+    expect(loadGladeState()).toEqual(gladeState);
+  });
+
+  it("throws for invalid bonsai game state shape", async () => {
+    const data = {
+      version: "7.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        bonsaiGameState: { trees: "nope" },
+      },
+    };
+    const fileContent = JSON.stringify(data);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid bonsai game state in backup file.",
+    );
+  });
+
+  it("throws for invalid glade game state shape", async () => {
+    const data = {
+      version: "7.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        gladeGameState: { visitors: "nope" },
+      },
+    };
+    const fileContent = JSON.stringify(data);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid glade game state in backup file.",
     );
   });
 

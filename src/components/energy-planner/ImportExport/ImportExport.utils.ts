@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  type BonsaiGameState,
+  BonsaiGameStateSchema,
+} from "@/lib/bonsai/schema";
+import { loadBonsaiState, saveBonsaiState } from "@/lib/bonsai/storage";
 import type {
   Activity,
   DayPlan,
@@ -16,6 +21,9 @@ import {
   storeEnergyTypes,
   storeZones,
 } from "@/lib/energy-planner/storage";
+import { type GladeState, GladeStateSchema } from "@/lib/glade/schema";
+import { loadGladeState, saveGladeState } from "@/lib/glade/storage";
+import { POINTS_STORAGE_KEY } from "@/lib/points/keys";
 import type { WellnessConfig, WellnessEntry } from "@/lib/wellness/schema";
 import {
   WellnessConfigSchema,
@@ -39,10 +47,20 @@ export interface EnergyPlannerExportData {
     dayPlans: { date: string; plan: DayPlan }[] | null;
     wellnessConfig: WellnessConfig | null;
     wellnessEntries: WellnessEntry[] | null;
+    points: number | null;
+    bonsaiGameState: BonsaiGameState | null;
+    gladeGameState: GladeState | null;
   };
 }
 
-const EXPORT_VERSION = "6.0.0"; // Added wellness config and entries to export
+const EXPORT_VERSION = "7.0.0"; // Added points and game state (Bonsai, Glade)
+
+function loadPoints(): number | null {
+  const stored = localStorage.getItem(POINTS_STORAGE_KEY);
+  if (stored === null) return null;
+  const n = parseInt(stored, 10);
+  return Number.isNaN(n) ? null : n;
+}
 
 /**
  * Exports all energy planner data from IndexedDB to a JSON file
@@ -79,6 +97,9 @@ export async function exportEnergyPlannerData(): Promise<void> {
       dayPlans: dayPlans.length > 0 ? dayPlans : null,
       wellnessConfig: wellnessConfig ?? null,
       wellnessEntries: wellnessEntries.length > 0 ? wellnessEntries : null,
+      points: loadPoints(),
+      bonsaiGameState: loadBonsaiState(),
+      gladeGameState: loadGladeState(),
     },
   };
 
@@ -121,6 +142,31 @@ async function importWellnessData(
 }
 
 /**
+ * Validates and stores the points balance and game states from imported
+ * data. Backups older than v7 simply don't carry these fields.
+ * @throws Error if a game state fails schema validation
+ */
+function importGameData(data: EnergyPlannerExportData["data"]): void {
+  if (typeof data.points === "number" && !Number.isNaN(data.points)) {
+    localStorage.setItem(POINTS_STORAGE_KEY, String(data.points));
+  }
+  if (data.bonsaiGameState) {
+    const result = BonsaiGameStateSchema.safeParse(data.bonsaiGameState);
+    if (!result.success) {
+      throw new Error("Invalid bonsai game state in backup file.");
+    }
+    saveBonsaiState(result.data);
+  }
+  if (data.gladeGameState) {
+    const result = GladeStateSchema.safeParse(data.gladeGameState);
+    if (!result.success) {
+      throw new Error("Invalid glade game state in backup file.");
+    }
+    saveGladeState(result.data);
+  }
+}
+
+/**
  * Imports energy planner data from a JSON file into IndexedDB
  * @param file - The JSON file to import
  * @throws Error if file is invalid or parsing fails
@@ -158,6 +204,7 @@ export async function importEnergyPlannerData(file: File): Promise<void> {
     }
   }
   await importWellnessData(data.data);
+  importGameData(data.data);
 
   // Reload the page to reflect the imported data
   window.location.reload();
