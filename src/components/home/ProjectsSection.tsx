@@ -94,6 +94,7 @@ export function ProjectsSection() {
 const Projects = styled.section`
   padding-top: 60px;
   padding-bottom: 80px;
+  overflow: hidden;
   background-color: light-dark(var(--color-grey-100), var(--color-grey-900));
   /* Opposite diagonal from About: low on left, high on right */
   clip-path: polygon(0 60px, 100% 0, 100% 100%, 0 100%);

@@ -320,7 +320,7 @@ a {
   transform: translateY(20px);
   transition:
     opacity 0.5s ease-out var(--fade-delay, 0ms),
-    transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) var(--fade-delay, 0ms);
+    transform 0.6s var(--ease-out) var(--fade-delay, 0ms);
 }
 
 .fade-in-element[data-visible="true"] {
@@ -334,5 +334,12 @@ a {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+}
+
+@media print {
+  .fade-in-element {
+    opacity: 1;
+    transform: none;
   }
 }

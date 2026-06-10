@@ -114,6 +114,7 @@ export function AboutSection() {
 const About = styled.section`
   padding-top: calc(80px + 60px);
   padding-bottom: 80px;
+  overflow: hidden;
   background-color: light-dark(var(--color-grey-50), var(--color-grey-950));
   /* Diagonal slash from Hero: high on left, low on right */
   clip-path: polygon(0 0, 100% 60px, 100% 100%, 0 100%);
