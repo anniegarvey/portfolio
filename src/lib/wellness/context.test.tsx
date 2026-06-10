@@ -51,9 +51,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
+        "",
+      );
     });
 
     expect(result.current.isPending).toBe(false);
@@ -70,9 +70,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 5 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 5 },
+        "",
+      );
     });
 
     expect(result.current.entries[0].metrics[0].label).toBe("Overall mood");
@@ -89,9 +89,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 4 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 4 },
+        "",
+      );
     });
     expect(result.current.entries).toHaveLength(countBefore + 1);
     const id = result.current.entries[result.current.entries.length - 1].id;
@@ -126,9 +126,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
+        "",
+      );
     });
     expect(result.current.entries).toHaveLength(countBefore + 1);
 
@@ -145,9 +145,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
+        "",
+      );
     });
 
     expect(result.current.currentPeriodEntry).toBeDefined();
@@ -163,9 +163,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 2 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 2 },
+        "",
+      );
     });
 
     expect(result.current.entries).toHaveLength(countBefore + 1);
@@ -196,9 +196,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 3 },
+        "",
+      );
     });
 
     const countBefore = result.current.entries.length;
@@ -222,9 +222,9 @@ describe("useWellnessCheck", () => {
 
     await act(async () => {
       await result.current.saveEntry(
-          { [DEFAULT_WELLNESS_METRICS[0].id]: 5 },
-          "",
-        );
+        { [DEFAULT_WELLNESS_METRICS[0].id]: 5 },
+        "",
+      );
       await result.current.disableCheck();
     });
     expect(result.current.config.enabled).toBe(false);
@@ -241,7 +241,9 @@ describe("useWellnessCheck", () => {
     beforeEach(() => {
       vi.useFakeTimers();
       // Bypass fake-indexeddb (which uses setTimeout) so loading resolves instantly.
-      vi.spyOn(wellnessStorage, "fetchWellnessConfig").mockResolvedValue(undefined);
+      vi.spyOn(wellnessStorage, "fetchWellnessConfig").mockResolvedValue(
+        undefined,
+      );
       vi.spyOn(wellnessStorage, "fetchWellnessEntries").mockResolvedValue([]);
       vi.spyOn(wellnessStorage, "storeWellnessConfig").mockResolvedValue(
         undefined,
