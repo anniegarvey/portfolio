@@ -191,11 +191,17 @@ export const ALL_SPECIES_IDS = Object.keys(SPECIES) as SpeciesId[];
 
 // ─── Trust ────────────────────────────────────────────────────────────────────
 
-/** Trust required to tame, by rarity. */
+/**
+ * Trust required to tame, by rarity. Tuned for long-term daily play: a
+ * day's matched actions earn ~30 trust at tier-1 skills and ~75 at tier 5,
+ * so commons tame in a couple of days (onboarding), uncommons in roughly a
+ * week, and rares are a multi-week project even with strong skills and
+ * soother support.
+ */
 export const TAME_THRESHOLD: Record<Rarity, number> = {
   common: 60,
-  uncommon: 90,
-  rare: 120,
+  uncommon: 250,
+  rare: 900,
 };
 
 export function tameThresholdFor(speciesId: SpeciesId): number {
