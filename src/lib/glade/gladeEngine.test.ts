@@ -67,6 +67,28 @@ describe("advanceGladeDay", () => {
     expect(total).toBe(2);
   });
 
+  it("common foragers gather only everyday ingredients", () => {
+    const state = makeGladeState({
+      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
+      residents: [makeResident("rabbit")], // common forager
+    });
+    // The highest roll picks the last entry of the common pool — never a
+    // premium ingredient.
+    const next = advanceGladeDay(state, TODAY, () => 0.999);
+    expect(next.pantry.ingredients.mint).toBe(1);
+    expect(next.pantry.ingredients.honey).toBeUndefined();
+    expect(next.pantry.ingredients.cream).toBeUndefined();
+  });
+
+  it("uncommon foragers can unearth premium ingredients", () => {
+    const state = makeGladeState({
+      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
+      residents: [makeResident("badger")], // uncommon forager
+    });
+    const next = advanceGladeDay(state, TODAY, () => 0.999);
+    expect(next.pantry.ingredients.cream).toBe(1);
+  });
+
   it("spawns one new visitor when there is room", () => {
     const state = makeGladeState();
     const next = advanceGladeDay(state, TODAY, () => 0);

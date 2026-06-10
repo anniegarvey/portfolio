@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import {
-  ALL_INGREDIENT_IDS,
   ALL_SPECIES_IDS,
   BEACON_RARE_BONUS,
+  FORAGE_POOLS,
   MAX_VISITORS,
   RARITY_WEIGHTS,
   SPECIES,
@@ -81,7 +81,7 @@ export function pickVisitorSpecies(
  * - resets each visitor's daily actions
  * - soother residents passively build visitor trust (capped just below the
  *   tame threshold — the final step is always the player's)
- * - forager residents each gather one random ingredient
+ * - forager residents each gather one ingredient from their rarity's pool
  * - one new wild visitor may arrive (if there's room and species left)
  */
 export function advanceGladeDay(
@@ -102,11 +102,12 @@ export function advanceGladeDay(
     })),
   };
 
-  const foragers = countRole(state, "forager");
-  for (let i = 0; i < foragers; i++) {
-    const ingredientId =
-      ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)];
-    next = addIngredient(next, ingredientId);
+  const foragers = state.residents.filter(
+    (r) => SPECIES[r.speciesId].benefitRole === "forager",
+  );
+  for (const forager of foragers) {
+    const pool = FORAGE_POOLS[SPECIES[forager.speciesId].rarity];
+    next = addIngredient(next, pool[Math.floor(rng() * pool.length)]);
   }
 
   if (next.visitors.length < MAX_VISITORS) {

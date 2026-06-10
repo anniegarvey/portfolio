@@ -3,17 +3,18 @@ import type { GladeState, SkillId } from "./schema";
 
 /**
  * Grants XP to a skill, clamped at the current tier's threshold (the bar
- * waits full until a lesson is bought). Muse residents grant +1 bonus XP.
+ * waits full until a lesson is bought). Each muse resident grants +1 bonus
+ * XP per action — they stack, so all three muses quadruple XP gains.
  */
 export function gainXp(state: GladeState, skillId: SkillId): GladeState {
   const skill = state.skills[skillId];
   const threshold = xpThresholdFor(skill.tier);
   if (threshold === null) return state; // max tier
 
-  const hasMuse = state.residents.some(
+  const museCount = state.residents.filter(
     (r) => SPECIES[r.speciesId].benefitRole === "muse",
-  );
-  const xp = Math.min(skill.xp + 1 + (hasMuse ? 1 : 0), threshold);
+  ).length;
+  const xp = Math.min(skill.xp + 1 + museCount, threshold);
   return {
     ...state,
     skills: { ...state.skills, [skillId]: { ...skill, xp } },

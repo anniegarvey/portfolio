@@ -228,6 +228,17 @@ export const INGREDIENTS: Record<IngredientId, IngredientConfig> = {
 
 export const ALL_INGREDIENT_IDS = Object.keys(INGREDIENTS) as IngredientId[];
 
+/**
+ * Ingredients a forager can gather, by the forager's rarity. Common foragers
+ * find everyday ingredients; uncommon and rarer ones also unearth the
+ * premium ingredients, so each forager is a distinct upgrade.
+ */
+export const FORAGE_POOLS: Record<Rarity, readonly IngredientId[]> = {
+  common: ["berries", "oats", "mint"],
+  uncommon: ALL_INGREDIENT_IDS,
+  rare: ALL_INGREDIENT_IDS,
+};
+
 // ─── Recipes ──────────────────────────────────────────────────────────────────
 
 export interface RecipeConfig {
@@ -297,8 +308,13 @@ export const SKILL_NAMES: Record<SkillId, string> = {
 
 export const MAX_TIER = 5;
 
-/** XP needed to fill the bar at each tier (index = tier - 1; no entry for max tier). */
-export const XP_THRESHOLDS = [4, 8, 14, 22] as const;
+/**
+ * XP needed to fill the bar at each tier (index = tier - 1; no entry for max
+ * tier). The curve roughly doubles per tier so each level feels harder than
+ * the last even with stacked muse residents boosting XP per action (up to
+ * 4 XP/action with all three muses).
+ */
+export const XP_THRESHOLDS = [5, 12, 25, 45] as const;
 
 /** Points cost of the lesson advancing to each tier (index = current tier - 1). */
 export const LESSON_COSTS = [15, 30, 60, 100] as const;

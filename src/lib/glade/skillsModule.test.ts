@@ -50,6 +50,33 @@ describe("gainXp", () => {
     expect(next.skills["body-language"].xp).toBe(2);
   });
 
+  it("muse bonuses stack: each muse adds +1 XP per action", () => {
+    const state = makeGladeState({
+      residents: [
+        {
+          id: "00000000-0000-4000-8000-000000000002",
+          speciesId: "owl", // muse
+          tamedDate: "2026-06-01",
+          position: { x: 50, y: 50 },
+        },
+        {
+          id: "00000000-0000-4000-8000-000000000003",
+          speciesId: "robin", // muse
+          tamedDate: "2026-06-01",
+          position: { x: 30, y: 60 },
+        },
+        {
+          id: "00000000-0000-4000-8000-000000000004",
+          speciesId: "rabbit", // forager — must not count
+          tamedDate: "2026-06-01",
+          position: { x: 70, y: 60 },
+        },
+      ],
+    });
+    const next = gainXp(state, "body-language");
+    expect(next.skills["body-language"].xp).toBe(3);
+  });
+
   it("is a no-op at max tier", () => {
     const state = makeGladeState({
       skills: {
