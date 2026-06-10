@@ -79,7 +79,9 @@ function lintAndRestage(files) {
 /**
  * Returns staged non-test src files outside src/app/ — the files Stryker
  * should mutate. These are the files that have testable logic and co-located
- * unit tests.
+ * unit tests. Files without a co-located test (e.g. view-only components
+ * covered by e2e) are excluded — Stryker errors out when it can't find any
+ * tests for the mutated files.
  */
 function getMutableFiles(files) {
   return files.filter(
@@ -87,7 +89,8 @@ function getMutableFiles(files) {
       f.startsWith("src/") &&
       !f.startsWith("src/app/") &&
       /\.(ts|tsx)$/.test(f) &&
-      !/\.test\.(ts|tsx)$/.test(f),
+      !/\.test\.(ts|tsx)$/.test(f) &&
+      fs.existsSync(path.join(ROOT, f.replace(/\.(ts|tsx)$/, ".test.$1"))),
   );
 }
 

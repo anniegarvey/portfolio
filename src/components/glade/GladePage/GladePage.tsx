@@ -10,6 +10,7 @@ import { SkillsPanel } from "@/components/glade/SkillsPanel";
 import { VisitorCard } from "@/components/glade/VisitorCard";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
+import { QUERIES } from "@/lib/constants";
 import { useGlade } from "@/lib/glade/context";
 
 export function GladePage() {
@@ -113,14 +114,23 @@ const PageTabs = styled(Tabs.Root)`
 const PageTabsList = styled(Tabs.List)`
   display: flex;
   border-bottom: 2px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  overflow-x: auto;
+  overflow-y: hidden;
 `;
 
 const PageTab = styled(Tabs.Trigger)`
   background: none;
   border: none;
-  padding: 0.6rem 1.25rem;
-  font-size: 1.5rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 1.2rem;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  @media ${QUERIES.PHABLET_UP} {
+    padding: 0.6rem 1.25rem;
+    font-size: 1.5rem;
+  }
   color: light-dark(var(--color-grey-500), var(--color-grey-400));
   cursor: pointer;
   border-bottom: 3px solid transparent;
