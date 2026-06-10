@@ -1,0 +1,3 @@
+# Playground games spend points, never mint them
+
+Points exist to reward completing Energy Planner activities; the Playground games (Bonsai Garden, Creature Glade) are sinks that make those rewards worth earning. While designing Creature Glade we considered letting resident creatures passively generate points, but rejected it: a second points source would let the games feed themselves and weaken the incentive to actually plan and complete activities. Creature benefits therefore stay in-game (foraged ingredients, trust boosts, rarer visitors, XP boosts) and the Energy Planner remains the only place points are awarded.

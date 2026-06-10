@@ -83,11 +83,61 @@ A label derived from a tree's `activeDaysCount`: Seed → Sapling → Young Tree
 The action of ticking the game forward one day. Triggers growth for watered trees, cleans expired fertilizers, and updates `lastGrowthCheckDate`.
 
 **Points**
-A cross-cutting reward currency. Awarded by the Energy Planner (completing activities) and spent in the Bonsai shop.
+A cross-cutting reward currency. Awarded by the Energy Planner (completing activities) and spent in the Bonsai shop and Creature Glade. Playground games never generate points (see ADR 0003).
+
+---
+
+## Creature Glade
+
+A peaceful creature-collecting game. Wild creatures visit the glade; the player builds trust through real-life-inspired taming actions until each creature settles as a resident, growing an ecosystem where every resident contributes a daily benefit. No failure states — low skill means slower taming, never loss.
+
+### Terms
+
+**Species**
+A catalog definition of a creature kind: name, rarity, real or fantastical, favourite treat, approach/petting preferences, and benefit role. The source of truth for creature behaviour — never duplicated into game state.
+
+**Wild visitor**
+An untamed creature currently visiting the glade. Accepts a limited set of taming actions per day and lingers until tamed — visitors never leave.
+
+**Trust**
+A per-visitor meter (0–100) raised by taming actions. Reaching full trust tames the visitor, converting it into a **Resident**.
+
+**Resident**
+A tamed creature living in the glade. Contributes its species' benefit each **Daily glade advance**.
+
+**Taming action**
+One of three interactions a wild visitor accepts each day: _offer treat_, _approach_ (body language), and _pet_. Approach and pet each involve a light choice (posture / petting spot) checked against the species' preference — a matching choice earns bonus trust, a mismatch earns reduced trust, never negative.
+
+**Preference**
+A species' favoured approach posture and petting spot. Hinted at in the visitor's description; hints get clearer at higher skill tiers.
+
+**Taming skill**
+One of three player skills: _Treat Cooking_, _Body Language_, _Petting Technique_. Skills gain XP through use and advance in tiers.
+
+**Skill tier**
+A skill's level. Advancing requires both a full XP bar and buying a **Lesson** with points. Higher tiers raise trust gains, sharpen preference hints, and unlock recipes.
+
+**Lesson**
+A points purchase that advances a skill to its next tier once the XP threshold is met. The primary points sink alongside ingredients.
+
+**Ingredient**
+A cooking input, bought with points or foraged by resident creatures.
+
+**Recipe**
+A combination of ingredients producing a **Treat**. Unlocked by Treat Cooking tier.
+
+**Treat**
+A cooked consumable offered to a wild visitor for trust. A species' **favourite treat** earns bonus trust.
+
+**Benefit role**
+The daily contribution a species makes as a resident: _Forager_ (gathers ingredients), _Soother_ (passively builds trust with wild visitors), _Beacon_ (attracts rarer visitors), or _Muse_ (boosts skill XP gains).
+
+**Daily glade advance**
+The once-per-calendar-day tick: new wild visitors may arrive, resident benefits apply, and per-visitor daily actions reset. Mirrors the Bonsai **Daily advance** pattern.
 
 ---
 
 ## Shared Infrastructure
 
 **Points system**
-The cross-cutting module that manages the points currency shared between the Energy Planner and the Bonsai Garden. Handles awarding, spending, particle animations, and localStorage persistence.
+The cross-cutting module that manages the points currency shared between the Energy Planner and the Playground games (Bonsai Garden, Creature Glade). Handles awarding, spending, particle animations, and localStorage persistence.
