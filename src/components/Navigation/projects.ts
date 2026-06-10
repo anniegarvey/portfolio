@@ -23,6 +23,13 @@ export const LIVE_APPS: readonly ProjectLink[] = [
     href: "/bonsai",
     accent: "var(--color-secondary-400)",
   },
+  {
+    slug: "glade",
+    title: "Creature Glade",
+    blurb: "Befriend creatures, grow an ecosystem",
+    href: "/glade",
+    accent: "var(--color-teal-400)",
+  },
 ] as const;
 
 export const CASE_STUDIES: readonly ProjectLink[] = [
