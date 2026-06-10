@@ -47,6 +47,7 @@ const Contact = styled.section`
   padding: 80px 48px;
   background-color: var(--color-primary-950);
   color: var(--color-primary-100);
+  text-wrap: balance;
 `;
 
 const Inner = styled.div`
