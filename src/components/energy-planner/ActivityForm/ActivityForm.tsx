@@ -125,6 +125,11 @@ export function ActivityForm({
     setActiveIndex(-1);
   };
 
+  const suggestionsOpen =
+    !initialData && showSuggestions && suggestions.length > 0;
+  const listboxId = `${formId}-suggestions`;
+  const optionId = (activityId: string) => `${formId}-suggestion-${activityId}`;
+
   const wrappedSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     handleSubmit(e);
     if (!initialData && submitBtnRef.current) {
@@ -138,6 +143,14 @@ export function ActivityForm({
         <Label htmlFor={`${formId}-title`}>Activity Name</Label>
         <TitleWrapper>
           <TextInput
+            aria-activedescendant={
+              suggestionsOpen && activeIndex >= 0
+                ? optionId(suggestions[activeIndex].id)
+                : undefined
+            }
+            aria-autocomplete={!initialData ? "list" : undefined}
+            aria-controls={suggestionsOpen ? listboxId : undefined}
+            aria-expanded={!initialData ? suggestionsOpen : undefined}
             autoComplete="off"
             id={`${formId}-title`}
             onBlur={() => {
@@ -150,14 +163,16 @@ export function ActivityForm({
             placeholder="e.g., Do Laundry"
             ref={focusRef}
             required
+            role={!initialData ? "combobox" : undefined}
             value={title}
           />
-          {!initialData && showSuggestions && suggestions.length > 0 && (
-            <SuggestionsList role="listbox">
+          {suggestionsOpen && (
+            <SuggestionsList id={listboxId} role="listbox">
               {suggestions.map((activity, index) => (
                 <SuggestionItem
                   $isActive={index === activeIndex}
                   aria-selected={index === activeIndex}
+                  id={optionId(activity.id)}
                   key={activity.id}
                   onMouseDown={() => handleSuggestionSelect(activity)}
                   role="option"
