@@ -133,7 +133,9 @@ const CapacityFill = styled.div<{ $color: string; $percent: number }>`
   );
   opacity: 0.55;
   border-radius: 7px;
-  transition: transform 0.3s ease;
+  /* Animates width (the property that actually changes); the stripe
+     geometry rules out a scaleX transform. */
+  transition: width 0.3s ease;
   z-index: 1;
 
   @media (prefers-reduced-motion: reduce) {
@@ -149,6 +151,6 @@ const Text = styled.div<{ $isOver: boolean }>`
   font-weight: ${({ $isOver }) => ($isOver ? "700" : "500")};
   color: ${({ $isOver }) =>
     $isOver
-      ? "light-dark(var(--color-orange-700), var(--color-orange-400))"
+      ? "light-dark(var(--color-orange-800), var(--color-orange-400))"
       : "light-dark(var(--color-grey-700), var(--color-grey-300))"};
 `;

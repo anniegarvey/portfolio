@@ -111,7 +111,7 @@ const Content = styled(Dialog.Content)`
   flex-direction: column;
   box-shadow: var(--elevation-md);
   animation: ${slideIn} 0.3s ease-out;
-  border: 1px solid var(--color-grey-200);
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
 
   /* Fixed positioning to center on screen */
   position: fixed;
@@ -134,7 +134,7 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-grey-200);
+  border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
 
   @media (${QUERIES.PHABLET_UP}) {
     padding: 1rem 1.5rem;
