@@ -343,10 +343,15 @@ const FrequencyInput = styled.input`
     padding: 0.25rem 0.5rem;
     width: 60px;
     height: 36px; /* Match Select height */
-    border: 1px solid var(--color-grey-300);
+    border: 1px solid var(--color-grey-500);
     border-radius: 6px;
     background: transparent;
     color: inherit;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary-500);
+      outline-offset: 2px;
+    }
 `;
 
 const Form = styled.form`
@@ -381,9 +386,9 @@ const SuggestionsList = styled.ul`
   padding: 0.25rem 0;
   list-style: none;
   background: light-dark(var(--color-grey-50), var(--color-grey-900));
-  border: 1px solid var(--color-grey-300);
+  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-700));
   border-radius: 0.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--elevation-md);
   max-height: 200px;
   overflow-y: auto;
 `;
@@ -393,32 +398,44 @@ const SuggestionItem = styled.li<{ $isActive: boolean }>`
   cursor: pointer;
   font-size: 0.875rem;
   background: ${({ $isActive }) =>
-    $isActive ? "var(--color-grey-100)" : "transparent"};
+    $isActive
+      ? "light-dark(var(--color-grey-100), var(--color-grey-800))"
+      : "transparent"};
 
   &:hover {
-    background: var(--color-grey-100);
+    background: light-dark(var(--color-grey-100), var(--color-grey-800));
   }
 `;
 
 const TextInput = styled.input`
     padding: 0.5rem;
-    border: 1px solid var(--color-grey-300);
+    border: 1px solid var(--color-grey-500);
     border-radius: 0.25rem;
     background: transparent;
     color: inherit;
     width: 100%;
     box-sizing: border-box;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary-500);
+      outline-offset: 2px;
+    }
 `;
 
 const TextArea = styled.textarea`
     padding: 0.5rem;
-    border: 1px solid var(--color-grey-300);
+    border: 1px solid var(--color-grey-500);
     border-radius: 0.25rem;
     background: transparent;
     color: inherit;
     min-height: 80px;
     resize: vertical;
     font-family: inherit;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary-500);
+      outline-offset: 2px;
+    }
 `;
 
 const StickyBottom = styled.div`

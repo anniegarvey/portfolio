@@ -320,20 +320,13 @@ const Card = styled.article<{
   background-color: light-dark(var(--color-grey-50), var(--color-grey-900));
   padding: 12px;
   border-radius: 4px;
-  border: 1px solid var(--color-grey-200);
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
   transition: transform 0.1s;
-
-  ${({ $isProjected }) =>
-    $isProjected &&
-    css`
-      border-style: dashed;
-      border-color: var(--color-blue-300);
-    `}
 
   ${({ $selected }) =>
     $selected &&
@@ -342,11 +335,20 @@ const Card = styled.article<{
       border-style: solid;
     `}
 
+  /* Projected (repeating, due) cards must read as distinct from concrete
+     in-plan cards, so this wins over $selected. */
+  ${({ $isProjected }) =>
+    $isProjected &&
+    css`
+      border-style: dashed;
+      border-color: light-dark(var(--color-teal-600), var(--color-teal-400));
+    `}
+
   ${({ $completed }) =>
     $completed &&
     css`
       background-color: light-dark(var(--color-grey-100), var(--color-grey-700));
-      border-color: var(--color-grey-300);
+      border-color: light-dark(var(--color-grey-300), var(--color-grey-600));
       opacity: 0.8;
     `}
 
