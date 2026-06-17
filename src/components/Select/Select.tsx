@@ -157,7 +157,7 @@ const StyledItemIndicator = styled(SelectPrimitive.ItemIndicator)`
 
 const StyledSeparator = styled(SelectPrimitive.Separator)`
   height: 1px;
-  background-color: var(--color-grey-200);
+  background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
   margin: 5px;
 `;
 

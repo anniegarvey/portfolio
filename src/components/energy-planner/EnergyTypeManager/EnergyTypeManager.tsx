@@ -307,7 +307,7 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--color-grey-300);
+  border: 1px solid var(--color-grey-500);
   border-radius: 0.25rem;
   background: light-dark(white, var(--color-grey-700));
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
@@ -335,7 +335,7 @@ const ColorPickerWrapper = styled.div`
 const ColorInput = styled.input`
   width: 4rem;
   height: 2.5rem;
-  border: 1px solid var(--color-grey-300);
+  border: 1px solid var(--color-grey-500);
   border-radius: 0.25rem;
   cursor: pointer;
 `;

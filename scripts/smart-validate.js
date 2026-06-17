@@ -74,6 +74,10 @@ function lintAndRestage(files) {
   if (codeFiles.length === 0) return;
   run(`pnpm exec biome check --error-on-warnings --fix ${codeFiles.join(" ")}`);
   run(`git add ${codeFiles.join(" ")}`);
+  const tsFiles = codeFiles.filter((f) => /\.(ts|tsx)$/.test(f));
+  if (tsFiles.length > 0) {
+    run(`node scripts/check-theme-tokens.mjs ${tsFiles.join(" ")}`);
+  }
 }
 
 /**
@@ -156,6 +160,7 @@ function runStryker(mutableFiles) {
  */
 function runFullValidate() {
   run("pnpm exec biome check --error-on-warnings --fix");
+  run("node scripts/check-theme-tokens.mjs");
   const stagedCodeFiles = staged.filter(
     (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
   );
