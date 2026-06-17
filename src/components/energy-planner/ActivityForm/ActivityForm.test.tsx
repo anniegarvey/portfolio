@@ -384,6 +384,45 @@ describe("ActivityForm", () => {
     });
   });
 
+  it("exposes combobox ARIA wiring tying the input to the active option", async () => {
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
+      seedActivity,
+    ]);
+
+    render(<ActivityForm />, { wrapper });
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: /Add Activity/i,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+
+    const input = screen.getByRole("combobox", {
+      name: /Activity Name/i,
+    }) as HTMLInputElement;
+    expect(input.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.change(input, { target: { value: "laundry" } });
+
+    await waitFor(() => {
+      expect(input.getAttribute("aria-expanded")).toBe("true");
+    });
+
+    const listbox = screen.getByRole("listbox");
+    expect(input.getAttribute("aria-controls")).toBe(listbox.id);
+    expect(input.getAttribute("aria-activedescendant")).toBeNull();
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+
+    const option = screen.getByRole("option", { name: "Do Laundry" });
+    expect(option.id).toBeTruthy();
+    expect(input.getAttribute("aria-activedescendant")).toBe(option.id);
+  });
+
   it("closes suggestions on Escape without changing the input value", async () => {
     (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
       seedActivity,
