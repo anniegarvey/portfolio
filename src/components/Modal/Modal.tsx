@@ -154,7 +154,9 @@ const CloseButton = styled.button`
   border: none;
   cursor: pointer;
   color: var(--color-grey-500);
-  padding: 0.5rem; // Larger tap target
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 0.25rem;
   margin-right: -0.25rem;
   display: flex;
@@ -162,8 +164,13 @@ const CloseButton = styled.button`
   justify-content: center;
 
   &:hover {
-    background-color: var(--color-grey-200);
-    color: var(--color-grey-700);
+    background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
+    color: light-dark(var(--color-grey-700), var(--color-grey-100));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
   }
 `;
 

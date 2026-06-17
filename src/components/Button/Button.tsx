@@ -174,8 +174,8 @@ const StyledButton = styled.button<{
       case "icon":
         return css`
           padding: 8px;
-          min-width: 40px;
-          height: 40px;
+          min-width: 44px;
+          height: 44px;
         `;
       default:
         return css`

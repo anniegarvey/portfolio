@@ -202,6 +202,7 @@ const SegmentedControl = styled.div`
 
 const SegmentButton = styled.button<{ $selected: boolean }>`
   padding: 6px 12px;
+  min-height: 44px;
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: 4px;
