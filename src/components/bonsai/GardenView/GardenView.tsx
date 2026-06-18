@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
@@ -305,7 +306,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
             </ToolPrice>
           </LockedToolBtn>
         )}
-        <ShortcutHint>Press D to advance day</ShortcutHint>
+        <PushedAdvanceDay />
       </GardenToolbar>
       <Garden
         data-placing={isPlacing || undefined}
@@ -435,11 +436,8 @@ const ToolPrice = styled.span`
   margin-left: 0.15rem;
 `;
 
-const ShortcutHint = styled.span`
+const PushedAdvanceDay = styled(AdvanceDayButton)`
   margin-left: auto;
-  font-size: 0.8rem;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
-  font-style: italic;
 `;
 
 const Garden = styled.div`

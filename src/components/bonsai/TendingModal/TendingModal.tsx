@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { X } from "lucide-react";
 import { keyframes, styled } from "next-yak";
+import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { TreeView } from "@/components/bonsai/TreeView";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
@@ -47,7 +48,9 @@ export function TendingModal({
             {tree && (
               <TreeView onNavigateToShop={onNavigateToShop} tree={tree} />
             )}
-            <DayShortcutHint>Press D to advance day</DayShortcutHint>
+            <AdvanceDayRow>
+              <AdvanceDayButton />
+            </AdvanceDayRow>
           </Body>
         </Content>
       </Dialog.Portal>
@@ -146,10 +149,8 @@ const CloseButton = styled.button`
   }
 `;
 
-const DayShortcutHint = styled.p`
-  margin: 0.5rem 0 0;
-  font-size: 0.8rem;
-  color: light-dark(var(--color-grey-400), var(--color-grey-500));
-  font-style: italic;
-  text-align: center;
+const AdvanceDayRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
 `;
