@@ -126,6 +126,8 @@ const CloseButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   color: light-dark(var(--color-grey-500), var(--color-grey-400));

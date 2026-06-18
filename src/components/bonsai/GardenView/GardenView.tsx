@@ -370,6 +370,7 @@ const GardenWrapper = styled.div`
 const GardenToolbar = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 `;
 
@@ -377,6 +378,7 @@ const ToolBtn = styled.button`
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px;
   padding: 0.35rem 0.8rem;
   border-radius: 6px;
   font-size: 0.875rem;
@@ -407,6 +409,7 @@ const LockedToolBtn = styled.button`
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px;
   padding: 0.35rem 0.8rem;
   border-radius: 6px;
   font-size: 0.875rem;
