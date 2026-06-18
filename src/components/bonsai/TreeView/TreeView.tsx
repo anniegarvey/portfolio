@@ -615,7 +615,7 @@ const LockedToolBtn = styled.button`
   font-family: inherit;
   border: 1.5px solid light-dark(#e0d8d0, #3a3f4a);
   background: transparent;
-  color: light-dark(#a09888, #6a7080);
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 
@@ -656,7 +656,7 @@ const WaterStatus = styled.div`
   align-items: center;
   gap: 0.3rem;
   font-size: 0.8rem;
-  color: light-dark(#9a8878, #7a8898);
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 
   &[data-watered] {
     color: light-dark(#4a7a3a, #6ab860);
@@ -755,7 +755,7 @@ const EquippedTag = styled.span`
 
 const UnavailableTag = styled.span`
   font-size: 0.75rem;
-  color: light-dark(#9a8878, #6a7080);
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
   flex-shrink: 0;
 `;
 
@@ -767,7 +767,7 @@ const FertiliserBtnInner = styled.div`
 
 const FertiliserEffect = styled.span`
   font-size: 0.75rem;
-  color: light-dark(#9a8878, #6a7080);
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 
 // ─── Fertiliser Status ────────────────────────────────────────────────────────

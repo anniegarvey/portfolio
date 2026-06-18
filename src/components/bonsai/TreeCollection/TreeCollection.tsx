@@ -206,7 +206,7 @@ const WateredBadge = styled.span`
 
 const DryBadge = styled.span`
   font-size: 1.1rem;
-  color: light-dark(var(--color-grey-400), var(--color-grey-500));
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
   flex-shrink: 0;
 `;
 

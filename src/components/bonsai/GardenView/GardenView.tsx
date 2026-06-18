@@ -416,7 +416,7 @@ const LockedToolBtn = styled.button`
   font-family: inherit;
   border: 1.5px solid light-dark(#e0d8d0, #3a3f4a);
   background: transparent;
-  color: light-dark(#a09888, #6a7080);
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 

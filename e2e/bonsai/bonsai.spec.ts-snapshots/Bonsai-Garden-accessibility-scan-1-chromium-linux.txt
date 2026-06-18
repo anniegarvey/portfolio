@@ -1,16 +1,1 @@
-[
-  {
-    "rule": "color-contrast",
-    "targets": [
-      [
-        "button[title=\"Watering Can (locked)\"]"
-      ],
-      [
-        "button[title=\"Garden Hose (locked)\"]"
-      ],
-      [
-        ".TreeCollection_DryBadge_[hash]"
-      ]
-    ]
-  }
-]
+[]
