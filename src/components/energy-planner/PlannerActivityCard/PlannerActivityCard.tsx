@@ -320,20 +320,13 @@ const Card = styled.article<{
   background-color: light-dark(var(--color-grey-50), var(--color-grey-900));
   padding: 12px;
   border-radius: 4px;
-  border: 1px solid var(--color-grey-200);
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   color: light-dark(var(--color-grey-900), var(--color-grey-100));
   transition: transform 0.1s;
-
-  ${({ $isProjected }) =>
-    $isProjected &&
-    css`
-      border-style: dashed;
-      border-color: var(--color-blue-300);
-    `}
 
   ${({ $selected }) =>
     $selected &&
@@ -342,17 +335,26 @@ const Card = styled.article<{
       border-style: solid;
     `}
 
+  /* Projected (repeating, due) cards must read as distinct from concrete
+     in-plan cards, so this wins over $selected. */
+  ${({ $isProjected }) =>
+    $isProjected &&
+    css`
+      border-style: dashed;
+      border-color: light-dark(var(--color-teal-600), var(--color-teal-400));
+    `}
+
   ${({ $completed }) =>
     $completed &&
     css`
       background-color: light-dark(var(--color-grey-100), var(--color-grey-700));
-      border-color: var(--color-grey-300);
+      border-color: light-dark(var(--color-grey-300), var(--color-grey-600));
       opacity: 0.8;
     `}
 
   &:has(${DragHandle}:hover) {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: var(--elevation-sm);
   }
 `;
 
@@ -402,7 +404,7 @@ const ActivityDescription = styled.button`
   border: none;
   cursor: pointer;
   text-align: left;
-  color: light-dark(var(--color-grey-500), var(--color-grey-400));
+  color: light-dark(var(--color-grey-600), var(--color-grey-300));
   margin-bottom: 0.5rem;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -468,13 +470,9 @@ const DropdownMenuContent = styled(DropdownMenuPrimitive.Content)`
   background-color: light-dark(white, var(--color-grey-800));
   border-radius: 6px;
   padding: 5px;
-  box-shadow: 0px 10px 38px -10px rgba(22, 23, 24, 0.35),
-    0px 10px 20px -15px rgba(22, 23, 24, 0.2);
+  box-shadow: var(--elevation-md);
   border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   z-index: 50;
-  animation-duration: 400ms;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
 `;
 
 const DropdownMenuItem = styled(DropdownMenuPrimitive.Item)`
@@ -499,6 +497,6 @@ const DropdownMenuItem = styled(DropdownMenuPrimitive.Item)`
 
 const DropdownMenuSeparator = styled(DropdownMenuPrimitive.Separator)`
   height: 1px;
-  background-color: var(--color-grey-200);
+  background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
   margin: 5px;
 `;

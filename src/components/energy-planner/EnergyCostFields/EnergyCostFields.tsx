@@ -73,7 +73,7 @@ const Label = styled.label`
 
 const NumberInput = styled.input`
     padding: 0.5rem;
-    border: 1px solid var(--color-grey-300);
+    border: 1px solid var(--color-grey-500);
     border-radius: 0.25rem;
     background: transparent;
     color: inherit;

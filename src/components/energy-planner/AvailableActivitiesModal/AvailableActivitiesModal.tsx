@@ -271,7 +271,7 @@ const ModalActions = styled.div`
   justify-content: center;
   padding-bottom: 16px;
   margin-bottom: 16px;
-  border-bottom: 1px solid var(--color-grey-200);
+  border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
 `;
 
 const ModalEmptyState = styled.div`
@@ -291,7 +291,7 @@ const ModalActivityList = styled.div`
 const TabList = styled.div`
     display: flex;
     gap: 1rem;
-    border-bottom: 2px solid var(--color-grey-200);
+    border-bottom: 2px solid light-dark(var(--color-grey-200), var(--color-grey-700));
     margin-bottom: 1rem;
 `;
 

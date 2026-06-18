@@ -111,7 +111,7 @@ const Content = styled(Dialog.Content)`
   flex-direction: column;
   box-shadow: var(--elevation-md);
   animation: ${slideIn} 0.3s ease-out;
-  border: 1px solid var(--color-grey-200);
+  border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
 
   /* Fixed positioning to center on screen */
   position: fixed;
@@ -134,7 +134,7 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-grey-200);
+  border-bottom: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
 
   @media (${QUERIES.PHABLET_UP}) {
     padding: 1rem 1.5rem;
@@ -154,7 +154,9 @@ const CloseButton = styled.button`
   border: none;
   cursor: pointer;
   color: var(--color-grey-500);
-  padding: 0.5rem; // Larger tap target
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 0.25rem;
   margin-right: -0.25rem;
   display: flex;
@@ -162,8 +164,13 @@ const CloseButton = styled.button`
   justify-content: center;
 
   &:hover {
-    background-color: var(--color-grey-200);
-    color: var(--color-grey-700);
+    background-color: light-dark(var(--color-grey-200), var(--color-grey-700));
+    color: light-dark(var(--color-grey-700), var(--color-grey-100));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
   }
 `;
 

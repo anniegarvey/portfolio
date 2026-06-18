@@ -202,6 +202,7 @@ const SegmentedControl = styled.div`
 
 const SegmentButton = styled.button<{ $selected: boolean }>`
   padding: 6px 12px;
+  min-height: 44px;
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: 4px;
@@ -231,14 +232,10 @@ const SegmentButton = styled.button<{ $selected: boolean }>`
   ${({ $selected }) =>
     $selected &&
     css`
-      background-color: light-dark(
-        var(--color-primary-600),
-        var(--color-primary-500)
-      );
-      border-color: light-dark(
-        var(--color-primary-600),
-        var(--color-primary-500)
-      );
+      /* primary-600 in both themes: white text clears AA (5.88:1).
+         primary-500 was too light in dark mode (4.40:1). */
+      background-color: var(--color-primary-600);
+      border-color: var(--color-primary-600);
       color: white;
     `}
 `;

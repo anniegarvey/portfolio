@@ -10,8 +10,9 @@ pnpm kill-server    # stop ONLY this worktree's dev server (reads .port). NEVER 
 pnpm build        # production build
 pnpm test         # unit tests (vitest, single run)
 pnpm lint         # biome check (errors on warnings)
+pnpm lint:theme   # flag extreme-end fixed greys in border/background that need light-dark() (next-yak templates Biome can't see)
 pnpm format       # biome format --write
-pnpm validate     # full suite: lint --fix + tsc + vitest + playwright
+pnpm validate     # full suite: lint --fix + lint:theme + tsc + vitest + playwright
 pnpm validate:smart  # smart suite: only runs checks relevant to staged files (used by pre-commit)
 
 # Run a single unit test file

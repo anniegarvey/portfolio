@@ -174,8 +174,8 @@ const StyledButton = styled.button<{
       case "icon":
         return css`
           padding: 8px;
-          min-width: 40px;
-          height: 40px;
+          min-width: 44px;
+          height: 44px;
         `;
       default:
         return css`
@@ -212,7 +212,7 @@ const StyledButton = styled.button<{
       case "dashed":
         return css`
           background-color: transparent;
-          border: 1px dashed var(--color-grey-300);
+          border: 1px dashed light-dark(var(--color-grey-300), var(--color-grey-600));
           color: light-dark(var(--color-grey-600), var(--color-grey-400));
 
           &:hover:not(:disabled):not([aria-disabled="true"]) {
