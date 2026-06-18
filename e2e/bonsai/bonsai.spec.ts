@@ -43,6 +43,41 @@ test.describe("Bonsai Garden", () => {
     ).toBeVisible();
   });
 
+  test("Advance day button advances day from the garden toolbar", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 10,
+      lastWateredDay: 10,
+    });
+
+    await page.getByRole("button", { name: /advance day/i }).click();
+
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 11/i }).first(),
+    ).toBeVisible();
+  });
+
+  test("Advance day button advances day from inside the tending modal", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 3,
+      lastWateredDay: 3,
+    });
+
+    await openTendingModal(page);
+
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /advance day/i })
+      .click();
+
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 4/i }).first(),
+    ).toBeVisible();
+  });
+
   test("watering can tool shows hint and marks tree as watered", async ({
     page,
   }) => {
