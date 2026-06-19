@@ -202,6 +202,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     confirmPlantAt,
     updateTreePosition,
     waterTree,
+    demoMode,
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
@@ -306,7 +307,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
             </ToolPrice>
           </LockedToolBtn>
         )}
-        <PushedAdvanceDay />
+        {demoMode && <PushedAdvanceDay />}
       </GardenToolbar>
       <Garden
         data-placing={isPlacing || undefined}

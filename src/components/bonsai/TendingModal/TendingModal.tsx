@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { TreeView } from "@/components/bonsai/TreeView";
+import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 
@@ -20,6 +21,7 @@ export function TendingModal({
   onClose,
   onNavigateToShop,
 }: TendingModalProps) {
+  const { demoMode } = useBonsai();
   return (
     <Dialog.Root
       onOpenChange={(open) => !open && onClose()}
@@ -48,9 +50,11 @@ export function TendingModal({
             {tree && (
               <TreeView onNavigateToShop={onNavigateToShop} tree={tree} />
             )}
-            <AdvanceDayRow>
-              <AdvanceDayButton />
-            </AdvanceDayRow>
+            {demoMode && (
+              <AdvanceDayRow>
+                <AdvanceDayButton />
+              </AdvanceDayRow>
+            )}
           </Body>
         </Content>
       </Dialog.Portal>

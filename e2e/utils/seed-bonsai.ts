@@ -14,6 +14,8 @@ export interface BonsaiSeedOptions {
   ownedStandIds?: string[];
   ownedFertiliserIds?: string[];
   points?: number;
+  /** Navigate with `?demo=1` to enable the manual day-advance affordances. */
+  demoMode?: boolean;
 }
 
 /**
@@ -61,7 +63,8 @@ export async function goToBonsaiWithSeed(
   opts: BonsaiSeedOptions = {},
 ): Promise<void> {
   // Navigate first to establish the correct origin
-  await page.goto("/bonsai", { waitUntil: "domcontentloaded" });
+  const url = opts.demoMode ? "/bonsai?demo=1" : "/bonsai";
+  await page.goto(url, { waitUntil: "domcontentloaded" });
 
   await page.evaluate(
     ({ gameStateJson, pointsStr, bonsaiKey, pointsKey }) => {

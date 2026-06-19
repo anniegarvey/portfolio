@@ -33,6 +33,7 @@ test.describe("Bonsai Garden", () => {
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 10,
       lastWateredDay: 10,
+      demoMode: true,
     });
 
     // Press D from the garden — tree should grow to day 11
@@ -49,6 +50,7 @@ test.describe("Bonsai Garden", () => {
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 10,
       lastWateredDay: 10,
+      demoMode: true,
     });
 
     await page.getByRole("button", { name: /advance day/i }).click();
@@ -64,6 +66,7 @@ test.describe("Bonsai Garden", () => {
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 3,
       lastWateredDay: 3,
+      demoMode: true,
     });
 
     await openTendingModal(page);
@@ -75,6 +78,25 @@ test.describe("Bonsai Garden", () => {
 
     await expect(
       page.getByRole("img", { name: /bonsai tree, day 4/i }).first(),
+    ).toBeVisible();
+  });
+
+  test("Advance day control is hidden and D key inert without demo mode", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 10,
+      lastWateredDay: 10,
+    });
+
+    await expect(
+      page.getByRole("button", { name: /advance day/i }),
+    ).toHaveCount(0);
+
+    // The D shortcut is also gated off, so the tree stays at day 10
+    await page.keyboard.press("d");
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 10/i }).first(),
     ).toBeVisible();
   });
 
@@ -171,6 +193,7 @@ test.describe("Bonsai Garden", () => {
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 3,
       lastWateredDay: 3,
+      demoMode: true,
     });
 
     await openTendingModal(page);
@@ -186,7 +209,7 @@ test.describe("Bonsai Garden", () => {
   test("D key does nothing when tree has not been watered", async ({
     page,
   }) => {
-    await goToBonsaiWithSeed(page, { activeDaysCount: 5 });
+    await goToBonsaiWithSeed(page, { activeDaysCount: 5, demoMode: true });
 
     // Press D without watering — tree should stay at day 5
     await page.keyboard.press("d");
