@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
@@ -201,6 +202,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     confirmPlantAt,
     updateTreePosition,
     waterTree,
+    demoMode,
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
@@ -305,7 +307,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
             </ToolPrice>
           </LockedToolBtn>
         )}
-        <ShortcutHint>Press D to advance day</ShortcutHint>
+        {demoMode && <PushedAdvanceDay />}
       </GardenToolbar>
       <Garden
         data-placing={isPlacing || undefined}
@@ -369,6 +371,7 @@ const GardenWrapper = styled.div`
 const GardenToolbar = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 `;
 
@@ -376,6 +379,7 @@ const ToolBtn = styled.button`
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px;
   padding: 0.35rem 0.8rem;
   border-radius: 6px;
   font-size: 0.875rem;
@@ -406,13 +410,14 @@ const LockedToolBtn = styled.button`
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px;
   padding: 0.35rem 0.8rem;
   border-radius: 6px;
   font-size: 0.875rem;
   font-family: inherit;
   border: 1.5px solid light-dark(#e0d8d0, #3a3f4a);
   background: transparent;
-  color: light-dark(#a09888, #6a7080);
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 
@@ -435,11 +440,8 @@ const ToolPrice = styled.span`
   margin-left: 0.15rem;
 `;
 
-const ShortcutHint = styled.span`
+const PushedAdvanceDay = styled(AdvanceDayButton)`
   margin-left: auto;
-  font-size: 0.8rem;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
-  font-style: italic;
 `;
 
 const Garden = styled.div`

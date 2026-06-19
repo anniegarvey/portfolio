@@ -59,6 +59,13 @@ export interface BonsaiContextType {
   pruneBranch: (treeId: string, branchId: string) => void;
   waterTree: (treeId: string) => void;
   advanceDay: () => void;
+  /**
+   * When true, the manual "advance day" affordances (button + D shortcut) are
+   * shown. This is a demo/testing aid — real growth happens automatically once
+   * per calendar day — so it is gated behind the `?demo=1` URL parameter that
+   * the case study link uses.
+   */
+  demoMode: boolean;
   /** Count of owned pots not currently equipped to any tree. */
   availablePotCount: (excludeTreeId?: string) => number;
   equipBackground: (backgroundId: BackgroundId) => void;
@@ -87,7 +94,13 @@ const EMPTY_STATE: BonsaiGameState = {
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-export function BonsaiProvider({ children }: { children: ReactNode }) {
+export function BonsaiProvider({
+  children,
+  demoMode = false,
+}: {
+  children: ReactNode;
+  demoMode?: boolean;
+}) {
   const { spendPoints } = usePoints();
   const [state, setStateRaw] = useState<BonsaiGameState>(EMPTY_STATE);
   const [placingSpeciesId, setPlacingSpeciesId] = useState<SpeciesId | null>(
@@ -256,6 +269,7 @@ export function BonsaiProvider({ children }: { children: ReactNode }) {
         pruneBranch: handlePruneBranch,
         waterTree: handleWaterTree,
         advanceDay,
+        demoMode,
         availablePotCount,
         equipBackground: handleEquipBackground,
       }}

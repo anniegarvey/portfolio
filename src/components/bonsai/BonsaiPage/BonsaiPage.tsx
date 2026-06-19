@@ -15,7 +15,7 @@ import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { QUERIES } from "@/lib/constants";
 
 export function BonsaiPage() {
-  const { state, advanceDay } = useBonsai();
+  const { state, advanceDay, demoMode } = useBonsai();
   const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("collection");
   const [focusShopItemId, setFocusShopItemId] = useState<string | undefined>();
@@ -27,6 +27,9 @@ export function BonsaiPage() {
   };
 
   useEffect(() => {
+    // The D shortcut is a demo-only fast-forward, mirroring the Advance Day
+    // button; only wire it up when demo mode is active.
+    if (!demoMode) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (
@@ -39,7 +42,7 @@ export function BonsaiPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [advanceDay]);
+  }, [advanceDay, demoMode]);
 
   const tendingTree =
     tendingTreeId !== null

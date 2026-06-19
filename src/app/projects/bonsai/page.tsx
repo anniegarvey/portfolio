@@ -61,7 +61,7 @@ export default function BonsaiProjectPage() {
       imageRatio="2/3"
       imageSrc="/bonsai-garden.png"
       liveLabel="Visit the garden"
-      liveUrl="/bonsai"
+      liveUrl="/bonsai?demo=1"
       subtitle="Personal Project"
       tagline="Getting AI to grow convincing trees turned out to be far trickier than expected — and far more entertaining."
       tags={[

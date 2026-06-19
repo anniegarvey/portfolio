@@ -63,3 +63,4 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 | Test | Failures |
 |------|----------|
 | `e2e/bonsai/bonsai.spec.ts` > "locked stand button navigates to shop Stands tab" | 1 |
+| `e2e/bonsai/bonsai.spec.ts` > "watering can tool shows hint and marks tree as watered" | 1 |
