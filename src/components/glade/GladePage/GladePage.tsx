@@ -2,7 +2,7 @@
 
 import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { CollectionPanel } from "@/components/glade/CollectionPanel";
 import { GladeScene } from "@/components/glade/GladeScene";
 import { KitchenPanel } from "@/components/glade/KitchenPanel";
@@ -14,24 +14,8 @@ import { QUERIES } from "@/lib/constants";
 import { useGlade } from "@/lib/glade/context";
 
 export function GladePage() {
-  const { state, advanceDay } = useGlade();
+  const { state } = useGlade();
   const visitorsHeadingId = useId();
-
-  // Same dev shortcut as the Bonsai Garden: "d" ticks the day forward.
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (
-        e.target instanceof HTMLElement &&
-        (e.target.matches("input, textarea, select") ||
-          e.target.isContentEditable)
-      )
-        return;
-      if (e.key.toLowerCase() === "d") advanceDay();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [advanceDay]);
 
   return (
     <MaxWidthWrapper as="main">
