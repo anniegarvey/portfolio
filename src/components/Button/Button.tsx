@@ -168,6 +168,9 @@ const StyledButton = styled.button<{
     switch ($size) {
       case "sm":
         return css`
+          /* min-height keeps the touch target at the 44px the product
+             accessibility bar requires, while padding stays compact. */
+          min-height: 44px;
           padding: 6px 12px;
           font-size: 0.85rem;
         `;

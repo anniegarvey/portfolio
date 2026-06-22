@@ -245,5 +245,5 @@ const ChoiceRow = styled.div`
 const Done = styled.span`
   font-size: 0.85rem;
   font-style: italic;
-  color: light-dark(var(--color-grey-500), var(--color-grey-500));
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;

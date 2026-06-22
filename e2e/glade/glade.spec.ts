@@ -85,4 +85,25 @@ test.describe("Creature Glade", () => {
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toEqual("[]");
   });
+
+  test("has no automatically detectable accessibility issues in dark mode", async ({
+    page,
+    makeAxeBuilder,
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await goToGladeWithSeed(page);
+
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
+    expect(violationFingerprints(accessibilityScanResults)).toEqual("[]");
+  });
+
+  test("core action buttons meet the 44px touch target", async ({ page }) => {
+    await goToGladeWithSeed(page);
+
+    // A representative compact (size="sm") action button on the visitor card.
+    const box = await page
+      .getByRole("button", { name: "Along the back" })
+      .boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  });
 });

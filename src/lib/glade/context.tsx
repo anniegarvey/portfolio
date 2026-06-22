@@ -44,7 +44,6 @@ export interface GladeContextType {
   cookTreat: (treatId: TreatId) => void;
   buyIngredient: (ingredientId: IngredientId) => boolean;
   buyLesson: (skillId: SkillId) => boolean;
-  advanceDay: () => void;
 }
 
 const GladeContext = createContext<GladeContextType | undefined>(undefined);
@@ -158,10 +157,6 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [state, setState, spendPoints],
   );
 
-  const advanceDay = useCallback(() => {
-    setState((prev) => advanceGladeDay(prev, getTodayDateString()));
-  }, [setState]);
-
   return (
     <GladeContext.Provider
       value={{
@@ -173,7 +168,6 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         cookTreat: handleCookTreat,
         buyIngredient: handleBuyIngredient,
         buyLesson: handleBuyLesson,
-        advanceDay,
       }}
     >
       {children}
