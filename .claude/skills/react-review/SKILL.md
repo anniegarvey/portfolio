@@ -5,11 +5,22 @@ description: Perform code reviews for React and front end code (eg `.tsx`, `.ts`
 
 # React Code Review
 
-## Apply Skills
-Use the following skills, in order, on all code in the review scope:
-- `web-design-guidelines` 
-- `vercel-composition-patterns`
-- `vercel-react-best-practices`
+## Apply Skills (in parallel)
+
+The three review lenses are independent — spawn them as parallel subagents using the Agent tool with `subagent_type=general-purpose`, then merge results. Do not run them sequentially.
+
+For each subagent prompt:
+- Include the explicit list of files in the review scope (subagents start cold with no context)
+- Specify which skill to invoke
+- Instruct it to **report findings only — do not edit any files**
+- Ask it to return findings as a list of `file:line — issue` entries
+
+Spawn in a single message (one Agent call per skill, all three in parallel):
+- Invoke `/web-design-guidelines` on the review scope
+- Invoke `/vercel-composition-patterns` on the review scope
+- Invoke `/vercel-react-best-practices` on the review scope
+
+After all three complete, merge their findings, deduplicate any overlap, and present a single unified list.
 
 ## Identify Problems
 Look for these issues in review scope:
