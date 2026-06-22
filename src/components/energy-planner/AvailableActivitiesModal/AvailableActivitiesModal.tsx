@@ -15,13 +15,14 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { styled } from "next-yak";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/Button";
 import type { Activity, ZoneConfig } from "@/lib/energy-planner/schema";
 import {
   applyRepeatingDrag,
+  filterActivities,
   getReorderedItems,
   sortRepeatingByZone,
 } from "@/lib/energy-planner/utils";
@@ -61,9 +62,15 @@ export function AvailableActivitiesModal({
   const [activeTab, setActiveTab] = useState<"one-off" | "repeating">(
     "one-off",
   );
+  const [searchQuery, setSearchQuery] = useState("");
   const [activityToDelete, setActivityToDelete] = useState<Activity | null>(
     null,
   );
+
+  const handleClose = () => {
+    setSearchQuery("");
+    onClose();
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -87,6 +94,16 @@ export function AvailableActivitiesModal({
   const sortedRepeatingActivities = useMemo(
     () => sortRepeatingByZone(repeatingActivities, zones),
     [repeatingActivities, zones],
+  );
+
+  const filteredAvailableActivities = useMemo(
+    () => filterActivities(availableActivities, searchQuery),
+    [availableActivities, searchQuery],
+  );
+
+  const filteredRepeatingActivities = useMemo(
+    () => filterActivities(sortedRepeatingActivities, searchQuery),
+    [sortedRepeatingActivities, searchQuery],
   );
 
   const handleRepeatingDragEnd = (event: DragEndEvent) => {
@@ -117,7 +134,7 @@ export function AvailableActivitiesModal({
       <Modal
         description="Manage your unplanned activities."
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={handleClose}
         title="Available Activities"
       >
         <ModalContent>
@@ -149,6 +166,19 @@ export function AvailableActivitiesModal({
             </Tab>
           </TabList>
 
+          <SearchField>
+            <SearchIcon aria-hidden="true">
+              <Search size={18} />
+            </SearchIcon>
+            <SearchInput
+              aria-label="Search activities by title or description"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search activities…"
+              type="search"
+              value={searchQuery}
+            />
+          </SearchField>
+
           {activeTab === "one-off" && (
             <DndContext
               collisionDetection={closestCenter}
@@ -157,7 +187,7 @@ export function AvailableActivitiesModal({
               sensors={sensors}
             >
               <SortableContext
-                items={availableActivities.map((a) => a.id)}
+                items={filteredAvailableActivities.map((a) => a.id)}
                 strategy={verticalListSortingStrategy}
               >
                 {availableActivities.length === 0 ? (
@@ -165,9 +195,14 @@ export function AvailableActivitiesModal({
                     No one-off activities available. Create a new activity to
                     get started!
                   </ModalEmptyState>
+                ) : filteredAvailableActivities.length === 0 ? (
+                  <ModalEmptyState>
+                    No one-off activities match &quot;{searchQuery.trim()}
+                    &quot;.
+                  </ModalEmptyState>
                 ) : (
                   <ModalActivityList>
-                    {availableActivities.map((activity) => (
+                    {filteredAvailableActivities.map((activity) => (
                       <SortableItem id={activity.id} key={activity.id}>
                         {({ dragHandleProps }) => (
                           <AvailableActivityCard
@@ -194,7 +229,7 @@ export function AvailableActivitiesModal({
               sensors={sensors}
             >
               <SortableContext
-                items={sortedRepeatingActivities.map((a) => a.id)}
+                items={filteredRepeatingActivities.map((a) => a.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <ModalActivityList>
@@ -202,8 +237,13 @@ export function AvailableActivitiesModal({
                     <ModalEmptyState>
                       No repeating activities configured.
                     </ModalEmptyState>
+                  ) : filteredRepeatingActivities.length === 0 ? (
+                    <ModalEmptyState>
+                      No repeating activities match &quot;{searchQuery.trim()}
+                      &quot;.
+                    </ModalEmptyState>
                   ) : (
-                    sortedRepeatingActivities.map((activity) => (
+                    filteredRepeatingActivities.map((activity) => (
                       <SortableItem id={activity.id} key={activity.id}>
                         {({ dragHandleProps }) => (
                           <AvailableActivityCard
@@ -286,6 +326,41 @@ const ModalActivityList = styled.div`
   flex-direction: column;
   gap: 12px;
   padding-bottom: 16px;
+`;
+
+const SearchField = styled.div`
+  position: relative;
+  margin-bottom: 1rem;
+`;
+
+const SearchIcon = styled.span`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: var(--color-grey-500);
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.5rem 0.5rem 2.5rem;
+  border: 1px solid var(--color-grey-500);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: inherit;
+
+  &::placeholder {
+    color: var(--color-grey-500);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
 `;
 
 const TabList = styled.div`
