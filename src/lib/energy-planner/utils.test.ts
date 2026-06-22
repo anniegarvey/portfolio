@@ -120,6 +120,28 @@ describe("filterActivities", () => {
   it("trims surrounding whitespace from the query", () => {
     expect(filterActivities(activities, "  walk  ")).toEqual([activities[0]]);
   });
+
+  it("requires every whitespace-separated term to match", () => {
+    // Both terms appear in the first activity (title + description)
+    expect(filterActivities(activities, "morning stroll")).toEqual([
+      activities[0],
+    ]);
+    // "morning" matches the first activity but "inbox" does not -> no result
+    expect(filterActivities(activities, "morning inbox")).toEqual([]);
+  });
+
+  it("matches terms across both title and description", () => {
+    // "reply" from the title, "backlog" from the description
+    expect(filterActivities(activities, "reply backlog")).toEqual([
+      activities[1],
+    ]);
+  });
+
+  it("collapses repeated whitespace between terms", () => {
+    expect(filterActivities(activities, "morning   stroll")).toEqual([
+      activities[0],
+    ]);
+  });
 });
 
 describe("validateEnergyCapacity", () => {

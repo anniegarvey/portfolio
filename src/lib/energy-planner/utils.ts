@@ -38,21 +38,22 @@ export function getReorderedItems<T>(
 }
 
 /**
- * Filters activities by a case-insensitive substring match against their
- * title and description. An empty or whitespace-only query returns the list
- * unchanged.
+ * Filters activities by a case-insensitive search against their title and
+ * description. The query is split on whitespace into separate terms; an
+ * activity matches only if every term is found (in either field). An empty or
+ * whitespace-only query returns the list unchanged.
  */
 export function filterActivities(
   activities: Activity[],
   query: string,
 ): Activity[] {
-  const trimmed = query.trim().toLowerCase();
-  if (!trimmed) return activities;
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return activities;
 
   return activities.filter((activity) => {
     const haystack =
       `${activity.title} ${activity.description ?? ""}`.toLowerCase();
-    return haystack.includes(trimmed);
+    return terms.every((term) => haystack.includes(term));
   });
 }
 

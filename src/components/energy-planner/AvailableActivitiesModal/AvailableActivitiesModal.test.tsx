@@ -237,6 +237,24 @@ describe("AvailableActivitiesModal", () => {
       expect(screen.queryByText("Reply to emails")).toBeNull();
     });
 
+    it("requires all whitespace-separated terms to match", () => {
+      render(
+        <AvailableActivitiesModal
+          {...mockProps}
+          availableActivities={oneOff}
+        />,
+      );
+
+      // "morning" (title) + "stroll" (description) both hit the first activity
+      fireEvent.change(getSearch(), { target: { value: "morning stroll" } });
+      expect(screen.getByText("Morning walk")).toBeDefined();
+      expect(screen.queryByText("Reply to emails")).toBeNull();
+
+      // Second term matches a different activity -> no results
+      fireEvent.change(getSearch(), { target: { value: "morning inbox" } });
+      expect(screen.getByText(/No one-off activities match/i)).toBeDefined();
+    });
+
     it("filters by description (case-insensitive)", () => {
       render(
         <AvailableActivitiesModal

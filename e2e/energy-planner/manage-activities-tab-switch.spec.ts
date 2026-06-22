@@ -153,6 +153,17 @@ test.describe("Manage Activities modal - search", () => {
       availableModal.getByText("Morning Exercise"),
     ).not.toBeVisible();
 
+    // Multiple terms must all match (title + description, in any order)
+    await search.fill("morning park");
+    await expect(availableModal.getByText("Morning Exercise")).toBeVisible();
+    await expect(availableModal.getByText("Reply to emails")).not.toBeVisible();
+
+    // A second term matching a different activity yields no results
+    await search.fill("morning inbox");
+    await expect(
+      availableModal.getByText(/No one-off activities match/i),
+    ).toBeVisible();
+
     // No-match empty state
     await search.fill("nonexistent");
     await expect(
