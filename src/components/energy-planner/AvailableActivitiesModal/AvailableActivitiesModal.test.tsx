@@ -196,6 +196,137 @@ describe("AvailableActivitiesModal", () => {
     expect(mockProps.onDeleteActivity).toHaveBeenCalledWith("2");
   });
 
+  describe("search", () => {
+    const oneOff: Activity[] = [
+      {
+        id: "1",
+        title: "Morning walk",
+        description: "Gentle stroll",
+      } as Activity,
+      {
+        id: "2",
+        title: "Reply to emails",
+        description: "Clear the inbox",
+      } as Activity,
+    ];
+    const repeating: Activity[] = [
+      {
+        id: "3",
+        title: "Water plants",
+        description: "Kitchen herbs",
+      } as Activity,
+      { id: "4", title: "Take vitamins" } as Activity,
+    ];
+
+    const getSearch = () =>
+      screen.getByRole("searchbox", {
+        name: /search activities/i,
+      });
+
+    it("filters the active tab by title", () => {
+      render(
+        <AvailableActivitiesModal
+          {...mockProps}
+          availableActivities={oneOff}
+        />,
+      );
+
+      fireEvent.change(getSearch(), { target: { value: "walk" } });
+
+      expect(screen.getByText("Morning walk")).toBeDefined();
+      expect(screen.queryByText("Reply to emails")).toBeNull();
+    });
+
+    it("requires all whitespace-separated terms to match", () => {
+      render(
+        <AvailableActivitiesModal
+          {...mockProps}
+          availableActivities={oneOff}
+        />,
+      );
+
+      // "morning" (title) + "stroll" (description) both hit the first activity
+      fireEvent.change(getSearch(), { target: { value: "morning stroll" } });
+      expect(screen.getByText("Morning walk")).toBeDefined();
+      expect(screen.queryByText("Reply to emails")).toBeNull();
+
+      // Second term matches a different activity -> no results
+      fireEvent.change(getSearch(), { target: { value: "morning inbox" } });
+      expect(screen.getByText(/No one-off activities match/i)).toBeDefined();
+    });
+
+    it("filters by description (case-insensitive)", () => {
+      render(
+        <AvailableActivitiesModal
+          {...mockProps}
+          availableActivities={oneOff}
+        />,
+      );
+
+      fireEvent.change(getSearch(), { target: { value: "INBOX" } });
+
+      expect(screen.getByText("Reply to emails")).toBeDefined();
+      expect(screen.queryByText("Morning walk")).toBeNull();
+    });
+
+    it("shows a no-match empty state for one-off activities", () => {
+      render(
+        <AvailableActivitiesModal
+          {...mockProps}
+          availableActivities={oneOff}
+        />,
+      );
+
+      fireEvent.change(getSearch(), { target: { value: "zzz" } });
+
+      expect(
+        screen.getByText(/No one-off activities match "zzz"/i),
+      ).toBeDefined();
+    });
+
+    it("applies the query to whichever tab is active and persists across tab switches", () => {
+      render(
+        <AvailableActivitiesModal
+          {...mockProps}
+          availableActivities={oneOff}
+          repeatingActivities={repeating}
+        />,
+      );
+
+      fireEvent.change(getSearch(), { target: { value: "water" } });
+
+      // One-off tab: nothing matches "water"
+      expect(
+        screen.getByText(/No one-off activities match "water"/i),
+      ).toBeDefined();
+
+      // Switch to repeating: query still applied, matches "Water plants"
+      fireEvent.click(screen.getByText("Repeating Activities"));
+      expect(screen.getByText("Water plants")).toBeDefined();
+      expect(screen.queryByText("Take vitamins")).toBeNull();
+
+      // Query persisted across the switch
+      expect((getSearch() as HTMLInputElement).value).toBe("water");
+    });
+
+    it("clears the query when the modal is closed", () => {
+      render(
+        <AvailableActivitiesModal
+          {...mockProps}
+          availableActivities={oneOff}
+        />,
+      );
+
+      fireEvent.change(getSearch(), { target: { value: "walk" } });
+      expect((getSearch() as HTMLInputElement).value).toBe("walk");
+
+      fireEvent.click(screen.getByLabelText("Close modal"));
+
+      expect(mockProps.onClose).toHaveBeenCalled();
+      expect((getSearch() as HTMLInputElement).value).toBe("");
+    });
+  });
+
   describe("Repeating tab: zone-aware ordering", () => {
     const makeRepeating = (
       id: string,

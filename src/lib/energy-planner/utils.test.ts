@@ -7,6 +7,7 @@ import type {
 } from "./schema";
 import {
   applyRepeatingDrag,
+  filterActivities,
   getReorderedItems,
   sortRepeatingByZone,
   validateEnergyCapacity,
@@ -63,6 +64,85 @@ const makeResolved = (activities: Activity[]): ResolvedActivity[] =>
       completed: false,
     },
   }));
+
+describe("filterActivities", () => {
+  const makeActivity = (
+    id: string,
+    title: string,
+    description?: string,
+  ): Activity => ({
+    id,
+    title,
+    description,
+    createdAt: new Date(),
+    energyCost: { physical: 0, social: 0, executive: 0 },
+    factors: {
+      initiationDifficulty: 1,
+      terminationDifficulty: 1,
+      isRestorative: false,
+    },
+  });
+
+  const activities = [
+    makeActivity("a", "Morning walk", "A gentle stroll outside"),
+    makeActivity("b", "Reply to emails", "Clear the inbox backlog"),
+    makeActivity("c", "Yoga session"),
+  ];
+
+  it("returns all activities for an empty query", () => {
+    expect(filterActivities(activities, "")).toEqual(activities);
+  });
+
+  it("returns all activities for a whitespace-only query", () => {
+    expect(filterActivities(activities, "   ")).toEqual(activities);
+  });
+
+  it("matches against the title", () => {
+    expect(filterActivities(activities, "walk")).toEqual([activities[0]]);
+  });
+
+  it("matches against the description", () => {
+    expect(filterActivities(activities, "inbox")).toEqual([activities[1]]);
+  });
+
+  it("is case-insensitive", () => {
+    expect(filterActivities(activities, "YOGA")).toEqual([activities[2]]);
+  });
+
+  it("does not throw and ignores missing descriptions", () => {
+    expect(filterActivities(activities, "stroll")).toEqual([activities[0]]);
+  });
+
+  it("returns an empty array when nothing matches", () => {
+    expect(filterActivities(activities, "nonexistent")).toEqual([]);
+  });
+
+  it("trims surrounding whitespace from the query", () => {
+    expect(filterActivities(activities, "  walk  ")).toEqual([activities[0]]);
+  });
+
+  it("requires every whitespace-separated term to match", () => {
+    // Both terms appear in the first activity (title + description)
+    expect(filterActivities(activities, "morning stroll")).toEqual([
+      activities[0],
+    ]);
+    // "morning" matches the first activity but "inbox" does not -> no result
+    expect(filterActivities(activities, "morning inbox")).toEqual([]);
+  });
+
+  it("matches terms across both title and description", () => {
+    // "reply" from the title, "backlog" from the description
+    expect(filterActivities(activities, "reply backlog")).toEqual([
+      activities[1],
+    ]);
+  });
+
+  it("collapses repeated whitespace between terms", () => {
+    expect(filterActivities(activities, "morning   stroll")).toEqual([
+      activities[0],
+    ]);
+  });
+});
 
 describe("validateEnergyCapacity", () => {
   it("calculates usage correctly for selected activities", () => {

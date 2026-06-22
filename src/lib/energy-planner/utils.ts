@@ -37,6 +37,26 @@ export function getReorderedItems<T>(
   return null;
 }
 
+/**
+ * Filters activities by a case-insensitive search against their title and
+ * description. The query is split on whitespace into separate terms; an
+ * activity matches only if every term is found (in either field). An empty or
+ * whitespace-only query returns the list unchanged.
+ */
+export function filterActivities(
+  activities: Activity[],
+  query: string,
+): Activity[] {
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return activities;
+
+  return activities.filter((activity) => {
+    const haystack =
+      `${activity.title} ${activity.description ?? ""}`.toLowerCase();
+    return terms.every((term) => haystack.includes(term));
+  });
+}
+
 export function validateEnergyCapacity(
   resolvedActivities: ResolvedActivity[],
   energyTypes: EnergyTypeConfig[],
