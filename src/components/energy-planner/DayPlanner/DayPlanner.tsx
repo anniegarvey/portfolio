@@ -1,6 +1,7 @@
 "use client";
 
-import { Pencil, Plus, X as XIcon } from "lucide-react";
+import { Coins, Leaf, Pencil, Plus, TreePine, X as XIcon } from "lucide-react";
+import Link from "next/link";
 import { styled } from "next-yak";
 import { use, useEffect, useState } from "react";
 import { Button } from "@/components/Button";
@@ -97,6 +98,43 @@ function WellnessSection({ onOpenConfig }: { onOpenConfig: () => void }) {
   }
 
   return null;
+}
+
+function RewardDestinationsTip() {
+  return (
+    <TipRoot>
+      <TipIntro>
+        <Coins aria-hidden size={13} />
+        Earn points here — spend them on:
+      </TipIntro>
+      <TipCards>
+        <TipCard
+          $accent="secondary"
+          aria-label="Visit Bonsai Garden"
+          href="/bonsai"
+        >
+          <TipCardTitle>
+            <Leaf aria-hidden size={14} />
+            Bonsai Garden
+          </TipCardTitle>
+          <TipCardDesc>
+            Buy seeds, tools, pots, and backgrounds to grow your garden.
+          </TipCardDesc>
+          <TipCardCta aria-hidden>Visit →</TipCardCta>
+        </TipCard>
+        <TipCard $accent="teal" aria-label="Visit The Glade" href="/glade">
+          <TipCardTitle>
+            <TreePine aria-hidden size={14} />
+            The Glade
+          </TipCardTitle>
+          <TipCardDesc>
+            Adopt creature residents that forage, soothe, and attract visitors.
+          </TipCardDesc>
+          <TipCardCta aria-hidden>Visit →</TipCardCta>
+        </TipCard>
+      </TipCards>
+    </TipRoot>
+  );
 }
 
 export function DayPlanner({
@@ -234,6 +272,8 @@ export function DayPlanner({
         zones={zones}
       />
 
+      <RewardDestinationsTip />
+
       <ZoneManagerModal
         isOpen={isZoneManagerOpen}
         onAddZone={addZone}
@@ -339,4 +379,80 @@ const Warning = styled.div`
   font-weight: 500;
   font-size: 0.875rem;
   border: 1px solid var(--color-orange-300);
+`;
+
+const TipRoot = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const TipIntro = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-points);
+`;
+
+const TipCards = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+`;
+
+const TipCard = styled(Link)<{ $accent: "secondary" | "teal" }>`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid
+    ${({ $accent }) =>
+      $accent === "secondary"
+        ? "color-mix(in oklch, var(--color-secondary-500) 30%, transparent)"
+        : "color-mix(in oklch, var(--color-teal-500) 30%, transparent)"};
+  background: ${({ $accent }) =>
+    $accent === "secondary"
+      ? "color-mix(in oklch, var(--color-secondary-500) 7%, transparent)"
+      : "color-mix(in oklch, var(--color-teal-500) 7%, transparent)"};
+  color: ${({ $accent }) =>
+    $accent === "secondary"
+      ? "light-dark(var(--color-secondary-900), var(--color-secondary-300))"
+      : "light-dark(var(--color-teal-900), var(--color-teal-300))"};
+  @media (prefers-reduced-motion: no-preference) {
+    transition: opacity 0.15s;
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+`;
+
+const TipCardTitle = styled.div`
+  font-weight: 700;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const TipCardDesc = styled.div`
+  font-size: 0.75rem;
+  line-height: 1.4;
+`;
+
+const TipCardCta = styled.div`
+  margin-top: 3px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 `;
