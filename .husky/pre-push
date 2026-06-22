@@ -1,1 +1,1 @@
-pnpm test
+node scripts/timed-run.js pre-push pnpm test

@@ -89,6 +89,9 @@ Thumbs.db
 .stryker-tmp
 reports
 
+# Build lifecycle metrics (local only, not committed)
+build-data
+
 # Scratch / ad-hoc scripts
 /temp/
 

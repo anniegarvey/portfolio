@@ -1,1 +1,1 @@
-pnpm validate:smart
+node scripts/timed-run.js pre-commit pnpm validate:smart
