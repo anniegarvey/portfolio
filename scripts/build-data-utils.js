@@ -18,7 +18,7 @@ function getMainRepo(cwd) {
   }
 }
 
-function getGitContext(cwd, hookName) {
+function getGitContext(cwd) {
   const ctx = {};
   try {
     ctx.branch = execSync("git rev-parse --abbrev-ref HEAD", {
@@ -33,15 +33,13 @@ function getGitContext(cwd, hookName) {
     }).trim();
   } catch {}
   ctx.worktree = path.basename(cwd);
-  if (hookName === "pre-commit") {
-    try {
-      const out = execSync("git diff --cached --name-only", {
-        encoding: "utf8",
-        cwd,
-      }).trim();
-      ctx.stagedFiles = out ? out.split("\n").length : 0;
-    } catch {}
-  }
+  try {
+    const out = execSync("git diff --cached --name-only", {
+      encoding: "utf8",
+      cwd,
+    }).trim();
+    if (out) ctx.stagedFiles = out.split("\n").length;
+  } catch {}
   return ctx;
 }
 

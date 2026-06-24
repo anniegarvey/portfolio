@@ -22,7 +22,7 @@ if (!hookName || command.length === 0) {
 
 // Collect git context before running (staged list changes after lint-restage).
 const startTs = new Date().toISOString();
-const gitContext = getGitContext(ROOT, hookName);
+const gitContext = getGitContext(ROOT);
 const startMs = Date.now();
 
 const result = spawnSync(command[0], command.slice(1), {
