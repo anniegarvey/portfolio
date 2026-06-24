@@ -34,11 +34,19 @@
 const { execSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const { appendBuildEntry, getGitContext } = require("./build-data-utils");
 
 const ROOT = path.resolve(__dirname, "..");
 const map = JSON.parse(
   fs.readFileSync(path.join(__dirname, "validate-map.json"), "utf8"),
 );
+
+// Lazy git context — computed once on first use, reused for all sub-task entries.
+let _git;
+function git() {
+  if (!_git) _git = getGitContext(ROOT);
+  return _git;
+}
 
 /** Convert a simple glob pattern (using * and **) to a RegExp. */
 function matchGlob(pattern, file) {
@@ -72,7 +80,9 @@ function lintAndRestage(files) {
     (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
   );
   if (codeFiles.length === 0) return;
-  run(`pnpm exec biome check --error-on-warnings --fix ${codeFiles.join(" ")}`);
+  run(
+    `node scripts/timed-run.js biome pnpm exec biome check --error-on-warnings --fix ${codeFiles.join(" ")}`,
+  );
   run(`git add ${codeFiles.join(" ")}`);
   const tsFiles = codeFiles.filter((f) => /\.(ts|tsx)$/.test(f));
   if (tsFiles.length > 0) {
@@ -118,6 +128,7 @@ function runStryker(mutableFiles) {
     `\nStryker: mutating ${mutableFiles.length} file(s) (timeout ${timeoutMinutes}min)…`,
   );
 
+  const strykerStart = Date.now();
   const result = spawnSync(
     "pnpm",
     [
@@ -130,10 +141,24 @@ function runStryker(mutableFiles) {
     ],
     { stdio: "inherit", cwd: ROOT, timeout: timeoutMs },
   );
+  const strykerMs = Date.now() - strykerStart;
 
   const timedOut =
     result.signal === "SIGTERM" ||
     (result.error && result.error.code === "ETIMEDOUT");
+
+  appendBuildEntry(
+    {
+      ts: new Date().toISOString(),
+      hook: "stryker",
+      command: `stryker run --mutate ${mutatePattern}`,
+      durationMs: strykerMs,
+      exitCode: timedOut ? -1 : (result.status ?? (result.signal ? 1 : 0)),
+      git: git(),
+      node: process.version,
+    },
+    ROOT,
+  );
 
   if (timedOut) {
     const timestamp = new Date().toISOString();
@@ -159,7 +184,9 @@ function runStryker(mutableFiles) {
  * but with the restage step in between. Followed by scoped Stryker run.
  */
 function runFullValidate() {
-  run("pnpm exec biome check --error-on-warnings --fix");
+  run(
+    "node scripts/timed-run.js biome pnpm exec biome check --error-on-warnings --fix",
+  );
   run("node scripts/check-theme-tokens.mjs");
   const stagedCodeFiles = staged.filter(
     (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
@@ -169,7 +196,9 @@ function runFullValidate() {
   }
   run(
     `pnpm exec concurrently --kill-others-on-fail --names "tsc,test,e2e"` +
-      ` "pnpm exec tsc --noEmit" "pnpm test" "pnpm exec playwright test"`,
+      ` "node scripts/timed-run.js tsc pnpm exec tsc --noEmit"` +
+      ` "node scripts/timed-run.js vitest pnpm test"` +
+      ` "node scripts/timed-run.js playwright pnpm exec playwright test"`,
   );
   runStryker(getMutableFiles(staged));
 }
@@ -281,7 +310,9 @@ lintAndRestage(staged);
 
 // --- Build parallel commands ---
 
-const parallel = [{ name: "tsc", cmd: "pnpm exec tsc --noEmit" }];
+const parallel = [
+  { name: "tsc", cmd: "node scripts/timed-run.js tsc pnpm exec tsc --noEmit" },
+];
 
 if (hasVitest) {
   // Disable coverage for scoped runs — thresholds rely on cross-file
@@ -290,14 +321,14 @@ if (hasVitest) {
   // suite) before any push reaches the remote.
   parallel.push({
     name: "test",
-    cmd: `pnpm exec vitest run --coverage.enabled=false ${vitestFiles.join(" ")}`,
+    cmd: `node scripts/timed-run.js vitest pnpm exec vitest run --coverage.enabled=false ${vitestFiles.join(" ")}`,
   });
 }
 
 if (hasE2E) {
   parallel.push({
     name: "e2e",
-    cmd: `pnpm exec playwright test ${[...e2eDirs].join(" ")}`,
+    cmd: `node scripts/timed-run.js playwright pnpm exec playwright test ${[...e2eDirs].join(" ")}`,
   });
 }
 

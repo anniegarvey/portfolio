@@ -5,18 +5,19 @@
   "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev": "PORT=$(node scripts/pick-port.js) next dev",
-    "build": "next build",
+    "build": "node scripts/timed-run.js build next build",
     "start": "next start",
-    "lint": "biome check --error-on-warnings",
-    "lint:theme": "node scripts/check-theme-tokens.mjs",
+    "lint": "node scripts/timed-run.js lint biome check --error-on-warnings",
+    "lint:theme": "node scripts/timed-run.js lint:theme node scripts/check-theme-tokens.mjs",
     "format": "biome format --write",
-    "test": "vitest run",
+    "test": "node scripts/timed-run.js test vitest run",
     "prepare": "husky",
     "ngrok": "ngrok http $(cat .port 2>/dev/null || echo 3000)",
     "kill-server": "bash scripts/kill-port.sh && rm -f .next/dev/lock && echo \"cleaned\"",
     "validate": "pnpm lint --fix && pnpm lint:theme && concurrently --kill-others-on-fail --names \"tsc,test,e2e\" \"tsc --noEmit\" \"pnpm test\" \"pnpm playwright test\"",
-    "validate:smart": "node scripts/smart-validate.js",
-    "generate-snapshots": "tsx scripts/generate-bonsai-snapshots.ts"
+    "validate:smart": "node scripts/timed-run.js validate:smart node scripts/smart-validate.js",
+    "generate-snapshots": "tsx scripts/generate-bonsai-snapshots.ts",
+    "build-data:view": "node scripts/build-data-viewer.js"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
