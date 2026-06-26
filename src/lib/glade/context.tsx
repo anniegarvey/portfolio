@@ -3,14 +3,16 @@
 import {
   createContext,
   type ReactNode,
+  type RefObject,
   use,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
-import { INGREDIENTS } from "./catalog";
+import { INGREDIENTS, SPECIES } from "./catalog";
 import { addIngredient, cookTreat } from "./cookingModule";
 import { advanceGladeDay } from "./gladeEngine";
 import type {
@@ -19,7 +21,9 @@ import type {
   PetSpot,
   Posture,
   SkillId,
+  SpeciesId,
   TreatId,
+  WildVisitor,
 } from "./schema";
 import { buyLesson, canBuyLesson, nextLessonCost } from "./skillsModule";
 import { createInitialState, loadGladeState, saveGladeState } from "./storage";
@@ -35,12 +39,34 @@ import {
 /** The most recent taming action, tagged with its visitor for feedback UI. */
 export type VisitorActionResult = ActionResult & { visitorId: string };
 
+/** Ephemeral (not persisted) state tracking a taming success animation. */
+export type Celebration = {
+  speciesId: SpeciesId;
+  creatureName: string;
+  fromRect: DOMRect;
+  /** Pixel center of the new resident's spot in the glade (viewport coords). */
+  toX: number;
+  toY: number;
+  newResidentId: string;
+};
+
 export interface GladeContextType {
   state: GladeState;
   lastAction: VisitorActionResult | null;
-  offerTreat: (visitorId: string, treatId: TreatId) => void;
-  approachVisitor: (visitorId: string, posture: Posture) => void;
-  petVisitor: (visitorId: string, spot: PetSpot) => void;
+  celebration: Celebration | null;
+  clearCelebration: () => void;
+  /** Visitor that was tamed this session — stays visible as a success card. */
+  tamedVisitor: WildVisitor | null;
+  clearTamedVisitor: () => void;
+  /** Ref for the GladeScene container — used to calculate resident pixel positions. */
+  gladeSceneRef: RefObject<HTMLDivElement | null>;
+  offerTreat: (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => void;
+  approachVisitor: (
+    visitorId: string,
+    posture: Posture,
+    fromRect?: DOMRect,
+  ) => void;
+  petVisitor: (visitorId: string, spot: PetSpot, fromRect?: DOMRect) => void;
   cookTreat: (treatId: TreatId) => void;
   buyIngredient: (ingredientId: IngredientId) => boolean;
   buyLesson: (skillId: SkillId) => boolean;
@@ -70,6 +96,11 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   const [lastAction, setLastAction] = useState<VisitorActionResult | null>(
     null,
   );
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const clearCelebration = useCallback(() => setCelebration(null), []);
+  const [tamedVisitor, setTamedVisitor] = useState<WildVisitor | null>(null);
+  const clearTamedVisitor = useCallback(() => setTamedVisitor(null), []);
+  const gladeSceneRef = useRef<HTMLDivElement | null>(null);
 
   // Persist every state change
   const setState = useCallback((updater: (prev: GladeState) => GladeState) => {
@@ -90,11 +121,39 @@ export function GladeProvider({ children }: { children: ReactNode }) {
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
+  // Called when a taming action succeeds; captures the resident's pixel
+  // position in the glade so the flying animation lands on the right spot.
+  const onTamed = useCallback(
+    (visitor: WildVisitor, result: ActionResult, fromRect: DOMRect) => {
+      const newResident =
+        result.state.residents[result.state.residents.length - 1];
+      if (!newResident) return;
+      const gladeRect = gladeSceneRef.current?.getBoundingClientRect();
+      const toX = gladeRect
+        ? gladeRect.left + (newResident.position.x / 100) * gladeRect.width
+        : window.innerWidth / 2;
+      const toY = gladeRect
+        ? gladeRect.top + (newResident.position.y / 100) * gladeRect.height
+        : 120;
+      setTamedVisitor(visitor);
+      setCelebration({
+        speciesId: newResident.speciesId,
+        creatureName: SPECIES[newResident.speciesId].name,
+        fromRect,
+        toX,
+        toY,
+        newResidentId: newResident.id,
+      });
+    },
+    [],
+  );
+
   // Taming handlers compute from the current state value (not a functional
   // updater) so the ActionResult can be stored for feedback UI without side
   // effects inside the updater.
   const handleOfferTreat = useCallback(
-    (visitorId: string, treatId: TreatId) => {
+    (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => {
+      const visitor = state.visitors.find((v) => v.id === visitorId);
       const result = offerTreat(
         state,
         visitorId,
@@ -103,12 +162,15 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       );
       setLastAction({ ...result, visitorId });
       setState(() => result.state);
+      if (result.tamed && fromRect && visitor)
+        onTamed(visitor, result, fromRect);
     },
-    [state, setState],
+    [state, setState, onTamed],
   );
 
   const handleApproachVisitor = useCallback(
-    (visitorId: string, posture: Posture) => {
+    (visitorId: string, posture: Posture, fromRect?: DOMRect) => {
+      const visitor = state.visitors.find((v) => v.id === visitorId);
       const result = approachVisitor(
         state,
         visitorId,
@@ -117,17 +179,22 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       );
       setLastAction({ ...result, visitorId });
       setState(() => result.state);
+      if (result.tamed && fromRect && visitor)
+        onTamed(visitor, result, fromRect);
     },
-    [state, setState],
+    [state, setState, onTamed],
   );
 
   const handlePetVisitor = useCallback(
-    (visitorId: string, spot: PetSpot) => {
+    (visitorId: string, spot: PetSpot, fromRect?: DOMRect) => {
+      const visitor = state.visitors.find((v) => v.id === visitorId);
       const result = petVisitor(state, visitorId, spot, getTodayDateString());
       setLastAction({ ...result, visitorId });
       setState(() => result.state);
+      if (result.tamed && fromRect && visitor)
+        onTamed(visitor, result, fromRect);
     },
-    [state, setState],
+    [state, setState, onTamed],
   );
 
   const handleCookTreat = useCallback(
@@ -162,6 +229,11 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       value={{
         state,
         lastAction,
+        celebration,
+        clearCelebration,
+        tamedVisitor,
+        clearTamedVisitor,
+        gladeSceneRef,
         offerTreat: handleOfferTreat,
         approachVisitor: handleApproachVisitor,
         petVisitor: handlePetVisitor,

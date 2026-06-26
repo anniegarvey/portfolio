@@ -13,7 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function GladeScene() {
-  const { state } = useGlade();
+  const { state, celebration, gladeSceneRef } = useGlade();
 
   // role="img" collapses the scene to a single node for assistive tech, so the
   // residents shown inside it would otherwise be invisible. Summarise them in
@@ -29,7 +29,7 @@ export function GladeScene() {
           .join(", ")}.`;
 
   return (
-    <Scene aria-label={sceneLabel} role="img">
+    <Scene aria-label={sceneLabel} ref={gladeSceneRef} role="img">
       <BackgroundSVG preserveAspectRatio="none" viewBox="0 0 100 60">
         <title>A peaceful forest glade</title>
         {/* Sky */}
@@ -75,6 +75,9 @@ export function GladeScene() {
           const species = SPECIES[resident.speciesId];
           return (
             <ResidentSpot
+              data-entering={
+                celebration?.newResidentId === resident.id ? "true" : undefined
+              }
               key={resident.id}
               style={{
                 left: `${resident.position.x}%`,
@@ -149,6 +152,17 @@ const ResidentSpot = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  /* Hidden while the flying animation is in progress; fades in when it lands. */
+  &[data-entering="true"] {
+    opacity: 0;
+  }
+
+  transition: opacity 150ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const ResidentName = styled.span`

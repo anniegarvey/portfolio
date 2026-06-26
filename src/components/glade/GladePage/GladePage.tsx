@@ -7,6 +7,8 @@ import { CollectionPanel } from "@/components/glade/CollectionPanel";
 import { GladeScene } from "@/components/glade/GladeScene";
 import { KitchenPanel } from "@/components/glade/KitchenPanel";
 import { SkillsPanel } from "@/components/glade/SkillsPanel";
+import { TameCelebration } from "@/components/glade/TameCelebration";
+import { TamedCard } from "@/components/glade/TamedCard";
 import { VisitorCard } from "@/components/glade/VisitorCard";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
@@ -14,7 +16,7 @@ import { QUERIES } from "@/lib/constants";
 import { useGlade } from "@/lib/glade/context";
 
 export function GladePage() {
-  const { state } = useGlade();
+  const { state, celebration, tamedVisitor } = useGlade();
   const visitorsHeadingId = useId();
 
   return (
@@ -23,17 +25,23 @@ export function GladePage() {
         <PageTitle>Creature Glade</PageTitle>
       </PageHeader>
 
+      <TameAnnouncement aria-atomic="true" aria-live="polite">
+        {celebration ? `${celebration.creatureName} joined the glade!` : ""}
+      </TameAnnouncement>
+
       <Layout>
+        <TameCelebration />
         <GladeScene />
 
         <section aria-labelledby={visitorsHeadingId}>
           <SectionTitle id={visitorsHeadingId}>Wild visitors</SectionTitle>
-          {state.visitors.length === 0 ? (
+          {state.visitors.length === 0 && !tamedVisitor ? (
             <EmptyVisitors>
               No wild creatures right now — someone new may wander in tomorrow.
             </EmptyVisitors>
           ) : (
             <VisitorGrid>
+              {tamedVisitor && <TamedCard visitor={tamedVisitor} />}
               {state.visitors.map((visitor) => (
                 <VisitorCard key={visitor.id} visitor={visitor} />
               ))}
@@ -64,6 +72,18 @@ export function GladePage() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+
+const TameAnnouncement = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
 
 const Layout = styled.div`
   display: flex;
