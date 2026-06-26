@@ -1,6 +1,6 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
@@ -13,7 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function GladeScene() {
-  const { state } = useGlade();
+  const { state, celebration } = useGlade();
 
   // role="img" collapses the scene to a single node for assistive tech, so the
   // residents shown inside it would otherwise be invisible. Summarise them in
@@ -75,6 +75,9 @@ export function GladeScene() {
           const species = SPECIES[resident.speciesId];
           return (
             <ResidentSpot
+              data-entering={
+                celebration?.newResidentId === resident.id ? "true" : undefined
+              }
               key={resident.id}
               style={{
                 left: `${resident.position.x}%`,
@@ -143,12 +146,29 @@ const EmptyMessage = styled.p`
   );
 `;
 
+const residentAppear = keyframes`
+  0%   { opacity: 0; scale: 0.3; }
+  60%  { opacity: 1; scale: 1.15; }
+  80%  { scale: 0.92; }
+  100% { opacity: 1; scale: 1; }
+`;
+
 const ResidentSpot = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  &[data-entering="true"] {
+    animation: ${residentAppear} 500ms ease-out 300ms both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-entering="true"] {
+      animation: none;
+    }
+  }
 `;
 
 const ResidentName = styled.span`

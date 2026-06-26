@@ -1,0 +1,1 @@
+export { TameCelebration } from "./TameCelebration";
