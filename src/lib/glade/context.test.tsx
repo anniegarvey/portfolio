@@ -63,6 +63,9 @@ function GladeDebug() {
       <span data-testid="celebration-name">
         {ctx.celebration?.creatureName ?? "none"}
       </span>
+      <span data-testid="tamed-visitor-species">
+        {ctx.tamedVisitor?.speciesId ?? "none"}
+      </span>
       <button onClick={() => ctx.cookTreat("berry-bites")} type="button">
         Cook
       </button>
@@ -71,6 +74,16 @@ function GladeDebug() {
         type="button"
       >
         Offer
+      </button>
+      <button
+        onClick={() => {
+          if (!visitor) return;
+          const rect = new DOMRect(100, 200, 200, 300);
+          ctx.offerTreat(visitor.id, "berry-bites", rect);
+        }}
+        type="button"
+      >
+        Offer With Rect
       </button>
       <button
         onClick={() => visitor && ctx.petVisitor(visitor.id, "back")}
@@ -96,6 +109,9 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.clearCelebration()} type="button">
         Clear Celebration
+      </button>
+      <button onClick={() => ctx.clearTamedVisitor()} type="button">
+        Clear Tamed Visitor
       </button>
       <button onClick={() => ctx.buyIngredient("berries")} type="button">
         Buy Berries
@@ -172,6 +188,16 @@ describe("GladeProvider", () => {
     expect(stored.skills["petting-technique"].xp).toBe(1);
   });
 
+  it("approaching a visitor records lastAction", async () => {
+    seedLocalStorage();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(screen.getByRole("button", { name: "Approach" }));
+    expect(screen.getByTestId("last-action")).not.toHaveTextContent("none");
+  });
+
   it("taming moves the visitor to residents", async () => {
     seedLocalStorage({
       visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
@@ -237,7 +263,23 @@ describe("GladeProvider", () => {
     expect(mockSpend).not.toHaveBeenCalled();
   });
 
-  it("sets celebration when taming succeeds and a fromRect is provided", async () => {
+  it("taming via treat offer sets tamedVisitor when a fromRect is provided", async () => {
+    // Berry-bites are Robin's favourite: 5 × 2 = 10 trust → 59 + 10 = 69 ≥ 60 → tamed
+    seedLocalStorage({
+      visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+      pantry: { ingredients: {}, treats: { "berry-bites": 1 } },
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(screen.getByRole("button", { name: "Offer With Rect" }));
+    expect(screen.getByTestId("tamed-visitor-species")).toHaveTextContent(
+      "robin",
+    );
+  });
+
+  it("sets celebration and tamedVisitor when taming succeeds with a fromRect", async () => {
     seedLocalStorage({
       visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
     });
@@ -250,6 +292,9 @@ describe("GladeProvider", () => {
     );
     expect(screen.getByTestId("visitor-count")).toHaveTextContent("0");
     expect(screen.getByTestId("celebration-name")).toHaveTextContent("Robin");
+    expect(screen.getByTestId("tamed-visitor-species")).toHaveTextContent(
+      "robin",
+    );
   });
 
   it("clearCelebration resets celebration to null", async () => {
@@ -267,6 +312,29 @@ describe("GladeProvider", () => {
 
     await user.click(screen.getByRole("button", { name: "Clear Celebration" }));
     expect(screen.getByTestId("celebration-name")).toHaveTextContent("none");
+  });
+
+  it("clearTamedVisitor resets tamedVisitor to null", async () => {
+    seedLocalStorage({
+      visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(
+      screen.getByRole("button", { name: "Pet Back With Rect" }),
+    );
+    expect(screen.getByTestId("tamed-visitor-species")).toHaveTextContent(
+      "robin",
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Clear Tamed Visitor" }),
+    );
+    expect(screen.getByTestId("tamed-visitor-species")).toHaveTextContent(
+      "none",
+    );
   });
 
   it("useGlade throws outside the provider", () => {

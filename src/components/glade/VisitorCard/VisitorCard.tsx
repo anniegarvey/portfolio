@@ -28,7 +28,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const { state, lastAction, offerTreat, approachVisitor, petVisitor } =
     useGlade();
   const headingId = useId();
-  const cardRef = useRef<HTMLElement>(null);
+  const portraitRef = useRef<HTMLDivElement>(null);
 
   const species = SPECIES[visitor.speciesId];
   const threshold = tameThresholdFor(visitor.speciesId);
@@ -48,8 +48,8 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
       : null;
 
   return (
-    <Card aria-labelledby={headingId} ref={cardRef}>
-      <Portrait>
+    <Card aria-labelledby={headingId}>
+      <Portrait ref={portraitRef}>
         <CreatureSVG size={72} speciesId={visitor.speciesId} />
       </Portrait>
       <Name id={headingId}>
@@ -91,7 +91,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
                     offerTreat(
                       visitor.id,
                       treatId,
-                      cardRef.current?.getBoundingClientRect(),
+                      portraitRef.current?.getBoundingClientRect(),
                     )
                   }
                   size="sm"
@@ -117,7 +117,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
                     approachVisitor(
                       visitor.id,
                       posture,
-                      cardRef.current?.getBoundingClientRect(),
+                      portraitRef.current?.getBoundingClientRect(),
                     )
                   }
                   size="sm"
@@ -143,7 +143,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
                     petVisitor(
                       visitor.id,
                       spot,
-                      cardRef.current?.getBoundingClientRect(),
+                      portraitRef.current?.getBoundingClientRect(),
                     )
                   }
                   size="sm"

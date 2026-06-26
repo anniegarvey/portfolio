@@ -8,6 +8,7 @@ import { GladeScene } from "@/components/glade/GladeScene";
 import { KitchenPanel } from "@/components/glade/KitchenPanel";
 import { SkillsPanel } from "@/components/glade/SkillsPanel";
 import { TameCelebration } from "@/components/glade/TameCelebration";
+import { TamedCard } from "@/components/glade/TamedCard";
 import { VisitorCard } from "@/components/glade/VisitorCard";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
@@ -15,7 +16,7 @@ import { QUERIES } from "@/lib/constants";
 import { useGlade } from "@/lib/glade/context";
 
 export function GladePage() {
-  const { state, celebration } = useGlade();
+  const { state, celebration, tamedVisitor } = useGlade();
   const visitorsHeadingId = useId();
 
   return (
@@ -34,12 +35,13 @@ export function GladePage() {
 
         <section aria-labelledby={visitorsHeadingId}>
           <SectionTitle id={visitorsHeadingId}>Wild visitors</SectionTitle>
-          {state.visitors.length === 0 ? (
+          {state.visitors.length === 0 && !tamedVisitor ? (
             <EmptyVisitors>
               No wild creatures right now — someone new may wander in tomorrow.
             </EmptyVisitors>
           ) : (
             <VisitorGrid>
+              {tamedVisitor && <TamedCard visitor={tamedVisitor} />}
               {state.visitors.map((visitor) => (
                 <VisitorCard key={visitor.id} visitor={visitor} />
               ))}

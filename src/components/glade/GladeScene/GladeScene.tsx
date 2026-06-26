@@ -1,6 +1,6 @@
 "use client";
 
-import { keyframes, styled } from "next-yak";
+import { styled } from "next-yak";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
@@ -13,7 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function GladeScene() {
-  const { state, celebration } = useGlade();
+  const { state, celebration, gladeSceneRef } = useGlade();
 
   // role="img" collapses the scene to a single node for assistive tech, so the
   // residents shown inside it would otherwise be invisible. Summarise them in
@@ -29,7 +29,7 @@ export function GladeScene() {
           .join(", ")}.`;
 
   return (
-    <Scene aria-label={sceneLabel} role="img">
+    <Scene aria-label={sceneLabel} ref={gladeSceneRef} role="img">
       <BackgroundSVG preserveAspectRatio="none" viewBox="0 0 100 60">
         <title>A peaceful forest glade</title>
         {/* Sky */}
@@ -146,13 +146,6 @@ const EmptyMessage = styled.p`
   );
 `;
 
-const residentAppear = keyframes`
-  0%   { opacity: 0; scale: 0.3; }
-  60%  { opacity: 1; scale: 1.15; }
-  80%  { scale: 0.92; }
-  100% { opacity: 1; scale: 1; }
-`;
-
 const ResidentSpot = styled.div`
   position: absolute;
   transform: translate(-50%, -50%);
@@ -160,14 +153,15 @@ const ResidentSpot = styled.div`
   flex-direction: column;
   align-items: center;
 
+  /* Hidden while the flying animation is in progress; fades in when it lands. */
   &[data-entering="true"] {
-    animation: ${residentAppear} 500ms ease-out 300ms both;
+    opacity: 0;
   }
 
+  transition: opacity 150ms ease;
+
   @media (prefers-reduced-motion: reduce) {
-    &[data-entering="true"] {
-      animation: none;
-    }
+    transition: none;
   }
 `;
 

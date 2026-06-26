@@ -51,11 +51,15 @@ test.describe("Creature Glade", () => {
 
     await page.getByRole("button", { name: "Along the back" }).click();
 
-    // Visitor card is gone; robin now lives in the glade scene
-    await expect(page.getByRole("heading", { name: /^Robin/ })).toBeHidden();
+    // Interactive visitor card is gone — action buttons no longer present
     await expect(
-      page.getByText("No wild creatures right now", { exact: false }),
+      page.getByRole("button", { name: "Along the back" }),
+    ).toBeHidden();
+    // Tamed success card replaces it in the grid
+    await expect(
+      page.getByText("Joined the glade!", { exact: true }),
     ).toBeVisible();
+    // Robin also appears as a resident in the glade scene
     await expect(
       page.getByRole("img", { name: "Glade ecosystem" }).getByText("Robin"),
     ).toBeVisible();

@@ -1,0 +1,1 @@
+export { TamedCard } from "./TamedCard";
