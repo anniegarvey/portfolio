@@ -60,6 +60,9 @@ function GladeDebug() {
           ? "none"
           : `${ctx.lastAction.trustGained}:${ctx.lastAction.matched}`}
       </span>
+      <span data-testid="celebration-name">
+        {ctx.celebration?.creatureName ?? "none"}
+      </span>
       <button onClick={() => ctx.cookTreat("berry-bites")} type="button">
         Cook
       </button>
@@ -76,10 +79,23 @@ function GladeDebug() {
         Pet Back
       </button>
       <button
+        onClick={() => {
+          if (!visitor) return;
+          const rect = new DOMRect(100, 200, 200, 300);
+          ctx.petVisitor(visitor.id, "back", rect);
+        }}
+        type="button"
+      >
+        Pet Back With Rect
+      </button>
+      <button
         onClick={() => visitor && ctx.approachVisitor(visitor.id, "sit-still")}
         type="button"
       >
         Approach
+      </button>
+      <button onClick={() => ctx.clearCelebration()} type="button">
+        Clear Celebration
       </button>
       <button onClick={() => ctx.buyIngredient("berries")} type="button">
         Buy Berries
@@ -219,6 +235,38 @@ describe("GladeProvider", () => {
 
     await user.click(screen.getByRole("button", { name: "Buy Lesson" }));
     expect(mockSpend).not.toHaveBeenCalled();
+  });
+
+  it("sets celebration when taming succeeds and a fromRect is provided", async () => {
+    seedLocalStorage({
+      visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(
+      screen.getByRole("button", { name: "Pet Back With Rect" }),
+    );
+    expect(screen.getByTestId("visitor-count")).toHaveTextContent("0");
+    expect(screen.getByTestId("celebration-name")).toHaveTextContent("Robin");
+  });
+
+  it("clearCelebration resets celebration to null", async () => {
+    seedLocalStorage({
+      visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(
+      screen.getByRole("button", { name: "Pet Back With Rect" }),
+    );
+    expect(screen.getByTestId("celebration-name")).toHaveTextContent("Robin");
+
+    await user.click(screen.getByRole("button", { name: "Clear Celebration" }));
+    expect(screen.getByTestId("celebration-name")).toHaveTextContent("none");
   });
 
   it("useGlade throws outside the provider", () => {
