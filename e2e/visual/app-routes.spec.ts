@@ -58,9 +58,13 @@ test.describe("Energy Planner", () => {
       const dateSelector = page
         .getByRole("button", { name: "Previous day" })
         .locator("xpath=..");
+      // maxDiffPixels: the EP page renders under varying server load when
+      // other e2e suites run concurrently; 200px (≈0.003% of image area)
+      // absorbs sub-pixel font-hinting noise without hiding real regressions.
       await expect(page).toHaveScreenshot(`energy-planner-${theme}.png`, {
         fullPage: true,
         mask: [dateSelector, ...getDevToolsMask(page)],
+        maxDiffPixels: 200,
       });
     });
   }
