@@ -60,6 +60,7 @@ const Hero = styled.section`
   /* Diagonal bottom matching the About section's top: high on left, low on right */
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), 0 100%);
   position: relative;
+  overflow: clip;
 
   /* Animated aurora gradient mesh */
   &::before {

@@ -20,7 +20,8 @@
     "e2e/utils/seed-storage.ts": "e2e/energy-planner",
     "e2e/utils/activity-test-helpers.ts": "e2e/energy-planner",
     "e2e/utils/accessibility-test.ts": "e2e/energy-planner",
-    "e2e/utils/mocks.ts": "e2e/energy-planner"
+    "e2e/utils/mocks.ts": "e2e/energy-planner",
+    "e2e/visual/**": "e2e/visual"
   },
   "skip": [
     "*.md",
