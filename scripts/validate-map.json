@@ -41,6 +41,7 @@
     "plans/**",
     "reports/**",
     "skills-lock.json",
-    ".gitignore"
+    ".gitignore",
+    "**/manifest.json"
   ]
 }

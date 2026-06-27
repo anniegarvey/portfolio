@@ -2,7 +2,7 @@
   "name": "Annie Garvey",
   "short_name": "Annie Garvey",
   "description": "Energy planning with motivation and more",
-  "start_url": "/",
+  "start_url": "/energy-planner",
   "display": "standalone",
   "background_color": "#1e293b",
   "theme_color": "#1e293b",
