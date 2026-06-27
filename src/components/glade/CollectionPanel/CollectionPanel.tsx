@@ -10,6 +10,8 @@ const ROLE_LABELS: Record<string, string> = {
   soother: "Soother",
   beacon: "Beacon",
   muse: "Muse",
+  herald: "Herald",
+  wellspring: "Wellspring",
 };
 
 export function CollectionPanel() {

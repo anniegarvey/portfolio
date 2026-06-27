@@ -89,6 +89,19 @@ describe("advanceGladeDay", () => {
     expect(next.pantry.ingredients.cream).toBe(1);
   });
 
+  it("wellspring residents produce two ingredients per day", () => {
+    const state = makeGladeState({
+      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
+      residents: [makeResident("thornwhisper")], // legendary wellspring
+    });
+    const next = advanceGladeDay(state, TODAY, () => 0);
+    const total = Object.values(next.pantry.ingredients).reduce(
+      (sum, n) => sum + n,
+      0,
+    );
+    expect(total).toBe(2);
+  });
+
   it("spawns one new visitor when there is room", () => {
     const state = makeGladeState();
     const next = advanceGladeDay(state, TODAY, () => 0);
@@ -134,10 +147,10 @@ describe("pickVisitorSpecies", () => {
     expect(SPECIES[picked as SpeciesId].rarity).toBe("common");
   });
 
-  it("the highest rolls pick rare species", () => {
+  it("the highest rolls pick mythic species", () => {
     const picked = pickVisitorSpecies(makeGladeState(), () => 0.999);
     expect(picked).not.toBe(null);
-    expect(SPECIES[picked as SpeciesId].rarity).toBe("rare");
+    expect(SPECIES[picked as SpeciesId].rarity).toBe("mythic");
   });
 
   it("beacon residents make rare species more likely", () => {

@@ -58,21 +58,30 @@ function Squirrel() {
 function Hedgehog() {
   return (
     <>
+      {/* Spines rising from the top of the body */}
       <path
-        d="M16 46 Q12 28 30 22 Q50 18 52 40 Q53 48 48 50 Z"
-        fill="#6d5444"
-      />
-      <path
-        d="M22 26 L20 18 M30 23 L30 14 M38 23 L40 15 M45 27 L50 20"
+        d="M30 33 L26 22 M36 30 L34 19 M42 30 L42 19 M48 32 L52 21"
+        fill="none"
         stroke="#4e3b2e"
         strokeLinecap="round"
         strokeWidth="3"
       />
-      <ellipse cx="22" cy="46" fill="#d7b89c" rx="12" ry="8" />
-      <circle cx="14" cy="44" fill="#2d2a26" r="1.5" />
-      <circle cx="10" cy="47" fill="#3a2c21" r="2" />
-      <ellipse cx="24" cy="53" fill="#b89878" rx="2" ry="1.5" />
-      <ellipse cx="34" cy="53" fill="#b89878" rx="2" ry="1.5" />
+      {/* Round spiny body */}
+      <ellipse cx="39" cy="43" fill="#6d5444" rx="16" ry="11" />
+      {/* Pale belly */}
+      <ellipse cx="39" cy="49" fill="#d7b89c" rx="10" ry="6" />
+      {/* Head — directly left of body, same height */}
+      <circle cx="20" cy="43" fill="#c9a882" r="10" />
+      {/* Snout */}
+      <ellipse cx="11" cy="47" fill="#d7b89c" rx="4.5" ry="3.5" />
+      {/* Eye */}
+      <circle cx="15" cy="40" fill="#2d2a26" r="2" />
+      {/* Nose */}
+      <circle cx="8" cy="48" fill="#3a2c21" r="2" />
+      {/* Feet */}
+      <ellipse cx="28" cy="53" fill="#b89878" rx="3" ry="2" />
+      <ellipse cx="40" cy="54" fill="#b89878" rx="3" ry="2" />
+      <ellipse cx="52" cy="52" fill="#b89878" rx="3" ry="2" />
     </>
   );
 }
@@ -281,6 +290,289 @@ function Dewsprite() {
   );
 }
 
+function Emberveil() {
+  return (
+    <>
+      {/* Upper wings — flame-shaped */}
+      <path
+        d="M32 30 Q20 22 14 10 Q24 18 32 24"
+        fill="#ff7043"
+        opacity="0.85"
+      />
+      <path
+        d="M32 30 Q44 22 50 10 Q40 18 32 24"
+        fill="#ff7043"
+        opacity="0.85"
+      />
+      {/* Lower wings */}
+      <path
+        d="M32 36 Q20 42 10 52 Q22 44 32 38"
+        fill="#ffb74d"
+        opacity="0.75"
+      />
+      <path
+        d="M32 36 Q44 42 54 52 Q42 44 32 38"
+        fill="#ffb74d"
+        opacity="0.75"
+      />
+      {/* Body */}
+      <ellipse cx="32" cy="34" fill="#bf360c" rx="4" ry="12" />
+      {/* Head */}
+      <circle cx="32" cy="22" fill="#e64a19" r="5" />
+      {/* Glowing eyes */}
+      <circle cx="29" cy="21" fill="#ffe082" r="1.5" />
+      <circle cx="35" cy="21" fill="#ffe082" r="1.5" />
+      {/* Antennae */}
+      <path
+        d="M30 18 Q26 12 24 8"
+        fill="none"
+        stroke="#ff7043"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M34 18 Q38 12 40 8"
+        fill="none"
+        stroke="#ff7043"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      <circle cx="24" cy="8" fill="#ff7043" r="2" />
+      <circle cx="40" cy="8" fill="#ff7043" r="2" />
+      {/* Ember glow highlights on wings */}
+      <circle cx="18" cy="16" fill="#fff176" opacity="0.6" r="3" />
+      <circle cx="46" cy="16" fill="#fff176" opacity="0.6" r="3" />
+      {/* Tail glow */}
+      <ellipse cx="32" cy="47" fill="#ff8a65" opacity="0.45" rx="3" ry="4" />
+    </>
+  );
+}
+
+function Thornwhisper() {
+  return (
+    <>
+      {/* Main body — covered in vines */}
+      <ellipse cx="34" cy="44" fill="#2e4a1a" rx="16" ry="12" />
+      {/* Head */}
+      <circle cx="22" cy="38" fill="#2e4a1a" r="10" />
+      {/* Ears — pointed, leaf-like */}
+      <path d="M16 30 L12 20 L22 28 Z" fill="#1a2e0f" />
+      <path d="M28 30 L32 20 L24 28 Z" fill="#1a2e0f" />
+      {/* Vine tendrils growing from back */}
+      <path
+        d="M38 32 Q44 24 46 16"
+        fill="none"
+        stroke="#4a7c2a"
+        strokeLinecap="round"
+        strokeWidth="2.5"
+      />
+      <path
+        d="M42 36 Q50 30 54 22"
+        fill="none"
+        stroke="#5a8c3a"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+      {/* Leaf clusters */}
+      <ellipse
+        cx="46"
+        cy="15"
+        fill="#6aab3a"
+        rx="4"
+        ry="2.5"
+        transform="rotate(-30 46 15)"
+      />
+      <ellipse
+        cx="54"
+        cy="21"
+        fill="#5a9a2a"
+        rx="3.5"
+        ry="2"
+        transform="rotate(-20 54 21)"
+      />
+      {/* Face */}
+      <circle cx="18" cy="36" fill="#2d2a26" r="1.8" />
+      <circle cx="26" cy="36" fill="#2d2a26" r="1.8" />
+      <ellipse cx="22" cy="41" fill="#3a5a20" rx="2.5" ry="1.5" />
+      {/* Moss patches */}
+      <circle cx="34" cy="40" fill="#7dc44a" opacity="0.6" r="2.5" />
+      <circle cx="42" cy="46" fill="#8acc5a" opacity="0.5" r="2" />
+      {/* Vine-tail */}
+      <path d="M50 44 Q58 40 56 34 Q52 36 50 40" fill="#3d6020" />
+      {/* Paws */}
+      <ellipse cx="22" cy="54" fill="#243d14" rx="4" ry="2.5" />
+      <ellipse cx="36" cy="54" fill="#243d14" rx="4" ry="2.5" />
+    </>
+  );
+}
+
+function Mirewing() {
+  return (
+    <>
+      {/* Crystal upper wings */}
+      <path d="M32 32 Q18 18 8 14 Q16 28 28 34" fill="#b3e5fc" opacity="0.7" />
+      <path d="M32 32 Q46 18 56 14 Q48 28 36 34" fill="#b3e5fc" opacity="0.7" />
+      {/* Crystal lower wings */}
+      <path d="M32 38 Q18 46 10 58 Q22 48 30 40" fill="#e3f2fd" opacity="0.6" />
+      <path d="M32 38 Q46 46 54 58 Q42 48 34 40" fill="#e3f2fd" opacity="0.6" />
+      {/* Prismatic highlight veins */}
+      <path
+        d="M32 32 Q20 22 14 14"
+        fill="none"
+        opacity="0.7"
+        stroke="#ffffff"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M32 32 Q44 22 50 14"
+        fill="none"
+        opacity="0.7"
+        stroke="#e1bee7"
+        strokeWidth="1.5"
+      />
+      {/* Body */}
+      <ellipse cx="32" cy="36" fill="#4fc3f7" rx="4" ry="10" />
+      {/* Head */}
+      <circle cx="32" cy="26" fill="#29b6f6" r="5" />
+      {/* Facets — crystal reflections */}
+      <circle cx="16" cy="20" fill="#ffffff" opacity="0.8" r="2.5" />
+      <circle cx="48" cy="20" fill="#ffffff" opacity="0.8" r="2.5" />
+      <circle cx="14" cy="50" fill="#e1f5fe" opacity="0.6" r="2" />
+      <circle cx="50" cy="50" fill="#e1f5fe" opacity="0.6" r="2" />
+      {/* Eyes */}
+      <circle cx="29" cy="25" fill="#0288d1" r="1.5" />
+      <circle cx="35" cy="25" fill="#0288d1" r="1.5" />
+      {/* Antennae */}
+      <path
+        d="M30 22 Q26 16 24 12"
+        fill="none"
+        stroke="#4fc3f7"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M34 22 Q38 16 40 12"
+        fill="none"
+        stroke="#4fc3f7"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      <circle cx="24" cy="12" fill="#b3e5fc" r="2" />
+      <circle cx="40" cy="12" fill="#b3e5fc" r="2" />
+    </>
+  );
+}
+
+function Fernmother() {
+  return (
+    <>
+      {/* Ancient mossy body */}
+      <ellipse cx="34" cy="46" fill="#1b4332" rx="18" ry="13" />
+      {/* Head — bark-like */}
+      <circle cx="22" cy="36" fill="#1b4332" r="12" />
+      {/* Great fern fronds */}
+      <path
+        d="M42 32 Q48 20 44 10 M44 10 Q50 18 46 26"
+        fill="none"
+        stroke="#2d6a4f"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <path
+        d="M44 36 Q52 24 50 12 M50 12 Q56 22 52 32"
+        fill="none"
+        stroke="#40916c"
+        strokeLinecap="round"
+        strokeWidth="2.5"
+      />
+      <path
+        d="M46 40 Q56 32 56 20"
+        fill="none"
+        stroke="#52b788"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+      {/* Fern leaf clusters */}
+      <ellipse
+        cx="44"
+        cy="9"
+        fill="#52b788"
+        rx="5"
+        ry="2.5"
+        transform="rotate(-15 44 9)"
+      />
+      <ellipse
+        cx="50"
+        cy="11"
+        fill="#40916c"
+        rx="5"
+        ry="2.5"
+        transform="rotate(20 50 11)"
+      />
+      <ellipse
+        cx="56"
+        cy="20"
+        fill="#74c69d"
+        rx="4"
+        ry="2"
+        transform="rotate(45 56 20)"
+      />
+      {/* Ancient bark eyes */}
+      <circle cx="16" cy="34" fill="#2d2a26" r="2.5" />
+      <circle cx="26" cy="34" fill="#2d2a26" r="2.5" />
+      {/* Heavy brow */}
+      <path
+        d="M13 31 Q16 29 20 31"
+        fill="none"
+        stroke="#0d2818"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+      <path
+        d="M23 31 Q26 29 30 31"
+        fill="none"
+        stroke="#0d2818"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+      {/* Ancient mouth */}
+      <path
+        d="M17 40 Q21 43 25 40"
+        fill="none"
+        stroke="#0d2818"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      {/* Moss patches */}
+      <circle cx="30" cy="46" fill="#74c69d" opacity="0.7" r="3.5" />
+      <circle cx="40" cy="50" fill="#95d5b2" opacity="0.6" r="2.5" />
+      <circle cx="22" cy="50" fill="#74c69d" opacity="0.5" r="2" />
+      {/* Root feet */}
+      <path
+        d="M18 58 Q20 52 24 56"
+        fill="none"
+        stroke="#1b4332"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <path
+        d="M30 59 Q32 53 36 58"
+        fill="none"
+        stroke="#1b4332"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <path
+        d="M42 57 Q44 51 48 55"
+        fill="none"
+        stroke="#2d6a4f"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+    </>
+  );
+}
+
 const CREATURES: Record<SpeciesId, () => React.JSX.Element> = {
   robin: Robin,
   rabbit: Rabbit,
@@ -294,6 +586,10 @@ const CREATURES: Record<SpeciesId, () => React.JSX.Element> = {
   glimmerwing: Glimmerwing,
   puffloaf: Puffloaf,
   dewsprite: Dewsprite,
+  emberveil: Emberveil,
+  thornwhisper: Thornwhisper,
+  mirewing: Mirewing,
+  fernmother: Fernmother,
 };
 
 export interface CreatureSVGProps {

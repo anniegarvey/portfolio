@@ -1,5 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
-import { RECIPES, SPECIES, tameThresholdFor } from "./catalog";
+import {
+  HERALD_TRUST_BONUS,
+  RECIPES,
+  SPECIES,
+  tameThresholdFor,
+} from "./catalog";
 import type {
   GladeState,
   PetSpot,
@@ -148,7 +153,12 @@ export function approachVisitor(
   if (!visitor || visitor.actionsToday.approach) return noAction(state);
 
   const matched = SPECIES[visitor.speciesId].preferredPosture === posture;
-  const gain = approachTrustGain(state.skills["body-language"].tier, matched);
+  const heralds = state.residents.filter(
+    (r) => SPECIES[r.speciesId].benefitRole === "herald",
+  ).length;
+  const gain =
+    approachTrustGain(state.skills["body-language"].tier, matched) +
+    (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
   const withXp = gainXp(state, "body-language");
   const applied = applyTrust(withXp, visitor, gain, "approach", today, rng);
@@ -172,7 +182,12 @@ export function petVisitor(
   if (!visitor || visitor.actionsToday.pet) return noAction(state);
 
   const matched = SPECIES[visitor.speciesId].preferredPetSpot === spot;
-  const gain = petTrustGain(state.skills["petting-technique"].tier, matched);
+  const heralds = state.residents.filter(
+    (r) => SPECIES[r.speciesId].benefitRole === "herald",
+  ).length;
+  const gain =
+    petTrustGain(state.skills["petting-technique"].tier, matched) +
+    (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
   const withXp = gainXp(state, "petting-technique");
   const applied = applyTrust(withXp, visitor, gain, "pet", today, rng);
