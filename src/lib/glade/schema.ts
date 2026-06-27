@@ -15,6 +15,10 @@ export const SpeciesIdSchema = z.enum([
   "glimmerwing",
   "puffloaf",
   "dewsprite",
+  "emberveil",
+  "thornwhisper",
+  "mirewing",
+  "fernmother",
 ]);
 export type SpeciesId = z.infer<typeof SpeciesIdSchema>;
 
@@ -51,7 +55,13 @@ export type Posture = z.infer<typeof PostureSchema>;
 export const PetSpotSchema = z.enum(["chin", "back", "behind-ears"]);
 export type PetSpot = z.infer<typeof PetSpotSchema>;
 
-export const RaritySchema = z.enum(["common", "uncommon", "rare"]);
+export const RaritySchema = z.enum([
+  "common",
+  "uncommon",
+  "rare",
+  "legendary",
+  "mythic",
+]);
 export type Rarity = z.infer<typeof RaritySchema>;
 
 export const BenefitRoleSchema = z.enum([
@@ -59,6 +69,8 @@ export const BenefitRoleSchema = z.enum([
   "soother",
   "beacon",
   "muse",
+  "herald",
+  "wellspring",
 ]);
 export type BenefitRole = z.infer<typeof BenefitRoleSchema>;
 

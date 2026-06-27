@@ -185,6 +185,65 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     vagueHint: "Shimmers brighter when you greet it gently, eye to eye.",
     clearHint: "Blink slowly and tickle behind its ears. Loves berry bites.",
   },
+  emberveil: {
+    id: "emberveil",
+    name: "Emberveil",
+    kind: "fantastical",
+    rarity: "legendary",
+    benefitRole: "herald",
+    favouriteTreat: "honey-drops",
+    preferredPosture: "slow-blink",
+    preferredPetSpot: "back",
+    blurb:
+      "A fire-moth of ancient warmth whose presence sharpens every tender gesture.",
+    vagueHint: "Flame-shy; a soft, unhurried gaze seems to hold it.",
+    clearHint: "Blink slowly and stroke along its back. Loves honey drops.",
+  },
+  thornwhisper: {
+    id: "thornwhisper",
+    name: "Thornwhisper",
+    kind: "fantastical",
+    rarity: "legendary",
+    benefitRole: "wellspring",
+    favouriteTreat: "berry-bites",
+    preferredPosture: "crouch-low",
+    preferredPetSpot: "behind-ears",
+    blurb:
+      "An ancient root-creature that nurtures the glade with deep abundance.",
+    vagueHint:
+      "Tangles of root and moss — it eases when you match its low height.",
+    clearHint: "Crouch low and scratch behind its ears. Loves berry bites.",
+  },
+  mirewing: {
+    id: "mirewing",
+    name: "Mirewing",
+    kind: "fantastical",
+    rarity: "mythic",
+    benefitRole: "herald",
+    favouriteTreat: "cream-puffs",
+    preferredPosture: "sit-still",
+    preferredPetSpot: "chin",
+    blurb:
+      "A crystal-winged butterfly of perfect stillness — its every touch amplifies your patient skill.",
+    vagueHint:
+      "Lands only in absolute calm; the faintest motion sends it aloft.",
+    clearHint: "Sit still and offer a chin scratch. Loves cream puffs.",
+  },
+  fernmother: {
+    id: "fernmother",
+    name: "Fernmother",
+    kind: "fantastical",
+    rarity: "mythic",
+    benefitRole: "wellspring",
+    favouriteTreat: "mint-crisps",
+    preferredPosture: "crouch-low",
+    preferredPetSpot: "back",
+    blurb:
+      "A primordial forest spirit whose roots run deep, filling the glade with inexhaustible gifts.",
+    vagueHint:
+      "Ancient and slow; you need to come all the way down to meet it.",
+    clearHint: "Crouch low and stroke along its back. Loves mint crisps.",
+  },
 };
 
 export const ALL_SPECIES_IDS = Object.keys(SPECIES) as SpeciesId[];
@@ -195,13 +254,15 @@ export const ALL_SPECIES_IDS = Object.keys(SPECIES) as SpeciesId[];
  * Trust required to tame, by rarity. Tuned for long-term daily play: a
  * day's matched actions earn ~30 trust at tier-1 skills and ~75 at tier 5,
  * so commons tame in a couple of days (onboarding), uncommons in roughly a
- * week, and rares are a multi-week project even with strong skills and
- * soother support.
+ * week, rares are a multi-week project, legendaries take roughly a month at
+ * optimal play, and mythics are a two-month aspiration.
  */
 export const TAME_THRESHOLD: Record<Rarity, number> = {
   common: 60,
   uncommon: 250,
   rare: 900,
+  legendary: 2000,
+  mythic: 5000,
 };
 
 export function tameThresholdFor(speciesId: SpeciesId): number {
@@ -237,6 +298,8 @@ export const FORAGE_POOLS: Record<Rarity, readonly IngredientId[]> = {
   common: ["berries", "oats", "mint"],
   uncommon: ALL_INGREDIENT_IDS,
   rare: ALL_INGREDIENT_IDS,
+  legendary: ALL_INGREDIENT_IDS,
+  mythic: ALL_INGREDIENT_IDS,
 };
 
 // ─── Recipes ──────────────────────────────────────────────────────────────────
@@ -352,7 +415,12 @@ export const RARITY_WEIGHTS: Record<Rarity, number> = {
   common: 70,
   uncommon: 25,
   rare: 5,
+  legendary: 2,
+  mythic: 1,
 };
 
 /** Each beacon resident shifts this much weight from common to rare. */
 export const BEACON_RARE_BONUS = 10;
+
+/** Flat trust bonus added per herald resident on any matched approach or pet action. */
+export const HERALD_TRUST_BONUS = 5;

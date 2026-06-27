@@ -156,6 +156,68 @@ describe("approachVisitor", () => {
     );
     expect(result.trustGained).toBe(null);
   });
+
+  it("herald residents add bonus trust on matched approaches", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const baseline = makeGladeState({ visitors: [visitor] });
+    const withHerald = makeGladeState({
+      visitors: [visitor],
+      residents: [
+        {
+          id: "00000000-0000-4000-8000-000000000099",
+          speciesId: "emberveil",
+          tamedDate: TODAY,
+          position: { x: 50, y: 50 },
+        },
+      ],
+    });
+    const baseGain = approachVisitor(
+      baseline,
+      visitor.id,
+      "crouch-low",
+      TODAY,
+      fixedRng,
+    ).trustGained;
+    const heraldGain = approachVisitor(
+      withHerald,
+      visitor.id,
+      "crouch-low",
+      TODAY,
+      fixedRng,
+    ).trustGained;
+    expect(heraldGain).toBeGreaterThan(baseGain ?? 0);
+  });
+
+  it("herald bonus does not apply on mismatched approaches", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const baseline = makeGladeState({ visitors: [visitor] });
+    const withHerald = makeGladeState({
+      visitors: [visitor],
+      residents: [
+        {
+          id: "00000000-0000-4000-8000-000000000099",
+          speciesId: "emberveil",
+          tamedDate: TODAY,
+          position: { x: 50, y: 50 },
+        },
+      ],
+    });
+    const baseGain = approachVisitor(
+      baseline,
+      visitor.id,
+      "slow-blink", // mismatch
+      TODAY,
+      fixedRng,
+    ).trustGained;
+    const heraldGain = approachVisitor(
+      withHerald,
+      visitor.id,
+      "slow-blink", // mismatch
+      TODAY,
+      fixedRng,
+    ).trustGained;
+    expect(heraldGain).toBe(baseGain);
+  });
 });
 
 describe("petVisitor", () => {
@@ -206,6 +268,15 @@ describe("taming", () => {
   it("rare species need more trust than common ones", () => {
     expect(tameThresholdFor("dewsprite")).toBeGreaterThan(
       tameThresholdFor("robin"),
+    );
+  });
+
+  it("legendary and mythic thresholds exceed rare", () => {
+    expect(tameThresholdFor("emberveil")).toBeGreaterThan(
+      tameThresholdFor("dewsprite"),
+    );
+    expect(tameThresholdFor("mirewing")).toBeGreaterThan(
+      tameThresholdFor("emberveil"),
     );
   });
 

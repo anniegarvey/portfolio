@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
+  ALL_INGREDIENT_IDS,
   ALL_SPECIES_IDS,
   BEACON_RARE_BONUS,
   FORAGE_POOLS,
@@ -50,14 +51,16 @@ export function pickVisitorSpecies(
     common: RARITY_WEIGHTS.common - shift,
     uncommon: RARITY_WEIGHTS.uncommon,
     rare: RARITY_WEIGHTS.rare + shift,
+    legendary: RARITY_WEIGHTS.legendary,
+    mythic: RARITY_WEIGHTS.mythic,
   };
 
   // Only rarities that still have spawnable species can be drawn.
   const byRarity = (rarity: Rarity) =>
     candidates.filter((id) => SPECIES[id].rarity === rarity);
-  const available = (["common", "uncommon", "rare"] as const).filter(
-    (rarity) => byRarity(rarity).length > 0,
-  );
+  const available = (
+    ["common", "uncommon", "rare", "legendary", "mythic"] as const
+  ).filter((rarity) => byRarity(rarity).length > 0);
   const totalWeight = available.reduce((sum, r) => sum + weights[r], 0);
   if (totalWeight <= 0) {
     // All remaining weight is on exhausted rarities — pick uniformly.
@@ -108,6 +111,21 @@ export function advanceGladeDay(
   for (const forager of foragers) {
     const pool = FORAGE_POOLS[SPECIES[forager.speciesId].rarity];
     next = addIngredient(next, pool[Math.floor(rng() * pool.length)]);
+  }
+
+  // Wellspring residents produce two ingredients per day from the full pool.
+  const wellsprings = state.residents.filter(
+    (r) => SPECIES[r.speciesId].benefitRole === "wellspring",
+  );
+  for (const _wellspring of wellsprings) {
+    next = addIngredient(
+      next,
+      ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)],
+    );
+    next = addIngredient(
+      next,
+      ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)],
+    );
   }
 
   if (next.visitors.length < MAX_VISITORS) {
