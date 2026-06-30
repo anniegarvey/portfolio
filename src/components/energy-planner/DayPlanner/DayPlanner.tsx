@@ -13,6 +13,7 @@ import type { Activity } from "../../../lib/energy-planner/schema";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
 import { DayPlannerSkeleton } from "../DayPlannerSkeleton";
+import { RestorativeNudge } from "../RestorativeNudge";
 import { ZoneManagerModal } from "../ZoneManagerModal";
 import { EnergyUsageTable } from "./EnergyUsageTable";
 import { PlannedActivitiesDndSection } from "./PlannedActivitiesDndSection";
@@ -241,6 +242,8 @@ export function DayPlanner({
       <UncompletedActivitiesSection activities={viewedUncompletedActivities} />
 
       <WellnessSection onOpenConfig={() => setIsWellnessConfigOpen(true)} />
+
+      <RestorativeNudge onOpenManageActivities={handleOpenManageActivities} />
 
       <PlannedActivitiesDndSection
         activeResolved={activeResolved}
