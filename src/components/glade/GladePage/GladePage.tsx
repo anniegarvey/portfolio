@@ -2,7 +2,7 @@
 
 import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import { CollectionPanel } from "@/components/glade/CollectionPanel";
 import { GladeScene } from "@/components/glade/GladeScene";
 import { KitchenPanel } from "@/components/glade/KitchenPanel";
@@ -16,7 +16,7 @@ import { QUERIES } from "@/lib/constants";
 import { useGlade } from "@/lib/glade/context";
 
 export function GladePage() {
-  const { state, celebration, tamedVisitor } = useGlade();
+  const { state, celebration, tamedVisitor, tamedVisitorIndex } = useGlade();
   const visitorsHeadingId = useId();
 
   return (
@@ -41,10 +41,26 @@ export function GladePage() {
             </EmptyVisitors>
           ) : (
             <VisitorGrid>
-              {tamedVisitor && <TamedCard visitor={tamedVisitor} />}
-              {state.visitors.map((visitor) => (
-                <VisitorCard key={visitor.id} visitor={visitor} />
-              ))}
+              {state.visitors.reduce<ReactNode[]>((acc, visitor, i) => {
+                if (tamedVisitor !== null && tamedVisitorIndex === i) {
+                  acc.push(
+                    <TamedCard
+                      key={`tamed-${tamedVisitor.id}`}
+                      visitor={tamedVisitor}
+                    />,
+                  );
+                }
+                acc.push(<VisitorCard key={visitor.id} visitor={visitor} />);
+                return acc;
+              }, [])}
+              {tamedVisitor &&
+                (tamedVisitorIndex === null ||
+                  tamedVisitorIndex >= state.visitors.length) && (
+                  <TamedCard
+                    key={`tamed-${tamedVisitor.id}`}
+                    visitor={tamedVisitor}
+                  />
+                )}
             </VisitorGrid>
           )}
         </section>

@@ -57,6 +57,8 @@ export interface GladeContextType {
   clearCelebration: () => void;
   /** Visitor that was tamed this session — stays visible as a success card. */
   tamedVisitor: WildVisitor | null;
+  /** Original position of tamedVisitor in state.visitors before taming. */
+  tamedVisitorIndex: number | null;
   clearTamedVisitor: () => void;
   /** Ref for the GladeScene container — used to calculate resident pixel positions. */
   gladeSceneRef: RefObject<HTMLDivElement | null>;
@@ -99,7 +101,13 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const clearCelebration = useCallback(() => setCelebration(null), []);
   const [tamedVisitor, setTamedVisitor] = useState<WildVisitor | null>(null);
-  const clearTamedVisitor = useCallback(() => setTamedVisitor(null), []);
+  const [tamedVisitorIndex, setTamedVisitorIndex] = useState<number | null>(
+    null,
+  );
+  const clearTamedVisitor = useCallback(() => {
+    setTamedVisitor(null);
+    setTamedVisitorIndex(null);
+  }, []);
   const gladeSceneRef = useRef<HTMLDivElement | null>(null);
 
   // Persist every state change
@@ -124,7 +132,12 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   // Called when a taming action succeeds; captures the resident's pixel
   // position in the glade so the flying animation lands on the right spot.
   const onTamed = useCallback(
-    (visitor: WildVisitor, result: ActionResult, fromRect: DOMRect) => {
+    (
+      visitor: WildVisitor,
+      originalIndex: number,
+      result: ActionResult,
+      fromRect: DOMRect,
+    ) => {
       const newResident =
         result.state.residents[result.state.residents.length - 1];
       if (!newResident) return;
@@ -136,6 +149,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         ? gladeRect.top + (newResident.position.y / 100) * gladeRect.height
         : 120;
       setTamedVisitor(visitor);
+      setTamedVisitorIndex(originalIndex);
       setCelebration({
         speciesId: newResident.speciesId,
         creatureName: SPECIES[newResident.speciesId].name,
@@ -153,7 +167,9 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   // effects inside the updater.
   const handleOfferTreat = useCallback(
     (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => {
-      const visitor = state.visitors.find((v) => v.id === visitorId);
+      const visitorIndex = state.visitors.findIndex((v) => v.id === visitorId);
+      const visitor =
+        visitorIndex !== -1 ? state.visitors[visitorIndex] : undefined;
       const result = offerTreat(
         state,
         visitorId,
@@ -163,14 +179,16 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       setLastAction({ ...result, visitorId });
       setState(() => result.state);
       if (result.tamed && fromRect && visitor)
-        onTamed(visitor, result, fromRect);
+        onTamed(visitor, visitorIndex, result, fromRect);
     },
     [state, setState, onTamed],
   );
 
   const handleApproachVisitor = useCallback(
     (visitorId: string, posture: Posture, fromRect?: DOMRect) => {
-      const visitor = state.visitors.find((v) => v.id === visitorId);
+      const visitorIndex = state.visitors.findIndex((v) => v.id === visitorId);
+      const visitor =
+        visitorIndex !== -1 ? state.visitors[visitorIndex] : undefined;
       const result = approachVisitor(
         state,
         visitorId,
@@ -180,19 +198,21 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       setLastAction({ ...result, visitorId });
       setState(() => result.state);
       if (result.tamed && fromRect && visitor)
-        onTamed(visitor, result, fromRect);
+        onTamed(visitor, visitorIndex, result, fromRect);
     },
     [state, setState, onTamed],
   );
 
   const handlePetVisitor = useCallback(
     (visitorId: string, spot: PetSpot, fromRect?: DOMRect) => {
-      const visitor = state.visitors.find((v) => v.id === visitorId);
+      const visitorIndex = state.visitors.findIndex((v) => v.id === visitorId);
+      const visitor =
+        visitorIndex !== -1 ? state.visitors[visitorIndex] : undefined;
       const result = petVisitor(state, visitorId, spot, getTodayDateString());
       setLastAction({ ...result, visitorId });
       setState(() => result.state);
       if (result.tamed && fromRect && visitor)
-        onTamed(visitor, result, fromRect);
+        onTamed(visitor, visitorIndex, result, fromRect);
     },
     [state, setState, onTamed],
   );
@@ -232,6 +252,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         celebration,
         clearCelebration,
         tamedVisitor,
+        tamedVisitorIndex,
         clearTamedVisitor,
         gladeSceneRef,
         offerTreat: handleOfferTreat,
