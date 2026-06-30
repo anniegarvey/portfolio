@@ -27,7 +27,7 @@ test.describe("PWA Metadata and Offline Capabilities", () => {
     expect(manifest.name).toBe("Annie Garvey");
     expect(manifest.short_name).toBe("Annie Garvey");
     expect(manifest.display).toBe("standalone");
-    expect(manifest.start_url).toBe("/");
+    expect(manifest.start_url).toBe("/energy-planner");
     expect(manifest.icons.length).toBeGreaterThan(0);
   });
 });
