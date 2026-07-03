@@ -19,6 +19,9 @@ vi.mock("@/components/glade/GladeScene", () => ({
 vi.mock("@/components/glade/TameCelebration", () => ({
   TameCelebration: () => null,
 }));
+vi.mock("@/components/glade/DailyDigest", () => ({
+  DailyDigest: () => null,
+}));
 vi.mock("@/components/glade/CreatureSVG", () => ({
   CreatureSVG: () => null,
 }));
@@ -47,6 +50,8 @@ function mockGlade(overrides = {}) {
     lastAction: null,
     celebration: null,
     clearCelebration: vi.fn(),
+    dailyReport: null,
+    clearDailyReport: vi.fn(),
     tamedVisitor: null,
     tamedVisitorIndex: null,
     clearTamedVisitor: vi.fn(),

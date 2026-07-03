@@ -14,7 +14,7 @@ import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
 import { INGREDIENTS, SPECIES } from "./catalog";
 import { addIngredient, cookTreat } from "./cookingModule";
-import { advanceGladeDay } from "./gladeEngine";
+import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
 import type {
   GladeState,
   IngredientId,
@@ -55,6 +55,9 @@ export interface GladeContextType {
   lastAction: VisitorActionResult | null;
   celebration: Celebration | null;
   clearCelebration: () => void;
+  /** What today's daily advance produced, until dismissed. Null if none ran. */
+  dailyReport: DailyGladeReport | null;
+  clearDailyReport: () => void;
   /** Visitor that was tamed this session — stays visible as a success card. */
   tamedVisitor: WildVisitor | null;
   /** Original position of tamedVisitor in state.visitors before taming. */
@@ -100,6 +103,8 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   );
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const clearCelebration = useCallback(() => setCelebration(null), []);
+  const [dailyReport, setDailyReport] = useState<DailyGladeReport | null>(null);
+  const clearDailyReport = useCallback(() => setDailyReport(null), []);
   const [tamedVisitor, setTamedVisitor] = useState<WildVisitor | null>(null);
   const [tamedVisitorIndex, setTamedVisitorIndex] = useState<number | null>(
     null,
@@ -122,11 +127,14 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   // Load from localStorage and run the daily advance on mount (client-only).
   useEffect(() => {
     const todayStr = getTodayDateString();
-    setState(
-      () =>
-        advanceGladeDay(loadGladeState() ?? createInitialState(), todayStr)
-          .state,
+    const result = advanceGladeDay(
+      loadGladeState() ?? createInitialState(),
+      todayStr,
     );
+    setState(() => result.state);
+    // In dev strict-mode the effect re-runs against the already-advanced
+    // saved state, yielding a null report — keep the first report.
+    if (result.report !== null) setDailyReport(result.report);
   }, [setState]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
@@ -253,6 +261,8 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         lastAction,
         celebration,
         clearCelebration,
+        dailyReport,
+        clearDailyReport,
         tamedVisitor,
         tamedVisitorIndex,
         clearTamedVisitor,
