@@ -1,17 +1,23 @@
 "use client";
 
 import { keyframes, styled } from "next-yak";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useId, useState } from "react";
+import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
-import { SPECIES } from "@/lib/glade/catalog";
+import { ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
+import { useGlade } from "@/lib/glade/context";
 import type { WildVisitor } from "@/lib/glade/schema";
 
 const PARTICLE_ANGLES = [0, 60, 120, 180, 240, 300];
 
 export function TamedCard({ visitor }: { visitor: WildVisitor }) {
+  const { state, tamedResidentId, nameResident } = useGlade();
+  const [draft, setDraft] = useState("");
+  const inputId = useId();
+
   const species = SPECIES[visitor.speciesId];
-  const role =
-    species.benefitRole.charAt(0).toUpperCase() + species.benefitRole.slice(1);
+  const resident =
+    state.residents.find((r) => r.id === tamedResidentId) ?? null;
 
   return (
     <Card>
@@ -27,8 +33,40 @@ export function TamedCard({ visitor }: { visitor: WildVisitor }) {
         </Particles>
       </PortraitWrapper>
       <SuccessBadge>Joined the glade!</SuccessBadge>
-      <Name>{species.name}</Name>
-      <RoleNote>Now your {role}</RoleNote>
+      <Name>{resident?.name ?? species.name}</Name>
+      <RoleNote>Now your {ROLE_LABELS[species.benefitRole]}</RoleNote>
+      {resident !== null &&
+        (resident.name === undefined ? (
+          <NameForm
+            onSubmit={(e) => {
+              e.preventDefault();
+              nameResident(resident.id, draft);
+            }}
+          >
+            <NameLabel htmlFor={inputId}>Give them a name</NameLabel>
+            <NameRow>
+              <NameInput
+                id={inputId}
+                maxLength={24}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder={species.name}
+                value={draft}
+              />
+              <Button
+                disabled={draft.trim() === ""}
+                size="sm"
+                type="submit"
+                variant="outline"
+              >
+                Name
+              </Button>
+            </NameRow>
+          </NameForm>
+        ) : (
+          <NamedNote>
+            Say hello to {resident.name} the {species.name}!
+          </NamedNote>
+        ))}
     </Card>
   );
 }
@@ -102,4 +140,45 @@ const RoleNote = styled.p`
   margin: 0;
   font-size: 0.9rem;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const NameForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+`;
+
+const NameLabel = styled.label`
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const NameRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const NameInput = styled.input`
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
+  background: light-dark(white, var(--color-grey-900));
+  color: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 1px;
+  }
+`;
+
+const NamedNote = styled.p`
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: light-dark(var(--color-primary-700), var(--color-primary-300));
 `;

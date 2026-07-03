@@ -62,7 +62,11 @@ export interface GladeContextType {
   tamedVisitor: WildVisitor | null;
   /** Original position of tamedVisitor in state.visitors before taming. */
   tamedVisitorIndex: number | null;
+  /** Resident created by this session's tame — target for first naming. */
+  tamedResidentId: string | null;
   clearTamedVisitor: () => void;
+  /** Gives a resident a personal name. Trimmed; empty names are ignored. */
+  nameResident: (residentId: string, name: string) => void;
   /** Ref for the GladeScene container — used to calculate resident pixel positions. */
   gladeSceneRef: RefObject<HTMLDivElement | null>;
   offerTreat: (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => void;
@@ -109,9 +113,11 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   const [tamedVisitorIndex, setTamedVisitorIndex] = useState<number | null>(
     null,
   );
+  const [tamedResidentId, setTamedResidentId] = useState<string | null>(null);
   const clearTamedVisitor = useCallback(() => {
     setTamedVisitor(null);
     setTamedVisitorIndex(null);
+    setTamedResidentId(null);
   }, []);
   const gladeSceneRef = useRef<HTMLDivElement | null>(null);
 
@@ -160,6 +166,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         : 120;
       setTamedVisitor(visitor);
       setTamedVisitorIndex(originalIndex);
+      setTamedResidentId(newResident.id);
       setCelebration({
         speciesId: newResident.speciesId,
         creatureName: SPECIES[newResident.speciesId].name,
@@ -243,6 +250,20 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [setState, spendPoints],
   );
 
+  const handleNameResident = useCallback(
+    (residentId: string, name: string) => {
+      const trimmed = name.trim().slice(0, 24);
+      if (trimmed === "") return;
+      setState((prev) => ({
+        ...prev,
+        residents: prev.residents.map((r) =>
+          r.id === residentId ? { ...r, name: trimmed } : r,
+        ),
+      }));
+    },
+    [setState],
+  );
+
   const handleBuyLesson = useCallback(
     (skillId: SkillId): boolean => {
       if (!canBuyLesson(state, skillId)) return false;
@@ -265,7 +286,9 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         clearDailyReport,
         tamedVisitor,
         tamedVisitorIndex,
+        tamedResidentId,
         clearTamedVisitor,
+        nameResident: handleNameResident,
         gladeSceneRef,
         offerTreat: handleOfferTreat,
         approachVisitor: handleApproachVisitor,
