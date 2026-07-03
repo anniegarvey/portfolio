@@ -5,7 +5,7 @@ import { type CSSProperties, useId, useState } from "react";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { ResidentDetail } from "@/components/glade/ResidentDetail";
 import { RoleBadge } from "@/components/glade/RoleBadge";
-import { SPECIES } from "@/lib/glade/catalog";
+import { ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { SpeciesId } from "@/lib/glade/schema";
 
@@ -122,6 +122,7 @@ export function GladeScene() {
         ) : (
           state.residents.map((resident) => {
             const species = SPECIES[resident.speciesId];
+            const displayName = resident.name ?? species.name;
             return (
               <ResidentSpot
                 data-entering={
@@ -141,6 +142,9 @@ export function GladeScene() {
                     selectedId === resident.id ? detailId : undefined
                   }
                   aria-expanded={selectedId === resident.id}
+                  // The badge is decorative, so the role rides along in the
+                  // accessible name (starting with the visible pill text).
+                  aria-label={`${displayName} — ${ROLE_LABELS[species.benefitRole]}`}
                   onClick={() => toggleResident(resident.id)}
                   type="button"
                 >
@@ -148,7 +152,12 @@ export function GladeScene() {
                     data-greeting={
                       greetingId === resident.id ? "true" : undefined
                     }
-                    onAnimationEnd={() => setGreetingId(null)}
+                    onAnimationEnd={(e) => {
+                      // The idle loop's animationend (and any future child
+                      // animation) bubbles up here; only the greet bounce
+                      // on this element should clear the greeting.
+                      if (e.target === e.currentTarget) setGreetingId(null);
+                    }}
                   >
                     <IdleWrapper
                       data-motion={IDLE_MOTIONS[resident.speciesId].motion}
@@ -160,7 +169,7 @@ export function GladeScene() {
                   <BadgeSlot>
                     <RoleBadge role={species.benefitRole} />
                   </BadgeSlot>
-                  <ResidentName>{resident.name ?? species.name}</ResidentName>
+                  <ResidentName>{displayName}</ResidentName>
                 </ResidentButton>
               </ResidentSpot>
             );
@@ -256,11 +265,24 @@ const ResidentButton = styled.button`
   border: none;
   background: none;
   cursor: pointer;
+  transition: transform 150ms ease;
+
+  &:hover {
+    transform: scale(1.06);
+  }
 
   &:focus-visible {
     outline: 2px solid var(--color-primary-400);
     outline-offset: 2px;
     border-radius: 8px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
   }
 `;
 

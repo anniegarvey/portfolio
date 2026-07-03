@@ -27,10 +27,13 @@ export function DailyDigest() {
   const { soothedTrust, soothedVisitors, foraged, arrivalSpeciesId } =
     dailyReport;
 
-  const lines: string[] = [];
+  const lines: { key: string; text: string }[] = [];
 
   if (arrivalSpeciesId !== null) {
-    lines.push(`A wild ${SPECIES[arrivalSpeciesId].name} wandered in!`);
+    lines.push({
+      key: "arrival",
+      text: `A wild ${SPECIES[arrivalSpeciesId].name} wandered in!`,
+    });
   }
 
   // Group forage events by resident so a wellspring's two gifts read as one line.
@@ -40,19 +43,24 @@ export function DailyDigest() {
     list.push(event.ingredientId);
     byResident.set(event.residentId, list);
   }
+  const residentById = new Map(state.residents.map((r) => [r.id, r]));
   for (const [residentId, ingredientIds] of byResident) {
-    const resident = state.residents.find((r) => r.id === residentId);
+    const resident = residentById.get(residentId);
     if (!resident) continue;
     const name = resident.name ?? SPECIES[resident.speciesId].name;
-    lines.push(`${name} gathered ${describeGathered(ingredientIds)}`);
+    lines.push({
+      key: residentId,
+      text: `${name} gathered ${describeGathered(ingredientIds)}`,
+    });
   }
 
   if (soothedTrust > 0 && soothedVisitors > 0) {
-    lines.push(
-      `Your soothers calmed ${soothedVisitors} wild visitor${
+    lines.push({
+      key: "soothe",
+      text: `Your soothers calmed ${soothedVisitors} wild visitor${
         soothedVisitors === 1 ? "" : "s"
       } (+${soothedTrust} trust)`,
-    );
+    });
   }
 
   if (lines.length === 0) return null;
@@ -62,7 +70,7 @@ export function DailyDigest() {
       <Heading id={headingId}>Overnight in the glade</Heading>
       <EventList>
         {lines.map((line) => (
-          <li key={line}>{line}</li>
+          <li key={line.key}>{line.text}</li>
         ))}
       </EventList>
       <Button onClick={clearDailyReport} size="sm" variant="ghost">

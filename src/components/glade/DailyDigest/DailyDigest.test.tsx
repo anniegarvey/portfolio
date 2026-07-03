@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type GladeContextType, useGlade } from "@/lib/glade/context";
 import type { DailyGladeReport } from "@/lib/glade/gladeEngine";
 import type { Resident } from "@/lib/glade/schema";
-import { makeGladeState } from "@/lib/glade/testFixtures";
+import { makeGladeContext, makeGladeState } from "@/lib/glade/testFixtures";
 import { DailyDigest } from "./DailyDigest";
 
 vi.mock("@/lib/glade/context");
@@ -33,27 +33,13 @@ const emptyReport: DailyGladeReport = {
 const clearDailyReport = vi.fn();
 
 function mockGlade(overrides: Partial<GladeContextType> = {}) {
-  vi.mocked(useGlade).mockReturnValue({
-    state: makeGladeState({ residents: [rabbit, fernmother] }),
-    lastAction: null,
-    celebration: null,
-    clearCelebration: vi.fn(),
-    dailyReport: null,
-    clearDailyReport,
-    tamedVisitor: null,
-    tamedVisitorIndex: null,
-    tamedResidentId: null,
-    clearTamedVisitor: vi.fn(),
-    nameResident: vi.fn(),
-    gladeSceneRef: { current: null },
-    offerTreat: vi.fn(),
-    approachVisitor: vi.fn(),
-    petVisitor: vi.fn(),
-    cookTreat: vi.fn(),
-    buyIngredient: vi.fn().mockReturnValue(false),
-    buyLesson: vi.fn().mockReturnValue(false),
-    ...overrides,
-  });
+  vi.mocked(useGlade).mockReturnValue(
+    makeGladeContext({
+      state: makeGladeState({ residents: [rabbit, fernmother] }),
+      clearDailyReport,
+      ...overrides,
+    }),
+  );
 }
 
 beforeEach(() => {

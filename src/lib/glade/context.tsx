@@ -131,15 +131,18 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Load from localStorage and run the daily advance on mount (client-only).
+  // Ref-guarded so dev strict-mode's second effect run can't advance again
+  // (the advance rolls RNG) or overwrite the report.
+  const advancedOnMount = useRef(false);
   useEffect(() => {
+    if (advancedOnMount.current) return;
+    advancedOnMount.current = true;
     const todayStr = getTodayDateString();
     const result = advanceGladeDay(
       loadGladeState() ?? createInitialState(),
       todayStr,
     );
     setState(() => result.state);
-    // In dev strict-mode the effect re-runs against the already-advanced
-    // saved state, yielding a null report — keep the first report.
     if (result.report !== null) setDailyReport(result.report);
   }, [setState]);
 

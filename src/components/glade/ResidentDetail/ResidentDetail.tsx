@@ -1,9 +1,10 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
+import { ResidentNameForm } from "@/components/glade/ResidentNameForm";
 import { RoleBadge } from "@/components/glade/RoleBadge";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
@@ -28,9 +29,18 @@ export interface ResidentDetailProps {
 export function ResidentDetail({ resident, onClose, id }: ResidentDetailProps) {
   const { nameResident } = useGlade();
   const [renaming, setRenaming] = useState(false);
-  const [draft, setDraft] = useState("");
   const headingId = useId();
-  const renameInputId = useId();
+
+  // Saving removes the form (and the focused Save button) from the DOM;
+  // hand focus back to the Rename button so keyboard users aren't dropped.
+  const renameButtonRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef(false);
+  useEffect(() => {
+    if (!renaming && returnFocusRef.current) {
+      returnFocusRef.current = false;
+      renameButtonRef.current?.focus();
+    }
+  }, [renaming]);
 
   const species = SPECIES[resident.speciesId];
   const displayName = resident.name ?? species.name;
@@ -58,36 +68,22 @@ export function ResidentDetail({ resident, onClose, id }: ResidentDetailProps) {
           </span>
         </Benefit>
         {renaming ? (
-          <RenameForm
-            onSubmit={(e) => {
-              e.preventDefault();
-              nameResident(resident.id, draft);
+          <ResidentNameForm
+            autoFocus
+            initialValue={resident.name}
+            label="New name"
+            onSubmit={(name) => {
+              nameResident(resident.id, name);
+              returnFocusRef.current = true;
               setRenaming(false);
             }}
-          >
-            <RenameLabel htmlFor={renameInputId}>New name</RenameLabel>
-            <RenameInput
-              id={renameInputId}
-              maxLength={24}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={species.name}
-              value={draft}
-            />
-            <Button
-              disabled={draft.trim() === ""}
-              size="sm"
-              type="submit"
-              variant="outline"
-            >
-              Save
-            </Button>
-          </RenameForm>
+            placeholder={species.name}
+            submitLabel="Save"
+          />
         ) : (
           <Button
-            onClick={() => {
-              setDraft(resident.name ?? "");
-              setRenaming(true);
-            }}
+            onClick={() => setRenaming(true)}
+            ref={renameButtonRef}
             size="sm"
             variant="ghost"
           >
@@ -159,32 +155,4 @@ const Benefit = styled.p`
   align-items: center;
   gap: 0.4rem;
   font-size: 0.9rem;
-`;
-
-const RenameForm = styled.form`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const RenameLabel = styled.label`
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
-`;
-
-const RenameInput = styled.input`
-  min-width: 0;
-  width: 10rem;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.9rem;
-  border-radius: 8px;
-  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-  background: light-dark(white, var(--color-grey-900));
-  color: inherit;
-
-  &:focus-visible {
-    outline: 2px solid var(--color-primary-400);
-    outline-offset: 1px;
-  }
 `;

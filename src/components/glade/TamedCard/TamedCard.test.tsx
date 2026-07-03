@@ -3,7 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type GladeContextType, useGlade } from "@/lib/glade/context";
 import type { Resident } from "@/lib/glade/schema";
-import { makeGladeState, makeVisitor } from "@/lib/glade/testFixtures";
+import {
+  makeGladeContext,
+  makeGladeState,
+  makeVisitor,
+} from "@/lib/glade/testFixtures";
 import { TamedCard } from "./TamedCard";
 
 vi.mock("@/lib/glade/context");
@@ -23,27 +27,16 @@ const robinResident: Resident = {
 const nameResident = vi.fn();
 
 function mockGlade(overrides: Partial<GladeContextType> = {}) {
-  vi.mocked(useGlade).mockReturnValue({
-    state: makeGladeState({ residents: [robinResident] }),
-    lastAction: null,
-    celebration: null,
-    clearCelebration: vi.fn(),
-    dailyReport: null,
-    clearDailyReport: vi.fn(),
-    tamedVisitor: robinVisitor,
-    tamedVisitorIndex: 0,
-    tamedResidentId: robinResident.id,
-    clearTamedVisitor: vi.fn(),
-    nameResident,
-    gladeSceneRef: { current: null },
-    offerTreat: vi.fn(),
-    approachVisitor: vi.fn(),
-    petVisitor: vi.fn(),
-    cookTreat: vi.fn(),
-    buyIngredient: vi.fn().mockReturnValue(false),
-    buyLesson: vi.fn().mockReturnValue(false),
-    ...overrides,
-  });
+  vi.mocked(useGlade).mockReturnValue(
+    makeGladeContext({
+      state: makeGladeState({ residents: [robinResident] }),
+      tamedVisitor: robinVisitor,
+      tamedVisitorIndex: 0,
+      tamedResidentId: robinResident.id,
+      nameResident,
+      ...overrides,
+    }),
+  );
 }
 
 beforeEach(() => {

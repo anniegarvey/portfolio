@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GladeContextType } from "@/lib/glade/context";
 import { useGlade } from "@/lib/glade/context";
 import type { Resident } from "@/lib/glade/schema";
-import { makeGladeState } from "@/lib/glade/testFixtures";
+import { makeGladeContext, makeGladeState } from "@/lib/glade/testFixtures";
 import { ResidentDetail } from "./ResidentDetail";
 
 vi.mock("@/lib/glade/context");
@@ -23,27 +23,13 @@ const nameResident = vi.fn();
 const onClose = vi.fn();
 
 function mockGlade(overrides: Partial<GladeContextType> = {}) {
-  vi.mocked(useGlade).mockReturnValue({
-    state: makeGladeState({ residents: [rabbit] }),
-    lastAction: null,
-    celebration: null,
-    clearCelebration: vi.fn(),
-    dailyReport: null,
-    clearDailyReport: vi.fn(),
-    tamedVisitor: null,
-    tamedVisitorIndex: null,
-    tamedResidentId: null,
-    clearTamedVisitor: vi.fn(),
-    nameResident,
-    gladeSceneRef: { current: null },
-    offerTreat: vi.fn(),
-    approachVisitor: vi.fn(),
-    petVisitor: vi.fn(),
-    cookTreat: vi.fn(),
-    buyIngredient: vi.fn().mockReturnValue(false),
-    buyLesson: vi.fn().mockReturnValue(false),
-    ...overrides,
-  });
+  vi.mocked(useGlade).mockReturnValue(
+    makeGladeContext({
+      state: makeGladeState({ residents: [rabbit] }),
+      nameResident,
+      ...overrides,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -96,6 +82,8 @@ describe("ResidentDetail", () => {
 
     expect(nameResident).toHaveBeenCalledWith(rabbit.id, "Biscuit");
     expect(screen.queryByLabelText("New name")).not.toBeInTheDocument();
+    // Focus returns to the Rename button after the form unmounts.
+    expect(screen.getByRole("button", { name: "Rename" })).toHaveFocus();
   });
 
   it("disables saving a blank name", async () => {

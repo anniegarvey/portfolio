@@ -1,0 +1,1 @@
+export { ResidentNameForm } from "./ResidentNameForm";
