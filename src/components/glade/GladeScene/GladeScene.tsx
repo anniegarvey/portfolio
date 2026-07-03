@@ -1,12 +1,61 @@
 "use client";
 
 import { keyframes, styled } from "next-yak";
-import { useId, useState } from "react";
+import { type CSSProperties, useId, useState } from "react";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { ResidentDetail } from "@/components/glade/ResidentDetail";
 import { RoleBadge } from "@/components/glade/RoleBadge";
 import { SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
+import type { SpeciesId } from "@/lib/glade/schema";
+
+// ─── Idle Motion ──────────────────────────────────────────────────────────────
+
+type IdleMotion =
+  | "hop"
+  | "bob"
+  | "breathe"
+  | "sway"
+  | "waddle"
+  | "prowl"
+  | "shimmer"
+  | "twitch";
+
+/**
+ * Each species' idle animation in the scene: an archetype fitting how the
+ * creature moves, plus a duration giving it its own tempo.
+ */
+const IDLE_MOTIONS: Record<
+  SpeciesId,
+  { motion: IdleMotion; duration: number }
+> = {
+  robin: { motion: "hop", duration: 2.6 },
+  rabbit: { motion: "hop", duration: 3.8 },
+  squirrel: { motion: "twitch", duration: 4.2 },
+  hedgehog: { motion: "waddle", duration: 3.4 },
+  fox: { motion: "prowl", duration: 5 },
+  deer: { motion: "sway", duration: 5.6 },
+  owl: { motion: "breathe", duration: 5.2 },
+  badger: { motion: "waddle", duration: 4.4 },
+  mosskit: { motion: "sway", duration: 4.8 },
+  glimmerwing: { motion: "bob", duration: 2.6 },
+  puffloaf: { motion: "breathe", duration: 4.2 },
+  dewsprite: { motion: "shimmer", duration: 3.6 },
+  emberveil: { motion: "bob", duration: 2.1 },
+  thornwhisper: { motion: "sway", duration: 6.2 },
+  mirewing: { motion: "bob", duration: 3.2 },
+  fernmother: { motion: "breathe", duration: 6.8 },
+};
+
+/** Phase-shifts a resident's idle loop by where it stands, so neighbours
+ * sharing a motion never move in lockstep. */
+function idleStyle(speciesId: SpeciesId, positionX: number): CSSProperties {
+  const { duration } = IDLE_MOTIONS[speciesId];
+  return {
+    "--idle-duration": `${duration}s`,
+    "--idle-delay": `${(-(positionX / 100) * duration).toFixed(2)}s`,
+  } as CSSProperties;
+}
 
 export function GladeScene() {
   const { state, celebration, gladeSceneRef } = useGlade();
@@ -101,7 +150,12 @@ export function GladeScene() {
                     }
                     onAnimationEnd={() => setGreetingId(null)}
                   >
-                    <CreatureSVG size={52} speciesId={resident.speciesId} />
+                    <IdleWrapper
+                      data-motion={IDLE_MOTIONS[resident.speciesId].motion}
+                      style={idleStyle(resident.speciesId, resident.position.x)}
+                    >
+                      <CreatureSVG size={52} speciesId={resident.speciesId} />
+                    </IdleWrapper>
                   </GreetWrapper>
                   <BadgeSlot>
                     <RoleBadge role={species.benefitRole} />
@@ -229,6 +283,89 @@ const GreetWrapper = styled.div`
     &[data-greeting="true"] {
       animation: none;
     }
+  }
+`;
+
+// Idle keyframes: small, slow, and grounded so the scene stays calm.
+const idleHop = keyframes`
+  0%, 55%, 69%, 83%, 100% { transform: translateY(0); }
+  62% { transform: translateY(-7px); }
+  76% { transform: translateY(-4px); }
+`;
+
+const idleBob = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+`;
+
+const idleBreathe = keyframes`
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+`;
+
+const idleSway = keyframes`
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+`;
+
+const idleWaddle = keyframes`
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  25% { transform: rotate(-3deg) translateX(-1px); }
+  75% { transform: rotate(3deg) translateX(1px); }
+`;
+
+const idleProwl = keyframes`
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-4px); }
+  70% { transform: translateX(4px); }
+`;
+
+const idleShimmer = keyframes`
+  0%, 100% { opacity: 1; transform: translateY(0); }
+  50% { opacity: 0.8; transform: translateY(-3px); }
+`;
+
+const idleTwitch = keyframes`
+  0%, 70%, 82%, 100% { transform: translateX(0) rotate(0deg); }
+  74% { transform: translateX(-2px) rotate(-2deg); }
+  78% { transform: translateX(2px) rotate(2deg); }
+`;
+
+const IdleWrapper = styled.div`
+  /* Ground-level pivot so sways and waddles rock on the feet, not the middle. */
+  transform-origin: 50% 90%;
+  animation-duration: var(--idle-duration);
+  animation-delay: var(--idle-delay);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+
+  &[data-motion="hop"] {
+    animation-name: ${idleHop};
+  }
+  &[data-motion="bob"] {
+    animation-name: ${idleBob};
+  }
+  &[data-motion="breathe"] {
+    animation-name: ${idleBreathe};
+  }
+  &[data-motion="sway"] {
+    animation-name: ${idleSway};
+  }
+  &[data-motion="waddle"] {
+    animation-name: ${idleWaddle};
+  }
+  &[data-motion="prowl"] {
+    animation-name: ${idleProwl};
+  }
+  &[data-motion="shimmer"] {
+    animation-name: ${idleShimmer};
+  }
+  &[data-motion="twitch"] {
+    animation-name: ${idleTwitch};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 

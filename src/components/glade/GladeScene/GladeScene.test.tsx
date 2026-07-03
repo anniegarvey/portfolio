@@ -127,6 +127,19 @@ describe("GladeScene", () => {
     );
   });
 
+  it("gives each resident its species' idle motion, phase-shifted by position", () => {
+    render(<GladeScene />);
+
+    const rabbitButton = screen.getByRole("button", { name: "Rabbit" });
+    const rabbitIdle = rabbitButton.querySelector('[data-motion="hop"]');
+    expect(rabbitIdle).not.toBeNull();
+    // Rabbit hops for 3.8s at x=20 → phase offset of -0.76s.
+    expect(rabbitIdle).toHaveStyle({ "--idle-delay": "-0.76s" });
+
+    const foxButton = screen.getByRole("button", { name: "Rusty" });
+    expect(foxButton.querySelector('[data-motion="prowl"]')).not.toBeNull();
+  });
+
   it("hides a resident that is still flying in from a tame celebration", () => {
     mockGlade({
       celebration: {
