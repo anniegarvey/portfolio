@@ -20,7 +20,9 @@ function makeResident(speciesId: SpeciesId): Resident {
 describe("advanceGladeDay", () => {
   it("runs at most once per calendar day", () => {
     const state = makeGladeState({ lastAdvanceDate: TODAY });
-    expect(advanceGladeDay(state, TODAY, () => 0.5)).toBe(state);
+    const result = advanceGladeDay(state, TODAY, () => 0.5);
+    expect(result.state).toBe(state);
+    expect(result.report).toBe(null);
   });
 
   it("resets each visitor's daily actions", () => {
@@ -32,7 +34,7 @@ describe("advanceGladeDay", () => {
       ],
       lastAdvanceDate: "2026-06-09",
     });
-    const next = advanceGladeDay(state, TODAY, () => 0.5);
+    const next = advanceGladeDay(state, TODAY, () => 0.5).state;
     expect(next.visitors[0].actionsToday).toEqual({
       treat: false,
       approach: false,
@@ -50,7 +52,7 @@ describe("advanceGladeDay", () => {
       visitors: [visitor],
       residents: [makeResident("hedgehog"), makeResident("deer")], // 2 soothers
     });
-    const next = advanceGladeDay(state, TODAY, () => 0.5);
+    const next = advanceGladeDay(state, TODAY, () => 0.5).state;
     expect(next.visitors[0].trust).toBe(tameThresholdFor("robin") - 1);
   });
 
@@ -59,7 +61,7 @@ describe("advanceGladeDay", () => {
       visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
       residents: [makeResident("rabbit"), makeResident("squirrel")],
     });
-    const next = advanceGladeDay(state, TODAY, () => 0);
+    const next = advanceGladeDay(state, TODAY, () => 0).state;
     const total = Object.values(next.pantry.ingredients).reduce(
       (sum, n) => sum + n,
       0,
@@ -74,7 +76,7 @@ describe("advanceGladeDay", () => {
     });
     // The highest roll picks the last entry of the common pool — never a
     // premium ingredient.
-    const next = advanceGladeDay(state, TODAY, () => 0.999);
+    const next = advanceGladeDay(state, TODAY, () => 0.999).state;
     expect(next.pantry.ingredients.mint).toBe(1);
     expect(next.pantry.ingredients.honey).toBeUndefined();
     expect(next.pantry.ingredients.cream).toBeUndefined();
@@ -85,7 +87,7 @@ describe("advanceGladeDay", () => {
       visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
       residents: [makeResident("badger")], // uncommon forager
     });
-    const next = advanceGladeDay(state, TODAY, () => 0.999);
+    const next = advanceGladeDay(state, TODAY, () => 0.999).state;
     expect(next.pantry.ingredients.cream).toBe(1);
   });
 
@@ -94,7 +96,7 @@ describe("advanceGladeDay", () => {
       visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
       residents: [makeResident("thornwhisper")], // legendary wellspring
     });
-    const next = advanceGladeDay(state, TODAY, () => 0);
+    const next = advanceGladeDay(state, TODAY, () => 0).state;
     const total = Object.values(next.pantry.ingredients).reduce(
       (sum, n) => sum + n,
       0,
@@ -104,7 +106,7 @@ describe("advanceGladeDay", () => {
 
   it("spawns one new visitor when there is room", () => {
     const state = makeGladeState();
-    const next = advanceGladeDay(state, TODAY, () => 0);
+    const next = advanceGladeDay(state, TODAY, () => 0).state;
     expect(next.visitors).toHaveLength(1);
     expect(next.visitors[0].trust).toBe(0);
     expect(next.visitors[0].arrivedDate).toBe(TODAY);
@@ -115,8 +117,59 @@ describe("advanceGladeDay", () => {
       makeVisitor({ id: `00000000-0000-4000-8000-00000000000${i}` }),
     );
     const state = makeGladeState({ visitors });
-    const next = advanceGladeDay(state, TODAY, () => 0.5);
+    const next = advanceGladeDay(state, TODAY, () => 0.5).state;
     expect(next.visitors).toHaveLength(MAX_VISITORS);
+  });
+
+  it("reports forage events attributed to the gathering resident", () => {
+    const rabbit = makeResident("rabbit");
+    const wellspring = makeResident("thornwhisper");
+    const state = makeGladeState({
+      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
+      residents: [rabbit, wellspring],
+    });
+    const report = advanceGladeDay(state, TODAY, () => 0).report;
+    expect(report?.foraged).toEqual([
+      { residentId: rabbit.id, ingredientId: "berries" },
+      { residentId: wellspring.id, ingredientId: "berries" },
+      { residentId: wellspring.id, ingredientId: "berries" },
+    ]);
+  });
+
+  it("reports the soothe bonus and how many visitors received it", () => {
+    const state = makeGladeState({
+      visitors: [
+        makeVisitor(),
+        makeVisitor({ id: "00000000-0000-4000-8000-000000000002" }),
+      ],
+      residents: [makeResident("hedgehog")], // 1 soother
+    });
+    const report = advanceGladeDay(state, TODAY, () => 0.5).report;
+    expect(report?.soothedTrust).toBe(3);
+    expect(report?.soothedVisitors).toBe(2);
+  });
+
+  it("reports no soothed visitors without soother residents", () => {
+    const state = makeGladeState({ visitors: [makeVisitor()] });
+    const report = advanceGladeDay(state, TODAY, () => 0.5).report;
+    expect(report?.soothedTrust).toBe(0);
+    expect(report?.soothedVisitors).toBe(0);
+  });
+
+  it("reports the arriving species, or null when the glade is full", () => {
+    const spawned = advanceGladeDay(makeGladeState(), TODAY, () => 0);
+    expect(spawned.report?.arrivalSpeciesId).toBe(
+      spawned.state.visitors[0].speciesId,
+    );
+
+    const full = makeGladeState({
+      visitors: Array.from({ length: MAX_VISITORS }, (_, i) =>
+        makeVisitor({ id: `00000000-0000-4000-8000-00000000000${i}` }),
+      ),
+    });
+    expect(advanceGladeDay(full, TODAY, () => 0).report?.arrivalSpeciesId).toBe(
+      null,
+    );
   });
 });
 

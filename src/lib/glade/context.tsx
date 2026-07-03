@@ -122,8 +122,10 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   // Load from localStorage and run the daily advance on mount (client-only).
   useEffect(() => {
     const todayStr = getTodayDateString();
-    setState(() =>
-      advanceGladeDay(loadGladeState() ?? createInitialState(), todayStr),
+    setState(
+      () =>
+        advanceGladeDay(loadGladeState() ?? createInitialState(), todayStr)
+          .state,
     );
   }, [setState]);
 

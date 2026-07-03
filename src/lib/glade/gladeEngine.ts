@@ -10,10 +10,40 @@ import {
   tameThresholdFor,
 } from "./catalog";
 import { addIngredient } from "./cookingModule";
-import type { GladeState, Rarity, SpeciesId, WildVisitor } from "./schema";
+import type {
+  GladeState,
+  IngredientId,
+  Rarity,
+  SpeciesId,
+  WildVisitor,
+} from "./schema";
 
 /** Trust a soother resident passively grants each wild visitor per day. */
 const SOOTHE_TRUST_PER_DAY = 3;
+
+/** One ingredient gathered by a resident during the daily advance. */
+export interface ForageEvent {
+  residentId: string;
+  ingredientId: IngredientId;
+}
+
+/** What happened during a daily glade advance, for the daily digest UI. */
+export interface DailyGladeReport {
+  /** Trust each wild visitor gained from soother residents. */
+  soothedTrust: number;
+  /** Number of wild visitors that were soothed. */
+  soothedVisitors: number;
+  /** Ingredients gathered by forager and wellspring residents. */
+  foraged: ForageEvent[];
+  /** Species that wandered in today, if any. */
+  arrivalSpeciesId: SpeciesId | null;
+}
+
+export interface AdvanceResult {
+  state: GladeState;
+  /** Null when the advance already ran today. */
+  report: DailyGladeReport | null;
+}
 
 function countRole(state: GladeState, role: string): number {
   return state.residents.filter(
@@ -86,13 +116,15 @@ export function pickVisitorSpecies(
  *   tame threshold — the final step is always the player's)
  * - forager residents each gather one ingredient from their rarity's pool
  * - one new wild visitor may arrive (if there's room and species left)
+ *
+ * Also reports what happened so the UI can show a daily digest.
  */
 export function advanceGladeDay(
   state: GladeState,
   today: string,
   rng: () => number = Math.random,
-): GladeState {
-  if (state.lastAdvanceDate === today) return state;
+): AdvanceResult {
+  if (state.lastAdvanceDate === today) return { state, report: null };
 
   const sootheBonus = countRole(state, "soother") * SOOTHE_TRUST_PER_DAY;
   let next: GladeState = {
@@ -105,29 +137,36 @@ export function advanceGladeDay(
     })),
   };
 
+  const foraged: ForageEvent[] = [];
+  const gather = (residentId: string, ingredientId: IngredientId) => {
+    next = addIngredient(next, ingredientId);
+    foraged.push({ residentId, ingredientId });
+  };
+
   const foragers = state.residents.filter(
     (r) => SPECIES[r.speciesId].benefitRole === "forager",
   );
   for (const forager of foragers) {
     const pool = FORAGE_POOLS[SPECIES[forager.speciesId].rarity];
-    next = addIngredient(next, pool[Math.floor(rng() * pool.length)]);
+    gather(forager.id, pool[Math.floor(rng() * pool.length)]);
   }
 
   // Wellspring residents produce two ingredients per day from the full pool.
   const wellsprings = state.residents.filter(
     (r) => SPECIES[r.speciesId].benefitRole === "wellspring",
   );
-  for (const _wellspring of wellsprings) {
-    next = addIngredient(
-      next,
+  for (const wellspring of wellsprings) {
+    gather(
+      wellspring.id,
       ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)],
     );
-    next = addIngredient(
-      next,
+    gather(
+      wellspring.id,
       ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)],
     );
   }
 
+  let arrivalSpeciesId: SpeciesId | null = null;
   if (next.visitors.length < MAX_VISITORS) {
     const speciesId = pickVisitorSpecies(next, rng);
     if (speciesId !== null) {
@@ -139,8 +178,17 @@ export function advanceGladeDay(
         actionsToday: { treat: false, approach: false, pet: false },
       };
       next = { ...next, visitors: [...next.visitors, visitor] };
+      arrivalSpeciesId = speciesId;
     }
   }
 
-  return next;
+  return {
+    state: next,
+    report: {
+      soothedTrust: sootheBonus,
+      soothedVisitors: sootheBonus > 0 ? state.visitors.length : 0,
+      foraged,
+      arrivalSpeciesId,
+    },
+  };
 }
