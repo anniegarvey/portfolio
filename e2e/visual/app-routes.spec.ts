@@ -127,7 +127,7 @@ test.describe("Glade", () => {
       );
       await page.reload();
       await page
-        .getByRole("img", { name: "Glade ecosystem" })
+        .getByRole("region", { name: "Glade ecosystem" })
         .waitFor({ state: "visible" });
       await expect(page).toHaveScreenshot(`glade-${theme}.png`, {
         fullPage: true,

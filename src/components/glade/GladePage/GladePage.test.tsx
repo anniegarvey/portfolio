@@ -4,7 +4,11 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGlade } from "@/lib/glade/context";
 import type { WildVisitor } from "@/lib/glade/schema";
-import { makeGladeState, makeVisitor } from "@/lib/glade/testFixtures";
+import {
+  makeGladeContext,
+  makeGladeState,
+  makeVisitor,
+} from "@/lib/glade/testFixtures";
 import { usePoints } from "@/lib/points/context";
 import { GladePage } from "./GladePage";
 
@@ -18,6 +22,9 @@ vi.mock("@/components/glade/GladeScene", () => ({
 }));
 vi.mock("@/components/glade/TameCelebration", () => ({
   TameCelebration: () => null,
+}));
+vi.mock("@/components/glade/DailyDigest", () => ({
+  DailyDigest: () => null,
 }));
 vi.mock("@/components/glade/CreatureSVG", () => ({
   CreatureSVG: () => null,
@@ -42,23 +49,7 @@ const rabbit = makeVisitor({ id: "v-2", speciesId: "rabbit" });
 const squirrel = makeVisitor({ id: "v-3", speciesId: "squirrel" });
 
 function mockGlade(overrides = {}) {
-  vi.mocked(useGlade).mockReturnValue({
-    state: makeGladeState(),
-    lastAction: null,
-    celebration: null,
-    clearCelebration: vi.fn(),
-    tamedVisitor: null,
-    tamedVisitorIndex: null,
-    clearTamedVisitor: vi.fn(),
-    gladeSceneRef: { current: null },
-    offerTreat: vi.fn(),
-    approachVisitor: vi.fn(),
-    petVisitor: vi.fn(),
-    cookTreat: vi.fn(),
-    buyIngredient: vi.fn().mockReturnValue(false),
-    buyLesson: vi.fn().mockReturnValue(false),
-    ...overrides,
-  });
+  vi.mocked(useGlade).mockReturnValue(makeGladeContext(overrides));
 }
 
 beforeEach(() => {

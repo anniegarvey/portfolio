@@ -14,7 +14,7 @@ import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
 import { INGREDIENTS, SPECIES } from "./catalog";
 import { addIngredient, cookTreat } from "./cookingModule";
-import { advanceGladeDay } from "./gladeEngine";
+import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
 import type {
   GladeState,
   IngredientId,
@@ -55,11 +55,18 @@ export interface GladeContextType {
   lastAction: VisitorActionResult | null;
   celebration: Celebration | null;
   clearCelebration: () => void;
+  /** What today's daily advance produced, until dismissed. Null if none ran. */
+  dailyReport: DailyGladeReport | null;
+  clearDailyReport: () => void;
   /** Visitor that was tamed this session — stays visible as a success card. */
   tamedVisitor: WildVisitor | null;
   /** Original position of tamedVisitor in state.visitors before taming. */
   tamedVisitorIndex: number | null;
+  /** Resident created by this session's tame — target for first naming. */
+  tamedResidentId: string | null;
   clearTamedVisitor: () => void;
+  /** Gives a resident a personal name. Trimmed; empty names are ignored. */
+  nameResident: (residentId: string, name: string) => void;
   /** Ref for the GladeScene container — used to calculate resident pixel positions. */
   gladeSceneRef: RefObject<HTMLDivElement | null>;
   offerTreat: (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => void;
@@ -100,13 +107,17 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   );
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const clearCelebration = useCallback(() => setCelebration(null), []);
+  const [dailyReport, setDailyReport] = useState<DailyGladeReport | null>(null);
+  const clearDailyReport = useCallback(() => setDailyReport(null), []);
   const [tamedVisitor, setTamedVisitor] = useState<WildVisitor | null>(null);
   const [tamedVisitorIndex, setTamedVisitorIndex] = useState<number | null>(
     null,
   );
+  const [tamedResidentId, setTamedResidentId] = useState<string | null>(null);
   const clearTamedVisitor = useCallback(() => {
     setTamedVisitor(null);
     setTamedVisitorIndex(null);
+    setTamedResidentId(null);
   }, []);
   const gladeSceneRef = useRef<HTMLDivElement | null>(null);
 
@@ -120,11 +131,19 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Load from localStorage and run the daily advance on mount (client-only).
+  // Ref-guarded so dev strict-mode's second effect run can't advance again
+  // (the advance rolls RNG) or overwrite the report.
+  const advancedOnMount = useRef(false);
   useEffect(() => {
+    if (advancedOnMount.current) return;
+    advancedOnMount.current = true;
     const todayStr = getTodayDateString();
-    setState(() =>
-      advanceGladeDay(loadGladeState() ?? createInitialState(), todayStr),
+    const result = advanceGladeDay(
+      loadGladeState() ?? createInitialState(),
+      todayStr,
     );
+    setState(() => result.state);
+    if (result.report !== null) setDailyReport(result.report);
   }, [setState]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
@@ -150,6 +169,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         : 120;
       setTamedVisitor(visitor);
       setTamedVisitorIndex(originalIndex);
+      setTamedResidentId(newResident.id);
       setCelebration({
         speciesId: newResident.speciesId,
         creatureName: SPECIES[newResident.speciesId].name,
@@ -233,6 +253,20 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [setState, spendPoints],
   );
 
+  const handleNameResident = useCallback(
+    (residentId: string, name: string) => {
+      const trimmed = name.trim().slice(0, 24);
+      if (trimmed === "") return;
+      setState((prev) => ({
+        ...prev,
+        residents: prev.residents.map((r) =>
+          r.id === residentId ? { ...r, name: trimmed } : r,
+        ),
+      }));
+    },
+    [setState],
+  );
+
   const handleBuyLesson = useCallback(
     (skillId: SkillId): boolean => {
       if (!canBuyLesson(state, skillId)) return false;
@@ -251,9 +285,13 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         lastAction,
         celebration,
         clearCelebration,
+        dailyReport,
+        clearDailyReport,
         tamedVisitor,
         tamedVisitorIndex,
+        tamedResidentId,
         clearTamedVisitor,
+        nameResident: handleNameResident,
         gladeSceneRef,
         offerTreat: handleOfferTreat,
         approachVisitor: handleApproachVisitor,

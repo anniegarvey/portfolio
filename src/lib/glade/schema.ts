@@ -106,7 +106,8 @@ export type GladePosition = z.infer<typeof GladePositionSchema>;
 export const ResidentSchema = z.object({
   id: z.string().uuid(),
   speciesId: SpeciesIdSchema,
-  name: z.string().optional(),
+  /** Personal name given by the player; falls back to the species name. */
+  name: z.string().min(1).max(24).optional(),
   tamedDate: z.string(),
   position: GladePositionSchema,
 });

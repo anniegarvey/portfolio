@@ -361,6 +361,27 @@ export const RECIPES: Record<TreatId, RecipeConfig> = {
 
 export const ALL_TREAT_IDS = Object.keys(RECIPES) as TreatId[];
 
+// ─── Benefit Roles ────────────────────────────────────────────────────────────
+
+export const ROLE_LABELS: Record<BenefitRole, string> = {
+  forager: "Forager",
+  soother: "Soother",
+  beacon: "Beacon",
+  muse: "Muse",
+  herald: "Herald",
+  wellspring: "Wellspring",
+};
+
+/** What each role contributes, shown wherever a resident's benefit appears. */
+export const ROLE_DESCRIPTIONS: Record<BenefitRole, string> = {
+  forager: "Gathers an ingredient each day",
+  soother: "Calms wild visitors each day",
+  beacon: "Attracts rarer visitors",
+  muse: "Boosts skill XP",
+  herald: "Strengthens well-matched taming actions",
+  wellspring: "Unearths two ingredients each day",
+};
+
 // ─── Skills ───────────────────────────────────────────────────────────────────
 
 export const SKILL_NAMES: Record<SkillId, string> = {

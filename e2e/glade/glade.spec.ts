@@ -15,7 +15,7 @@ test.describe("Creature Glade", () => {
       page.getByRole("heading", { name: "Creature Glade" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("img", { name: "Glade ecosystem" }),
+      page.getByRole("region", { name: "Glade ecosystem" }),
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: /^Robin/ })).toBeVisible();
     await expect(page.getByText("Trust 0/60")).toBeVisible();
@@ -61,8 +61,26 @@ test.describe("Creature Glade", () => {
     ).toBeVisible();
     // Robin also appears as a resident in the glade scene
     await expect(
-      page.getByRole("img", { name: "Glade ecosystem" }).getByText("Robin"),
+      page.getByRole("region", { name: "Glade ecosystem" }).getByText("Robin"),
     ).toBeVisible();
+  });
+
+  test("greeting a resident shows its benefit details", async ({ page }) => {
+    await goToGladeWithSeed(page, {
+      residents: [{ speciesId: "rabbit", x: 30, y: 60 }],
+    });
+
+    await page
+      .getByRole("region", { name: "Glade ecosystem" })
+      .getByRole("button", { name: "Rabbit" })
+      .click();
+
+    await expect(
+      page.getByText("Gathers an ingredient each day"),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Close details" }).click();
+    await expect(page.getByText("Gathers an ingredient each day")).toBeHidden();
   });
 
   test("skills tab shows the three taming skills", async ({ page }) => {

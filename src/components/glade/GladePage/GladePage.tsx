@@ -4,6 +4,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { styled } from "next-yak";
 import { type ReactNode, useId } from "react";
 import { CollectionPanel } from "@/components/glade/CollectionPanel";
+import { DailyDigest } from "@/components/glade/DailyDigest";
 import { GladeScene } from "@/components/glade/GladeScene";
 import { KitchenPanel } from "@/components/glade/KitchenPanel";
 import { SkillsPanel } from "@/components/glade/SkillsPanel";
@@ -32,6 +33,7 @@ export function GladePage() {
       <Layout>
         <TameCelebration />
         <GladeScene />
+        <DailyDigest />
 
         <section aria-labelledby={visitorsHeadingId}>
           <SectionTitle id={visitorsHeadingId}>Wild visitors</SectionTitle>

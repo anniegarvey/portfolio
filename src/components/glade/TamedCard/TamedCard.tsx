@@ -3,15 +3,19 @@
 import { keyframes, styled } from "next-yak";
 import type { CSSProperties } from "react";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
-import { SPECIES } from "@/lib/glade/catalog";
+import { ResidentNameForm } from "@/components/glade/ResidentNameForm";
+import { ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
+import { useGlade } from "@/lib/glade/context";
 import type { WildVisitor } from "@/lib/glade/schema";
 
 const PARTICLE_ANGLES = [0, 60, 120, 180, 240, 300];
 
 export function TamedCard({ visitor }: { visitor: WildVisitor }) {
+  const { state, tamedResidentId, nameResident } = useGlade();
+
   const species = SPECIES[visitor.speciesId];
-  const role =
-    species.benefitRole.charAt(0).toUpperCase() + species.benefitRole.slice(1);
+  const resident =
+    state.residents.find((r) => r.id === tamedResidentId) ?? null;
 
   return (
     <Card>
@@ -27,8 +31,21 @@ export function TamedCard({ visitor }: { visitor: WildVisitor }) {
         </Particles>
       </PortraitWrapper>
       <SuccessBadge>Joined the glade!</SuccessBadge>
-      <Name>{species.name}</Name>
-      <RoleNote>Now your {role}</RoleNote>
+      <Name>{resident?.name ?? species.name}</Name>
+      <RoleNote>Now your {ROLE_LABELS[species.benefitRole]}</RoleNote>
+      {resident !== null &&
+        (resident.name === undefined ? (
+          <ResidentNameForm
+            label="Give them a name"
+            onSubmit={(name) => nameResident(resident.id, name)}
+            placeholder={species.name}
+            submitLabel="Name"
+          />
+        ) : (
+          <NamedNote role="status">
+            Say hello to {resident.name} the {species.name}!
+          </NamedNote>
+        ))}
     </Card>
   );
 }
@@ -102,4 +119,11 @@ const RoleNote = styled.p`
   margin: 0;
   font-size: 0.9rem;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const NamedNote = styled.p`
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: light-dark(var(--color-primary-700), var(--color-primary-300));
 `;

@@ -66,6 +66,12 @@ function GladeDebug() {
       <span data-testid="tamed-visitor-species">
         {ctx.tamedVisitor?.speciesId ?? "none"}
       </span>
+      <span data-testid="tamed-resident-id">
+        {ctx.tamedResidentId ?? "none"}
+      </span>
+      <span data-testid="resident-name">
+        {ctx.state.residents[0]?.name ?? "none"}
+      </span>
       <button onClick={() => ctx.cookTreat("berry-bites")} type="button">
         Cook
       </button>
@@ -112,6 +118,22 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.clearTamedVisitor()} type="button">
         Clear Tamed Visitor
+      </button>
+      <button
+        onClick={() =>
+          ctx.tamedResidentId && ctx.nameResident(ctx.tamedResidentId, " Pip ")
+        }
+        type="button"
+      >
+        Name Pip
+      </button>
+      <button
+        onClick={() =>
+          ctx.tamedResidentId && ctx.nameResident(ctx.tamedResidentId, "   ")
+        }
+        type="button"
+      >
+        Name Blank
       </button>
       <button onClick={() => ctx.buyIngredient("berries")} type="button">
         Buy Berries
@@ -335,6 +357,60 @@ describe("GladeProvider", () => {
     expect(screen.getByTestId("tamed-visitor-species")).toHaveTextContent(
       "none",
     );
+  });
+
+  it("naming the tamed resident trims and persists the name", async () => {
+    seedLocalStorage({
+      visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(
+      screen.getByRole("button", { name: "Pet Back With Rect" }),
+    );
+    expect(screen.getByTestId("tamed-resident-id")).not.toHaveTextContent(
+      "none",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Name Pip" }));
+    expect(screen.getByTestId("resident-name")).toHaveTextContent("Pip");
+
+    const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "{}");
+    expect(stored.residents[0].name).toBe("Pip");
+  });
+
+  it("ignores a blank resident name", async () => {
+    seedLocalStorage({
+      visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(
+      screen.getByRole("button", { name: "Pet Back With Rect" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Name Blank" }));
+    expect(screen.getByTestId("resident-name")).toHaveTextContent("none");
+  });
+
+  it("clearTamedVisitor also clears tamedResidentId", async () => {
+    seedLocalStorage({
+      visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+
+    await user.click(
+      screen.getByRole("button", { name: "Pet Back With Rect" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Clear Tamed Visitor" }),
+    );
+    expect(screen.getByTestId("tamed-resident-id")).toHaveTextContent("none");
   });
 
   it("useGlade throws outside the provider", () => {
