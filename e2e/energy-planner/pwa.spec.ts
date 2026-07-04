@@ -27,7 +27,17 @@ test.describe("PWA Metadata and Offline Capabilities", () => {
     expect(manifest.name).toBe("Annie Garvey");
     expect(manifest.short_name).toBe("Annie Garvey");
     expect(manifest.display).toBe("standalone");
+    // id anchors the installed app's identity so start_url changes reach
+    // already-installed apps; changing it orphans existing installs.
+    expect(manifest.id).toBe("/");
     expect(manifest.start_url).toBe("/energy-planner");
     expect(manifest.icons.length).toBeGreaterThan(0);
+  });
+
+  test("should serve the service worker script", async ({ request }) => {
+    const response = await request.get("/sw.js");
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"]).toContain("javascript");
+    expect(await response.text()).toContain('addEventListener("fetch"');
   });
 });

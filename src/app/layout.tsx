@@ -3,6 +3,7 @@ import { Lexend, Tangerine } from "next/font/google";
 import "./globals.css";
 
 import { Navigation } from "@/components/Navigation";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { PointsProvider } from "@/lib/points/context";
 
@@ -84,6 +85,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${lexend.variable} ${tangerine.variable}`}>
+        <ServiceWorkerRegistration />
         <ThemeProvider>
           <PointsProvider>
             <Navigation />
