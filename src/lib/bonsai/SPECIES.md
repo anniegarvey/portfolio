@@ -369,6 +369,6 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
   cost (slow-growing species cost more).
 - Add a notes section to this file using the existing per-species pattern
   (Trunk, Branches/Style, Foliage, Redesign params, Pruning speed, Sources).
-- Run `pnpm exec tsx scripts/snapshot-grid.ts --species=<slug>` and inspect
+- Run `pnpm generate-snapshots --species=<slug>` then `pnpm snapshot-grid --species=<slug>` and inspect
   `docs/bonsai-snapshots/<slug>-grid.png` at all six growth stages.
 - Run `pnpm test src/lib/bonsai/` and `pnpm exec tsc --noEmit`.

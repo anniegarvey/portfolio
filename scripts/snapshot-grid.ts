@@ -9,8 +9,8 @@
  * young-tree, mature-tree, ancient-tree.
  *
  * Usage:
- *   pnpm exec tsx scripts/snapshot-grid.ts                  # all species
- *   pnpm exec tsx scripts/snapshot-grid.ts --species=maple  # one species only
+ *   pnpm snapshot-grid                  # all species
+ *   pnpm snapshot-grid --species=maple  # one species only
  *
  * Output: docs/bonsai-snapshots/{speciesId}-grid.png
  */
