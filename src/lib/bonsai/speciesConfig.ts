@@ -355,7 +355,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     foliageDistribution: "pad",
     padRadius: 14,
     interiorPadDensity: 0.8,
-    leavesPerPad: [24, 34],
+    leavesPerPad: [20, 28],
     individualVariability: 0.4,
     flowers: {
       // Waxy blue-black seed cones (berry-like); ornamental once mature.
@@ -513,7 +513,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     foliageDistribution: "pad",
     padRadius: 16,
     interiorPadDensity: 0.6,
-    leavesPerPad: [12, 18],
+    leavesPerPad: [10, 15],
     individualVariability: 0.15,
     flowers: {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.

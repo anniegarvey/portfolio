@@ -870,4 +870,39 @@ describe("generateTree", () => {
       expect(SPECIES_CONFIG["flame-tree"].leafSize).toBeLessThan(5.5);
     });
   });
+
+  // ─── Render-cost budgets ────────────────────────────────────────────────────
+  // Generator output size drives SVG element count directly (every leaf is at
+  // least one node), so each species gets a day-100 ceiling with ~15% headroom
+  // over its tuned count. A failure here means a tuning change quietly blew up
+  // render cost — retune density rather than raising the budget without
+  // checking garden-view performance first.
+
+  describe("day-100 element budgets", () => {
+    const BUDGETS: Record<string, number> = {
+      pine: 3400,
+      maple: 1400,
+      "cherry-blossom": 850,
+      juniper: 4600,
+      oak: 1100,
+      wisteria: 1500,
+      "flame-tree": 3300,
+    };
+
+    function totalElements(data: ReturnType<typeof generateTree>) {
+      let n = data.branches.length + data.apexLeaves.length;
+      for (const b of data.branches) n += b.leaves.length;
+      for (const f of data.flowers)
+        n += f.florets.length + f.racemeFlorets.length;
+      return n;
+    }
+
+    it.each(
+      Object.entries(BUDGETS),
+    )("%s stays under %i elements at day 100", (id, budget) => {
+      const spec = SPECIES_CONFIG[id as keyof typeof SPECIES_CONFIG];
+      const data = generateTree(100, spec, [], `snapshot-${id}`);
+      expect(totalElements(data)).toBeLessThan(budget);
+    });
+  });
 });

@@ -250,7 +250,7 @@ so pads themselves hang rather than sitting perfectly horizontal.
 **Foliage**: Scale-like (adult foliage) or needle-like (juvenile). Modelled as dense
 overlapping pads of tiny scale ellipses — the species' signature flat foliage cloud, tuned to
 read as dense clouds rather than sparse confetti dots. `foliageDistribution: "pad"` with
-`padRadius: 14`, `leavesPerPad: [24, 34]`, `interiorPadDensity: 0.8`, `leafSize: 2.4`.
+`padRadius: 14`, `leavesPerPad: [20, 28]`, `interiorPadDensity: 0.8`, `leafSize: 2.4`.
 
 **Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 3` matches the species'
 trademark 3-leaf scale whorls. Weak `apicalDominance: 0.2` and high `branchWander: 0.7`
@@ -354,7 +354,7 @@ silhouette rather than tapering to a point. Fast-growing; branches appear every 
 **Foliage**: Bipinnate compound leaves in nature, with hundreds of tiny leaflets giving a
 ferny, light texture. Represented as palmate pads (the closest available shape to the
 fine leaflet structure) — sized down (`leafSize: 3.4`, vs an earlier 5.5) and packed denser
-(`leavesPerPad: [12, 18]`) so at this scale the pads read as fine bipinnate texture instead of
+(`leavesPerPad: [10, 15]`) so at this scale the pads read as fine bipinnate texture instead of
 oversized maple-star leaves poking past the canopy outline. `foliageDistribution: "pad"` with
 the largest `padRadius: 16` of any species and `interiorPadDensity: 0.6` for the broad umbrella
 canopy.
