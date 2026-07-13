@@ -100,6 +100,7 @@ reading as "older" well past day 100 (`generateTree` in `treeGenerator.ts`):
 | Parameter | Type | Meaning |
 |---|---|---|
 | `flowers.floweringAge` | days | `activeDaysCount` at which flowers first appear. |
+| `flowers.flowerDensity` | 0–1 | Fraction of eligible terminal tips that carry a flower/fruit; 1 = every tip. Keeps bloom/fruit-set sparse and scattered rather than covering the whole crown at once. |
 | `flowers.flowerShape` | enum | `raceme` / `cluster` / `catkin` / `berry` |
 | `flowers.flowerColor` | hex | Primary flower colour. |
 | `flowers.flowerColorAccent` | hex | Optional accent (streaked petal, catkin bumps). |
@@ -223,7 +224,8 @@ overlapping pads of tiny scale ellipses — the species' signature flat foliage 
 trademark 3-leaf scale whorls. Weak `apicalDominance: 0.2` and high `branchWander: 0.7`
 produce the twisted, tortured shari movement the style is prized for. Cascade display
 narrows `azimuthSpread` to `PI * 1.6` — branches lean toward the viewing side. High
-`trunkJaggedness: 0.7` for shari bark texture.
+`trunkJaggedness: 0.7` for shari bark texture. Seed cones set on only a scattered
+fraction of tips in nature, not every one — `flowers.flowerDensity: 0.15`.
 
 **Pruning speed**: Slow — junipers dislike hard pruning and back-bud cautiously.
 `regrowthDays: 16`.
@@ -255,7 +257,8 @@ reflects oak's powerful straight-leader growth. `maxDepth: 3` with
 three-way crown-scaffolds, then ramifies once more at depth 3 for the dense
 twig structure of a mature canopy. High `crownDepthFactor: 0.9` models oak's
 full, rounded canopy volume. `trunkJaggedness: 0.5` and `trunkTaperPower: 1.5`
-capture the furrowed, muscular trunk taper.
+capture the furrowed, muscular trunk taper. Catkins are rare even at maturity —
+`flowers.flowerDensity: 0.25` keeps them from covering the whole crown at once.
 
 **Pruning speed**: Slowest in the set — oaks grow deliberately. `regrowthDays: 18`.
 

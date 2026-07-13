@@ -32,6 +32,10 @@ export type FlowerShape = "raceme" | "cluster" | "catkin" | "berry";
 export interface FlowerSpec {
   /** activeDaysCount at which flowers first appear. */
   floweringAge: number;
+  /** 0–1 — fraction of eligible terminal tips that carry a flower/fruit;
+   *  1 = every tip. Real cone/catkin/berry/blossom display is sparse and
+   *  scattered, not a bloom at every twig. */
+  flowerDensity: number;
   flowerShape: FlowerShape;
   /** Primary flower colour. */
   flowerColor: string;
@@ -246,6 +250,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Small reddish-purple hanging umbel clusters, appear with the new spring leaves.
       floweringAge: 35,
+      flowerDensity: 0.5,
       flowerShape: "cluster",
       flowerColor: "#a0375a",
       flowerSize: 0.5,
@@ -297,6 +302,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Iconic 5-petal blossoms in clusters; pale pink to white. Appear with leaves.
       floweringAge: 15,
+      flowerDensity: 0.9,
       flowerShape: "cluster",
       flowerColor: "#f5d0e0",
       flowerColorAccent: "#e8a0bf",
@@ -350,6 +356,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Waxy blue-black seed cones (berry-like); ornamental once mature.
       floweringAge: 30,
+      flowerDensity: 0.15,
       flowerShape: "berry",
       flowerColor: "#2e2450",
       flowerColorAccent: "#8878c0",
@@ -400,6 +407,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Pendulous yellow-green catkins; rare — reflects 20–40 year real-world maturity.
       floweringAge: 90,
+      flowerDensity: 0.25,
       flowerShape: "catkin",
       flowerColor: "#b8b040",
       flowerColorAccent: "#e8d860",
@@ -454,6 +462,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Drooping violet racemes, 20–30 cm in nature — the defining visual of wisteria bonsai.
       floweringAge: 55,
+      flowerDensity: 0.75,
       flowerShape: "raceme",
       flowerColor: "#8b60c8",
       flowerColorAccent: "#c8a0f0",
@@ -505,6 +514,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.
       floweringAge: 45,
+      flowerDensity: 0.8,
       flowerShape: "cluster",
       flowerColor: "#e8400a",
       flowerColorAccent: "#f5c030",

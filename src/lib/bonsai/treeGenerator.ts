@@ -778,7 +778,16 @@ function generateFlowers(
   }
   tips.push({ id: "apex", cx: apexTipX, cy: apexTipY });
 
-  return tips.map((tip) => {
+  // Real cone/catkin/berry/blossom display is sparse and scattered, not a
+  // bloom at every tip — thin the eligible tips down to `flowerDensity` with
+  // a per-tip seeded roll keyed on tip id + treeId (slot 15, unused by the
+  // per-shape floret builders below), so the selected set is stable across
+  // renders for a given tree regardless of day.
+  const floweringTips = tips.filter(
+    (tip) => seededVal(tip.id + treeId, 15) < fs.flowerDensity,
+  );
+
+  return floweringTips.map((tip) => {
     const seed = tip.id + treeId;
     const base = { id: `flower-${tip.id}`, cx: tip.cx, cy: tip.cy, progress };
 

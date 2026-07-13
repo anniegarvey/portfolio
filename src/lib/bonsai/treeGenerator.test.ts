@@ -646,4 +646,52 @@ describe("generateTree", () => {
       expect(droopFraction(p0at100)).toBeCloseTo(droopFraction(p0at40), 6);
     });
   });
+
+  // ─── flowerDensity (Step 3) ─────────────────────────────────────────────
+
+  describe("flowerDensity", () => {
+    /** Every terminal, non-pruned branch tip plus the apex — the full set of
+     *  eligible tips before density thinning is applied. */
+    function eligibleTipCount(data: ReturnType<typeof generateTree>) {
+      return (
+        data.branches.filter((b) => b.isTerminal && !b.isPruned).length + 1
+      );
+    }
+
+    it("juniper (density 0.15) flowers fewer than all eligible tips, but at least one", () => {
+      const juniper = SPECIES_CONFIG.juniper;
+      const data = generateTree(100, juniper, [], "flower-density-juniper");
+      expect(data.flowers.length).toBeGreaterThan(0);
+      expect(data.flowers.length).toBeLessThan(eligibleTipCount(data));
+    });
+
+    it("same treeId and day produce identical flower ids", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const a = generateTree(95, oak, [], "flower-det-oak");
+      const b = generateTree(95, oak, [], "flower-det-oak");
+      expect(a.flowers.length).toBeGreaterThan(0);
+      expect(a.flowers.map((f) => f.id)).toEqual(b.flowers.map((f) => f.id));
+    });
+
+    it("a tip flowering on day N is still flowering on day N+1", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const dayN = generateTree(95, oak, [], "flower-det-oak");
+      const dayN1 = generateTree(96, oak, [], "flower-det-oak");
+      expect(dayN.flowers.length).toBeGreaterThan(0);
+      const idsN1 = new Set(dayN1.flowers.map((f) => f.id));
+      for (const f of dayN.flowers) {
+        expect(idsN1.has(f.id)).toBe(true);
+      }
+    });
+
+    it("flowerDensity 1 gives every eligible tip a flower, unchanged from before", () => {
+      const maple = SPECIES_CONFIG.maple;
+      const fullBloom = {
+        ...maple,
+        flowers: maple.flowers && { ...maple.flowers, flowerDensity: 1 },
+      };
+      const data = generateTree(60, fullBloom, [], "flower-density-full");
+      expect(data.flowers.length).toBe(eligibleTipCount(data));
+    });
+  });
 });
