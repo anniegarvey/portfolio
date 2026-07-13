@@ -25,6 +25,7 @@ for phase X" placeholders are now active.
 | `trunkTaperPower` | exponent | Trunk taper profile. 1 = linear; >1 = concave (flared base, slim top); <1 = convex. |
 | `trunkJaggedness` | 0–1 | Roughness added to the trunk silhouette. 0 = smooth bezier; higher = bark/shari texture. |
 | `nebariSpread` | 0–1+ | Basal flare as a fraction of base trunk width — drives visible surface roots. |
+| `trunkWidthFactor` | number | Multiplier on the age-driven trunk base width (see `computeTrunkBaseWidth` in `treeGenerator.ts`). 1 = species-neutral; >1 for naturally massive trunks (oak); <1 for slender ones (wisteria). |
 
 **Growth curve**: trunk height follows `maxTrunkHeight × d / (d + 12)`, where
 `d` is `activeDaysCount` scaled by the tree's per-individual growth-rate
@@ -34,6 +35,25 @@ max by day 3, 45% by day 10, 68% by day 25, 81% by day 50, 89%+ by day 100 —
 never quite reaching the asymptote. `individualVariability` perturbs the
 scaling of `d`, so higher-iv species show visible height spread across seeds
 at the same day.
+
+**Age signals**: since height plateaus early, four other signals keep a tree
+reading as "older" well past day 100 (`generateTree` in `treeGenerator.ts`):
+- **Trunk mass** — base width follows `2 + 20 × d / (d + 95)` (times
+  `trunkWidthFactor`), a much slower asymptote than height's — real trunks
+  keep thickening for decades after they stop getting taller. At factor 1:
+  ~3.9 by day 10, ~6.2 by day 25, ~8.9 by day 50, ~12.3 by day 100, ~15.6 by
+  day 200, still rising slowly beyond that.
+- **Bark character** — effective trunk jaggedness ramps from 60% of
+  `trunkJaggedness` on a fresh sapling up toward 120% as the tree approaches
+  its height asymptote, so bark reads smooth when young and gnarled when old.
+- **Foliage density** — leaves per pad scale from 75% of the species'
+  `leavesPerPad` range on a fresh sapling up toward ~120% as the tree matures,
+  so old crowns read visibly denser than young ones at the same branch count.
+- **Lower-branch sag** — on upright (non-cascade) species, the lowest
+  primaries' pitch droops by up to 0.1 rad once the tree is well past
+  maturity (ramping in from ~day 30, full strength by ~day 90), scaled by how
+  low the branch sits on the trunk. Cascade species are already drooping by
+  design and are unaffected.
 
 ### Branch architecture
 
@@ -216,6 +236,8 @@ narrows `azimuthSpread` to `PI * 1.6` — branches lean toward the viewing side.
 
 **Trunk**: One of the straightest, most powerful trunks in bonsai — thick, deeply furrowed
 bark. Bonsai oaks are grown for their massive taper and rugged bark. `trunkCurvature: 0.18`.
+The highest `trunkWidthFactor: 1.25` in the set — oak should read as the most massive trunk
+at any given age.
 
 **Branches**: Wide-spreading, roughly horizontal lower branches and more ascending upper ones.
 `branchAngleBase: 0.42` rad ≈ 24°; `branchAngleRamp: 0.28` and wide `splitDiverge: 0.45`
@@ -246,6 +268,8 @@ Bonsai Empire oak species profile.
 
 **Trunk**: Wisteria trunks become dramatically gnarled and twisted with age — the species
 is prized in bonsai precisely for its tortured bark texture. `trunkCurvature: 0.55`.
+Below-neutral `trunkWidthFactor: 0.9` keeps the trunk reading slender relative to its
+sprawling canopy, consistent with a vine-like species trained onto a woody form.
 
 **Style**: Semi-cascade. Long trailing branches hang downward from the upper trunk, echoing
 the species' natural habit of draping over pergolas and walls. `firstBranchFrac: 0.58` —

@@ -93,6 +93,38 @@ export function computeTrunkHeight(
     : 0;
 }
 
+/** SVG units — trunk base width at germination, before any age-driven growth. */
+const TRUNK_WIDTH_BASE = 2;
+/** SVG units — the asymptotic width gain (on top of `TRUNK_WIDTH_BASE`) as
+ *  `activeDaysCount` → ∞, before the species' `trunkWidthFactor`. */
+const TRUNK_WIDTH_GAIN = 20;
+/** Days at which the width gain reaches half of `TRUNK_WIDTH_GAIN`. Deliberately
+ *  much larger than `TRUNK_GROWTH_HALFLIFE_DAYS` (12) — real trunks keep
+ *  thickening for decades after height growth has effectively stopped, which
+ *  is how mature/ancient trees keep reading as "older" long after their
+ *  height has plateaued. */
+const TRUNK_WIDTH_GROWTH_HALFLIFE_DAYS = 95;
+
+/** Returns the trunk base width (in SVG units) for a given tree — the single
+ *  source of truth for trunk-mass growth, times the species' `trunkWidthFactor`.
+ *  Unlike `computeTrunkHeight`, which plateaus by ~day 50, width keeps
+ *  thickening visibly well past day 100, so long-lived trees continue to read
+ *  as more massive with age instead of looking identical past maturity.
+ *
+ *  At trunkWidthFactor = 1: day 10 ≈ 3.9, day 25 ≈ 6.2, day 50 ≈ 8.9,
+ *  day 100 ≈ 12.3, day 200 ≈ 15.6. */
+export function computeTrunkBaseWidth(
+  activeDaysCount: number,
+  spec: SpeciesConfig,
+): number {
+  const gain =
+    activeDaysCount > 0
+      ? (TRUNK_WIDTH_GAIN * activeDaysCount) /
+        (activeDaysCount + TRUNK_WIDTH_GROWTH_HALFLIFE_DAYS)
+      : 0;
+  return (TRUNK_WIDTH_BASE + gain) * spec.trunkWidthFactor;
+}
+
 // ─── Trunk Silhouette ─────────────────────────────────────────────────────────
 
 /**
@@ -416,6 +448,15 @@ function generatePad(
   return leaves;
 }
 
+/** Age signal — twig/foliage density thickens as the tree matures, independent
+ *  of a branch's own grow-in progress (`effectiveProg`). Scales a raw per-pad
+ *  leaf count by 0.75 (freshly sprouted) up to ~1.2 (very old, ageFrac→1), so
+ *  a day-100 tree carries noticeably more leaves per pad than day-50 while
+ *  staying within ~1.25× of the pre-age-signal counts (SVG render cost). */
+function ageDensityCount(baseCount: number, ageFrac: number): number {
+  return Math.max(1, Math.round(baseCount * (0.75 + 0.45 * ageFrac)));
+}
+
 // ─── Foliage Distribution Dispatch ────────────────────────────────────────────
 // Each distribution mode is a separate small function so the dispatcher stays
 // readable. All four return Leaf[] in the branch-local frame.
@@ -430,12 +471,16 @@ interface FoliageContext {
   effectiveProg: number;
   spec: SpeciesConfig;
   treeId: string;
+  ageFrac: number;
 }
 
 function terminalFoliage(c: FoliageContext): Leaf[] {
   if (!(c.isTerminal && c.effectiveProg > 0.3)) return [];
   const [minL, maxL] = c.spec.leavesPerPad;
-  const count = seededInt(c.branchId + c.treeId, 77, minL, maxL);
+  const count = ageDensityCount(
+    seededInt(c.branchId + c.treeId, 77, minL, maxL),
+    c.ageFrac,
+  );
   return generatePad(
     c.branchId,
     c.treeId,
@@ -453,7 +498,10 @@ function padFoliage(c: FoliageContext): Leaf[] {
   const [minL, maxL] = c.spec.leavesPerPad;
   // Terminal tip pad — full radius.
   if (c.isTerminal) {
-    const count = seededInt(c.branchId + c.treeId, 77, minL, maxL);
+    const count = ageDensityCount(
+      seededInt(c.branchId + c.treeId, 77, minL, maxL),
+      c.ageFrac,
+    );
     return generatePad(
       c.branchId,
       c.treeId,
@@ -472,11 +520,14 @@ function padFoliage(c: FoliageContext): Leaf[] {
     c.spec.interiorPadDensity > 0 &&
     seededVal(c.branchId + c.treeId, 78) < c.spec.interiorPadDensity
   ) {
-    const intCount = seededInt(
-      c.branchId + c.treeId,
-      79,
-      Math.max(1, Math.floor(minL * 0.5)),
-      Math.max(2, Math.ceil(maxL * 0.5)),
+    const intCount = ageDensityCount(
+      seededInt(
+        c.branchId + c.treeId,
+        79,
+        Math.max(1, Math.floor(minL * 0.5)),
+        Math.max(2, Math.ceil(maxL * 0.5)),
+      ),
+      c.ageFrac,
     );
     return generatePad(
       `${c.branchId}i`,
@@ -506,7 +557,10 @@ function scatteredFoliage(c: FoliageContext): Leaf[] {
     const frac = 0.4 + ((p + 0.5) / numPads) * 0.6;
     const px = c.tipX - Math.cos(c.branchAngle) * c.branchLen * (1 - frac);
     const py = c.tipY - Math.sin(c.branchAngle) * c.branchLen * (1 - frac);
-    const count = seededInt(c.branchId + c.treeId, 82 + p, minL, maxL);
+    const count = ageDensityCount(
+      seededInt(c.branchId + c.treeId, 82 + p, minL, maxL),
+      c.ageFrac,
+    );
     leaves.push(
       ...generatePad(
         `${c.branchId}s${p}`,
@@ -529,7 +583,10 @@ function pendentFoliage(c: FoliageContext): Leaf[] {
   const leaves: Leaf[] = [];
 
   // Terminal tip cluster.
-  const tipCount = seededInt(c.branchId + c.treeId, 77, minL, maxL);
+  const tipCount = ageDensityCount(
+    seededInt(c.branchId + c.treeId, 77, minL, maxL),
+    c.ageFrac,
+  );
   leaves.push(
     ...generatePad(
       c.branchId,
@@ -552,7 +609,10 @@ function pendentFoliage(c: FoliageContext): Leaf[] {
   for (let d = 1; d <= chainSteps; d++) {
     const t = d / chainSteps;
     const sway = (seededVal(c.branchId + c.treeId, 84 + d) - 0.5) * 2.5;
-    const hangCount = seededInt(c.branchId + c.treeId, 85 + d, minL, maxL);
+    const hangCount = ageDensityCount(
+      seededInt(c.branchId + c.treeId, 85 + d, minL, maxL),
+      c.ageFrac,
+    );
     leaves.push(
       ...generatePad(
         `${c.branchId}h${d}`,
@@ -1049,8 +1109,15 @@ export function generateTree(
 
   const trunkHeight = computeTrunkHeight(activeDaysCount, spec, treeId);
   const trunkTopY = trunkBaseY - trunkHeight;
+  // Age signal — how close this tree is to its asymptotic max height. Trunk
+  // height itself plateaus early (see the growth-curve note in SPECIES.md);
+  // this fraction instead drives the three signals that keep reading as
+  // "older" long after — bark jaggedness, foliage density, and lower-branch
+  // sag — plus the pre-existing apex-twig-length scaling below.
+  const heightFrac =
+    spec.maxTrunkHeight > 0 ? trunkHeight / spec.maxTrunkHeight : 0;
 
-  const trunkBaseW = Math.min(14, 2 + activeDaysCount * 0.12);
+  const trunkBaseW = computeTrunkBaseWidth(activeDaysCount, spec);
   // Species-driven taper: with the historical 0.28 base ratio raised to the
   // species' trunkTaperPower, power > 1 narrows the apex (faster taper, e.g.
   // pine 1.4 → ratio 0.18) and power < 1 widens it (slower taper).
@@ -1069,6 +1136,11 @@ export function generateTree(
   const trunkCpX = trunkBaseX + curveOffset * 0.65;
   const trunkTopX = trunkBaseX + curveOffset;
 
+  // Age signal — bark starts smooth and gnarls as the tree matures (young
+  // saplings render at 60% of the species' jaggedness; old trees ramp up to
+  // 120% as heightFrac approaches its asymptote).
+  const effectiveJaggedness = spec.trunkJaggedness * (0.6 + 0.6 * heightFrac);
+
   const trunkPathData = buildTrunkPath(
     trunkBaseX,
     trunkBaseY,
@@ -1077,7 +1149,7 @@ export function generateTree(
     trunkBaseW,
     trunkTopW,
     trunkHeight,
-    spec.trunkJaggedness,
+    effectiveJaggedness,
     treeId,
   );
 
@@ -1187,7 +1259,15 @@ export function generateTree(
       const angleProgression = branchAngleRamp * (zoneFrac - 0.5);
       const angleJitter =
         (seededVal(`pa${id}${treeId}`, 0) - 0.5) * 0.14 * jitterScale;
-      const pitch = branchAngleBase + angleProgression + angleJitter;
+      // Age signal — lower primaries sag under accumulated mass as the tree
+      // ages. Ramps in only once heightFrac passes ~0.7 (day ~30+) and hits
+      // full strength by ~0.9 (day ~90+); scaled by lowness so the apex never
+      // sags. Cascade species are already drooping by design and are excluded.
+      const sagRamp = isCascade
+        ? 0
+        : Math.min(1, Math.max(0, (heightFrac - 0.7) / 0.2));
+      const sag = sagRamp * (1 - zoneFrac) * 0.1;
+      const pitch = branchAngleBase + angleProgression + angleJitter - sag;
 
       // Azimuth (yaw around trunk axis) — the key Phase 3 change
       let azimuth: number;
@@ -1276,12 +1356,10 @@ export function generateTree(
   // branches around the trunk axis instead.
   // Apex twig length as a fraction of trunk height — same species-driven
   // shrink-with-branch-count relationship as before (denser primaries → finer
-  // apex growth), scaled by the current trunk-height fraction of maturity so
-  // it reproduces the original fixed length once trunkHeight reaches
-  // maxTrunkHeight, and shrinks proportionally on a young tree instead of
-  // always spawning adult-length apex growth.
-  const heightFrac =
-    spec.maxTrunkHeight > 0 ? trunkHeight / spec.maxTrunkHeight : 0;
+  // apex growth), scaled by the current trunk-height fraction of maturity
+  // (`heightFrac`, computed above) so it reproduces the original fixed length
+  // once trunkHeight reaches maxTrunkHeight, and shrinks proportionally on a
+  // young tree instead of always spawning adult-length apex growth.
   const finalTopBranchLen =
     heightFrac * Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
   if (
@@ -1461,6 +1539,7 @@ export function generateTree(
       effectiveProg,
       spec,
       treeId,
+      ageFrac: heightFrac,
     });
 
     rendered.push({
@@ -1526,11 +1605,14 @@ export function generateTree(
           trunkTopX,
           trunkTopY,
           spec.padRadius * 0.7,
-          seededInt(
-            `apex${treeId}`,
-            0,
-            spec.leavesPerPad[0],
-            spec.leavesPerPad[1],
+          ageDensityCount(
+            seededInt(
+              `apex${treeId}`,
+              0,
+              spec.leavesPerPad[0],
+              spec.leavesPerPad[1],
+            ),
+            heightFrac,
           ),
           spec,
           apexProgress,

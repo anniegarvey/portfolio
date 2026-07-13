@@ -70,6 +70,10 @@ export interface SpeciesConfig {
   /** 0–1+ — additional basal flare (nebari) as a fraction of base trunk width.
    *  0 = no flare; 0.5 = base ~50% wider than a straight taper would give. */
   nebariSpread: number;
+  /** Multiplier on the age-driven trunk base width (see `computeTrunkBaseWidth`
+   *  in treeGenerator.ts). 1 = species-neutral; >1 for naturally massive
+   *  trunks (oak), <1 for slender ones (wisteria). */
+  trunkWidthFactor: number;
 
   // Branches
   /** Angle above horizontal for a mid-height primary branch (radians, positive = above horizontal).
@@ -170,6 +174,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.4,
     trunkJaggedness: 0.2,
     nebariSpread: 0.4,
+    trunkWidthFactor: 1.1,
     branchAngleBase: 0.35,
     branchAngleRamp: 0.45,
     firstBranchFrac: 0.28,
@@ -212,6 +217,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.3,
     trunkJaggedness: 0.3,
     nebariSpread: 0.5,
+    trunkWidthFactor: 1.0,
     branchAngleBase: 0.62,
     branchAngleRamp: 0.2,
     firstBranchFrac: 0.32,
@@ -258,6 +264,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.2,
     trunkJaggedness: 0.15,
     nebariSpread: 0.35,
+    trunkWidthFactor: 0.95,
     branchAngleBase: 0.5,
     branchAngleRamp: 0.18,
     firstBranchFrac: 0.3,
@@ -311,6 +318,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.5,
     trunkJaggedness: 0.7,
     nebariSpread: 0.8,
+    trunkWidthFactor: 1.15,
     branchAngleBase: -0.2,
     branchAngleRamp: -0.1,
     firstBranchFrac: 0.62,
@@ -361,6 +369,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.5,
     trunkJaggedness: 0.5,
     nebariSpread: 0.6,
+    trunkWidthFactor: 1.25,
     branchAngleBase: 0.42,
     branchAngleRamp: 0.28,
     firstBranchFrac: 0.3,
@@ -411,6 +420,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.2,
     trunkJaggedness: 0.6,
     nebariSpread: 0.7,
+    trunkWidthFactor: 0.9,
     branchAngleBase: -0.3,
     branchAngleRamp: 0.1,
     firstBranchFrac: 0.58,
@@ -464,6 +474,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.1,
     trunkJaggedness: 0.15,
     nebariSpread: 0.3,
+    trunkWidthFactor: 1.0,
     branchAngleBase: 0.18,
     branchAngleRamp: 0.06,
     firstBranchFrac: 0.25,

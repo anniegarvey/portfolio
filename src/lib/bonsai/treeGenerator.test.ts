@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SPECIES_CONFIG } from "./speciesConfig";
 import {
   BRANCH_GROW_DURATION,
+  computeTrunkBaseWidth,
   computeTrunkHeight,
   generateTree,
 } from "./treeGenerator";
@@ -548,6 +549,101 @@ describe("generateTree", () => {
       const height = data.trunkBaseY - data.trunkTopY;
       const width = crownWidth(data);
       expect(width).toBeLessThan(height);
+    });
+  });
+
+  // ─── Age signals — trunk mass (Step 2) ─────────────────────────────────────
+
+  describe("computeTrunkBaseWidth", () => {
+    const MAPLE = SPECIES_CONFIG.maple; // trunkWidthFactor: 1.0
+    const OAK = SPECIES_CONFIG.oak; // trunkWidthFactor: 1.25
+
+    it("is monotonically increasing through day 200 and beyond", () => {
+      let prev = 0;
+      for (const day of [0, 10, 25, 50, 100, 150, 200, 400]) {
+        const w = computeTrunkBaseWidth(day, MAPLE);
+        expect(w).toBeGreaterThan(prev);
+        prev = w;
+      }
+    });
+
+    it("falls within the day-50 target band at trunkWidthFactor = 1 (8-9.5)", () => {
+      const w = computeTrunkBaseWidth(50, MAPLE);
+      expect(w).toBeGreaterThanOrEqual(8);
+      expect(w).toBeLessThanOrEqual(9.5);
+    });
+
+    it("falls within the day-100 target band at trunkWidthFactor = 1 (12-14)", () => {
+      const w = computeTrunkBaseWidth(100, MAPLE);
+      expect(w).toBeGreaterThanOrEqual(12);
+      expect(w).toBeLessThanOrEqual(14);
+    });
+
+    it("oak (trunkWidthFactor 1.25) has a thicker trunk than maple (1.0) at day 100", () => {
+      expect(computeTrunkBaseWidth(100, OAK)).toBeGreaterThan(
+        computeTrunkBaseWidth(100, MAPLE),
+      );
+    });
+  });
+
+  // ─── Age signals — foliage density (Step 2) ────────────────────────────────
+
+  describe("age signal — foliage density", () => {
+    /** Total leaf count across every rendered pad, apex included. */
+    function totalLeaves(data: ReturnType<typeof generateTree>) {
+      return (
+        data.apexLeaves.length +
+        data.branches.reduce((sum, b) => sum + b.leaves.length, 0)
+      );
+    }
+
+    it("a day-100 pine carries more total leaves than the same tree at day 50", () => {
+      const day50 = generateTree(50, PINE, [], TREE_ID);
+      const day100 = generateTree(100, PINE, [], TREE_ID);
+      expect(totalLeaves(day100)).toBeGreaterThan(totalLeaves(day50));
+    });
+  });
+
+  // ─── Age signals — lower-branch sag (Step 2) ───────────────────────────────
+
+  describe("age signal — lower-branch sag", () => {
+    /** Signed vertical-rise fraction (y2-y1)/length — a droop metric that
+     *  stays well-behaved across all azimuths, unlike `branchAngle`, which
+     *  wraps sign at ±π when a branch's azimuth points it away from the
+     *  viewer rather than straight left/right. Larger (less negative / more
+     *  positive) = the tip sits proportionally lower — i.e. more sagged. */
+    function droopFraction(b: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    }) {
+      const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+      return len > 0 ? (b.y2 - b.y1) / len : 0;
+    }
+
+    it("oak's lowest primary tip droops more at day 100 than day 40", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const day40 = generateTree(40, oak, [], "sag-oak");
+      const day100 = generateTree(100, oak, [], "sag-oak");
+      const p0at40 = day40.branches.find((b) => b.id === "p0" && !b.isPruned);
+      const p0at100 = day100.branches.find((b) => b.id === "p0" && !b.isPruned);
+      expect(p0at40).toBeDefined();
+      expect(p0at100).toBeDefined();
+      if (!(p0at40 && p0at100)) return;
+      expect(droopFraction(p0at100)).toBeGreaterThan(droopFraction(p0at40));
+    });
+
+    it("juniper (cascade — already drooping) primary droop is unchanged between day 40 and day 100", () => {
+      const juniper = SPECIES_CONFIG.juniper;
+      const day40 = generateTree(40, juniper, [], "sag-juniper");
+      const day100 = generateTree(100, juniper, [], "sag-juniper");
+      const p0at40 = day40.branches.find((b) => b.id === "p0" && !b.isPruned);
+      const p0at100 = day100.branches.find((b) => b.id === "p0" && !b.isPruned);
+      expect(p0at40).toBeDefined();
+      expect(p0at100).toBeDefined();
+      if (!(p0at40 && p0at100)) return;
+      expect(droopFraction(p0at100)).toBeCloseTo(droopFraction(p0at40), 6);
     });
   });
 });
