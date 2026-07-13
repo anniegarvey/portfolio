@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { SPECIES_CONFIG } from "./speciesConfig";
-import { BRANCH_GROW_DURATION, generateTree } from "./treeGenerator";
+import {
+  BRANCH_GROW_DURATION,
+  computeTrunkHeight,
+  generateTree,
+} from "./treeGenerator";
 
 const PINE = SPECIES_CONFIG.pine; // branchFrequency: 6, regrowthDays: 14
 const TREE_ID = "test-tree-id";
@@ -10,6 +14,62 @@ const TREE_ID = "test-tree-id";
 describe("BRANCH_GROW_DURATION", () => {
   it("is exported as a positive number", () => {
     expect(BRANCH_GROW_DURATION).toBeGreaterThan(0);
+  });
+});
+
+// ─── computeTrunkHeight — growth curve proportions (Step 1) ──────────────────
+
+describe("computeTrunkHeight", () => {
+  // Zero-variability spec: growthRateMultiplier is always 1 regardless of
+  // treeId, so the fraction of maxTrunkHeight reached at each day is exact
+  // and seed-independent — the cleanest way to pin down the curve shape.
+  const flatPine = { ...PINE, individualVariability: 0 };
+
+  it("is 0 at day 0", () => {
+    expect(computeTrunkHeight(0, flatPine, TREE_ID)).toBe(0);
+  });
+
+  it("reaches roughly 15-22% of maxTrunkHeight by day 3", () => {
+    const frac =
+      computeTrunkHeight(3, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.15);
+    expect(frac).toBeLessThanOrEqual(0.22);
+  });
+
+  it("reaches roughly 38-48% of maxTrunkHeight by day 10", () => {
+    const frac =
+      computeTrunkHeight(10, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.35);
+    expect(frac).toBeLessThanOrEqual(0.5);
+  });
+
+  it("reaches roughly 60-72% of maxTrunkHeight by day 25", () => {
+    const frac =
+      computeTrunkHeight(25, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.6);
+    expect(frac).toBeLessThanOrEqual(0.72);
+  });
+
+  it("reaches roughly 78-86% of maxTrunkHeight by day 50", () => {
+    const frac =
+      computeTrunkHeight(50, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.78);
+    expect(frac).toBeLessThanOrEqual(0.86);
+  });
+
+  it("reaches at least 88% of maxTrunkHeight by day 100 for a zero-variability spec", () => {
+    const frac =
+      computeTrunkHeight(100, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.88);
+  });
+
+  it("is monotonically increasing with day", () => {
+    let prev = 0;
+    for (const day of [1, 5, 10, 20, 40, 80, 150]) {
+      const h = computeTrunkHeight(day, flatPine, TREE_ID);
+      expect(h).toBeGreaterThan(prev);
+      prev = h;
+    }
   });
 });
 
@@ -452,6 +512,42 @@ describe("generateTree", () => {
       const clustered = terminals.filter((b) => b.leaves.length > 0);
       // All species with growth past day 0 should produce some leaf clusters
       expect(clustered.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ─── Crown proportions (Step 1) ────────────────────────────────────────────
+
+  describe("crown proportions", () => {
+    /** Horizontal extent (max x − min x) across every live branch endpoint —
+     *  a proxy for rendered crown width. */
+    function crownWidth(data: ReturnType<typeof generateTree>) {
+      const live = data.branches.filter((b) => !b.isPruned);
+      const xs = live.flatMap((b) => [b.x1, b.x2]);
+      return xs.length > 0 ? Math.max(...xs) - Math.min(...xs) : 0;
+    }
+
+    const uprightSpecies = ["pine", "oak", "maple"] as const;
+
+    it.each(
+      uprightSpecies,
+    )("%s — mature crown width is proportional to tree height (not ~2x wider than tall)", (id) => {
+      const spec = SPECIES_CONFIG[id];
+      const data = generateTree(100, spec, [], `snapshot-${id}`);
+      const height = data.trunkBaseY - data.trunkTopY;
+      const width = crownWidth(data);
+      const ratio = width / height;
+      expect(ratio).toBeGreaterThan(0.6);
+      expect(ratio).toBeLessThan(1.3);
+    });
+
+    it.each(
+      uprightSpecies,
+    )("%s — day-10 sapling crown width is narrower than its trunk height", (id) => {
+      const spec = SPECIES_CONFIG[id];
+      const data = generateTree(10, spec, [], `snapshot-${id}`);
+      const height = data.trunkBaseY - data.trunkTopY;
+      const width = crownWidth(data);
+      expect(width).toBeLessThan(height);
     });
   });
 });

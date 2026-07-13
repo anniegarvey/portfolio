@@ -64,20 +64,33 @@ function applyIndividualVariability(
   };
 }
 
-/** Returns the trunk height (in SVG units) for a given tree — mirrors the
- *  growth formula inside generateTree so callers can compute glow sizes etc.
- *  without running the full generator. */
+/** Days at which the growth curve reaches half of `maxTrunkHeight` (before
+ *  per-tree growth-rate jitter). Smaller = faster early growth. */
+const TRUNK_GROWTH_HALFLIFE_DAYS = 12;
+
+/** Returns the trunk height (in SVG units) for a given tree — this is the
+ *  single source of truth for the growth curve; generateTree calls this
+ *  directly so callers can also compute glow sizes etc. without running the
+ *  full generator.
+ *
+ *  Height climbs steeply in the first few weeks (sapling growth spurt) then
+ *  flattens smoothly toward `maxTrunkHeight` — day 10 reaches ~40-49% of
+ *  maxTrunkHeight, day 100 reaches ~89%. */
 export function computeTrunkHeight(
   activeDaysCount: number,
   spec: SpeciesConfig,
   treeId: string,
 ): number {
   const iv = spec.individualVariability;
-  const growthRate = 5.5 * (1 + ivSignedScalar(treeId, 5) * iv * 0.8);
-  const rawGrowth =
-    activeDaysCount > 0 ? activeDaysCount ** 0.72 * growthRate : 0;
+  // Per-tree growth rate variation — magnitude scales with species'
+  // individualVariability. iv=0 → all seeds reach identical heights; iv=0.4
+  // → ±32% spread on the effective day count (and thus on height).
+  const growthRateMultiplier = 1 + ivSignedScalar(treeId, 5) * iv * 0.8;
+  const scaledDays = activeDaysCount * growthRateMultiplier;
   const maxH = spec.maxTrunkHeight;
-  return maxH > 0 ? (maxH * rawGrowth) / (maxH + rawGrowth) : 0;
+  return maxH > 0 && scaledDays > 0
+    ? (maxH * scaledDays) / (scaledDays + TRUNK_GROWTH_HALFLIFE_DAYS)
+    : 0;
 }
 
 // ─── Trunk Silhouette ─────────────────────────────────────────────────────────
@@ -1034,15 +1047,7 @@ export function generateTree(
 
   // ─── Trunk ────────────────────────────────────────────────────────────────
 
-  // Per-tree growth rate variation — magnitude scales with species'
-  // individualVariability. iv=0 → all seeds reach identical heights; iv=0.4
-  // → ±32% spread.
-  const growthRate = 5.5 * (1 + ivSignedScalar(treeId, 5) * iv * 0.8);
-  // Smooth asymptotic approach to maxTrunkHeight — growth slows naturally near the limit
-  const rawGrowth =
-    activeDaysCount > 0 ? activeDaysCount ** 0.72 * growthRate : 0;
-  const maxH = spec.maxTrunkHeight;
-  const trunkHeight = maxH > 0 ? (maxH * rawGrowth) / (maxH + rawGrowth) : 0;
+  const trunkHeight = computeTrunkHeight(activeDaysCount, spec, treeId);
   const trunkTopY = trunkBaseY - trunkHeight;
 
   const trunkBaseW = Math.min(14, 2 + activeDaysCount * 0.12);
@@ -1225,11 +1230,18 @@ export function generateTree(
         attachTrunkW * spec.branchThicknessFactor,
       );
 
-      // Length: lower branches longer (wide silhouette), upper shorter
-      const lengthBase = 38 - zoneFrac * 16;
+      // Length: lower branches longer (wide silhouette), upper shorter —
+      // scaled by the tree's CURRENT trunk height so a young sapling gets
+      // proportionally short whips instead of adult-length branches on a
+      // stubby trunk. Children inherit this length and extend it further.
+      const lengthBase =
+        trunkHeight * spec.crownSpreadFactor * (1 - zoneFrac * 0.42);
       const lengthVar =
-        (seededVal(`pl${id}${treeId}`, 0) - 0.5) * 8 * jitterScale;
-      const primaryLength = Math.max(10, lengthBase + lengthVar);
+        (seededVal(`pl${id}${treeId}`, 0) - 0.5) *
+        lengthBase *
+        0.3 *
+        jitterScale;
+      const primaryLength = Math.max(6, lengthBase + lengthVar);
 
       // Pitch + azimuth pass through unprojected — buildBranchTree does the
       // 3D→2D projection internally so foreshortening and depth are preserved.
@@ -1262,14 +1274,23 @@ export function generateTree(
   // gave every species a bilaterally symmetric "pom-pom on a stick"; phyllotaxy-
   // driven azimuths plus the per-tree azimuth offset distribute the apex
   // branches around the trunk axis instead.
-  const finalTopBranchLen = Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
+  // Apex twig length as a fraction of trunk height — same species-driven
+  // shrink-with-branch-count relationship as before (denser primaries → finer
+  // apex growth), scaled by the current trunk-height fraction of maturity so
+  // it reproduces the original fixed length once trunkHeight reaches
+  // maxTrunkHeight, and shrinks proportionally on a young tree instead of
+  // always spawning adult-length apex growth.
+  const heightFrac =
+    spec.maxTrunkHeight > 0 ? trunkHeight / spec.maxTrunkHeight : 0;
+  const finalTopBranchLen =
+    heightFrac * Math.max(12, 34 - (spec.maxBranchPairs - 1) * 3);
   if (
     trunkHeight > 0 &&
     activeDaysCount >= spec.branchFrequency &&
     !isCascade
   ) {
     const apexAppearsAtDay = spec.branchFrequency;
-    const apexLength = Math.max(8, finalTopBranchLen * 0.7);
+    const apexLength = Math.max(4, finalTopBranchLen * 0.7);
     const apexBaseWidth = Math.max(0.6, trunkTopW * 1.4);
     const apexHalfSpread = spec.splitDiverge * 0.8;
 

@@ -20,11 +20,20 @@ for phase X" placeholders are now active.
 
 | Parameter | Type | Meaning |
 |---|---|---|
-| `maxTrunkHeight` | number | SVG units (200×300 viewBox) at full maturity |
+| `maxTrunkHeight` | number | SVG units (200×300 viewBox) approached asymptotically as the tree ages — see the growth-curve note below the table. |
 | `trunkCurvature` | 0–1+ | 0 = straight; higher = more lateral bend. Applied as a bezier offset of `curvature × height × 0.4`. |
 | `trunkTaperPower` | exponent | Trunk taper profile. 1 = linear; >1 = concave (flared base, slim top); <1 = convex. |
 | `trunkJaggedness` | 0–1 | Roughness added to the trunk silhouette. 0 = smooth bezier; higher = bark/shari texture. |
 | `nebariSpread` | 0–1+ | Basal flare as a fraction of base trunk width — drives visible surface roots. |
+
+**Growth curve**: trunk height follows `maxTrunkHeight × d / (d + 12)`, where
+`d` is `activeDaysCount` scaled by the tree's per-individual growth-rate
+jitter (`computeTrunkHeight` in `treeGenerator.ts`). It climbs steeply in the
+first few weeks and flattens smoothly toward `maxTrunkHeight` — roughly 20% of
+max by day 3, 45% by day 10, 68% by day 25, 81% by day 50, 89%+ by day 100 —
+never quite reaching the asymptote. `individualVariability` perturbs the
+scaling of `d`, so higher-iv species show visible height spread across seeds
+at the same day.
 
 ### Branch architecture
 
@@ -36,6 +45,7 @@ for phase X" placeholders are now active.
 | `branchFrequency` | days | Days between new primary branches appearing. Lower = faster-growing species. |
 | `maxBranchPairs` | number | Cap on primary branches (single branches, not pairs) |
 | `splitDiverge` | radians | Angle divergence when a branch forks. Smaller = tight columnar; larger = wide spreading. |
+| `crownSpreadFactor` | number | Length of the lowest primary branch as a fraction of the tree's *current* trunk height, before child branches extend the reach. Higher = broader crown spread relative to trunk height. |
 | `branchThicknessFactor` | 0–1 | Base thickness of primary branches as a fraction of trunk width at the attachment point. |
 | `branchCurvature` | SVG units | Max lateral midpoint offset applied randomly per branch for natural curvature. Higher = wispier, more arching branches. |
 | `phyllotaxy` | enum | `opposite` / `alternate` / `whorled` — primary-branch emergence pattern around the trunk. |
@@ -312,10 +322,15 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
 
 ### 2. Choose the silhouette family
 
-- **Style**: upright (`firstBranchFrac` ~0.3, `branchAngleBase` > 0) vs cascade
-  (`firstBranchFrac` ~0.6, `branchAngleBase` < 0).
+- **Style**: upright (`firstBranchFrac` ~0.3, `branchAngleBase` > 0,
+  `maxTrunkHeight` ~140–165) vs cascade (`firstBranchFrac` ~0.6,
+  `branchAngleBase` < 0, `maxTrunkHeight` ~85–95 — cascade bonsai are
+  short-trunked; the visual mass hangs beside/below the trunk).
 - **Crown shape**: rounded (`crownDepthFactor` ~0.9), flat-topped (~0.3), or
   one-sided (`azimuthSpread: PI * 1.6` for cascade displays).
+- **Crown width**: `crownSpreadFactor` ~0.27–0.38 for upright species (crown
+  width roughly matches tree height); ~0.34–0.36 for cascade/semi-cascade
+  species, which read wider than tall relative to their short trunks.
 - **Tip behaviour**: weeping (`tipDroop` < 0), upturned (> 0), or neutral (0).
 
 ### 3. Choose phyllotaxy & ramification

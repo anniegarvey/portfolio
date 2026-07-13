@@ -87,6 +87,10 @@ export interface SpeciesConfig {
   maxBranchPairs: number;
   /** Angle divergence (radians) when a branch forks into two children. */
   splitDiverge: number;
+  /** Length of the lowest primary branch as a fraction of the tree's CURRENT
+   *  trunk height, before child branches extend the reach. Higher = broader
+   *  crown spread relative to trunk height. */
+  crownSpreadFactor: number;
   /** Base thickness of primary branches as a fraction of trunk width at the attachment point. */
   branchThicknessFactor: number;
   /** Max lateral midpoint offset (SVG units) applied randomly per branch for natural curvature. */
@@ -172,6 +176,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchFrequency: 6,
     maxBranchPairs: 7,
     splitDiverge: 0.28,
+    crownSpreadFactor: 0.27,
     branchThicknessFactor: 0.4,
     branchCurvature: 1.5,
     // Whorled growth — new buds emerge in evenly spaced rings (nodes) up the trunk.
@@ -213,6 +218,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchFrequency: 3,
     maxBranchPairs: 6,
     splitDiverge: 0.42,
+    crownSpreadFactor: 0.36,
     branchThicknessFactor: 0.46,
     branchCurvature: 3.5,
     // Opposite buds — pairs of branches emerge at each node, alternating 90° between nodes.
@@ -258,6 +264,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchFrequency: 4,
     maxBranchPairs: 6,
     splitDiverge: 0.35,
+    crownSpreadFactor: 0.33,
     branchThicknessFactor: 0.38,
     branchCurvature: 2.5,
     // Alternate buds along the stem — spiral arrangement with ~137° phyllotactic offset.
@@ -297,7 +304,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     foliageColorLight: "#3d8b4a",
     trunkColor: "#3a2010",
     regrowthDays: 16,
-    maxTrunkHeight: 160,
+    // Cascade bonsai are short-trunked — the visual mass hangs below/beside
+    // the trunk rather than stacking above it.
+    maxTrunkHeight: 90,
     trunkCurvature: 0.65,
     trunkTaperPower: 1.5,
     trunkJaggedness: 0.7,
@@ -308,6 +317,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchFrequency: 5,
     maxBranchPairs: 8,
     splitDiverge: 0.22,
+    crownSpreadFactor: 0.34,
     branchThicknessFactor: 0.5,
     branchCurvature: 5.0,
     // Whorled scale foliage in 3-leaf rings on adult growth.
@@ -357,6 +367,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchFrequency: 7,
     maxBranchPairs: 6,
     splitDiverge: 0.45,
+    crownSpreadFactor: 0.35,
     branchThicknessFactor: 0.42,
     branchCurvature: 2.0,
     phyllotaxy: "alternate",
@@ -394,7 +405,8 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     foliageColorLight: "#6a9a48",
     trunkColor: "#6b5040",
     regrowthDays: 12,
-    maxTrunkHeight: 145,
+    // Semi-cascade — short trunk; the draped canes carry the visual height.
+    maxTrunkHeight: 88,
     trunkCurvature: 0.55,
     trunkTaperPower: 1.2,
     trunkJaggedness: 0.6,
@@ -405,6 +417,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchFrequency: 3,
     maxBranchPairs: 7,
     splitDiverge: 0.4,
+    crownSpreadFactor: 0.36,
     branchThicknessFactor: 0.32,
     branchCurvature: 5.5,
     phyllotaxy: "alternate",
@@ -457,6 +470,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchFrequency: 3,
     maxBranchPairs: 8,
     splitDiverge: 0.55,
+    crownSpreadFactor: 0.38,
     branchThicknessFactor: 0.4,
     branchCurvature: 2.5,
     phyllotaxy: "alternate",
