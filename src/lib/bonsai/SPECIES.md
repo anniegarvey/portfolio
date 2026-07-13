@@ -371,4 +371,6 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
   (Trunk, Branches/Style, Foliage, Redesign params, Pruning speed, Sources).
 - Run `pnpm generate-snapshots --species=<slug>` then `pnpm snapshot-grid --species=<slug>` and inspect
   `docs/bonsai-snapshots/<slug>-grid.png` at all six growth stages.
+- Run `pnpm snapshot-seeds --species=<slug>` and inspect `docs/bonsai-snapshots/<slug>-seeds.png` —
+  the silhouette must hold up across all three seeds, not just the default one.
 - Run `pnpm test src/lib/bonsai/` and `pnpm exec tsc --noEmit`.
