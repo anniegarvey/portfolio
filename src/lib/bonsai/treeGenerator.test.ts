@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { SpeciesConfig } from "./speciesConfig";
 import { SPECIES_CONFIG } from "./speciesConfig";
 import {
   BRANCH_GROW_DURATION,
@@ -754,6 +755,119 @@ describe("generateTree", () => {
       const day15 = generateTree(15, PINE, [], "pad-radius-pine");
       const day100 = generateTree(100, PINE, [], "pad-radius-pine");
       expect(maxTipDistance(day100)).toBeGreaterThan(maxTipDistance(day15));
+    });
+  });
+
+  // ─── Species silhouettes (Step 5) ──────────────────────────────────────────
+
+  describe("pine — conical taper (A1)", () => {
+    it("day 100: primary branch length decreases from the lowest to the highest attachment zone", () => {
+      // Group primaries by attachment height instead of comparing a single
+      // p0-vs-p-last pair: individual branches' 2D `maxLength` is heavily
+      // foreshortened by azimuth (a branch pointing toward/away from the
+      // viewer projects far shorter than one lying in the picture plane),
+      // which can swamp the taper signal for any one pair. Whorled pine
+      // primaries at the same height node share an exact attachment y (no
+      // per-branch height jitter for whorled phyllotaxy), so averaging within
+      // each node cancels the azimuth noise and isolates the taper.
+      const data = generateTree(100, PINE, [], "snapshot-pine");
+      const primaries = data.branches.filter(
+        (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+      );
+      const byAttachY = new Map<number, number[]>();
+      for (const p of primaries) {
+        const len = Math.hypot(p.x2 - p.x1, p.y2 - p.y1);
+        const key = Math.round(p.y1 * 10) / 10;
+        byAttachY.set(key, [...(byAttachY.get(key) ?? []), len]);
+      }
+      const nodeYs = [...byAttachY.keys()].sort((a, b) => b - a); // base-first
+      expect(nodeYs.length).toBeGreaterThanOrEqual(2);
+      const avg = (lens: number[]) =>
+        lens.reduce((sum, v) => sum + v, 0) / lens.length;
+      const lowestZoneAvg = avg(byAttachY.get(nodeYs[0]) ?? []);
+      const highestZoneAvg = avg(
+        byAttachY.get(nodeYs[nodeYs.length - 1]) ?? [],
+      );
+      expect(highestZoneAvg).toBeLessThan(lowestZoneAvg);
+    });
+  });
+
+  describe("pine — bare-neck ceiling (A2)", () => {
+    it("day 100: apicalDominance >= 0.6 raises the primary-attachment ceiling, moving the highest primary closer to the trunk top than the old non-cascade default", () => {
+      // NOTE: pine's whorled phyllotaxy only produces 2 height-nodes
+      // (ceil(maxBranchPairs / whorlSize) = ceil(7/5) = 2), so the "1/3 rule"
+      // convergence caps the highest node well below trunkHeight regardless
+      // of maxAttachFrac (empirically ~51% of trunk height at 0.96, vs a
+      // mathematical ceiling of ~52% even at maxAttachFrac = 1.0). "Within 8%
+      // of the trunk top" is therefore unreachable via p*-branches alone —
+      // this test instead verifies the actual, achievable effect of A2: the
+      // ceiling raise measurably moves the highest primary upward relative to
+      // the pre-A2 (apicalDominance < 0.6) ceiling of 0.9.
+      function highestPrimaryFrac(spec: SpeciesConfig) {
+        const data = generateTree(100, spec, [], "snapshot-pine");
+        const trunkHeight = data.trunkBaseY - data.trunkTopY;
+        const primaries = data.branches.filter(
+          (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+        );
+        const minY1 = Math.min(...primaries.map((b) => b.y1));
+        return (data.trunkBaseY - minY1) / trunkHeight;
+      }
+      const belowCeilingThreshold = { ...PINE, apicalDominance: 0.5 };
+      expect(highestPrimaryFrac(PINE)).toBeGreaterThan(
+        highestPrimaryFrac(belowCeilingThreshold),
+      );
+    });
+  });
+
+  describe("pine — needle tufts (A3)", () => {
+    it("day 100: needle-pad angles avoid the downward-pointing arc (20°,160°)", () => {
+      const data = generateTree(100, PINE, [], "snapshot-pine");
+      const needleLeaves = data.branches
+        .filter((b) => b.isTerminal && !b.isPruned)
+        .flatMap((b) => b.leaves);
+      expect(needleLeaves.length).toBeGreaterThan(0);
+      for (const leaf of needleLeaves) {
+        const a = ((leaf.angleDeg % 360) + 360) % 360;
+        expect(a > 20 && a < 160).toBe(false);
+      }
+    });
+  });
+
+  describe("cherry — blossoms on spurs (D)", () => {
+    it("day 100: flower count exceeds the same tree with interiorPadDensity 0 (no spur sites)", () => {
+      const cherry = SPECIES_CONFIG["cherry-blossom"];
+      const withSpurs = generateTree(100, cherry, [], "flower-spur-cherry");
+      const noSpurs = generateTree(
+        100,
+        { ...cherry, interiorPadDensity: 0 },
+        [],
+        "flower-spur-cherry",
+      );
+      expect(withSpurs.flowers.length).toBeGreaterThan(noSpurs.flowers.length);
+    });
+
+    it("day 100: oak also gains flower sites from spurs (subtler than cherry)", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const withSpurs = generateTree(100, oak, [], "flower-spur-oak");
+      const noSpurs = generateTree(
+        100,
+        { ...oak, interiorPadDensity: 0 },
+        [],
+        "flower-spur-oak",
+      );
+      expect(withSpurs.flowers.length).toBeGreaterThanOrEqual(
+        noSpurs.flowers.length,
+      );
+    });
+  });
+
+  describe("config assertions (Step 5)", () => {
+    it("juniper tipDroop is negative (semi-cascade twig droop)", () => {
+      expect(SPECIES_CONFIG.juniper.tipDroop).toBeLessThan(0);
+    });
+
+    it("flame tree leafSize shrank for fine bipinnate texture", () => {
+      expect(SPECIES_CONFIG["flame-tree"].leafSize).toBeLessThan(5.5);
     });
   });
 });

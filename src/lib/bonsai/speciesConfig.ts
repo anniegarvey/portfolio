@@ -347,14 +347,15 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Cascade junipers are typically displayed from a single viewing side — narrow the yaw sweep.
     azimuthSpread: Math.PI * 1.6,
     crownDepthFactor: 0.5,
-    // Juniper foliage pads spread laterally — twigs read horizontal, not bent.
-    tipDroop: 0,
+    // Foliage-bearing twig ends droop slightly — semi-cascade pads read as
+    // hanging clouds rather than perfectly horizontal shelves.
+    tipDroop: -0.35,
     leafShape: "scale",
-    leafSize: 2.0,
+    leafSize: 2.4,
     foliageDistribution: "pad",
     padRadius: 14,
     interiorPadDensity: 0.8,
-    leavesPerPad: [18, 26],
+    leavesPerPad: [24, 34],
     individualVariability: 0.4,
     flowers: {
       // Waxy blue-black seed cones (berry-like); ornamental once mature.
@@ -508,11 +509,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // rather than reading as flat-cut.
     tipDroop: -0.2,
     leafShape: "palmate",
-    leafSize: 5.5,
+    leafSize: 3.4,
     foliageDistribution: "pad",
     padRadius: 16,
     interiorPadDensity: 0.6,
-    leavesPerPad: [6, 10],
+    leavesPerPad: [12, 18],
     individualVariability: 0.15,
     flowers: {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.

@@ -410,12 +410,16 @@ function generatePad(
     const id = `${seed}-${i}`;
 
     if (spec.leafShape === "needle") {
-      const baseDeg = (i / count) * 360;
+      // Fan needles across an upward arc (-160°..-20°, centred on straight-up
+      // -90°) instead of a full 360° "sea urchin" spread, and compress the
+      // pad disc vertically so needle pads read as horizontal tufts sitting
+      // on the branch — the classic pine-pad look.
+      const baseDeg = -160 + (i / count) * 140;
       const jitter = (seededVal(seed + treeId, i * 4 + 1004) - 0.5) * 18;
       leaves.push({
         id,
         cx: r(cx + dx),
-        cy: r(cy + dy),
+        cy: r(cy + dy * 0.55),
         rx: 0.4,
         ry: size,
         angleDeg: baseDeg + jitter,
@@ -483,8 +487,16 @@ interface FoliageContext {
   ageFrac: number;
 }
 
-function terminalFoliage(c: FoliageContext): Leaf[] {
+interface FoliageResult {
+  leaves: Leaf[];
+  /** Spur pad centre, if `terminalFoliage` rolled one for this branch/day —
+   *  plumbed out so `generateFlowers` can also site flowers on spur shoots. */
+  spurTip?: { x: number; y: number };
+}
+
+function terminalFoliage(c: FoliageContext): FoliageResult {
   const leaves: Leaf[] = [];
+  let spurTip: { x: number; y: number } | undefined;
 
   if (c.isTerminal && c.effectiveProg > 0.3) {
     const [minL, maxL] = c.spec.leavesPerPad;
@@ -526,6 +538,7 @@ function terminalFoliage(c: FoliageContext): Leaf[] {
     const frac = 0.55 + seededVal(c.branchId + c.treeId, 800) * 0.2;
     const spurX = c.tipX - Math.cos(c.branchAngle) * c.branchLen * (1 - frac);
     const spurY = c.tipY - Math.sin(c.branchAngle) * c.branchLen * (1 - frac);
+    spurTip = { x: spurX, y: spurY };
     const spurCount = ageDensityCount(
       seededInt(
         c.branchId + c.treeId,
@@ -549,7 +562,7 @@ function terminalFoliage(c: FoliageContext): Leaf[] {
     );
   }
 
-  return leaves;
+  return { leaves, spurTip };
 }
 
 function padFoliage(c: FoliageContext): Leaf[] {
@@ -689,17 +702,19 @@ function pendentFoliage(c: FoliageContext): Leaf[] {
   return leaves;
 }
 
-/** Dispatches to the per-distribution builder selected on the species spec. */
-function buildFoliageLeaves(c: FoliageContext): Leaf[] {
+/** Dispatches to the per-distribution builder selected on the species spec.
+ *  Only `terminalFoliage` ever produces a `spurTip` — the other three modes
+ *  are wrapped so their call sites stay unchanged. */
+function buildFoliageLeaves(c: FoliageContext): FoliageResult {
   switch (c.spec.foliageDistribution) {
     case "terminal":
       return terminalFoliage(c);
     case "pad":
-      return padFoliage(c);
+      return { leaves: padFoliage(c) };
     case "scattered":
-      return scatteredFoliage(c);
+      return { leaves: scatteredFoliage(c) };
     case "pendent":
-      return pendentFoliage(c);
+      return { leaves: pendentFoliage(c) };
   }
 }
 
@@ -832,8 +847,17 @@ function generateFlowers(
 
   const tips: Array<{ id: string; cx: number; cy: number }> = [];
   for (const b of rendered) {
-    if (!b.isPruned && b.isTerminal)
-      tips.push({ id: b.id, cx: b.x2, cy: b.y2 });
+    if (b.isPruned) continue;
+    if (b.isTerminal) tips.push({ id: b.id, cx: b.x2, cy: b.y2 });
+    // Spur shoots along non-terminal branches (real Prunus/Quercus flowers
+    // aren't only at branch tips) are also eligible sites, keyed distinctly
+    // so the density roll below is independent of the tip roll.
+    if (b.spurTip)
+      tips.push({
+        id: `${b.id}-spur`,
+        cx: b.spurTip.x,
+        cy: b.spurTip.y,
+      });
   }
   tips.push({ id: "apex", cx: apexTipX, cy: apexTipY });
 
@@ -1239,7 +1263,10 @@ export function generateTree(
   // Cascade species (drooping branches): cluster branches in the upper portion of the trunk.
   // Upright species: distribute from firstBranchFrac upward using the "1/3 rule".
   const isCascade = spec.branchAngleBase < -0.05;
-  const maxAttachFrac = isCascade ? 0.96 : 0.9;
+  // Strong-leader species (pine, oak) get the same raised ceiling as cascade
+  // styles so the topmost whorl/node sits closer to the apex instead of
+  // leaving a bare trunk segment under the apex cluster.
+  const maxAttachFrac = isCascade || spec.apicalDominance >= 0.6 ? 0.96 : 0.9;
 
   // ─── Phyllotaxy-Driven Primary Branch Placement ──────────────────────────
   // Primary branches are numbered p0, p1, p2 … sequentially. Phyllotaxy
@@ -1251,6 +1278,12 @@ export function generateTree(
   const branchFrequency = spec.branchFrequency;
   const branchAngleBase = spec.branchAngleBase;
   const branchAngleRamp = spec.branchAngleRamp;
+  // Species-dependent taper of primary branch length from lowest to highest
+  // zone — higher apicalDominance narrows the crown into a conical silhouette
+  // (pine); lower apicalDominance keeps upper branches nearly as long as the
+  // lowest, reading as a flatter umbrella (flame tree). Replaces the old
+  // fixed 0.42; zoneFrac === 0 (lowest branch) is unaffected either way.
+  const zoneTaper = 0.25 + 0.35 * spec.apicalDominance;
 
   // Per-tree azimuth rotation — prevents every tree of the same species from
   // landing primaries at identical cardinal angles. Without this, opposite
@@ -1383,7 +1416,7 @@ export function generateTree(
       // proportionally short whips instead of adult-length branches on a
       // stubby trunk. Children inherit this length and extend it further.
       const lengthBase =
-        trunkHeight * spec.crownSpreadFactor * (1 - zoneFrac * 0.42);
+        trunkHeight * spec.crownSpreadFactor * (1 - zoneFrac * zoneTaper);
       const lengthVar =
         (seededVal(`pl${id}${treeId}`, 0) - 0.5) *
         lengthBase *
@@ -1597,7 +1630,7 @@ export function generateTree(
       visibleIds.has(`${s.id}-a`) || visibleIds.has(`${s.id}-b`)
     );
 
-    const leaves = buildFoliageLeaves({
+    const { leaves, spurTip } = buildFoliageLeaves({
       branchId: s.id,
       tipX: x2,
       tipY: y2,
@@ -1623,6 +1656,7 @@ export function generateTree(
       leaves,
       isPruned: false,
       isTerminal,
+      spurTip,
     });
   }
 
