@@ -143,9 +143,12 @@ export interface SpeciesConfig {
   /** SVG units — radius of a single foliage pad disc. Larger = more spread-out
    *  pads that overlap their neighbours and the trunk. */
   padRadius: number;
-  /** 0–1 — for `foliageDistribution === "pad"`: probability that a near-tip
-   *  non-terminal branch gets an extra interior pad. Fills the bare crown
-   *  centre. Ignored by `terminal`. */
+  /** 0–1 — probability that a non-terminal branch grows extra foliage beyond
+   *  its terminal tip pad. For `foliageDistribution === "pad"`: an interior
+   *  pad near the tip, filling the bare crown centre. For `"terminal"`: a
+   *  smaller spur pad partway along the branch, keeping the crown outline
+   *  continuous instead of bare sticks with a puff at each tip. Ignored by
+   *  `scattered`/`pendent`. */
   interiorPadDensity: number;
   /** [min, max] — leaves placed within each pad disc. */
   leavesPerPad: [number, number];
@@ -295,9 +298,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafShape: "oval",
     leafSize: 4.5,
     foliageDistribution: "terminal",
-    padRadius: 5,
-    interiorPadDensity: 0.2,
-    leavesPerPad: [4, 7],
+    padRadius: 6.5,
+    interiorPadDensity: 0.45,
+    leavesPerPad: [5, 9],
     individualVariability: 0.25,
     flowers: {
       // Iconic 5-petal blossoms in clusters; pale pink to white. Appear with leaves.
@@ -400,9 +403,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafShape: "lobed",
     leafSize: 6.0,
     foliageDistribution: "terminal",
-    padRadius: 6,
-    interiorPadDensity: 0.2,
-    leavesPerPad: [4, 6],
+    padRadius: 7.5,
+    interiorPadDensity: 0.45,
+    leavesPerPad: [5, 8],
     individualVariability: 0.2,
     flowers: {
       // Pendulous yellow-green catkins; rare — reflects 20–40 year real-world maturity.

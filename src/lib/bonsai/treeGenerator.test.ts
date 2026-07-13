@@ -694,4 +694,66 @@ describe("generateTree", () => {
       expect(data.flowers.length).toBe(eligibleTipCount(data));
     });
   });
+
+  // ─── Canopy cohesion — spur pads on terminal species (Step 4) ────────────
+
+  describe("spur pads on terminal-distribution species", () => {
+    it("cherry-blossom day 100: non-terminal branches carry spur-pad leaves, unlike interiorPadDensity 0", () => {
+      const cherry = SPECIES_CONFIG["cherry-blossom"];
+      const withSpurs = generateTree(100, cherry, [], "spur-cherry");
+      const nonTerminalLeafy = withSpurs.branches.filter(
+        (b) => !(b.isTerminal || b.isPruned) && b.leaves.length > 0,
+      );
+      expect(nonTerminalLeafy.length).toBeGreaterThan(0);
+
+      const noSpurs = generateTree(
+        100,
+        { ...cherry, interiorPadDensity: 0 },
+        [],
+        "spur-cherry",
+      );
+      const nonTerminalLeafyNoSpurs = noSpurs.branches.filter(
+        (b) => !(b.isTerminal || b.isPruned) && b.leaves.length > 0,
+      );
+      expect(nonTerminalLeafyNoSpurs.length).toBe(0);
+    });
+
+    it("oak day 100: spur pads increase total leaf count over interiorPadDensity 0", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const totalLeaves = (data: ReturnType<typeof generateTree>) =>
+        data.apexLeaves.length +
+        data.branches.reduce((sum, b) => sum + b.leaves.length, 0);
+
+      const withSpurs = generateTree(100, oak, [], "spur-oak");
+      const noSpurs = generateTree(
+        100,
+        { ...oak, interiorPadDensity: 0 },
+        [],
+        "spur-oak",
+      );
+      expect(totalLeaves(withSpurs)).toBeGreaterThan(totalLeaves(noSpurs));
+    });
+  });
+
+  // ─── Age signal — pad radius (Step 4) ─────────────────────────────────────
+
+  describe("age signal — pad radius", () => {
+    it("pine terminal-pad leaves scatter farther from the tip at day 100 than day 15", () => {
+      // Leaf-centre distance from the branch tip isolates the radius signal:
+      // it's sqrt(seededVal) * radius, independent of leafSize/progress (which
+      // also change with day but only affect drawn leaf size, not placement).
+      function maxTipDistance(data: ReturnType<typeof generateTree>) {
+        const distances = data.branches
+          .filter((b) => b.isTerminal && !b.isPruned)
+          .flatMap((b) =>
+            b.leaves.map((leaf) => Math.hypot(leaf.cx - b.x2, leaf.cy - b.y2)),
+          );
+        return distances.length > 0 ? Math.max(...distances) : 0;
+      }
+
+      const day15 = generateTree(15, PINE, [], "pad-radius-pine");
+      const day100 = generateTree(100, PINE, [], "pad-radius-pine");
+      expect(maxTipDistance(day100)).toBeGreaterThan(maxTipDistance(day15));
+    });
+  });
 });

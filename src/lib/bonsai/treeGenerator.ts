@@ -457,6 +457,14 @@ function ageDensityCount(baseCount: number, ageFrac: number): number {
   return Math.max(1, Math.round(baseCount * (0.75 + 0.45 * ageFrac)));
 }
 
+/** Age signal — pads broaden slightly as the tree matures, independent of a
+ *  branch's own grow-in progress. Scales a configured `padRadius` by 0.8
+ *  (freshly sprouted) up to 1.15 (very old, ageFrac→1), clamped so it never
+ *  exceeds 1.15× the configured radius. */
+function agePadRadius(padRadius: number, ageFrac: number): number {
+  return padRadius * Math.min(1.15, 0.8 + 0.35 * ageFrac);
+}
+
 // ─── Foliage Distribution Dispatch ────────────────────────────────────────────
 // Each distribution mode is a separate small function so the dispatcher stays
 // readable. All four return Leaf[] in the branch-local frame.
@@ -468,6 +476,7 @@ interface FoliageContext {
   branchAngle: number;
   branchLen: number;
   isTerminal: boolean;
+  depth: number;
   effectiveProg: number;
   spec: SpeciesConfig;
   treeId: string;
@@ -475,22 +484,72 @@ interface FoliageContext {
 }
 
 function terminalFoliage(c: FoliageContext): Leaf[] {
-  if (!(c.isTerminal && c.effectiveProg > 0.3)) return [];
-  const [minL, maxL] = c.spec.leavesPerPad;
-  const count = ageDensityCount(
-    seededInt(c.branchId + c.treeId, 77, minL, maxL),
-    c.ageFrac,
-  );
-  return generatePad(
-    c.branchId,
-    c.treeId,
-    c.tipX,
-    c.tipY,
-    c.spec.padRadius,
-    count,
-    c.spec,
-    c.effectiveProg,
-  );
+  const leaves: Leaf[] = [];
+
+  if (c.isTerminal && c.effectiveProg > 0.3) {
+    const [minL, maxL] = c.spec.leavesPerPad;
+    const count = ageDensityCount(
+      seededInt(c.branchId + c.treeId, 77, minL, maxL),
+      c.ageFrac,
+    );
+    leaves.push(
+      ...generatePad(
+        c.branchId,
+        c.treeId,
+        c.tipX,
+        c.tipY,
+        agePadRadius(c.spec.padRadius, c.ageFrac),
+        count,
+        c.spec,
+        c.effectiveProg,
+      ),
+    );
+  }
+
+  // Spur pads — real broadleaf crowns aren't bare branches with a single
+  // puff at the tip; short shoots (spurs) along the outer non-terminal
+  // branches also carry foliage, keeping the crown outline continuous.
+  // Gated stochastically per branch via `interiorPadDensity` (reused from
+  // pad-mode's interior-pad chance) and only once the branch has grown in
+  // and is long enough to plausibly carry a spur. Restricted to depth >= 1
+  // so primary scaffold branches stay bare, as in real trees.
+  if (
+    !c.isTerminal &&
+    c.depth >= 1 &&
+    c.effectiveProg > 0.3 &&
+    c.branchLen > 6 &&
+    c.spec.interiorPadDensity > 0 &&
+    seededVal(c.branchId + c.treeId, 78) < c.spec.interiorPadDensity
+  ) {
+    const [minL, maxL] = c.spec.leavesPerPad;
+    // Position ~55-75% of the way from base to tip, seeded per branch.
+    const frac = 0.55 + seededVal(c.branchId + c.treeId, 800) * 0.2;
+    const spurX = c.tipX - Math.cos(c.branchAngle) * c.branchLen * (1 - frac);
+    const spurY = c.tipY - Math.sin(c.branchAngle) * c.branchLen * (1 - frac);
+    const spurCount = ageDensityCount(
+      seededInt(
+        c.branchId + c.treeId,
+        801,
+        Math.max(1, Math.floor(minL * 0.5)),
+        Math.max(2, Math.ceil(maxL * 0.5)),
+      ),
+      c.ageFrac,
+    );
+    leaves.push(
+      ...generatePad(
+        `${c.branchId}spur`,
+        c.treeId,
+        spurX,
+        spurY,
+        agePadRadius(c.spec.padRadius, c.ageFrac) * 0.6,
+        spurCount,
+        c.spec,
+        c.effectiveProg,
+      ),
+    );
+  }
+
+  return leaves;
 }
 
 function padFoliage(c: FoliageContext): Leaf[] {
@@ -507,7 +566,7 @@ function padFoliage(c: FoliageContext): Leaf[] {
       c.treeId,
       c.tipX,
       c.tipY,
-      c.spec.padRadius,
+      agePadRadius(c.spec.padRadius, c.ageFrac),
       count,
       c.spec,
       c.effectiveProg,
@@ -534,7 +593,7 @@ function padFoliage(c: FoliageContext): Leaf[] {
       c.treeId,
       c.tipX,
       c.tipY,
-      c.spec.padRadius * 0.7,
+      agePadRadius(c.spec.padRadius, c.ageFrac) * 0.7,
       intCount,
       c.spec,
       c.effectiveProg,
@@ -567,7 +626,7 @@ function scatteredFoliage(c: FoliageContext): Leaf[] {
         c.treeId,
         px,
         py,
-        c.spec.padRadius,
+        agePadRadius(c.spec.padRadius, c.ageFrac),
         count,
         c.spec,
         c.effectiveProg,
@@ -593,7 +652,7 @@ function pendentFoliage(c: FoliageContext): Leaf[] {
       c.treeId,
       c.tipX,
       c.tipY,
-      c.spec.padRadius,
+      agePadRadius(c.spec.padRadius, c.ageFrac),
       tipCount,
       c.spec,
       c.effectiveProg,
@@ -619,7 +678,7 @@ function pendentFoliage(c: FoliageContext): Leaf[] {
         c.treeId,
         c.tipX + sway,
         c.tipY + t * chainLength,
-        c.spec.padRadius * 0.55,
+        agePadRadius(c.spec.padRadius, c.ageFrac) * 0.55,
         hangCount,
         c.spec,
         c.effectiveProg,
@@ -1545,6 +1604,7 @@ export function generateTree(
       branchAngle: tipAngle2D,
       branchLen: currentLen,
       isTerminal,
+      depth: s.depth,
       effectiveProg,
       spec,
       treeId,
@@ -1613,7 +1673,7 @@ export function generateTree(
           treeId,
           trunkTopX,
           trunkTopY,
-          spec.padRadius * 0.7,
+          agePadRadius(spec.padRadius, heightFrac) * 0.7,
           ageDensityCount(
             seededInt(
               `apex${treeId}`,

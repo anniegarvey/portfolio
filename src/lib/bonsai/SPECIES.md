@@ -86,7 +86,7 @@ reading as "older" well past day 100 (`generateTree` in `treeGenerator.ts`):
 | `leafSize` | SVG units | Base size. Interpretation varies by shape (see below). |
 | `foliageDistribution` | enum | `terminal` / `pad` / `scattered` / `pendent` — see Foliage Distribution doc in `speciesConfig.ts`. |
 | `padRadius` | SVG units | Radius of a single foliage pad disc. Larger pads overlap their neighbours and the trunk for closed canopies. |
-| `interiorPadDensity` | 0–1 | For `pad` mode: chance a near-tip non-terminal branch grows an extra interior pad. Fills the bare crown centre. |
+| `interiorPadDensity` | 0–1 | Chance a non-terminal branch grows extra foliage beyond its tip pad. `pad` mode: a near-tip interior pad, filling the bare crown centre. `terminal` mode: a smaller spur pad partway along the branch, keeping the crown outline continuous instead of bare sticks with a puff at each tip. |
 | `leavesPerPad` | [min, max] | Randomised leaf count placed within each pad. |
 
 ### Per-individual variation
@@ -186,9 +186,11 @@ Low `branchAngleRamp: 0.18` gives only a subtle variation across the crown heigh
 maintains a fairly even spreading silhouette from base to apex. `firstBranchFrac: 0.30`.
 
 **Foliage**: Oval-lanceolate leaves 6–13 cm in nature, shown as landscape ovals.
-Light terminal-only pads of 4–7 ovals — keeps the airy, see-through canopy that
-cherries are known for. `foliageDistribution: "terminal"` with `padRadius: 5`,
-`leavesPerPad: [4, 7]`, `leafSize: 4.5`.
+Light terminal pads of 5–9 ovals keep the airy, see-through canopy that cherries
+are known for, while smaller spur pads along non-terminal twigs
+(`interiorPadDensity: 0.45`) keep the crown outline continuous rather than a
+ring of isolated puffs. `foliageDistribution: "terminal"` with `padRadius: 6.5`,
+`leavesPerPad: [5, 9]`, `leafSize: 4.5`.
 
 **Redesign params**: `phyllotaxy: "alternate"` for cherry's spiral bud arrangement.
 Moderate `apicalDominance: 0.6` and low `branchWander: 0.2` produce a tidy
@@ -247,9 +249,10 @@ give the broad, rounded silhouette typical of the species. Moderate `branchCurva
 reflects oak's stiff, relatively straight limbs compared to species like maple or wisteria.
 
 **Foliage**: Deeply lobed leaves 5–15 cm in nature (much reduced on bonsai). Rendered as
-a sinuous lobed path. Light terminal-only pads of 4–6 to preserve oak's coarse, irregular
-silhouette. `foliageDistribution: "terminal"` with `padRadius: 6`, `leavesPerPad: [4, 6]`,
-`leafSize: 6.0`.
+a sinuous lobed path. Light terminal pads of 5–8 preserve oak's coarse, irregular
+silhouette, while spur pads along non-terminal branches (`interiorPadDensity: 0.45`) fill
+the crown's sky gaps without smoothing it into a solid ball. `foliageDistribution: "terminal"`
+with `padRadius: 7.5`, `leavesPerPad: [5, 8]`, `leafSize: 6.0`.
 
 **Redesign params**: `phyllotaxy: "alternate"` with strong `apicalDominance: 0.7`
 reflects oak's powerful straight-leader growth. `maxDepth: 3` with
@@ -383,7 +386,7 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
 ### 5. Foliage distribution
 
 - Open-canopy broadleaves (cherry, oak): `foliageDistribution: "terminal"` with
-  `padRadius` 5–6 and small `leavesPerPad` ranges.
+  `padRadius` 6.5–7.5 and small `leavesPerPad` ranges.
 - Dense pad species (pine, juniper, flame tree): `foliageDistribution: "pad"`
   with `padRadius` 10–16, higher `interiorPadDensity` (0.6–0.8) to fill the
   crown centre.
