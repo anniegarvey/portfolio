@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { SpeciesConfig } from "./speciesConfig";
 import { SPECIES_CONFIG } from "./speciesConfig";
-import { BRANCH_GROW_DURATION, generateTree } from "./treeGenerator";
+import {
+  BRANCH_GROW_DURATION,
+  computeTrunkBaseWidth,
+  computeTrunkHeight,
+  generateTree,
+} from "./treeGenerator";
 
 const PINE = SPECIES_CONFIG.pine; // branchFrequency: 6, regrowthDays: 14
 const TREE_ID = "test-tree-id";
@@ -10,6 +16,62 @@ const TREE_ID = "test-tree-id";
 describe("BRANCH_GROW_DURATION", () => {
   it("is exported as a positive number", () => {
     expect(BRANCH_GROW_DURATION).toBeGreaterThan(0);
+  });
+});
+
+// ─── computeTrunkHeight — growth curve proportions (Step 1) ──────────────────
+
+describe("computeTrunkHeight", () => {
+  // Zero-variability spec: growthRateMultiplier is always 1 regardless of
+  // treeId, so the fraction of maxTrunkHeight reached at each day is exact
+  // and seed-independent — the cleanest way to pin down the curve shape.
+  const flatPine = { ...PINE, individualVariability: 0 };
+
+  it("is 0 at day 0", () => {
+    expect(computeTrunkHeight(0, flatPine, TREE_ID)).toBe(0);
+  });
+
+  it("reaches roughly 15-22% of maxTrunkHeight by day 3", () => {
+    const frac =
+      computeTrunkHeight(3, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.15);
+    expect(frac).toBeLessThanOrEqual(0.22);
+  });
+
+  it("reaches roughly 38-48% of maxTrunkHeight by day 10", () => {
+    const frac =
+      computeTrunkHeight(10, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.35);
+    expect(frac).toBeLessThanOrEqual(0.5);
+  });
+
+  it("reaches roughly 60-72% of maxTrunkHeight by day 25", () => {
+    const frac =
+      computeTrunkHeight(25, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.6);
+    expect(frac).toBeLessThanOrEqual(0.72);
+  });
+
+  it("reaches roughly 78-86% of maxTrunkHeight by day 50", () => {
+    const frac =
+      computeTrunkHeight(50, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.78);
+    expect(frac).toBeLessThanOrEqual(0.86);
+  });
+
+  it("reaches at least 88% of maxTrunkHeight by day 100 for a zero-variability spec", () => {
+    const frac =
+      computeTrunkHeight(100, flatPine, TREE_ID) / flatPine.maxTrunkHeight;
+    expect(frac).toBeGreaterThanOrEqual(0.88);
+  });
+
+  it("is monotonically increasing with day", () => {
+    let prev = 0;
+    for (const day of [1, 5, 10, 20, 40, 80, 150]) {
+      const h = computeTrunkHeight(day, flatPine, TREE_ID);
+      expect(h).toBeGreaterThan(prev);
+      prev = h;
+    }
   });
 });
 
@@ -452,6 +514,392 @@ describe("generateTree", () => {
       const clustered = terminals.filter((b) => b.leaves.length > 0);
       // All species with growth past day 0 should produce some leaf clusters
       expect(clustered.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ─── Crown proportions (Step 1) ────────────────────────────────────────────
+
+  describe("crown proportions", () => {
+    /** Horizontal extent (max x − min x) across every live branch endpoint —
+     *  a proxy for rendered crown width. */
+    function crownWidth(data: ReturnType<typeof generateTree>) {
+      const live = data.branches.filter((b) => !b.isPruned);
+      const xs = live.flatMap((b) => [b.x1, b.x2]);
+      return xs.length > 0 ? Math.max(...xs) - Math.min(...xs) : 0;
+    }
+
+    const uprightSpecies = ["pine", "oak", "maple"] as const;
+
+    it.each(
+      uprightSpecies,
+    )("%s — mature crown width is proportional to tree height (not ~2x wider than tall)", (id) => {
+      const spec = SPECIES_CONFIG[id];
+      const data = generateTree(100, spec, [], `snapshot-${id}`);
+      const height = data.trunkBaseY - data.trunkTopY;
+      const width = crownWidth(data);
+      const ratio = width / height;
+      expect(ratio).toBeGreaterThan(0.6);
+      expect(ratio).toBeLessThan(1.3);
+    });
+
+    it.each(
+      uprightSpecies,
+    )("%s — day-10 sapling crown width is narrower than its trunk height", (id) => {
+      const spec = SPECIES_CONFIG[id];
+      const data = generateTree(10, spec, [], `snapshot-${id}`);
+      const height = data.trunkBaseY - data.trunkTopY;
+      const width = crownWidth(data);
+      expect(width).toBeLessThan(height);
+    });
+  });
+
+  // ─── Age signals — trunk mass (Step 2) ─────────────────────────────────────
+
+  describe("computeTrunkBaseWidth", () => {
+    const MAPLE = SPECIES_CONFIG.maple; // trunkWidthFactor: 1.0
+    const OAK = SPECIES_CONFIG.oak; // trunkWidthFactor: 1.25
+
+    it("is monotonically increasing through day 200 and beyond", () => {
+      let prev = 0;
+      for (const day of [0, 10, 25, 50, 100, 150, 200, 400]) {
+        const w = computeTrunkBaseWidth(day, MAPLE);
+        expect(w).toBeGreaterThan(prev);
+        prev = w;
+      }
+    });
+
+    it("falls within the day-50 target band at trunkWidthFactor = 1 (8-9.5)", () => {
+      const w = computeTrunkBaseWidth(50, MAPLE);
+      expect(w).toBeGreaterThanOrEqual(8);
+      expect(w).toBeLessThanOrEqual(9.5);
+    });
+
+    it("falls within the day-100 target band at trunkWidthFactor = 1 (12-14)", () => {
+      const w = computeTrunkBaseWidth(100, MAPLE);
+      expect(w).toBeGreaterThanOrEqual(12);
+      expect(w).toBeLessThanOrEqual(14);
+    });
+
+    it("oak (trunkWidthFactor 1.25) has a thicker trunk than maple (1.0) at day 100", () => {
+      expect(computeTrunkBaseWidth(100, OAK)).toBeGreaterThan(
+        computeTrunkBaseWidth(100, MAPLE),
+      );
+    });
+  });
+
+  // ─── Age signals — foliage density (Step 2) ────────────────────────────────
+
+  describe("age signal — foliage density", () => {
+    /** Total leaf count across every rendered pad, apex included. */
+    function totalLeaves(data: ReturnType<typeof generateTree>) {
+      return (
+        data.apexLeaves.length +
+        data.branches.reduce((sum, b) => sum + b.leaves.length, 0)
+      );
+    }
+
+    it("a day-100 pine carries more total leaves than the same tree at day 50", () => {
+      const day50 = generateTree(50, PINE, [], TREE_ID);
+      const day100 = generateTree(100, PINE, [], TREE_ID);
+      expect(totalLeaves(day100)).toBeGreaterThan(totalLeaves(day50));
+    });
+  });
+
+  // ─── Age signals — lower-branch sag (Step 2) ───────────────────────────────
+
+  describe("age signal — lower-branch sag", () => {
+    /** Signed vertical-rise fraction (y2-y1)/length — a droop metric that
+     *  stays well-behaved across all azimuths, unlike `branchAngle`, which
+     *  wraps sign at ±π when a branch's azimuth points it away from the
+     *  viewer rather than straight left/right. Larger (less negative / more
+     *  positive) = the tip sits proportionally lower — i.e. more sagged. */
+    function droopFraction(b: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    }) {
+      const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+      return len > 0 ? (b.y2 - b.y1) / len : 0;
+    }
+
+    it("oak's lowest primary tip droops more at day 100 than day 40", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const day40 = generateTree(40, oak, [], "sag-oak");
+      const day100 = generateTree(100, oak, [], "sag-oak");
+      const p0at40 = day40.branches.find((b) => b.id === "p0" && !b.isPruned);
+      const p0at100 = day100.branches.find((b) => b.id === "p0" && !b.isPruned);
+      expect(p0at40).toBeDefined();
+      expect(p0at100).toBeDefined();
+      if (!(p0at40 && p0at100)) return;
+      expect(droopFraction(p0at100)).toBeGreaterThan(droopFraction(p0at40));
+    });
+
+    it("juniper (cascade — already drooping) primary droop is unchanged between day 40 and day 100", () => {
+      const juniper = SPECIES_CONFIG.juniper;
+      const day40 = generateTree(40, juniper, [], "sag-juniper");
+      const day100 = generateTree(100, juniper, [], "sag-juniper");
+      const p0at40 = day40.branches.find((b) => b.id === "p0" && !b.isPruned);
+      const p0at100 = day100.branches.find((b) => b.id === "p0" && !b.isPruned);
+      expect(p0at40).toBeDefined();
+      expect(p0at100).toBeDefined();
+      if (!(p0at40 && p0at100)) return;
+      expect(droopFraction(p0at100)).toBeCloseTo(droopFraction(p0at40), 6);
+    });
+  });
+
+  // ─── flowerDensity (Step 3) ─────────────────────────────────────────────
+
+  describe("flowerDensity", () => {
+    /** Every terminal, non-pruned branch tip plus the apex — the full set of
+     *  eligible tips before density thinning is applied. */
+    function eligibleTipCount(data: ReturnType<typeof generateTree>) {
+      return (
+        data.branches.filter((b) => b.isTerminal && !b.isPruned).length + 1
+      );
+    }
+
+    it("juniper (density 0.15) flowers fewer than all eligible tips, but at least one", () => {
+      const juniper = SPECIES_CONFIG.juniper;
+      const data = generateTree(100, juniper, [], "flower-density-juniper");
+      expect(data.flowers.length).toBeGreaterThan(0);
+      expect(data.flowers.length).toBeLessThan(eligibleTipCount(data));
+    });
+
+    it("same treeId and day produce identical flower ids", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const a = generateTree(95, oak, [], "flower-det-oak");
+      const b = generateTree(95, oak, [], "flower-det-oak");
+      expect(a.flowers.length).toBeGreaterThan(0);
+      expect(a.flowers.map((f) => f.id)).toEqual(b.flowers.map((f) => f.id));
+    });
+
+    it("a tip flowering on day N is still flowering on day N+1", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const dayN = generateTree(95, oak, [], "flower-det-oak");
+      const dayN1 = generateTree(96, oak, [], "flower-det-oak");
+      expect(dayN.flowers.length).toBeGreaterThan(0);
+      const idsN1 = new Set(dayN1.flowers.map((f) => f.id));
+      for (const f of dayN.flowers) {
+        expect(idsN1.has(f.id)).toBe(true);
+      }
+    });
+
+    it("flowerDensity 1 gives every eligible tip a flower, unchanged from before", () => {
+      const maple = SPECIES_CONFIG.maple;
+      const fullBloom = {
+        ...maple,
+        flowers: maple.flowers && { ...maple.flowers, flowerDensity: 1 },
+      };
+      const data = generateTree(60, fullBloom, [], "flower-density-full");
+      expect(data.flowers.length).toBe(eligibleTipCount(data));
+    });
+  });
+
+  // ─── Canopy cohesion — spur pads on terminal species (Step 4) ────────────
+
+  describe("spur pads on terminal-distribution species", () => {
+    it("cherry-blossom day 100: non-terminal branches carry spur-pad leaves, unlike interiorPadDensity 0", () => {
+      const cherry = SPECIES_CONFIG["cherry-blossom"];
+      const withSpurs = generateTree(100, cherry, [], "spur-cherry");
+      const nonTerminalLeafy = withSpurs.branches.filter(
+        (b) => !(b.isTerminal || b.isPruned) && b.leaves.length > 0,
+      );
+      expect(nonTerminalLeafy.length).toBeGreaterThan(0);
+
+      const noSpurs = generateTree(
+        100,
+        { ...cherry, interiorPadDensity: 0 },
+        [],
+        "spur-cherry",
+      );
+      const nonTerminalLeafyNoSpurs = noSpurs.branches.filter(
+        (b) => !(b.isTerminal || b.isPruned) && b.leaves.length > 0,
+      );
+      expect(nonTerminalLeafyNoSpurs.length).toBe(0);
+    });
+
+    it("oak day 100: spur pads increase total leaf count over interiorPadDensity 0", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const totalLeaves = (data: ReturnType<typeof generateTree>) =>
+        data.apexLeaves.length +
+        data.branches.reduce((sum, b) => sum + b.leaves.length, 0);
+
+      const withSpurs = generateTree(100, oak, [], "spur-oak");
+      const noSpurs = generateTree(
+        100,
+        { ...oak, interiorPadDensity: 0 },
+        [],
+        "spur-oak",
+      );
+      expect(totalLeaves(withSpurs)).toBeGreaterThan(totalLeaves(noSpurs));
+    });
+  });
+
+  // ─── Age signal — pad radius (Step 4) ─────────────────────────────────────
+
+  describe("age signal — pad radius", () => {
+    it("pine terminal-pad leaves scatter farther from the tip at day 100 than day 15", () => {
+      // Leaf-centre distance from the branch tip isolates the radius signal:
+      // it's sqrt(seededVal) * radius, independent of leafSize/progress (which
+      // also change with day but only affect drawn leaf size, not placement).
+      function maxTipDistance(data: ReturnType<typeof generateTree>) {
+        const distances = data.branches
+          .filter((b) => b.isTerminal && !b.isPruned)
+          .flatMap((b) =>
+            b.leaves.map((leaf) => Math.hypot(leaf.cx - b.x2, leaf.cy - b.y2)),
+          );
+        return distances.length > 0 ? Math.max(...distances) : 0;
+      }
+
+      const day15 = generateTree(15, PINE, [], "pad-radius-pine");
+      const day100 = generateTree(100, PINE, [], "pad-radius-pine");
+      expect(maxTipDistance(day100)).toBeGreaterThan(maxTipDistance(day15));
+    });
+  });
+
+  // ─── Species silhouettes (Step 5) ──────────────────────────────────────────
+
+  describe("pine — conical taper (A1)", () => {
+    it("day 100: primary branch length decreases from the lowest to the highest attachment zone", () => {
+      // Group primaries by attachment height instead of comparing a single
+      // p0-vs-p-last pair: individual branches' 2D `maxLength` is heavily
+      // foreshortened by azimuth (a branch pointing toward/away from the
+      // viewer projects far shorter than one lying in the picture plane),
+      // which can swamp the taper signal for any one pair. Whorled pine
+      // primaries at the same height node share an exact attachment y (no
+      // per-branch height jitter for whorled phyllotaxy), so averaging within
+      // each node cancels the azimuth noise and isolates the taper.
+      const data = generateTree(100, PINE, [], "snapshot-pine");
+      const primaries = data.branches.filter(
+        (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+      );
+      const byAttachY = new Map<number, number[]>();
+      for (const p of primaries) {
+        const len = Math.hypot(p.x2 - p.x1, p.y2 - p.y1);
+        const key = Math.round(p.y1 * 10) / 10;
+        byAttachY.set(key, [...(byAttachY.get(key) ?? []), len]);
+      }
+      const nodeYs = [...byAttachY.keys()].sort((a, b) => b - a); // base-first
+      expect(nodeYs.length).toBeGreaterThanOrEqual(2);
+      const avg = (lens: number[]) =>
+        lens.reduce((sum, v) => sum + v, 0) / lens.length;
+      const lowestZoneAvg = avg(byAttachY.get(nodeYs[0]) ?? []);
+      const highestZoneAvg = avg(
+        byAttachY.get(nodeYs[nodeYs.length - 1]) ?? [],
+      );
+      expect(highestZoneAvg).toBeLessThan(lowestZoneAvg);
+    });
+  });
+
+  describe("pine — bare-neck ceiling (A2)", () => {
+    it("day 100: apicalDominance >= 0.6 raises the primary-attachment ceiling, moving the highest primary closer to the trunk top than the old non-cascade default", () => {
+      // Pine's whorled phyllotaxy yields ceil(maxBranchPairs / whorlSize)
+      // = ceil(12/3) = 4 height-nodes, and the "1/3 rule" spacing converges
+      // toward maxAttachFrac from below (highest node ~76% of trunk height
+      // at the 0.96 ceiling). This test verifies the ceiling raise itself:
+      // the highest primary attaches measurably higher than under the
+      // pre-A2 (apicalDominance < 0.6) ceiling of 0.9.
+      function highestPrimaryFrac(spec: SpeciesConfig) {
+        const data = generateTree(100, spec, [], "snapshot-pine");
+        const trunkHeight = data.trunkBaseY - data.trunkTopY;
+        const primaries = data.branches.filter(
+          (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+        );
+        const minY1 = Math.min(...primaries.map((b) => b.y1));
+        return (data.trunkBaseY - minY1) / trunkHeight;
+      }
+      const belowCeilingThreshold = { ...PINE, apicalDominance: 0.5 };
+      expect(highestPrimaryFrac(PINE)).toBeGreaterThan(
+        highestPrimaryFrac(belowCeilingThreshold),
+      );
+    });
+  });
+
+  describe("pine — needle tufts (A3)", () => {
+    it("day 100: needle-pad angles avoid the downward-pointing arc (20°,160°)", () => {
+      const data = generateTree(100, PINE, [], "snapshot-pine");
+      const needleLeaves = data.branches
+        .filter((b) => b.isTerminal && !b.isPruned)
+        .flatMap((b) => b.leaves);
+      expect(needleLeaves.length).toBeGreaterThan(0);
+      for (const leaf of needleLeaves) {
+        const a = ((leaf.angleDeg % 360) + 360) % 360;
+        expect(a > 20 && a < 160).toBe(false);
+      }
+    });
+  });
+
+  describe("cherry — blossoms on spurs (D)", () => {
+    it("day 100: flower count exceeds the same tree with interiorPadDensity 0 (no spur sites)", () => {
+      const cherry = SPECIES_CONFIG["cherry-blossom"];
+      const withSpurs = generateTree(100, cherry, [], "flower-spur-cherry");
+      const noSpurs = generateTree(
+        100,
+        { ...cherry, interiorPadDensity: 0 },
+        [],
+        "flower-spur-cherry",
+      );
+      expect(withSpurs.flowers.length).toBeGreaterThan(noSpurs.flowers.length);
+    });
+
+    it("day 100: oak also gains flower sites from spurs (subtler than cherry)", () => {
+      const oak = SPECIES_CONFIG.oak;
+      const withSpurs = generateTree(100, oak, [], "flower-spur-oak");
+      const noSpurs = generateTree(
+        100,
+        { ...oak, interiorPadDensity: 0 },
+        [],
+        "flower-spur-oak",
+      );
+      expect(withSpurs.flowers.length).toBeGreaterThanOrEqual(
+        noSpurs.flowers.length,
+      );
+    });
+  });
+
+  describe("config assertions (Step 5)", () => {
+    it("juniper tipDroop is negative (semi-cascade twig droop)", () => {
+      expect(SPECIES_CONFIG.juniper.tipDroop).toBeLessThan(0);
+    });
+
+    it("flame tree leafSize shrank for fine bipinnate texture", () => {
+      expect(SPECIES_CONFIG["flame-tree"].leafSize).toBeLessThan(5.5);
+    });
+  });
+
+  // ─── Render-cost budgets ────────────────────────────────────────────────────
+  // Generator output size drives SVG element count directly (every leaf is at
+  // least one node), so each species gets a day-100 ceiling with ~15% headroom
+  // over its tuned count. A failure here means a tuning change quietly blew up
+  // render cost — retune density rather than raising the budget without
+  // checking garden-view performance first.
+
+  describe("day-100 element budgets", () => {
+    const BUDGETS: Record<string, number> = {
+      pine: 3400,
+      maple: 1400,
+      "cherry-blossom": 850,
+      juniper: 4600,
+      oak: 1100,
+      wisteria: 1500,
+      "flame-tree": 3300,
+    };
+
+    function totalElements(data: ReturnType<typeof generateTree>) {
+      let n = data.branches.length + data.apexLeaves.length;
+      for (const b of data.branches) n += b.leaves.length;
+      for (const f of data.flowers)
+        n += f.florets.length + f.racemeFlorets.length;
+      return n;
+    }
+
+    it.each(
+      Object.entries(BUDGETS),
+    )("%s stays under %i elements at day 100", (id, budget) => {
+      const spec = SPECIES_CONFIG[id as keyof typeof SPECIES_CONFIG];
+      const data = generateTree(100, spec, [], `snapshot-${id}`);
+      expect(totalElements(data)).toBeLessThan(budget);
     });
   });
 });

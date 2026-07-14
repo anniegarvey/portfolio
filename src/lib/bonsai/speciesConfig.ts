@@ -32,6 +32,10 @@ export type FlowerShape = "raceme" | "cluster" | "catkin" | "berry";
 export interface FlowerSpec {
   /** activeDaysCount at which flowers first appear. */
   floweringAge: number;
+  /** 0–1 — fraction of eligible terminal tips that carry a flower/fruit;
+   *  1 = every tip. Real cone/catkin/berry/blossom display is sparse and
+   *  scattered, not a bloom at every twig. */
+  flowerDensity: number;
   flowerShape: FlowerShape;
   /** Primary flower colour. */
   flowerColor: string;
@@ -70,6 +74,10 @@ export interface SpeciesConfig {
   /** 0–1+ — additional basal flare (nebari) as a fraction of base trunk width.
    *  0 = no flare; 0.5 = base ~50% wider than a straight taper would give. */
   nebariSpread: number;
+  /** Multiplier on the age-driven trunk base width (see `computeTrunkBaseWidth`
+   *  in treeGenerator.ts). 1 = species-neutral; >1 for naturally massive
+   *  trunks (oak), <1 for slender ones (wisteria). */
+  trunkWidthFactor: number;
 
   // Branches
   /** Angle above horizontal for a mid-height primary branch (radians, positive = above horizontal).
@@ -87,6 +95,10 @@ export interface SpeciesConfig {
   maxBranchPairs: number;
   /** Angle divergence (radians) when a branch forks into two children. */
   splitDiverge: number;
+  /** Length of the lowest primary branch as a fraction of the tree's CURRENT
+   *  trunk height, before child branches extend the reach. Higher = broader
+   *  crown spread relative to trunk height. */
+  crownSpreadFactor: number;
   /** Base thickness of primary branches as a fraction of trunk width at the attachment point. */
   branchThicknessFactor: number;
   /** Max lateral midpoint offset (SVG units) applied randomly per branch for natural curvature. */
@@ -131,9 +143,12 @@ export interface SpeciesConfig {
   /** SVG units — radius of a single foliage pad disc. Larger = more spread-out
    *  pads that overlap their neighbours and the trunk. */
   padRadius: number;
-  /** 0–1 — for `foliageDistribution === "pad"`: probability that a near-tip
-   *  non-terminal branch gets an extra interior pad. Fills the bare crown
-   *  centre. Ignored by `terminal`. */
+  /** 0–1 — probability that a non-terminal branch grows extra foliage beyond
+   *  its terminal tip pad. For `foliageDistribution === "pad"`: an interior
+   *  pad near the tip, filling the bare crown centre. For `"terminal"`: a
+   *  smaller spur pad partway along the branch, keeping the crown outline
+   *  continuous instead of bare sticks with a puff at each tip. Ignored by
+   *  `scattered`/`pendent`. */
   interiorPadDensity: number;
   /** [min, max] — leaves placed within each pad disc. */
   leavesPerPad: [number, number];
@@ -166,19 +181,27 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.4,
     trunkJaggedness: 0.2,
     nebariSpread: 0.4,
+    trunkWidthFactor: 1.1,
     branchAngleBase: 0.35,
     branchAngleRamp: 0.45,
     firstBranchFrac: 0.28,
     branchFrequency: 6,
-    maxBranchPairs: 7,
+    // 12 primaries in whorls of 3 → ceil(12/3) = 4 height nodes climbing to
+    // ~76% of trunk height. The previous 7-in-whorls-of-5 gave only 2 nodes,
+    // leaving the whole upper trunk bare once the growth curve let trunks
+    // reach full height.
+    maxBranchPairs: 12,
     splitDiverge: 0.28,
+    crownSpreadFactor: 0.27,
     branchThicknessFactor: 0.4,
     branchCurvature: 1.5,
     // Whorled growth — new buds emerge in evenly spaced rings (nodes) up the trunk.
     phyllotaxy: "whorled",
-    whorlSize: 5,
+    whorlSize: 3,
     maxDepth: 3,
-    childCountByDepth: [3, 2, 2],
+    // 2-way forks (not 3) keep total branch/leaf count inside the render
+    // budget now that there are 12 primaries instead of 7.
+    childCountByDepth: [2, 2, 2],
     apicalDominance: 0.8,
     branchWander: 0.15,
     azimuthSpread: Math.PI * 2,
@@ -207,12 +230,16 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.3,
     trunkJaggedness: 0.3,
     nebariSpread: 0.5,
+    trunkWidthFactor: 1.0,
     branchAngleBase: 0.62,
     branchAngleRamp: 0.2,
     firstBranchFrac: 0.32,
     branchFrequency: 3,
-    maxBranchPairs: 6,
+    // 8 primaries in opposite pairs → 4 height nodes (was 3), so the crown
+    // clothes the trunk up to ~80% now that trunks reach full height.
+    maxBranchPairs: 8,
     splitDiverge: 0.42,
+    crownSpreadFactor: 0.36,
     branchThicknessFactor: 0.46,
     branchCurvature: 3.5,
     // Opposite buds — pairs of branches emerge at each node, alternating 90° between nodes.
@@ -234,6 +261,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Small reddish-purple hanging umbel clusters, appear with the new spring leaves.
       floweringAge: 35,
+      flowerDensity: 0.5,
       flowerShape: "cluster",
       flowerColor: "#a0375a",
       flowerSize: 0.5,
@@ -252,12 +280,14 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.2,
     trunkJaggedness: 0.15,
     nebariSpread: 0.35,
+    trunkWidthFactor: 0.95,
     branchAngleBase: 0.5,
     branchAngleRamp: 0.18,
     firstBranchFrac: 0.3,
     branchFrequency: 4,
     maxBranchPairs: 6,
     splitDiverge: 0.35,
+    crownSpreadFactor: 0.33,
     branchThicknessFactor: 0.38,
     branchCurvature: 2.5,
     // Alternate buds along the stem — spiral arrangement with ~137° phyllotactic offset.
@@ -276,13 +306,14 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafShape: "oval",
     leafSize: 4.5,
     foliageDistribution: "terminal",
-    padRadius: 5,
-    interiorPadDensity: 0.2,
-    leavesPerPad: [4, 7],
+    padRadius: 6.5,
+    interiorPadDensity: 0.45,
+    leavesPerPad: [5, 9],
     individualVariability: 0.25,
     flowers: {
       // Iconic 5-petal blossoms in clusters; pale pink to white. Appear with leaves.
       floweringAge: 15,
+      flowerDensity: 0.9,
       flowerShape: "cluster",
       flowerColor: "#f5d0e0",
       flowerColorAccent: "#e8a0bf",
@@ -297,17 +328,21 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     foliageColorLight: "#3d8b4a",
     trunkColor: "#3a2010",
     regrowthDays: 16,
-    maxTrunkHeight: 160,
+    // Cascade bonsai are short-trunked — the visual mass hangs below/beside
+    // the trunk rather than stacking above it.
+    maxTrunkHeight: 90,
     trunkCurvature: 0.65,
     trunkTaperPower: 1.5,
     trunkJaggedness: 0.7,
     nebariSpread: 0.8,
+    trunkWidthFactor: 1.15,
     branchAngleBase: -0.2,
     branchAngleRamp: -0.1,
     firstBranchFrac: 0.62,
     branchFrequency: 5,
     maxBranchPairs: 8,
     splitDiverge: 0.22,
+    crownSpreadFactor: 0.34,
     branchThicknessFactor: 0.5,
     branchCurvature: 5.0,
     // Whorled scale foliage in 3-leaf rings on adult growth.
@@ -320,18 +355,20 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Cascade junipers are typically displayed from a single viewing side — narrow the yaw sweep.
     azimuthSpread: Math.PI * 1.6,
     crownDepthFactor: 0.5,
-    // Juniper foliage pads spread laterally — twigs read horizontal, not bent.
-    tipDroop: 0,
+    // Foliage-bearing twig ends droop slightly — semi-cascade pads read as
+    // hanging clouds rather than perfectly horizontal shelves.
+    tipDroop: -0.35,
     leafShape: "scale",
-    leafSize: 2.0,
+    leafSize: 2.4,
     foliageDistribution: "pad",
     padRadius: 14,
     interiorPadDensity: 0.8,
-    leavesPerPad: [18, 26],
+    leavesPerPad: [20, 28],
     individualVariability: 0.4,
     flowers: {
       // Waxy blue-black seed cones (berry-like); ornamental once mature.
       floweringAge: 30,
+      flowerDensity: 0.15,
       flowerShape: "berry",
       flowerColor: "#2e2450",
       flowerColorAccent: "#8878c0",
@@ -351,12 +388,14 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.5,
     trunkJaggedness: 0.5,
     nebariSpread: 0.6,
+    trunkWidthFactor: 1.25,
     branchAngleBase: 0.42,
     branchAngleRamp: 0.28,
     firstBranchFrac: 0.3,
     branchFrequency: 7,
     maxBranchPairs: 6,
     splitDiverge: 0.45,
+    crownSpreadFactor: 0.35,
     branchThicknessFactor: 0.42,
     branchCurvature: 2.0,
     phyllotaxy: "alternate",
@@ -373,13 +412,14 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafShape: "lobed",
     leafSize: 6.0,
     foliageDistribution: "terminal",
-    padRadius: 6,
-    interiorPadDensity: 0.2,
-    leavesPerPad: [4, 6],
+    padRadius: 7.5,
+    interiorPadDensity: 0.45,
+    leavesPerPad: [5, 8],
     individualVariability: 0.2,
     flowers: {
       // Pendulous yellow-green catkins; rare — reflects 20–40 year real-world maturity.
       floweringAge: 90,
+      flowerDensity: 0.25,
       flowerShape: "catkin",
       flowerColor: "#b8b040",
       flowerColorAccent: "#e8d860",
@@ -394,17 +434,20 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     foliageColorLight: "#6a9a48",
     trunkColor: "#6b5040",
     regrowthDays: 12,
-    maxTrunkHeight: 145,
+    // Semi-cascade — short trunk; the draped canes carry the visual height.
+    maxTrunkHeight: 88,
     trunkCurvature: 0.55,
     trunkTaperPower: 1.2,
     trunkJaggedness: 0.6,
     nebariSpread: 0.7,
+    trunkWidthFactor: 0.9,
     branchAngleBase: -0.3,
     branchAngleRamp: 0.1,
     firstBranchFrac: 0.58,
     branchFrequency: 3,
     maxBranchPairs: 7,
     splitDiverge: 0.4,
+    crownSpreadFactor: 0.36,
     branchThicknessFactor: 0.32,
     branchCurvature: 5.5,
     phyllotaxy: "alternate",
@@ -431,6 +474,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     flowers: {
       // Drooping violet racemes, 20–30 cm in nature — the defining visual of wisteria bonsai.
       floweringAge: 55,
+      flowerDensity: 0.75,
       flowerShape: "raceme",
       flowerColor: "#8b60c8",
       flowerColorAccent: "#c8a0f0",
@@ -451,12 +495,14 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     trunkTaperPower: 1.1,
     trunkJaggedness: 0.15,
     nebariSpread: 0.3,
+    trunkWidthFactor: 1.0,
     branchAngleBase: 0.18,
     branchAngleRamp: 0.06,
     firstBranchFrac: 0.25,
     branchFrequency: 3,
     maxBranchPairs: 8,
     splitDiverge: 0.55,
+    crownSpreadFactor: 0.38,
     branchThicknessFactor: 0.4,
     branchCurvature: 2.5,
     phyllotaxy: "alternate",
@@ -471,15 +517,16 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // rather than reading as flat-cut.
     tipDroop: -0.2,
     leafShape: "palmate",
-    leafSize: 5.5,
+    leafSize: 3.4,
     foliageDistribution: "pad",
     padRadius: 16,
     interiorPadDensity: 0.6,
-    leavesPerPad: [6, 10],
+    leavesPerPad: [10, 15],
     individualVariability: 0.15,
     flowers: {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.
       floweringAge: 45,
+      flowerDensity: 0.8,
       flowerShape: "cluster",
       flowerColor: "#e8400a",
       flowerColorAccent: "#f5c030",

@@ -18,6 +18,7 @@
     "validate:smart": "node scripts/timed-run.js validate:smart node scripts/smart-validate.js",
     "generate-snapshots": "tsx scripts/generate-bonsai-snapshots.ts",
     "snapshot-grid": "tsx scripts/snapshot-grid.ts",
+    "snapshot-seeds": "tsx scripts/snapshot-seeds.ts",
     "build-data:view": "node scripts/build-data-viewer.js"
   },
   "dependencies": {

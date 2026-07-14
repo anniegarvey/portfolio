@@ -20,11 +20,40 @@ for phase X" placeholders are now active.
 
 | Parameter | Type | Meaning |
 |---|---|---|
-| `maxTrunkHeight` | number | SVG units (200×300 viewBox) at full maturity |
+| `maxTrunkHeight` | number | SVG units (200×300 viewBox) approached asymptotically as the tree ages — see the growth-curve note below the table. |
 | `trunkCurvature` | 0–1+ | 0 = straight; higher = more lateral bend. Applied as a bezier offset of `curvature × height × 0.4`. |
 | `trunkTaperPower` | exponent | Trunk taper profile. 1 = linear; >1 = concave (flared base, slim top); <1 = convex. |
 | `trunkJaggedness` | 0–1 | Roughness added to the trunk silhouette. 0 = smooth bezier; higher = bark/shari texture. |
 | `nebariSpread` | 0–1+ | Basal flare as a fraction of base trunk width — drives visible surface roots. |
+| `trunkWidthFactor` | number | Multiplier on the age-driven trunk base width (see `computeTrunkBaseWidth` in `treeGenerator.ts`). 1 = species-neutral; >1 for naturally massive trunks (oak); <1 for slender ones (wisteria). |
+
+**Growth curve**: trunk height follows `maxTrunkHeight × d / (d + 12)`, where
+`d` is `activeDaysCount` scaled by the tree's per-individual growth-rate
+jitter (`computeTrunkHeight` in `treeGenerator.ts`). It climbs steeply in the
+first few weeks and flattens smoothly toward `maxTrunkHeight` — roughly 20% of
+max by day 3, 45% by day 10, 68% by day 25, 81% by day 50, 89%+ by day 100 —
+never quite reaching the asymptote. `individualVariability` perturbs the
+scaling of `d`, so higher-iv species show visible height spread across seeds
+at the same day.
+
+**Age signals**: since height plateaus early, four other signals keep a tree
+reading as "older" well past day 100 (`generateTree` in `treeGenerator.ts`):
+- **Trunk mass** — base width follows `2 + 20 × d / (d + 95)` (times
+  `trunkWidthFactor`), a much slower asymptote than height's — real trunks
+  keep thickening for decades after they stop getting taller. At factor 1:
+  ~3.9 by day 10, ~6.2 by day 25, ~8.9 by day 50, ~12.3 by day 100, ~15.6 by
+  day 200, still rising slowly beyond that.
+- **Bark character** — effective trunk jaggedness ramps from 60% of
+  `trunkJaggedness` on a fresh sapling up toward 120% as the tree approaches
+  its height asymptote, so bark reads smooth when young and gnarled when old.
+- **Foliage density** — leaves per pad scale from 75% of the species'
+  `leavesPerPad` range on a fresh sapling up toward ~120% as the tree matures,
+  so old crowns read visibly denser than young ones at the same branch count.
+- **Lower-branch sag** — on upright (non-cascade) species, the lowest
+  primaries' pitch droops by up to 0.1 rad once the tree is well past
+  maturity (ramping in from ~day 30, full strength by ~day 90), scaled by how
+  low the branch sits on the trunk. Cascade species are already drooping by
+  design and are unaffected.
 
 ### Branch architecture
 
@@ -36,17 +65,30 @@ for phase X" placeholders are now active.
 | `branchFrequency` | days | Days between new primary branches appearing. Lower = faster-growing species. |
 | `maxBranchPairs` | number | Cap on primary branches (single branches, not pairs) |
 | `splitDiverge` | radians | Angle divergence when a branch forks. Smaller = tight columnar; larger = wide spreading. |
+| `crownSpreadFactor` | number | Length of the lowest primary branch as a fraction of the tree's *current* trunk height, before child branches extend the reach. Higher = broader crown spread relative to trunk height. Upper branches shrink from this baseline by `zoneTaper` — see the crown-taper note below the table. |
 | `branchThicknessFactor` | 0–1 | Base thickness of primary branches as a fraction of trunk width at the attachment point. |
 | `branchCurvature` | SVG units | Max lateral midpoint offset applied randomly per branch for natural curvature. Higher = wispier, more arching branches. |
 | `phyllotaxy` | enum | `opposite` / `alternate` / `whorled` — primary-branch emergence pattern around the trunk. |
 | `whorlSize` | number | Branches per whorl node when `phyllotaxy === "whorled"`. Ignored otherwise. |
 | `maxDepth` | number | Max branching depth (0 = primary only). Higher values enable finer ramification. |
 | `childCountByDepth` | number[] | Children per fork at each depth. e.g. `[3, 2, 2]` = primary forks 3 ways, deeper forks 2. The array length should be ≥ `maxDepth`; out-of-range depths default to 2. A trailing `1` produces an unforked twig segment at the deepest level. |
-| `apicalDominance` | 0–1 | Strength of the apex shoot. 1 = strong leader (pine, oak); 0 = weak (cascade, vase). |
+| `apicalDominance` | 0–1 | Strength of the apex shoot. 1 = strong leader (pine, oak); 0 = weak (cascade, vase). Also drives the per-zone crown taper and (at ≥ 0.6, non-cascade) the primary-attachment ceiling — see the crown-taper note below the table. |
 | `branchWander` | 0–1+ | Random per-branch angle deviation producing kinks. 0 = perfectly straight. |
 | `azimuthSpread` | radians | Yaw range around the trunk axis across which branches emerge. `PI*2` = full 360°. |
 | `crownDepthFactor` | 0–1 | Crown depth along the z-axis. 0 = flat silhouette; 1 = roughly spherical. |
 | `tipDroop` | -1 to 1 | Tip behaviour on final-depth twigs. `(π/2)·tipDroop` over the last 30% of length. Negative = weeping; 0 = horizontal; positive = upturn. |
+
+**Crown taper**: primary branch length shrinks with height (`zoneFrac` 0 = lowest node, 1 =
+highest) via `lengthBase = trunkHeight × crownSpreadFactor × (1 − zoneFrac × zoneTaper)`, where
+`zoneTaper = 0.25 + 0.35 × apicalDominance` (replacing a former fixed 0.42 shared by every
+species). Strong-leader species narrow sharply into a conical crown (pine 0.8 →
+`zoneTaper` 0.53); weak-apex species stay closer to umbrella-flat (flame tree 0.2 → 0.32). The
+lowest branch (`zoneFrac = 0`) is unaffected either way. Separately, non-cascade species with
+`apicalDominance >= 0.6` get the same raised branch-attachment ceiling as cascade styles
+(`maxAttachFrac` 0.9 → 0.96), so the topmost node sits closer to the apex. Watch the node
+count when choosing whorled parameters: height-nodes = `ceil(maxBranchPairs / whorlSize)`,
+and fewer than ~4 nodes leaves the upper trunk bare now that trunks reach full height
+(pine uses 12 / 3 → 4 nodes for exactly this reason).
 
 ### Foliage
 
@@ -56,7 +98,7 @@ for phase X" placeholders are now active.
 | `leafSize` | SVG units | Base size. Interpretation varies by shape (see below). |
 | `foliageDistribution` | enum | `terminal` / `pad` / `scattered` / `pendent` — see Foliage Distribution doc in `speciesConfig.ts`. |
 | `padRadius` | SVG units | Radius of a single foliage pad disc. Larger pads overlap their neighbours and the trunk for closed canopies. |
-| `interiorPadDensity` | 0–1 | For `pad` mode: chance a near-tip non-terminal branch grows an extra interior pad. Fills the bare crown centre. |
+| `interiorPadDensity` | 0–1 | Chance a non-terminal branch grows extra foliage beyond its tip pad. `pad` mode: a near-tip interior pad, filling the bare crown centre. `terminal` mode: a smaller spur pad partway along the branch, keeping the crown outline continuous instead of bare sticks with a puff at each tip — and, for species with `flowers` defined, spur pads also become eligible flower sites alongside terminal tips (real Prunus/Quercus flowers form on spur shoots, not only branch tips). |
 | `leavesPerPad` | [min, max] | Randomised leaf count placed within each pad. |
 
 ### Per-individual variation
@@ -70,6 +112,7 @@ for phase X" placeholders are now active.
 | Parameter | Type | Meaning |
 |---|---|---|
 | `flowers.floweringAge` | days | `activeDaysCount` at which flowers first appear. |
+| `flowers.flowerDensity` | 0–1 | Fraction of eligible terminal tips that carry a flower/fruit; 1 = every tip. Keeps bloom/fruit-set sparse and scattered rather than covering the whole crown at once. |
 | `flowers.flowerShape` | enum | `raceme` / `cluster` / `catkin` / `berry` |
 | `flowers.flowerColor` | hex | Primary flower colour. |
 | `flowers.flowerColorAccent` | hex | Optional accent (streaked petal, catkin bumps). |
@@ -98,17 +141,26 @@ Lower branches extend nearly horizontally; upper branches angle steeply upward, 
 classic conical silhouette. `branchAngleBase: 0.35` rad ≈ 20° above horizontal;
 `branchAngleRamp: 0.45` drives a strong spread from horizontal at the base to near-vertical
 at the apex. `firstBranchFrac: 0.28` — first branch emerges low on the trunk, consistent with
-the species' formal-upright proportions.
+the species' formal-upright proportions. Pine's high `apicalDominance: 0.8` also drives the
+per-zone crown taper (`zoneTaper = 0.25 + 0.35 × apicalDominance` → 0.53 for pine), so upper
+whorls are noticeably shorter than the lowest one — the conical outline reads clearly instead
+of a flat-ish crown — and raises the primary-attachment ceiling (`maxAttachFrac` 0.9 → 0.96)
+so the top whorl sits closer to the apex. `maxBranchPairs: 12` in whorls of 3 gives
+`ceil(12/3) = 4` height-nodes climbing to ~76% of trunk height — the branch ladder that
+keeps the full-height trunk clothed instead of leaving a bare neck under the apex cluster.
 
 **Foliage**: Paired needles 6–12 cm long in nature, grouped in dense fascicles at each node.
-Rendered as needle pads — each terminal carries a disc of radiating needles, and near-tip
-non-terminal branches add interior pads to fill the conical interior.
-`foliageDistribution: "pad"` with `padRadius: 10`, `leavesPerPad: [10, 14]`,
-`interiorPadDensity: 0.7`, `leafSize: 7.5`.
+Rendered as needle pads — each terminal carries a disc of radiating needles fanned across an
+upward arc (not a full 360° spread) and compressed vertically, so pads read as horizontal
+tufts sitting on the branch rather than spherical "sea urchins"; near-tip non-terminal
+branches add interior pads to fill the conical interior. `foliageDistribution: "pad"` with
+`padRadius: 10`, `leavesPerPad: [10, 14]`, `interiorPadDensity: 0.7`, `leafSize: 7.5`.
 
-**Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 5` reflects pine's signature
-candle-whorl growth. Strong `apicalDominance: 0.8` drives the conical leader; `maxDepth: 3`
-and `childCountByDepth: [3, 2, 2]` support the horticultural pad structure. Moderate
+**Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 3` keeps pine's signature
+candle-whorl growth while yielding enough height-nodes to clothe the trunk (see above).
+Strong `apicalDominance: 0.8` drives the conical leader; `maxDepth: 3` and
+`childCountByDepth: [2, 2, 2]` (2-way forks — the extra primaries carry the pad density
+instead) support the horticultural pad structure within the render budget. Moderate
 `crownDepthFactor: 0.7`.
 
 **Pruning speed**: Moderate — pine is vigorous but back-budding takes time. `regrowthDays: 14`.
@@ -155,9 +207,19 @@ Low `branchAngleRamp: 0.18` gives only a subtle variation across the crown heigh
 maintains a fairly even spreading silhouette from base to apex. `firstBranchFrac: 0.30`.
 
 **Foliage**: Oval-lanceolate leaves 6–13 cm in nature, shown as landscape ovals.
-Light terminal-only pads of 4–7 ovals — keeps the airy, see-through canopy that
-cherries are known for. `foliageDistribution: "terminal"` with `padRadius: 5`,
-`leavesPerPad: [4, 7]`, `leafSize: 4.5`.
+Light terminal pads of 5–9 ovals keep the airy, see-through canopy that cherries
+are known for, while smaller spur pads along non-terminal twigs
+(`interiorPadDensity: 0.45`) keep the crown outline continuous rather than a
+ring of isolated puffs. `foliageDistribution: "terminal"` with `padRadius: 6.5`,
+`leavesPerPad: [5, 9]`, `leafSize: 4.5`.
+
+**Blossoms on spurs**: Real Prunus flowers form on short spur shoots along the branches, not
+only at branch tips. The same spur pads that carry foliage (above) are now also eligible
+flower sites — `generateFlowers` sites a blossom on each non-pruned branch's spur (when one is
+rolled) in addition to terminal tips and the apex, so blooms scatter along the branch length
+the way real flowering cherry does. With `flowers.flowerDensity: 0.9`, this is the species that
+benefits most; oak's rare catkins (`flowerDensity: 0.25`) pick up the same mechanism more
+subtly since oak also uses `foliageDistribution: "terminal"`.
 
 **Redesign params**: `phyllotaxy: "alternate"` for cherry's spiral bud arrangement.
 Moderate `apicalDominance: 0.6` and low `branchWander: 0.2` produce a tidy
@@ -177,23 +239,28 @@ sub-branches without doubling pad count.
 prized for extreme *nebari* and tortuous trunk movement. Jin (deadwood) and shari
 (stripped bark channels) add character. `trunkCurvature: 0.65`.
 
-**Style**: *Kengai* (cascade) / *han-kengai* (semi-cascade). Branches emerge predominantly
-from the upper third of the trunk and cascade downward. `firstBranchFrac: 0.62` — branches
-cluster near the apex. `branchAngleBase: -0.20` rad (≈ 11° below horizontal); `branchAngleRamp: -0.1`
-means upper branches droop *more* than lower ones, reinforcing the cascade effect.
-Very high `branchCurvature: 5.0` produces the long, sweeping arcs typical of the style.
-Dense branching with compact pads. `maxBranchPairs: 8`.
+**Style**: *Han-kengai* (semi-cascade) — deliberately, not a full below-pot *kengai*. Branches
+emerge predominantly from the upper third of the trunk and cascade downward via the bent-trunk
+`branchAngleBase`/`branchAngleRamp` combination below; a true kengai (cascade dropping below the
+pot rim) would need a dedicated below-pot render path and is left as a possible future step
+rather than attempted here. `firstBranchFrac: 0.62` — branches cluster near the apex.
+`branchAngleBase: -0.20` rad (≈ 11° below horizontal); `branchAngleRamp: -0.1` means upper
+branches droop *more* than lower ones, reinforcing the cascade effect. Very high
+`branchCurvature: 5.0` produces the long, sweeping arcs typical of the style. Dense branching
+with compact pads. `maxBranchPairs: 8`. Foliage-bearing twig ends also droop (`tipDroop: -0.35`),
+so pads themselves hang rather than sitting perfectly horizontal.
 
 **Foliage**: Scale-like (adult foliage) or needle-like (juvenile). Modelled as dense
-overlapping pads of tiny scale ellipses — the species' signature flat foliage cloud.
-`foliageDistribution: "pad"` with `padRadius: 14`, `leavesPerPad: [18, 26]`,
-`interiorPadDensity: 0.8`, `leafSize: 2.0`.
+overlapping pads of tiny scale ellipses — the species' signature flat foliage cloud, tuned to
+read as dense clouds rather than sparse confetti dots. `foliageDistribution: "pad"` with
+`padRadius: 14`, `leavesPerPad: [20, 28]`, `interiorPadDensity: 0.8`, `leafSize: 2.4`.
 
 **Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 3` matches the species'
 trademark 3-leaf scale whorls. Weak `apicalDominance: 0.2` and high `branchWander: 0.7`
 produce the twisted, tortured shari movement the style is prized for. Cascade display
 narrows `azimuthSpread` to `PI * 1.6` — branches lean toward the viewing side. High
-`trunkJaggedness: 0.7` for shari bark texture.
+`trunkJaggedness: 0.7` for shari bark texture. Seed cones set on only a scattered
+fraction of tips in nature, not every one — `flowers.flowerDensity: 0.15`.
 
 **Pruning speed**: Slow — junipers dislike hard pruning and back-bud cautiously.
 `regrowthDays: 16`.
@@ -206,6 +273,8 @@ narrows `azimuthSpread` to `PI * 1.6` — branches lean toward the viewing side.
 
 **Trunk**: One of the straightest, most powerful trunks in bonsai — thick, deeply furrowed
 bark. Bonsai oaks are grown for their massive taper and rugged bark. `trunkCurvature: 0.18`.
+The highest `trunkWidthFactor: 1.25` in the set — oak should read as the most massive trunk
+at any given age.
 
 **Branches**: Wide-spreading, roughly horizontal lower branches and more ascending upper ones.
 `branchAngleBase: 0.42` rad ≈ 24°; `branchAngleRamp: 0.28` and wide `splitDiverge: 0.45`
@@ -213,9 +282,10 @@ give the broad, rounded silhouette typical of the species. Moderate `branchCurva
 reflects oak's stiff, relatively straight limbs compared to species like maple or wisteria.
 
 **Foliage**: Deeply lobed leaves 5–15 cm in nature (much reduced on bonsai). Rendered as
-a sinuous lobed path. Light terminal-only pads of 4–6 to preserve oak's coarse, irregular
-silhouette. `foliageDistribution: "terminal"` with `padRadius: 6`, `leavesPerPad: [4, 6]`,
-`leafSize: 6.0`.
+a sinuous lobed path. Light terminal pads of 5–8 preserve oak's coarse, irregular
+silhouette, while spur pads along non-terminal branches (`interiorPadDensity: 0.45`) fill
+the crown's sky gaps without smoothing it into a solid ball. `foliageDistribution: "terminal"`
+with `padRadius: 7.5`, `leavesPerPad: [5, 8]`, `leafSize: 6.0`.
 
 **Redesign params**: `phyllotaxy: "alternate"` with strong `apicalDominance: 0.7`
 reflects oak's powerful straight-leader growth. `maxDepth: 3` with
@@ -223,7 +293,8 @@ reflects oak's powerful straight-leader growth. `maxDepth: 3` with
 three-way crown-scaffolds, then ramifies once more at depth 3 for the dense
 twig structure of a mature canopy. High `crownDepthFactor: 0.9` models oak's
 full, rounded canopy volume. `trunkJaggedness: 0.5` and `trunkTaperPower: 1.5`
-capture the furrowed, muscular trunk taper.
+capture the furrowed, muscular trunk taper. Catkins are rare even at maturity —
+`flowers.flowerDensity: 0.25` keeps them from covering the whole crown at once.
 
 **Pruning speed**: Slowest in the set — oaks grow deliberately. `regrowthDays: 18`.
 
@@ -236,6 +307,8 @@ Bonsai Empire oak species profile.
 
 **Trunk**: Wisteria trunks become dramatically gnarled and twisted with age — the species
 is prized in bonsai precisely for its tortured bark texture. `trunkCurvature: 0.55`.
+Below-neutral `trunkWidthFactor: 0.9` keeps the trunk reading slender relative to its
+sprawling canopy, consistent with a vine-like species trained onto a woody form.
 
 **Style**: Semi-cascade. Long trailing branches hang downward from the upper trunk, echoing
 the species' natural habit of draping over pergolas and walls. `firstBranchFrac: 0.58` —
@@ -277,13 +350,17 @@ horizontal branching: `branchAngleBase: 0.18` rad (≈ 10°) gives near-horizont
 heights. Very low `branchAngleRamp: 0.06` — upper and lower branches are almost equally horizontal,
 preserving the species' distinctive flat-topped silhouette. `firstBranchFrac: 0.25` — branches start
 low on the trunk. Wide `splitDiverge: 0.55` and `maxBranchPairs: 8` create the broad, dense canopy.
-Fast-growing; branches appear every 3 days.
+Low `apicalDominance: 0.2` also keeps the crown-taper ratio flat (`zoneTaper` ≈ 0.32, vs pine's
+0.53), so upper branches stay nearly as long as the lowest ones — reinforcing the umbrella
+silhouette rather than tapering to a point. Fast-growing; branches appear every 3 days.
 
 **Foliage**: Bipinnate compound leaves in nature, with hundreds of tiny leaflets giving a
 ferny, light texture. Represented as palmate pads (the closest available shape to the
-fine leaflet structure). `foliageDistribution: "pad"` with the largest `padRadius: 16` of
-any species and `interiorPadDensity: 0.6` for the broad umbrella canopy.
-`leavesPerPad: [6, 10]`, `leafSize: 5.5`.
+fine leaflet structure) — sized down (`leafSize: 3.4`, vs an earlier 5.5) and packed denser
+(`leavesPerPad: [10, 15]`) so at this scale the pads read as fine bipinnate texture instead of
+oversized maple-star leaves poking past the canopy outline. `foliageDistribution: "pad"` with
+the largest `padRadius: 16` of any species and `interiorPadDensity: 0.6` for the broad umbrella
+canopy.
 
 **Colour**: Vivid scarlet-orange (`#e74c3c` / `#ff6b47`), representing the mass of brilliant
 red flowers that cover the entire canopy — the species is named for this effect.
@@ -312,10 +389,15 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
 
 ### 2. Choose the silhouette family
 
-- **Style**: upright (`firstBranchFrac` ~0.3, `branchAngleBase` > 0) vs cascade
-  (`firstBranchFrac` ~0.6, `branchAngleBase` < 0).
+- **Style**: upright (`firstBranchFrac` ~0.3, `branchAngleBase` > 0,
+  `maxTrunkHeight` ~140–165) vs cascade (`firstBranchFrac` ~0.6,
+  `branchAngleBase` < 0, `maxTrunkHeight` ~85–95 — cascade bonsai are
+  short-trunked; the visual mass hangs beside/below the trunk).
 - **Crown shape**: rounded (`crownDepthFactor` ~0.9), flat-topped (~0.3), or
   one-sided (`azimuthSpread: PI * 1.6` for cascade displays).
+- **Crown width**: `crownSpreadFactor` ~0.27–0.38 for upright species (crown
+  width roughly matches tree height); ~0.34–0.36 for cascade/semi-cascade
+  species, which read wider than tall relative to their short trunks.
 - **Tip behaviour**: weeping (`tipDroop` < 0), upturned (> 0), or neutral (0).
 
 ### 3. Choose phyllotaxy & ramification
@@ -341,7 +423,7 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
 ### 5. Foliage distribution
 
 - Open-canopy broadleaves (cherry, oak): `foliageDistribution: "terminal"` with
-  `padRadius` 5–6 and small `leavesPerPad` ranges.
+  `padRadius` 6.5–7.5 and small `leavesPerPad` ranges.
 - Dense pad species (pine, juniper, flame tree): `foliageDistribution: "pad"`
   with `padRadius` 10–16, higher `interiorPadDensity` (0.6–0.8) to fill the
   crown centre.
@@ -371,4 +453,6 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
   (Trunk, Branches/Style, Foliage, Redesign params, Pruning speed, Sources).
 - Run `pnpm generate-snapshots --species=<slug>` then `pnpm snapshot-grid --species=<slug>` and inspect
   `docs/bonsai-snapshots/<slug>-grid.png` at all six growth stages.
+- Run `pnpm snapshot-seeds --species=<slug>` and inspect `docs/bonsai-snapshots/<slug>-seeds.png` —
+  the silhouette must hold up across all three seeds, not just the default one.
 - Run `pnpm test src/lib/bonsai/` and `pnpm exec tsc --noEmit`.
