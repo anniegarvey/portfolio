@@ -186,16 +186,22 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchAngleRamp: 0.45,
     firstBranchFrac: 0.28,
     branchFrequency: 6,
-    maxBranchPairs: 7,
+    // 12 primaries in whorls of 3 → ceil(12/3) = 4 height nodes climbing to
+    // ~76% of trunk height. The previous 7-in-whorls-of-5 gave only 2 nodes,
+    // leaving the whole upper trunk bare once the growth curve let trunks
+    // reach full height.
+    maxBranchPairs: 12,
     splitDiverge: 0.28,
     crownSpreadFactor: 0.27,
     branchThicknessFactor: 0.4,
     branchCurvature: 1.5,
     // Whorled growth — new buds emerge in evenly spaced rings (nodes) up the trunk.
     phyllotaxy: "whorled",
-    whorlSize: 5,
+    whorlSize: 3,
     maxDepth: 3,
-    childCountByDepth: [3, 2, 2],
+    // 2-way forks (not 3) keep total branch/leaf count inside the render
+    // budget now that there are 12 primaries instead of 7.
+    childCountByDepth: [2, 2, 2],
     apicalDominance: 0.8,
     branchWander: 0.15,
     azimuthSpread: Math.PI * 2,
@@ -229,7 +235,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     branchAngleRamp: 0.2,
     firstBranchFrac: 0.32,
     branchFrequency: 3,
-    maxBranchPairs: 6,
+    // 8 primaries in opposite pairs → 4 height nodes (was 3), so the crown
+    // clothes the trunk up to ~80% now that trunks reach full height.
+    maxBranchPairs: 8,
     splitDiverge: 0.42,
     crownSpreadFactor: 0.36,
     branchThicknessFactor: 0.46,

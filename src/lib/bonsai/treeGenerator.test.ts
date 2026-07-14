@@ -794,15 +794,12 @@ describe("generateTree", () => {
 
   describe("pine — bare-neck ceiling (A2)", () => {
     it("day 100: apicalDominance >= 0.6 raises the primary-attachment ceiling, moving the highest primary closer to the trunk top than the old non-cascade default", () => {
-      // NOTE: pine's whorled phyllotaxy only produces 2 height-nodes
-      // (ceil(maxBranchPairs / whorlSize) = ceil(7/5) = 2), so the "1/3 rule"
-      // convergence caps the highest node well below trunkHeight regardless
-      // of maxAttachFrac (empirically ~51% of trunk height at 0.96, vs a
-      // mathematical ceiling of ~52% even at maxAttachFrac = 1.0). "Within 8%
-      // of the trunk top" is therefore unreachable via p*-branches alone —
-      // this test instead verifies the actual, achievable effect of A2: the
-      // ceiling raise measurably moves the highest primary upward relative to
-      // the pre-A2 (apicalDominance < 0.6) ceiling of 0.9.
+      // Pine's whorled phyllotaxy yields ceil(maxBranchPairs / whorlSize)
+      // = ceil(12/3) = 4 height-nodes, and the "1/3 rule" spacing converges
+      // toward maxAttachFrac from below (highest node ~76% of trunk height
+      // at the 0.96 ceiling). This test verifies the ceiling raise itself:
+      // the highest primary attaches measurably higher than under the
+      // pre-A2 (apicalDominance < 0.6) ceiling of 0.9.
       function highestPrimaryFrac(spec: SpeciesConfig) {
         const data = generateTree(100, spec, [], "snapshot-pine");
         const trunkHeight = data.trunkBaseY - data.trunkTopY;
