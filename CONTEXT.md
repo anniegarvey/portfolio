@@ -97,10 +97,10 @@ A peaceful creature-collecting game. Wild creatures visit the glade; the player 
 A catalog definition of a creature kind: name, rarity, real or fantastical, favourite treat, approach/petting preferences, and benefit role. The source of truth for creature behaviour — never duplicated into game state.
 
 **Wild visitor**
-An untamed creature currently visiting the glade. Accepts a limited set of taming actions per day and lingers until tamed — visitors never leave.
+An untamed creature visiting the glade today. Accepts a limited set of taming actions per day. Visitors rotate daily: each **Daily glade advance** draws a fresh set of one to three species, weighted by rarity and by banked **Trust** (see ADR 0004).
 
 **Trust**
-A per-visitor meter (0–100) raised by taming actions. Reaching full trust tames the visitor, converting it into a **Resident**.
+A per-species meter raised by taming actions, with the threshold set by rarity. When a visitor departs, its trust is banked and resumes on its next visit — progress is never lost, and higher banked trust makes the species more likely to return. Reaching full trust tames the visitor, converting it into a **Resident**.
 
 **Resident**
 A tamed creature living in the glade. Contributes its species' benefit each **Daily glade advance**.
@@ -133,7 +133,7 @@ A cooked consumable offered to a wild visitor for trust. A species' **favourite 
 The daily contribution a species makes as a resident: _Forager_ (gathers ingredients), _Soother_ (passively builds trust with wild visitors), _Beacon_ (attracts rarer visitors), or _Muse_ (boosts skill XP gains).
 
 **Daily glade advance**
-The once-per-calendar-day tick: new wild visitors may arrive, resident benefits apply, and per-visitor daily actions reset. Mirrors the Bonsai **Daily advance** pattern.
+The once-per-calendar-day tick: yesterday's wild visitors depart (banking trust), a fresh set of one to three visitors is drawn, and resident benefits apply. Mirrors the Bonsai **Daily advance** pattern.
 
 ---
 

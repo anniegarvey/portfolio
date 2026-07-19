@@ -19,20 +19,27 @@ function describeGathered(ingredientIds: IngredientId[]): string {
   return parts.join(" and ");
 }
 
+/** "Robin" / "Robin and Fox" / "Robin, Fox and Puffloaf" */
+function describeVisitors(names: string[]): string {
+  if (names.length <= 1) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 export function DailyDigest() {
   const { state, dailyReport, clearDailyReport } = useGlade();
   const headingId = useId();
 
   if (dailyReport === null) return null;
-  const { soothedTrust, soothedVisitors, foraged, arrivalSpeciesId } =
+  const { soothedTrust, soothedVisitors, foraged, visitorSpeciesIds } =
     dailyReport;
 
   const lines: { key: string; text: string }[] = [];
 
-  if (arrivalSpeciesId !== null) {
+  if (visitorSpeciesIds.length > 0) {
+    const names = visitorSpeciesIds.map((id) => SPECIES[id].name);
     lines.push({
-      key: "arrival",
-      text: `A wild ${SPECIES[arrivalSpeciesId].name} wandered in!`,
+      key: "visitors",
+      text: `Visiting today: ${describeVisitors(names)}`,
     });
   }
 

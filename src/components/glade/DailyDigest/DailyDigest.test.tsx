@@ -27,7 +27,7 @@ const emptyReport: DailyGladeReport = {
   soothedTrust: 0,
   soothedVisitors: 0,
   foraged: [],
-  arrivalSpeciesId: null,
+  visitorSpeciesIds: [],
 };
 
 const clearDailyReport = vi.fn();
@@ -59,7 +59,7 @@ describe("DailyDigest", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("lists the arrival, gathered ingredients per resident, and soothed visitors", () => {
+  it("lists today's visitors, gathered ingredients per resident, and soothed visitors", () => {
     mockGlade({
       dailyReport: {
         soothedTrust: 6,
@@ -69,14 +69,16 @@ describe("DailyDigest", () => {
           { residentId: fernmother.id, ingredientId: "berries" },
           { residentId: fernmother.id, ingredientId: "berries" },
         ],
-        arrivalSpeciesId: "fox",
+        visitorSpeciesIds: ["fox", "robin"],
       },
     });
 
     render(<DailyDigest />);
 
     expect(screen.getByText("Overnight in the glade")).toBeInTheDocument();
-    expect(screen.getByText("A wild Fox wandered in!")).toBeInTheDocument();
+    expect(
+      screen.getByText("Visiting today: Fox and Robin"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Rabbit gathered Oats")).toBeInTheDocument();
     expect(
       screen.getByText("Fernmother gathered Berries ×2"),
@@ -116,10 +118,25 @@ describe("DailyDigest", () => {
     ).toBeInTheDocument();
   });
 
+  it("lists three visitors with commas and a final 'and'", () => {
+    mockGlade({
+      dailyReport: {
+        ...emptyReport,
+        visitorSpeciesIds: ["robin", "fox", "puffloaf"],
+      },
+    });
+
+    render(<DailyDigest />);
+
+    expect(
+      screen.getByText("Visiting today: Robin, Fox and Puffloaf"),
+    ).toBeInTheDocument();
+  });
+
   it("dismisses via the Dismiss button", async () => {
     const user = userEvent.setup();
     mockGlade({
-      dailyReport: { ...emptyReport, arrivalSpeciesId: "robin" },
+      dailyReport: { ...emptyReport, visitorSpeciesIds: ["robin"] },
     });
 
     render(<DailyDigest />);

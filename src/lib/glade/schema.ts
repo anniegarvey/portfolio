@@ -7,11 +7,17 @@ export const SpeciesIdSchema = z.enum([
   "rabbit",
   "squirrel",
   "hedgehog",
+  "mouse",
+  "wren",
+  "mole",
   "fox",
   "deer",
   "owl",
   "badger",
   "mosskit",
+  "otter",
+  "hare",
+  "thistledown",
   "glimmerwing",
   "puffloaf",
   "dewsprite",
@@ -145,6 +151,15 @@ export const GladeStateSchema = z.object({
   residents: z.array(ResidentSchema),
   skills: SkillsSchema,
   pantry: PantrySchema,
+  /**
+   * Trust each untamed species has built so far, kept across visits. Synced
+   * from departing visitors at each daily advance; seeds the trust of that
+   * species' next visit. Defaults so states saved before daily visitor
+   * rotation still parse.
+   */
+  speciesTrust: z
+    .partialRecord(SpeciesIdSchema, z.number().min(0))
+    .default(() => ({})),
   lastAdvanceDate: z.string().optional(),
 });
 export type GladeState = z.infer<typeof GladeStateSchema>;

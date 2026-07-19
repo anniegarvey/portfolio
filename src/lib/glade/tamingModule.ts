@@ -65,6 +65,8 @@ function applyTrust(
   const trust = Math.min(visitor.trust + gain, threshold);
 
   if (trust >= threshold) {
+    // The species is tamed for good — its banked visit trust is obsolete.
+    const { [visitor.speciesId]: _tamed, ...speciesTrust } = state.speciesTrust;
     return {
       state: {
         ...state,
@@ -78,6 +80,7 @@ function applyTrust(
             position: { x: 10 + rng() * 80, y: 30 + rng() * 55 },
           },
         ],
+        speciesTrust,
       },
       tamed: true,
     };

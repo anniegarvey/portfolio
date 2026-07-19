@@ -43,6 +43,7 @@ export function createInitialState(): GladeState {
       ingredients: { berries: 4, oats: 4 },
       treats: {},
     },
+    speciesTrust: {},
     // Day one's arrival is the starter robin — no extra spawn on first mount.
     lastAdvanceDate: getTodayDateString(),
   };

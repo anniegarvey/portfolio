@@ -7,6 +7,7 @@ import {
   MAX_VISITORS,
   RARITY_WEIGHTS,
   SPECIES,
+  TRUST_VISIT_BONUS,
   tameThresholdFor,
 } from "./catalog";
 import { addIngredient } from "./cookingModule";
@@ -35,8 +36,8 @@ export interface DailyGladeReport {
   soothedVisitors: number;
   /** Ingredients gathered by forager and wellspring residents. */
   foraged: ForageEvent[];
-  /** Species that wandered in today, if any. */
-  arrivalSpeciesId: SpeciesId | null;
+  /** Today's wild visitors, in the order they were drawn. */
+  visitorSpeciesIds: SpeciesId[];
 }
 
 export interface AdvanceResult {
@@ -52,70 +53,84 @@ function countRole(state: GladeState, role: string): number {
 }
 
 /**
- * Species available to spawn: not currently visiting and not already a
- * resident — every creature in the glade is unique.
+ * Species eligible to visit: any species not already a resident. Yesterday's
+ * visitors stay eligible — returning is how multi-day tames progress.
  */
-function spawnableSpecies(state: GladeState): SpeciesId[] {
-  const present = new Set<SpeciesId>([
-    ...state.visitors.map((v) => v.speciesId),
-    ...state.residents.map((r) => r.speciesId),
-  ]);
-  return ALL_SPECIES_IDS.filter((id) => !present.has(id));
+function visitableSpecies(state: GladeState): SpeciesId[] {
+  const resident = new Set<SpeciesId>(state.residents.map((r) => r.speciesId));
+  return ALL_SPECIES_IDS.filter((id) => !resident.has(id));
 }
 
 /**
- * Picks a species for a new visitor: rarity is drawn from weights (beacon
- * residents shift weight from common to rare), then a species uniformly
- * within that rarity. Falls back across rarities when one is exhausted.
+ * Draws today's set of wild visitors: between one and MAX_VISITORS distinct
+ * species, weighted without replacement. Each rarity's weight (beacon
+ * residents shift weight from common to rare) is shared evenly among its
+ * untamed species, then scaled up by that species' banked taming progress —
+ * so part-tamed creatures tend to come back.
  */
-export function pickVisitorSpecies(
+export function pickDailyVisitors(
   state: GladeState,
   rng: () => number,
-): SpeciesId | null {
-  const candidates = spawnableSpecies(state);
-  if (candidates.length === 0) return null;
+): SpeciesId[] {
+  const candidates = visitableSpecies(state);
+  if (candidates.length === 0) return [];
 
   const beacons = countRole(state, "beacon");
   const shift = Math.min(beacons * BEACON_RARE_BONUS, RARITY_WEIGHTS.common);
-  const weights: Record<Rarity, number> = {
+  const rarityWeights: Record<Rarity, number> = {
     common: RARITY_WEIGHTS.common - shift,
     uncommon: RARITY_WEIGHTS.uncommon,
     rare: RARITY_WEIGHTS.rare + shift,
     legendary: RARITY_WEIGHTS.legendary,
     mythic: RARITY_WEIGHTS.mythic,
   };
-
-  // Only rarities that still have spawnable species can be drawn.
-  const byRarity = (rarity: Rarity) =>
-    candidates.filter((id) => SPECIES[id].rarity === rarity);
-  const available = (
-    ["common", "uncommon", "rare", "legendary", "mythic"] as const
-  ).filter((rarity) => byRarity(rarity).length > 0);
-  const totalWeight = available.reduce((sum, r) => sum + weights[r], 0);
-  if (totalWeight <= 0) {
-    // All remaining weight is on exhausted rarities — pick uniformly.
-    return candidates[Math.floor(rng() * candidates.length)];
+  const rarityCounts = new Map<Rarity, number>();
+  for (const id of candidates) {
+    const rarity = SPECIES[id].rarity;
+    rarityCounts.set(rarity, (rarityCounts.get(rarity) ?? 0) + 1);
   }
+  const weightFor = (id: SpeciesId): number => {
+    const { rarity } = SPECIES[id];
+    const share = rarityWeights[rarity] / (rarityCounts.get(rarity) ?? 1);
+    const progress = (state.speciesTrust[id] ?? 0) / tameThresholdFor(id);
+    return share * (1 + TRUST_VISIT_BONUS * progress);
+  };
 
-  let roll = rng() * totalWeight;
-  for (const rarity of available) {
-    roll -= weights[rarity];
-    if (roll < 0) {
-      const pool = byRarity(rarity);
-      return pool[Math.floor(rng() * pool.length)];
+  const count = Math.min(
+    1 + Math.floor(rng() * MAX_VISITORS),
+    candidates.length,
+  );
+  const pool = [...candidates];
+  const picked: SpeciesId[] = [];
+  while (picked.length < count) {
+    const weights = pool.map(weightFor);
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    // Every remaining candidate is in a zero-weight rarity — pick uniformly.
+    let index = total <= 0 ? Math.floor(rng() * pool.length) : pool.length - 1;
+    if (total > 0) {
+      let roll = rng() * total;
+      for (let i = 0; i < pool.length; i++) {
+        roll -= weights[i];
+        if (roll < 0) {
+          index = i;
+          break;
+        }
+      }
     }
+    picked.push(pool[index]);
+    pool.splice(index, 1);
   }
-  const lastPool = byRarity(available[available.length - 1]);
-  return lastPool[Math.floor(rng() * lastPool.length)];
+  return picked;
 }
 
 /**
  * The daily glade advance. Runs at most once per calendar day:
- * - resets each visitor's daily actions
- * - soother residents passively build visitor trust (capped just below the
- *   tame threshold — the final step is always the player's)
+ * - yesterday's visitors depart, banking their taming progress per species
+ * - a fresh set of one to MAX_VISITORS wild visitors is drawn, each arriving
+ *   with its species' banked trust
+ * - soother residents calm today's visitors (capped just below the tame
+ *   threshold — the final step is always the player's)
  * - forager residents each gather one ingredient from their rarity's pool
- * - one new wild visitor may arrive (if there's room and species left)
  *
  * Also reports what happened so the UI can show a daily digest.
  */
@@ -126,15 +141,17 @@ export function advanceGladeDay(
 ): AdvanceResult {
   if (state.lastAdvanceDate === today) return { state, report: null };
 
+  const speciesTrust = { ...state.speciesTrust };
+  for (const v of state.visitors) {
+    if (v.trust > 0) speciesTrust[v.speciesId] = v.trust;
+  }
+
   const sootheBonus = countRole(state, "soother") * SOOTHE_TRUST_PER_DAY;
   let next: GladeState = {
     ...state,
     lastAdvanceDate: today,
-    visitors: state.visitors.map((v) => ({
-      ...v,
-      trust: Math.min(v.trust + sootheBonus, tameThresholdFor(v.speciesId) - 1),
-      actionsToday: { treat: false, approach: false, pet: false },
-    })),
+    speciesTrust,
+    visitors: [],
   };
 
   const foraged: ForageEvent[] = [];
@@ -166,29 +183,32 @@ export function advanceGladeDay(
     );
   }
 
-  let arrivalSpeciesId: SpeciesId | null = null;
-  if (next.visitors.length < MAX_VISITORS) {
-    const speciesId = pickVisitorSpecies(next, rng);
-    if (speciesId !== null) {
-      const visitor: WildVisitor = {
-        id: uuidv4(),
-        speciesId,
-        trust: 0,
-        arrivedDate: today,
-        actionsToday: { treat: false, approach: false, pet: false },
-      };
-      next = { ...next, visitors: [...next.visitors, visitor] };
-      arrivalSpeciesId = speciesId;
-    }
-  }
+  const visitorSpeciesIds = pickDailyVisitors(next, rng);
+  let soothedVisitors = 0;
+  const visitors: WildVisitor[] = visitorSpeciesIds.map((speciesId) => {
+    const banked = speciesTrust[speciesId] ?? 0;
+    const trust = Math.min(
+      banked + sootheBonus,
+      tameThresholdFor(speciesId) - 1,
+    );
+    if (trust > banked) soothedVisitors += 1;
+    return {
+      id: uuidv4(),
+      speciesId,
+      trust,
+      arrivedDate: today,
+      actionsToday: { treat: false, approach: false, pet: false },
+    };
+  });
+  next = { ...next, visitors };
 
   return {
     state: next,
     report: {
       soothedTrust: sootheBonus,
-      soothedVisitors: sootheBonus > 0 ? state.visitors.length : 0,
+      soothedVisitors,
       foraged,
-      arrivalSpeciesId,
+      visitorSpeciesIds,
     },
   };
 }

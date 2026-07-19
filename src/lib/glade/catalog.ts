@@ -81,6 +81,46 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     vagueHint: "Curls up unless you come down to its level.",
     clearHint: "Crouch low and rub under the chin. Loves cream puffs.",
   },
+  mouse: {
+    id: "mouse",
+    name: "Mouse",
+    kind: "real",
+    rarity: "common",
+    benefitRole: "forager",
+    favouriteTreat: "oat-cakes",
+    preferredPosture: "crouch-low",
+    preferredPetSpot: "chin",
+    blurb: "A tiny scavenger with sharp eyes for every dropped seed.",
+    vagueHint: "Vanishes into the grass the moment you loom.",
+    clearHint: "Crouch low and offer a gentle chin rub. Loves oat cakes.",
+  },
+  wren: {
+    id: "wren",
+    name: "Wren",
+    kind: "real",
+    rarity: "common",
+    benefitRole: "muse",
+    favouriteTreat: "mint-crisps",
+    preferredPosture: "slow-blink",
+    preferredPetSpot: "chin",
+    blurb: "A pocket-sized singer whose bold song outsizes its body.",
+    vagueHint: "Flits nervously unless your gaze goes soft.",
+    clearHint: "Blink slowly and offer a chin scratch. Loves mint crisps.",
+  },
+  mole: {
+    id: "mole",
+    name: "Mole",
+    kind: "real",
+    rarity: "common",
+    benefitRole: "soother",
+    favouriteTreat: "oat-cakes",
+    preferredPosture: "crouch-low",
+    preferredPetSpot: "back",
+    blurb: "A velvet-coated digger whose steady calm settles the soil itself.",
+    vagueHint:
+      "Half-blind but keen-nosed — it trusts what stays close to the ground.",
+    clearHint: "Crouch low and smooth its velvet back. Loves oat cakes.",
+  },
   fox: {
     id: "fox",
     name: "Fox",
@@ -145,6 +185,47 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     blurb: "A moss-covered cat-thing that grows herbs along its spine.",
     vagueHint: "Hugs the ground; it likes company down there.",
     clearHint: "Crouch low and scratch behind the ears. Loves mint crisps.",
+  },
+  otter: {
+    id: "otter",
+    name: "Otter",
+    kind: "real",
+    rarity: "uncommon",
+    benefitRole: "beacon",
+    favouriteTreat: "cream-puffs",
+    preferredPosture: "slow-blink",
+    preferredPetSpot: "back",
+    blurb: "A playful river-dweller whose antics draw curious onlookers.",
+    vagueHint: "Meets mischief with mischief; an eager stare spoils the game.",
+    clearHint: "Blink slowly and stroke its sleek back. Loves cream puffs.",
+  },
+  hare: {
+    id: "hare",
+    name: "Hare",
+    kind: "real",
+    rarity: "uncommon",
+    benefitRole: "muse",
+    favouriteTreat: "mint-crisps",
+    preferredPosture: "sit-still",
+    preferredPetSpot: "behind-ears",
+    blurb: "A long-limbed sprinter whose wild energy stirs new ideas.",
+    vagueHint: "Coiled to bolt — only perfect stillness reassures it.",
+    clearHint:
+      "Sit still and scratch behind those long ears. Loves mint crisps.",
+  },
+  thistledown: {
+    id: "thistledown",
+    name: "Thistledown",
+    kind: "fantastical",
+    rarity: "uncommon",
+    benefitRole: "soother",
+    favouriteTreat: "honey-drops",
+    preferredPosture: "sit-still",
+    preferredPetSpot: "chin",
+    blurb:
+      "A drifting seed-fluff spirit that settles wherever the air is calm.",
+    vagueHint: "The lightest stir of air carries it away.",
+    clearHint: "Sit still and tickle under its chin. Loves honey drops.",
   },
   glimmerwing: {
     id: "glimmerwing",
@@ -442,6 +523,13 @@ export const RARITY_WEIGHTS: Record<Rarity, number> = {
 
 /** Each beacon resident shifts this much weight from common to rare. */
 export const BEACON_RARE_BONUS = 10;
+
+/**
+ * How strongly taming progress draws a species back: a species one action
+ * from tame is (1 + this)× as likely to visit as an untouched one of the
+ * same rarity.
+ */
+export const TRUST_VISIT_BONUS = 3;
 
 /** Flat trust bonus added per herald resident on any matched approach or pet action. */
 export const HERALD_TRUST_BONUS = 5;
