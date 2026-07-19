@@ -265,6 +265,19 @@ describe("taming", () => {
     expect(resident.position.y).toBeLessThanOrEqual(85);
   });
 
+  it("clears the species' banked trust when tamed", () => {
+    const threshold = tameThresholdFor("robin");
+    const visitor = makeVisitor({ speciesId: "robin", trust: threshold - 1 });
+    const state = makeGladeState({
+      visitors: [visitor],
+      speciesTrust: { robin: threshold - 10, rabbit: 20 },
+    });
+    const result = petVisitor(state, visitor.id, "back", TODAY, fixedRng);
+
+    expect(result.tamed).toBe(true);
+    expect(result.state.speciesTrust).toEqual({ rabbit: 20 });
+  });
+
   it("rare species need more trust than common ones", () => {
     expect(tameThresholdFor("dewsprite")).toBeGreaterThan(
       tameThresholdFor("robin"),
