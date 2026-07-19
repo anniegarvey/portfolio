@@ -86,6 +86,125 @@ function Hedgehog() {
   );
 }
 
+function Mouse() {
+  return (
+    <>
+      {/* Ears — big rounds with pink inners */}
+      <circle cx="24" cy="26" fill="#9e9089" r="6" />
+      <circle cx="38" cy="26" fill="#9e9089" r="6" />
+      <circle cx="24" cy="26" fill="#f8bbd0" r="3" />
+      <circle cx="38" cy="26" fill="#f8bbd0" r="3" />
+      {/* Body and head */}
+      <ellipse cx="31" cy="46" fill="#b0a49c" rx="12" ry="9" />
+      <circle cx="31" cy="34" fill="#b0a49c" r="8" />
+      {/* Face */}
+      <circle cx="28" cy="33" fill="#2d2a26" r="1.5" />
+      <circle cx="34" cy="33" fill="#2d2a26" r="1.5" />
+      <circle cx="31" cy="37" fill="#f8bbd0" r="1.5" />
+      {/* Whiskers */}
+      <path
+        d="M27 37 L21 36 M27 38 L22 40 M35 37 L41 36 M35 38 L40 40"
+        fill="none"
+        stroke="#8a7f78"
+        strokeLinecap="round"
+        strokeWidth="1"
+      />
+      {/* Tail */}
+      <path
+        d="M43 48 Q52 46 54 38"
+        fill="none"
+        stroke="#9e9089"
+        strokeLinecap="round"
+        strokeWidth="2.5"
+      />
+      {/* Feet */}
+      <ellipse cx="26" cy="54" fill="#8a7f78" rx="2.5" ry="2" />
+      <ellipse cx="36" cy="54" fill="#8a7f78" rx="2.5" ry="2" />
+    </>
+  );
+}
+
+function Wren() {
+  return (
+    <>
+      {/* Cocked-up tail */}
+      <path d="M44 38 L56 26 L50 40 Z" fill="#8a6a4f" />
+      {/* Body */}
+      <ellipse cx="32" cy="42" fill="#a8845f" rx="13" ry="11" />
+      {/* Pale breast */}
+      <ellipse cx="28" cy="46" fill="#e8d3b8" rx="8" ry="7" />
+      {/* Head */}
+      <circle cx="26" cy="28" fill="#a8845f" r="8" />
+      {/* Eye stripe */}
+      <path
+        d="M20 26 Q26 24 32 26"
+        fill="none"
+        stroke="#e8d3b8"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      {/* Eyes */}
+      <circle cx="23" cy="27" fill="#2d2a26" r="1.5" />
+      <circle cx="29" cy="27" fill="#2d2a26" r="1.5" />
+      {/* Beak */}
+      <polygon fill="#6d5444" points="26,30 23,34 29,33" />
+      {/* Wing barring */}
+      <path
+        d="M36 38 Q39 40 37 44 M40 37 Q43 39 41 43"
+        fill="none"
+        stroke="#8a6a4f"
+        strokeWidth="1.5"
+      />
+      {/* Feet */}
+      <ellipse cx="28" cy="53" fill="#6d5444" rx="2" ry="2" />
+      <ellipse cx="35" cy="53" fill="#6d5444" rx="2" ry="2" />
+    </>
+  );
+}
+
+function Mole() {
+  return (
+    <>
+      {/* Velvet body — low and rounded */}
+      <ellipse cx="34" cy="44" fill="#4a4038" rx="17" ry="12" />
+      {/* Head merging into body */}
+      <circle cx="19" cy="42" fill="#4a4038" r="9" />
+      {/* Pink snout */}
+      <ellipse cx="10" cy="45" fill="#e8a5a0" rx="4" ry="3" />
+      {/* Tiny eyes — nearly hidden */}
+      <circle cx="15" cy="39" fill="#2d2a26" r="1" />
+      <circle cx="21" cy="38" fill="#2d2a26" r="1" />
+      {/* Big digging paws */}
+      <ellipse
+        cx="24"
+        cy="53"
+        fill="#e8a5a0"
+        rx="5"
+        ry="3.5"
+        transform="rotate(-20 24 53)"
+      />
+      <ellipse
+        cx="40"
+        cy="54"
+        fill="#e8a5a0"
+        rx="5"
+        ry="3.5"
+        transform="rotate(15 40 54)"
+      />
+      {/* Claw lines */}
+      <path
+        d="M21 51 L19 55 M24 52 L23 56 M38 52 L37 56 M42 52 L42 56"
+        fill="none"
+        stroke="#c98882"
+        strokeLinecap="round"
+        strokeWidth="1"
+      />
+      {/* Earth mound behind */}
+      <path d="M42 52 Q48 44 54 52 Z" fill="#6d5444" />
+    </>
+  );
+}
+
 function Fox() {
   return (
     <>
@@ -190,6 +309,152 @@ function Mosskit() {
         strokeLinecap="round"
         strokeWidth="2"
       />
+    </>
+  );
+}
+
+function Otter() {
+  return (
+    <>
+      {/* Thick tail curling round */}
+      <path d="M44 50 Q56 48 54 38 Q48 42 44 46 Z" fill="#6d4c33" />
+      {/* Sleek upright body */}
+      <ellipse cx="32" cy="44" fill="#7d5a3e" rx="12" ry="13" />
+      {/* Pale belly */}
+      <ellipse cx="32" cy="47" fill="#d9c1a3" rx="7" ry="8" />
+      {/* Head */}
+      <circle cx="32" cy="26" fill="#7d5a3e" r="9" />
+      {/* Small round ears */}
+      <circle cx="25" cy="20" fill="#6d4c33" r="2.5" />
+      <circle cx="39" cy="20" fill="#6d4c33" r="2.5" />
+      {/* Pale muzzle */}
+      <ellipse cx="32" cy="30" fill="#d9c1a3" rx="5" ry="4" />
+      {/* Face */}
+      <circle cx="28" cy="24" fill="#2d2a26" r="1.5" />
+      <circle cx="36" cy="24" fill="#2d2a26" r="1.5" />
+      <ellipse cx="32" cy="29" fill="#3a2c21" rx="1.5" ry="1" />
+      {/* Whiskers */}
+      <path
+        d="M28 30 L22 29 M36 30 L42 29"
+        fill="none"
+        stroke="#d9c1a3"
+        strokeLinecap="round"
+        strokeWidth="1"
+      />
+      {/* Paws resting on belly */}
+      <ellipse cx="27" cy="40" fill="#6d4c33" rx="3" ry="2" />
+      <ellipse cx="37" cy="40" fill="#6d4c33" rx="3" ry="2" />
+    </>
+  );
+}
+
+function Hare() {
+  return (
+    <>
+      {/* Very long ears */}
+      <ellipse
+        cx="24"
+        cy="14"
+        fill="#c9a876"
+        rx="3.5"
+        ry="11"
+        transform="rotate(-8 24 14)"
+      />
+      <ellipse
+        cx="36"
+        cy="13"
+        fill="#c9a876"
+        rx="3.5"
+        ry="11"
+        transform="rotate(8 36 13)"
+      />
+      <ellipse
+        cx="24"
+        cy="14"
+        fill="#8a6a4f"
+        rx="1.5"
+        ry="7"
+        transform="rotate(-8 24 14)"
+      />
+      <ellipse
+        cx="36"
+        cy="13"
+        fill="#8a6a4f"
+        rx="1.5"
+        ry="7"
+        transform="rotate(8 36 13)"
+      />
+      {/* Lean upright body */}
+      <ellipse cx="31" cy="46" fill="#b8905c" rx="11" ry="12" />
+      {/* Pale chest */}
+      <ellipse cx="29" cy="49" fill="#e8d3b8" rx="6" ry="7" />
+      {/* Head — narrower than rabbit's */}
+      <ellipse cx="30" cy="30" fill="#c9a876" rx="7" ry="8" />
+      {/* Alert eyes set to the sides */}
+      <circle cx="26" cy="28" fill="#2d2a26" r="2" />
+      <circle cx="34" cy="28" fill="#2d2a26" r="2" />
+      {/* Nose */}
+      <ellipse cx="30" cy="34" fill="#8a6a4f" rx="1.5" ry="1" />
+      {/* Strong haunch line */}
+      <path
+        d="M38 42 Q42 48 38 54"
+        fill="none"
+        stroke="#8a6a4f"
+        strokeWidth="1.5"
+      />
+      {/* Long feet */}
+      <ellipse cx="26" cy="57" fill="#a87f4e" rx="5" ry="2" />
+      <ellipse cx="38" cy="57" fill="#a87f4e" rx="5" ry="2" />
+    </>
+  );
+}
+
+function Thistledown() {
+  return (
+    <>
+      {/* Radiating seed-wisps */}
+      <path
+        d="M32 34 L32 10 M32 34 L14 18 M32 34 L50 18 M32 34 L10 34 M32 34 L54 34 M32 34 L16 48 M32 34 L48 48"
+        fill="none"
+        opacity="0.7"
+        stroke="#e8e3d6"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      {/* Wisp tips */}
+      <circle cx="32" cy="10" fill="#f5f2e8" r="2.5" />
+      <circle cx="14" cy="18" fill="#f5f2e8" r="2" />
+      <circle cx="50" cy="18" fill="#f5f2e8" r="2" />
+      <circle cx="10" cy="34" fill="#f5f2e8" r="2" />
+      <circle cx="54" cy="34" fill="#f5f2e8" r="2" />
+      <circle cx="16" cy="48" fill="#f5f2e8" r="2" />
+      <circle cx="48" cy="48" fill="#f5f2e8" r="2" />
+      {/* Soft glow */}
+      <circle cx="32" cy="36" fill="#fff9e6" opacity="0.5" r="13" />
+      {/* Fluff body */}
+      <circle cx="32" cy="36" fill="#efe9db" r="9" />
+      <circle cx="26" cy="32" fill="#f5f2e8" r="5" />
+      <circle cx="38" cy="32" fill="#f5f2e8" r="5" />
+      <circle cx="32" cy="42" fill="#e3dccb" r="6" />
+      {/* Gentle face */}
+      <circle cx="29" cy="36" fill="#8a8272" r="1.5" />
+      <circle cx="35" cy="36" fill="#8a8272" r="1.5" />
+      <path
+        d="M29 41 Q32 43 35 41"
+        fill="none"
+        stroke="#8a8272"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      {/* Dangling seed */}
+      <path
+        d="M32 48 L32 54"
+        fill="none"
+        stroke="#b8ab8f"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      <ellipse cx="32" cy="56" fill="#a89a7c" rx="2" ry="2.5" />
     </>
   );
 }
@@ -578,11 +843,17 @@ const CREATURES: Record<SpeciesId, () => React.JSX.Element> = {
   rabbit: Rabbit,
   squirrel: Squirrel,
   hedgehog: Hedgehog,
+  mouse: Mouse,
+  wren: Wren,
+  mole: Mole,
   fox: Fox,
   deer: Deer,
   owl: Owl,
   badger: Badger,
   mosskit: Mosskit,
+  otter: Otter,
+  hare: Hare,
+  thistledown: Thistledown,
   glimmerwing: Glimmerwing,
   puffloaf: Puffloaf,
   dewsprite: Dewsprite,
