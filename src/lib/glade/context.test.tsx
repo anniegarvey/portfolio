@@ -167,10 +167,12 @@ describe("GladeProvider", () => {
     expect(await screen.findByTestId("visitor-count")).toHaveTextContent("1");
   });
 
-  it("runs the daily advance on mount (spawns a visitor on a new day)", async () => {
+  it("runs the daily advance on mount (draws 1-3 visitors on a new day)", async () => {
     seedLocalStorage({ lastAdvanceDate: "2020-01-01", visitors: [] });
     renderGlade();
-    expect(await screen.findByTestId("visitor-count")).toHaveTextContent("1");
+    expect(await screen.findByTestId("visitor-count")).toHaveTextContent(
+      /^[123]$/,
+    );
   });
 
   it("cooks a treat from pantry ingredients", async () => {

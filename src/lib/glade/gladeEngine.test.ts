@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_VISITORS, SPECIES, tameThresholdFor } from "./catalog";
-import { advanceGladeDay, pickVisitorSpecies } from "./gladeEngine";
+import { advanceGladeDay, pickDailyVisitors } from "./gladeEngine";
 import type { Resident, SpeciesId } from "./schema";
 import { makeGladeState, makeVisitor } from "./testFixtures";
 
@@ -17,6 +17,16 @@ function makeResident(speciesId: SpeciesId): Resident {
   };
 }
 
+/** rng returning the given values in order (the last value repeats). */
+function rngFrom(values: number[]): () => number {
+  let i = 0;
+  return () => {
+    const value = values[Math.min(i, values.length - 1)];
+    i += 1;
+    return value;
+  };
+}
+
 describe("advanceGladeDay", () => {
   it("runs at most once per calendar day", () => {
     const state = makeGladeState({ lastAdvanceDate: TODAY });
@@ -25,16 +35,19 @@ describe("advanceGladeDay", () => {
     expect(result.report).toBe(null);
   });
 
-  it("resets each visitor's daily actions", () => {
+  it("replaces yesterday's visitors with a fresh set arriving today", () => {
     const state = makeGladeState({
       visitors: [
         makeVisitor({
+          arrivedDate: "2026-06-09",
           actionsToday: { treat: true, approach: true, pet: true },
         }),
       ],
       lastAdvanceDate: "2026-06-09",
     });
-    const next = advanceGladeDay(state, TODAY, () => 0.5).state;
+    const next = advanceGladeDay(state, TODAY, () => 0).state;
+    expect(next.visitors).toHaveLength(1);
+    expect(next.visitors[0].arrivedDate).toBe(TODAY);
     expect(next.visitors[0].actionsToday).toEqual({
       treat: false,
       approach: false,
@@ -43,22 +56,59 @@ describe("advanceGladeDay", () => {
     expect(next.lastAdvanceDate).toBe(TODAY);
   });
 
-  it("soother residents build visitor trust, capped below the tame threshold", () => {
-    const visitor = makeVisitor({
-      speciesId: "robin",
-      trust: tameThresholdFor("robin") - 2,
-    });
+  it("banks each departing visitor's trust in speciesTrust", () => {
     const state = makeGladeState({
-      visitors: [visitor],
-      residents: [makeResident("hedgehog"), makeResident("deer")], // 2 soothers
+      visitors: [makeVisitor({ speciesId: "robin", trust: 40 })],
     });
     const next = advanceGladeDay(state, TODAY, () => 0.5).state;
+    expect(next.speciesTrust.robin).toBe(40);
+  });
+
+  it("arriving visitors resume from their species' banked trust", () => {
+    const state = makeGladeState({ speciesTrust: { robin: 40 } });
+    // rng 0 draws one visitor: robin, the first (and most trusted) candidate.
+    const next = advanceGladeDay(state, TODAY, () => 0).state;
+    expect(next.visitors[0].speciesId).toBe("robin");
+    expect(next.visitors[0].trust).toBe(40);
+  });
+
+  it("soother residents calm arriving visitors, capped below the tame threshold", () => {
+    const state = makeGladeState({
+      speciesTrust: { robin: tameThresholdFor("robin") - 2 },
+      residents: [makeResident("hedgehog"), makeResident("deer")], // 2 soothers
+    });
+    const next = advanceGladeDay(state, TODAY, () => 0).state;
+    expect(next.visitors[0].speciesId).toBe("robin");
     expect(next.visitors[0].trust).toBe(tameThresholdFor("robin") - 1);
+  });
+
+  it("always draws at least one visitor", () => {
+    const next = advanceGladeDay(makeGladeState(), TODAY, () => 0).state;
+    expect(next.visitors).toHaveLength(1);
+    expect(next.visitors[0].trust).toBe(0);
+    expect(next.visitors[0].arrivedDate).toBe(TODAY);
+  });
+
+  it("draws at most MAX_VISITORS distinct visitors", () => {
+    const next = advanceGladeDay(makeGladeState(), TODAY, () => 0.999).state;
+    expect(next.visitors).toHaveLength(MAX_VISITORS);
+    const species = next.visitors.map((v) => v.speciesId);
+    expect(new Set(species).size).toBe(MAX_VISITORS);
+  });
+
+  it("never draws more visitors than untamed species remain", () => {
+    const allButRobin = (Object.keys(SPECIES) as SpeciesId[]).filter(
+      (id) => id !== "robin",
+    );
+    const state = makeGladeState({
+      residents: allButRobin.map((id) => makeResident(id)),
+    });
+    const next = advanceGladeDay(state, TODAY, () => 0.999).state;
+    expect(next.visitors.map((v) => v.speciesId)).toEqual(["robin"]);
   });
 
   it("forager residents each gather one ingredient", () => {
     const state = makeGladeState({
-      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
       residents: [makeResident("rabbit"), makeResident("squirrel")],
     });
     const next = advanceGladeDay(state, TODAY, () => 0).state;
@@ -71,7 +121,6 @@ describe("advanceGladeDay", () => {
 
   it("common foragers gather only everyday ingredients", () => {
     const state = makeGladeState({
-      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
       residents: [makeResident("rabbit")], // common forager
     });
     // The highest roll picks the last entry of the common pool — never a
@@ -84,7 +133,6 @@ describe("advanceGladeDay", () => {
 
   it("uncommon foragers can unearth premium ingredients", () => {
     const state = makeGladeState({
-      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
       residents: [makeResident("badger")], // uncommon forager
     });
     const next = advanceGladeDay(state, TODAY, () => 0.999).state;
@@ -93,7 +141,6 @@ describe("advanceGladeDay", () => {
 
   it("wellspring residents produce two ingredients per day", () => {
     const state = makeGladeState({
-      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
       residents: [makeResident("thornwhisper")], // legendary wellspring
     });
     const next = advanceGladeDay(state, TODAY, () => 0).state;
@@ -104,30 +151,10 @@ describe("advanceGladeDay", () => {
     expect(total).toBe(2);
   });
 
-  it("spawns one new visitor when there is room", () => {
-    const state = makeGladeState();
-    const next = advanceGladeDay(state, TODAY, () => 0).state;
-    expect(next.visitors).toHaveLength(1);
-    expect(next.visitors[0].trust).toBe(0);
-    expect(next.visitors[0].arrivedDate).toBe(TODAY);
-  });
-
-  it("does not spawn beyond the visitor cap", () => {
-    const visitors = Array.from({ length: MAX_VISITORS }, (_, i) =>
-      makeVisitor({ id: `00000000-0000-4000-8000-00000000000${i}` }),
-    );
-    const state = makeGladeState({ visitors });
-    const next = advanceGladeDay(state, TODAY, () => 0.5).state;
-    expect(next.visitors).toHaveLength(MAX_VISITORS);
-  });
-
   it("reports forage events attributed to the gathering resident", () => {
     const rabbit = makeResident("rabbit");
     const wellspring = makeResident("thornwhisper");
-    const state = makeGladeState({
-      visitors: [makeVisitor(), makeVisitor(), makeVisitor()], // full, no spawn
-      residents: [rabbit, wellspring],
-    });
+    const state = makeGladeState({ residents: [rabbit, wellspring] });
     const report = advanceGladeDay(state, TODAY, () => 0).report;
     expect(report?.foraged).toEqual([
       { residentId: rabbit.id, ingredientId: "berries" },
@@ -138,99 +165,114 @@ describe("advanceGladeDay", () => {
 
   it("reports the soothe bonus and how many visitors received it", () => {
     const state = makeGladeState({
-      visitors: [
-        makeVisitor(),
-        makeVisitor({ id: "00000000-0000-4000-8000-000000000002" }),
-      ],
       residents: [makeResident("hedgehog")], // 1 soother
     });
-    const report = advanceGladeDay(state, TODAY, () => 0.5).report;
+    // rng 0.4 draws two visitors, both calmed on arrival.
+    const report = advanceGladeDay(state, TODAY, () => 0.4).report;
     expect(report?.soothedTrust).toBe(3);
     expect(report?.soothedVisitors).toBe(2);
   });
 
   it("reports no soothed visitors without soother residents", () => {
-    const state = makeGladeState({ visitors: [makeVisitor()] });
-    const report = advanceGladeDay(state, TODAY, () => 0.5).report;
+    const report = advanceGladeDay(makeGladeState(), TODAY, () => 0.5).report;
     expect(report?.soothedTrust).toBe(0);
     expect(report?.soothedVisitors).toBe(0);
   });
 
-  it("reports the arriving species, or null when the glade is full", () => {
-    const spawned = advanceGladeDay(makeGladeState(), TODAY, () => 0);
-    expect(spawned.report?.arrivalSpeciesId).toBe(
-      spawned.state.visitors[0].speciesId,
-    );
-
-    const full = makeGladeState({
-      visitors: Array.from({ length: MAX_VISITORS }, (_, i) =>
-        makeVisitor({ id: `00000000-0000-4000-8000-00000000000${i}` }),
-      ),
-    });
-    expect(advanceGladeDay(full, TODAY, () => 0).report?.arrivalSpeciesId).toBe(
-      null,
+  it("reports today's visitor species in draw order", () => {
+    const result = advanceGladeDay(makeGladeState(), TODAY, () => 0.999);
+    expect(result.report?.visitorSpeciesIds).toEqual(
+      result.state.visitors.map((v) => v.speciesId),
     );
   });
-});
 
-describe("pickVisitorSpecies", () => {
-  it("never picks a species already visiting or resident", () => {
-    const state = makeGladeState({
-      visitors: [makeVisitor({ speciesId: "robin" })],
-      residents: [makeResident("rabbit")],
-    });
-    for (const roll of [0, 0.2, 0.4, 0.6, 0.8, 0.99]) {
-      const picked = pickVisitorSpecies(state, () => roll);
-      expect(picked).not.toBe("robin");
-      expect(picked).not.toBe("rabbit");
-    }
-  });
-
-  it("returns null when every species is already in the glade", () => {
+  it("draws no visitors once every species is a resident", () => {
     const allSpecies = Object.keys(SPECIES) as SpeciesId[];
     const state = makeGladeState({
       residents: allSpecies.map((id) => makeResident(id)),
     });
-    expect(pickVisitorSpecies(state, () => 0.5)).toBe(null);
+    const result = advanceGladeDay(state, TODAY, () => 0.5);
+    expect(result.state.visitors).toEqual([]);
+    expect(result.report?.visitorSpeciesIds).toEqual([]);
+  });
+});
+
+describe("pickDailyVisitors", () => {
+  it("never picks a resident species", () => {
+    const state = makeGladeState({ residents: [makeResident("rabbit")] });
+    for (const roll of [0, 0.2, 0.4, 0.6, 0.8, 0.99]) {
+      const picked = pickDailyVisitors(state, rngFrom([0, roll]));
+      expect(picked).not.toContain("rabbit");
+    }
+  });
+
+  it("can pick a species that visited yesterday", () => {
+    const state = makeGladeState({
+      visitors: [makeVisitor({ speciesId: "robin" })],
+    });
+    expect(pickDailyVisitors(state, rngFrom([0, 0]))).toEqual(["robin"]);
+  });
+
+  it("returns an empty set when every species is a resident", () => {
+    const allSpecies = Object.keys(SPECIES) as SpeciesId[];
+    const state = makeGladeState({
+      residents: allSpecies.map((id) => makeResident(id)),
+    });
+    expect(pickDailyVisitors(state, () => 0.5)).toEqual([]);
   });
 
   it("low rolls pick common species when no beacons are present", () => {
-    const picked = pickVisitorSpecies(makeGladeState(), () => 0.1);
-    expect(picked).not.toBe(null);
-    expect(SPECIES[picked as SpeciesId].rarity).toBe("common");
+    const picked = pickDailyVisitors(makeGladeState(), rngFrom([0, 0.05]));
+    expect(picked).toHaveLength(1);
+    expect(SPECIES[picked[0]].rarity).toBe("common");
   });
 
   it("the highest rolls pick mythic species", () => {
-    const picked = pickVisitorSpecies(makeGladeState(), () => 0.999);
-    expect(picked).not.toBe(null);
-    expect(SPECIES[picked as SpeciesId].rarity).toBe("mythic");
+    const picked = pickDailyVisitors(makeGladeState(), rngFrom([0, 0.999]));
+    expect(SPECIES[picked[0]].rarity).toBe("mythic");
   });
 
   it("beacon residents make rare species more likely", () => {
     // With 2 beacons, 20 weight moves from common (70→50) to rare (5→25).
-    // A roll landing in (75%, 100%] of the weight range is now rare.
     const state = makeGladeState({
       residents: [makeResident("fox"), makeResident("glimmerwing")],
     });
-    const picked = pickVisitorSpecies(state, () => 0.8);
-    expect(SPECIES[picked as SpeciesId].rarity).toBe("rare");
+    const picked = pickDailyVisitors(state, rngFrom([0, 0.8]));
+    expect(SPECIES[picked[0]].rarity).toBe("rare");
 
     // Same roll without beacons stays uncommon.
-    const without = pickVisitorSpecies(makeGladeState(), () => 0.8);
-    expect(SPECIES[without as SpeciesId].rarity).toBe("uncommon");
+    const without = pickDailyVisitors(makeGladeState(), rngFrom([0, 0.8]));
+    expect(SPECIES[without[0]].rarity).toBe("uncommon");
   });
 
-  it("falls back to remaining species when a drawn rarity is exhausted", () => {
-    // All commons collected: weight should redistribute, never returning null
-    // while species remain.
+  it("banked trust makes a species more likely to visit", () => {
+    // Only robin and rabbit remain untamed; equal weight without trust.
+    const others = (Object.keys(SPECIES) as SpeciesId[]).filter(
+      (id) => id !== "robin" && id !== "rabbit",
+    );
+    const residents = others.map((id) => makeResident(id));
+
+    const untrusted = makeGladeState({ residents });
+    expect(pickDailyVisitors(untrusted, rngFrom([0, 0.4]))).toEqual(["robin"]);
+
+    // The same roll flips to rabbit once rabbit has banked trust.
+    const trusted = makeGladeState({
+      residents,
+      speciesTrust: { rabbit: 45 },
+    });
+    expect(pickDailyVisitors(trusted, rngFrom([0, 0.4]))).toEqual(["rabbit"]);
+  });
+
+  it("redistributes weight when a rarity is exhausted", () => {
+    // All commons collected: low rolls land on the next rarity instead.
     const commons = (Object.keys(SPECIES) as SpeciesId[]).filter(
       (id) => SPECIES[id].rarity === "common",
     );
     const state = makeGladeState({
       residents: commons.map((id) => makeResident(id)),
     });
-    const picked = pickVisitorSpecies(state, () => 0.01);
-    expect(picked).not.toBe(null);
-    expect(SPECIES[picked as SpeciesId].rarity).not.toBe("common");
+    const picked = pickDailyVisitors(state, rngFrom([0, 0.01]));
+    expect(picked).toHaveLength(1);
+    expect(SPECIES[picked[0]].rarity).not.toBe("common");
   });
 });

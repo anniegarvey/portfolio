@@ -443,5 +443,12 @@ export const RARITY_WEIGHTS: Record<Rarity, number> = {
 /** Each beacon resident shifts this much weight from common to rare. */
 export const BEACON_RARE_BONUS = 10;
 
+/**
+ * How strongly taming progress draws a species back: a species one action
+ * from tame is (1 + this)× as likely to visit as an untouched one of the
+ * same rarity.
+ */
+export const TRUST_VISIT_BONUS = 3;
+
 /** Flat trust bonus added per herald resident on any matched approach or pet action. */
 export const HERALD_TRUST_BONUS = 5;
