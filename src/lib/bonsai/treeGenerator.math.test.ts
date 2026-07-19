@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clamp,
   lerp,
   r,
   seededInt,
@@ -53,6 +54,22 @@ describe("lerp", () => {
 
   it("clamps above 1", () => {
     expect(lerp(10, 20, 2)).toBe(20);
+  });
+});
+
+// ─── clamp ────────────────────────────────────────────────────────────────────
+
+describe("clamp", () => {
+  it("returns v when within range", () => {
+    expect(clamp(5, 0, 10)).toBe(5);
+  });
+
+  it("clamps below lo", () => {
+    expect(clamp(-5, 0, 10)).toBe(0);
+  });
+
+  it("clamps above hi", () => {
+    expect(clamp(15, 0, 10)).toBe(10);
   });
 });
 

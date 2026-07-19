@@ -1,16 +1,10 @@
+import { toLocalDateString } from "@/lib/date";
 import type { WellnessConfig, WellnessEntry } from "./schema";
 
 export type Period = { start: string; end: string };
 
 function parseDate(dateStr: string): Date {
   return new Date(`${dateStr}T12:00:00`);
-}
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -53,8 +47,8 @@ export function getPeriodForDate(
     const index = Math.floor(diffDays(target, anchor) / frequency);
     const start = addDays(anchor, index * frequency);
     return {
-      start: formatDate(start),
-      end: formatDate(addDays(start, frequency)),
+      start: toLocalDateString(start),
+      end: toLocalDateString(addDays(start, frequency)),
     };
   }
 
@@ -63,8 +57,8 @@ export function getPeriodForDate(
     const index = Math.floor(diffDays(target, anchor) / periodDays);
     const start = addDays(anchor, index * periodDays);
     return {
-      start: formatDate(start),
-      end: formatDate(addDays(start, periodDays)),
+      start: toLocalDateString(start),
+      end: toLocalDateString(addDays(start, periodDays)),
     };
   }
 
@@ -85,7 +79,7 @@ export function getPeriodForDate(
     end = addMonths(start, frequency);
   }
 
-  return { start: formatDate(start), end: formatDate(end) };
+  return { start: toLocalDateString(start), end: toLocalDateString(end) };
 }
 
 /**
