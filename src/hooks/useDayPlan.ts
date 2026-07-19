@@ -18,6 +18,43 @@ import {
   saveDayPlanForDate,
 } from "./utils";
 
+function removeInstanceById(plan: DayPlan, instanceId: string): DayPlan {
+  return {
+    ...plan,
+    plannedInstances: plan.plannedInstances.filter((i) => i.id !== instanceId),
+  };
+}
+
+// Appends `instance` unless its id is already present, in which case the
+// same `plan` reference is returned so callers can detect a no-op via `!==`.
+function appendInstanceIfAbsent(
+  plan: DayPlan,
+  instance: PlannedInstance,
+): DayPlan {
+  if (plan.plannedInstances.some((i) => i.id === instance.id)) return plan;
+  return { ...plan, plannedInstances: [...plan.plannedInstances, instance] };
+}
+
+// Fetches (or creates) the day plan for `date` and appends a brand-new
+// PlannedInstance built from `source`, saving the result back.
+async function appendNewInstanceToDatePlan(
+  date: string,
+  source: Pick<PlannedInstance, "sourceActivityId" | "zoneId">,
+): Promise<void> {
+  const targetPlan =
+    (await fetchDayPlanForDate(date)) || createEmptyDayPlan(date);
+  const newInstance: PlannedInstance = {
+    id: uuidv4(),
+    sourceActivityId: source.sourceActivityId,
+    zoneId: source.zoneId,
+    completed: false,
+  };
+  await saveDayPlanForDate(date, {
+    ...targetPlan,
+    plannedInstances: [...targetPlan.plannedInstances, newInstance],
+  });
+}
+
 export function useDayPlan(
   repeatingActivities: Activity[] = [],
   onUpdateActivity?: (activity: Activity) => void,
@@ -79,6 +116,23 @@ export function useDayPlan(
   const mergedInstancesRef = useRef(dayPlan.plannedInstances);
   mergedInstancesRef.current = dayPlan.plannedInstances;
 
+  // Solidifies a projected instance into a concrete one, locking in the
+  // current merged order so it doesn't jump to the end of the list.
+  const solidifyProjected = useCallback(
+    (projected: PlannedInstance, overrides: Partial<PlannedInstance>) => {
+      const lockedOrder = mergedInstancesRef.current.map((i) => i.id);
+      setBasePlan((prev) => ({
+        ...prev,
+        plannedInstances: [
+          ...prev.plannedInstances,
+          { ...projected, ...overrides, isProjected: undefined },
+        ],
+        activityOrder: lockedOrder,
+      }));
+    },
+    [],
+  );
+
   // Load day plan when date changes (no longer depends on repeatingActivities —
   // projections are derived reactively by useProjectedActivities)
   useEffect(() => {
@@ -128,19 +182,7 @@ export function useDayPlan(
       );
 
       if (projected) {
-        // Solidify the projected instance as a concrete completed instance.
-        // Lock in the current merged order so the newly concrete instance
-        // stays in its visible slot instead of jumping to the end of the
-        // concrete list.
-        const lockedOrder = mergedInstancesRef.current.map((i) => i.id);
-        setBasePlan((prev) => ({
-          ...prev,
-          plannedInstances: [
-            ...prev.plannedInstances,
-            { ...projected, completed: true, isProjected: undefined },
-          ],
-          activityOrder: lockedOrder,
-        }));
+        solidifyProjected(projected, { completed: true });
         handleComplete(instanceId);
         return;
       }
@@ -154,7 +196,7 @@ export function useDayPlan(
         return { ...prev, plannedInstances: newInstances };
       });
     },
-    [handleComplete],
+    [handleComplete, solidifyProjected],
   );
 
   // Mark an instance as complete on a specific date (for uncompleted activities)
@@ -242,38 +284,25 @@ export function useDayPlan(
       if (!instanceToMove) return;
 
       if (currentDate === fromDate) {
-        setBasePlan((prev) => ({
-          ...prev,
-          plannedInstances: prev.plannedInstances.filter(
-            (i) => i.id !== instanceId,
-          ),
-        }));
+        setBasePlan((prev) => removeInstanceById(prev, instanceId));
       } else {
-        await saveDayPlanForDate(fromDate, {
-          ...oldPlan,
-          plannedInstances: oldPlan.plannedInstances.filter(
-            (i) => i.id !== instanceId,
-          ),
-        });
+        await saveDayPlanForDate(
+          fromDate,
+          removeInstanceById(oldPlan, instanceId),
+        );
       }
 
       if (currentDate === today) {
-        setBasePlan((prev) => {
-          if (prev.plannedInstances.some((i) => i.id === instanceId))
-            return prev;
-          return {
-            ...prev,
-            plannedInstances: [...prev.plannedInstances, instanceToMove],
-          };
-        });
+        setBasePlan((prev) => appendInstanceIfAbsent(prev, instanceToMove));
       } else {
         const todayPlan =
           (await fetchDayPlanForDate(today)) || createEmptyDayPlan(today);
-        if (!todayPlan.plannedInstances.some((i) => i.id === instanceId)) {
-          await saveDayPlanForDate(today, {
-            ...todayPlan,
-            plannedInstances: [...todayPlan.plannedInstances, instanceToMove],
-          });
+        const updatedTodayPlan = appendInstanceIfAbsent(
+          todayPlan,
+          instanceToMove,
+        );
+        if (updatedTodayPlan !== todayPlan) {
+          await saveDayPlanForDate(today, updatedTodayPlan);
         }
       }
 
@@ -297,12 +326,10 @@ export function useDayPlan(
           (i) => i.id === instanceId,
         );
         if (instanceToRemove) {
-          await saveDayPlanForDate(fromDate, {
-            ...plan,
-            plannedInstances: plan.plannedInstances.filter(
-              (i) => i.id !== instanceId,
-            ),
-          });
+          await saveDayPlanForDate(
+            fromDate,
+            removeInstanceById(plan, instanceId),
+          );
           storeDayPlanVersion((v) => v + 1);
           return instanceToRemove;
         }
@@ -320,18 +347,9 @@ export function useDayPlan(
       );
       if (projected) {
         onSkip(projected.sourceActivityId);
-        const targetPlan =
-          (await fetchDayPlanForDate(targetDate)) ||
-          createEmptyDayPlan(targetDate);
-        const newInstance: PlannedInstance = {
-          id: uuidv4(),
+        await appendNewInstanceToDatePlan(targetDate, {
           sourceActivityId: projected.sourceActivityId,
           zoneId: projected.zoneId,
-          completed: false,
-        };
-        await saveDayPlanForDate(targetDate, {
-          ...targetPlan,
-          plannedInstances: [...targetPlan.plannedInstances, newInstance],
         });
         return;
       }
@@ -339,20 +357,9 @@ export function useDayPlan(
       const removedInstance = removeFromPlan(instanceId);
       if (!removedInstance) return;
 
-      const targetPlan =
-        (await fetchDayPlanForDate(targetDate)) ||
-        createEmptyDayPlan(targetDate);
-
-      const newInstance: PlannedInstance = {
-        id: uuidv4(),
+      await appendNewInstanceToDatePlan(targetDate, {
         sourceActivityId: removedInstance.sourceActivityId,
         zoneId: removedInstance.zoneId,
-        completed: false,
-      };
-
-      await saveDayPlanForDate(targetDate, {
-        ...targetPlan,
-        plannedInstances: [...targetPlan.plannedInstances, newInstance],
       });
     },
     [removeFromPlan, onSkip],
@@ -376,17 +383,7 @@ export function useDayPlan(
       );
 
       if (projected) {
-        // Solidify with the requested zone, preserving the projected
-        // instance's ID and its current slot in the merged list.
-        const lockedOrder = mergedInstancesRef.current.map((i) => i.id);
-        setBasePlan((prev) => ({
-          ...prev,
-          plannedInstances: [
-            ...prev.plannedInstances,
-            { ...projected, zoneId, isProjected: undefined },
-          ],
-          activityOrder: lockedOrder,
-        }));
+        solidifyProjected(projected, { zoneId });
         return;
       }
 
@@ -398,7 +395,7 @@ export function useDayPlan(
         return { ...prev, plannedInstances: newInstances };
       });
     },
-    [],
+    [solidifyProjected],
   );
 
   const navigateToDate = useCallback((date: string) => {
