@@ -22,7 +22,7 @@ export function ContentWithDragHandle({
   return (
     <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
       <DragHandle {...listeners} {...attributes} aria-label={ariaLabel}>
-        <GripVertical size={16} />
+        <GripVertical aria-hidden="true" size={16} />
       </DragHandle>
       <div style={{ flex: 1 }}>{children}</div>
     </div>
@@ -33,6 +33,7 @@ const DragHandle = styled.div`
   color: light-dark(var(--color-grey-400), var(--color-grey-500));
   cursor: grab;
   padding: 8px;
+  touch-action: none;
   &:active {
     cursor: grabbing;
   }

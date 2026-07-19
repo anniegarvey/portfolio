@@ -28,5 +28,8 @@ describe("ContentWithDragHandle", () => {
     const handle = screen.getByLabelText("Reorder zone");
     expect(handle).toBeInTheDocument();
     expect(handle).toHaveAttribute("role", "button");
+
+    const icon = handle.querySelector("svg");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
   });
 });
