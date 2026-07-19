@@ -758,6 +758,248 @@ describe("generateTree", () => {
     });
   });
 
+  // ─── Scattered foliage distribution ────────────────────────────────────────
+  // No shipped species currently sets foliageDistribution: "scattered" — it's
+  // reachable only via the FoliageDistribution type. These tests build a
+  // fixture from PINE with just that override so the mode has real coverage.
+
+  describe("scattered foliage distribution", () => {
+    const SCATTERED: SpeciesConfig = {
+      ...PINE,
+      foliageDistribution: "scattered",
+    };
+
+    function totalLeaves(data: ReturnType<typeof generateTree>) {
+      return data.branches.reduce((sum, b) => sum + b.leaves.length, 0);
+    }
+
+    it("produces leaves on grown branches at a mature day count", () => {
+      const data = generateTree(80, SCATTERED, [], "scattered-mature");
+      const leafy = data.branches.filter(
+        (b) => !b.isPruned && b.leaves.length > 0,
+      );
+      expect(leafy.length).toBeGreaterThan(0);
+    });
+
+    it("total leaf count increases as the tree ages (age-density signal)", () => {
+      const day30 = generateTree(30, SCATTERED, [], "scattered-age");
+      const day100 = generateTree(100, SCATTERED, [], "scattered-age");
+      expect(totalLeaves(day100)).toBeGreaterThan(totalLeaves(day30));
+    });
+
+    it("produces identical output for identical inputs", () => {
+      const a = generateTree(60, SCATTERED, [], "scattered-det");
+      const b = generateTree(60, SCATTERED, [], "scattered-det");
+      expect(a.branches).toHaveLength(b.branches.length);
+      for (let i = 0; i < a.branches.length; i++) {
+        expect(a.branches[i].pathData).toBe(b.branches[i].pathData);
+        expect(a.branches[i].leaves).toEqual(b.branches[i].leaves);
+      }
+    });
+
+    it("requires more growth progress before showing leaves than the pad mode", () => {
+      // Single, non-forking primary so growth progress maps directly onto one
+      // branch. crownSpreadFactor is boosted so the branch already clears the
+      // branchLen > 6 gate well before either mode's progress threshold,
+      // isolating the effectiveProg gate specifically.
+      const base = {
+        ...PINE,
+        maxBranchPairs: 1,
+        maxDepth: 0,
+        crownSpreadFactor: 1.0,
+      };
+      const scatteredSpec: SpeciesConfig = {
+        ...base,
+        foliageDistribution: "scattered",
+      };
+      const padSpec: SpeciesConfig = { ...base, foliageDistribution: "pad" };
+      const treeId = "scattered-threshold";
+
+      // Find the first day branch "p0" renders at all (progress > 0).
+      let appearsAt = -1;
+      for (let day = 1; day <= 40; day++) {
+        const data = generateTree(day, scatteredSpec, [], treeId);
+        if (data.branches.some((b) => b.id === "p0" && !b.isPruned)) {
+          appearsAt = day;
+          break;
+        }
+      }
+      expect(appearsAt).toBeGreaterThan(0);
+
+      // One growth-step later: age 2 days → progress = 2/6 ≈ 0.33 — past
+      // pad's 0.3 gate but short of scattered's 0.4 gate.
+      const midDay = appearsAt + 1;
+      const scatteredMid = generateTree(midDay, scatteredSpec, [], treeId);
+      const padMid = generateTree(midDay, padSpec, [], treeId);
+      const scatteredBranch = scatteredMid.branches.find(
+        (b) => b.id === "p0" && !b.isPruned,
+      );
+      const padBranch = padMid.branches.find(
+        (b) => b.id === "p0" && !b.isPruned,
+      );
+      expect(scatteredBranch).toBeDefined();
+      expect(padBranch).toBeDefined();
+      if (!(scatteredBranch && padBranch)) return;
+      expect(scatteredBranch.leaves).toHaveLength(0);
+      expect(padBranch.leaves.length).toBeGreaterThan(0);
+
+      // One more growth-step: age 3 days → progress = 0.5, past both gates.
+      const lateDay = appearsAt + 2;
+      const scatteredLate = generateTree(lateDay, scatteredSpec, [], treeId);
+      const scatteredLateBranch = scatteredLate.branches.find(
+        (b) => b.id === "p0" && !b.isPruned,
+      );
+      expect(scatteredLateBranch).toBeDefined();
+      expect(scatteredLateBranch?.leaves.length).toBeGreaterThan(0);
+    });
+
+    it("branches at or under 6 SVG units carry no scattered leaves, even fully grown", () => {
+      // crownSpreadFactor tiny enough that even at day 100 (fully grown,
+      // effectiveProg = 1) every primary's rendered length stays <= 6,
+      // isolating the branchLen > 6 gate from the progress gate.
+      const tinySpec: SpeciesConfig = {
+        ...SCATTERED,
+        crownSpreadFactor: 0.01,
+        maxBranchPairs: 3,
+        maxDepth: 0,
+      };
+      const data = generateTree(100, tinySpec, [], "scattered-tiny");
+      const primaries = data.branches.filter(
+        (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+      );
+      expect(primaries.length).toBeGreaterThan(0);
+      for (const b of primaries) {
+        const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+        expect(len).toBeLessThanOrEqual(6);
+        expect(b.leaves).toHaveLength(0);
+      }
+    });
+
+    /** Groups a branch's leaves by pad index, encoded in the leaf id as
+     *  "<branchId>s<pad>-<leafIndex>", into per-pad centroids. */
+    function groupLeavesByPad(
+      b: ReturnType<typeof generateTree>["branches"][number],
+    ) {
+      const groups = new Map<number, { x: number; y: number; n: number }>();
+      for (const leaf of b.leaves) {
+        const suffix = leaf.id.slice(b.id.length);
+        const m = /^s(\d+)-\d+$/.exec(suffix);
+        if (!m) continue;
+        const p = Number(m[1]);
+        const g = groups.get(p) ?? { x: 0, y: 0, n: 0 };
+        g.x += leaf.cx;
+        g.y += leaf.cy;
+        g.n++;
+        groups.set(p, g);
+      }
+      return groups;
+    }
+
+    /** Fraction along the branch's own base→tip axis (0 = base, 1 = tip)
+     *  that a point projects onto. */
+    function axisFraction(
+      b: ReturnType<typeof generateTree>["branches"][number],
+      point: { x: number; y: number },
+    ) {
+      const dx = b.x2 - b.x1;
+      const dy = b.y2 - b.y1;
+      const len2 = dx * dx + dy * dy;
+      if (len2 === 0) return 0;
+      return ((point.x - b.x1) * dx + (point.y - b.y1) * dy) / len2;
+    }
+
+    /** Returns the tip-distance of the first vs. last pad's centroid, plus
+     *  how many distinct pads a branch has. */
+    function padCentroidDistances(
+      b: ReturnType<typeof generateTree>["branches"][number],
+    ) {
+      const groups = groupLeavesByPad(b);
+      if (groups.size < 2) return null;
+      const ps = [...groups.keys()].sort((x, y) => x - y);
+      const distOf = (p: number) => {
+        const g = groups.get(p) as { x: number; y: number; n: number };
+        return Math.hypot(g.x / g.n - b.x2, g.y / g.n - b.y2);
+      };
+      return {
+        first: distOf(ps[0]),
+        last: distOf(ps[ps.length - 1]),
+        padCount: groups.size,
+      };
+    }
+
+    /** Aggregates the tip-bias check across many seeds/days: how often the
+     *  last pad sits at least as close to the tip as the first, and the
+     *  largest pad count seen (restricted to primaries — see the test for
+     *  why deeper twigs are excluded). */
+    function collectPadBiasStats(treeIds: string[], days: number[]) {
+      const pairs = treeIds.flatMap((treeId) =>
+        days.map((day) => ({ treeId, day })),
+      );
+      const dists = pairs
+        .flatMap(({ treeId, day }) =>
+          generateTree(day, SCATTERED, [], treeId).branches.filter(
+            (b) => /^p\d+$/.test(b.id) && !b.isPruned,
+          ),
+        )
+        .map(padCentroidDistances)
+        .filter((d): d is NonNullable<typeof d> => d !== null);
+      return {
+        total: dists.length,
+        closer: dists.filter((d) => d.last <= d.first).length,
+        maxPadCount: Math.max(...dists.map((d) => d.padCount)),
+      };
+    }
+
+    it("pads are spaced along the branch, biased toward the tip", () => {
+      // Per docs: "1-3 pads spaced along the upper section of the branch
+      // (40-100% of length)". True in the large majority of cases; restricted
+      // to primaries (depth 0) since deeper twigs can have a bent tip segment
+      // (tipDroop != 0) whose angle is projected back over the branch's full
+      // length rather than just the bent segment, adding centroid noise on
+      // small per-pad leaf counts.
+      const { total, closer, maxPadCount } = collectPadBiasStats(
+        ["bias-a", "bias-b", "bias-c", "bias-d", "bias-e"],
+        [40, 60, 80, 100],
+      );
+      expect(total).toBeGreaterThan(20);
+      expect(closer / total).toBeGreaterThan(0.9);
+      // Docs promise 1-3 pads per branch — confirm the upper end is reached.
+      expect(maxPadCount).toBe(3);
+    });
+
+    /** Every pad centroid's axis-fraction across many seeds/days, restricted
+     *  to primaries (same bent-tip reason as the tip-bias test above). */
+    function collectBandFractions(treeIds: string[], days: number[]) {
+      const pairs = treeIds.flatMap((treeId) =>
+        days.map((day) => ({ treeId, day })),
+      );
+      return pairs.flatMap(({ treeId, day }) =>
+        generateTree(day, SCATTERED, [], treeId)
+          .branches.filter((b) => /^p\d+$/.test(b.id) && !b.isPruned)
+          .flatMap((b) =>
+            [...groupLeavesByPad(b).values()].map((g) =>
+              axisFraction(b, { x: g.x / g.n, y: g.y / g.n }),
+            ),
+          ),
+      );
+    }
+
+    it("pad centers fall within the documented 40-100% length band", () => {
+      // Per docs: pads span 40-100% of the branch length, measured from base
+      // to tip. Bounds are widened slightly beyond the exact 0.4-1.0 band to
+      // absorb centroid noise from small per-pad leaf samples.
+      const fracs = collectBandFractions(
+        ["band-a", "band-b", "band-c", "band-d"],
+        [40, 60, 80, 100],
+      );
+      expect(fracs.length).toBeGreaterThan(20);
+      for (const frac of fracs) {
+        expect(frac).toBeGreaterThan(0.2);
+        expect(frac).toBeLessThan(1.3);
+      }
+    });
+  });
+
   // ─── Species silhouettes (Step 5) ──────────────────────────────────────────
 
   describe("pine — conical taper (A1)", () => {
