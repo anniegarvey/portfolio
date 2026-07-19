@@ -95,6 +95,7 @@ const EMPTY_STATE: GladeState = {
     "petting-technique": { tier: 1, xp: 0 },
   },
   pantry: { ingredients: {}, treats: {} },
+  speciesTrust: {},
 };
 
 // ─── Provider ─────────────────────────────────────────────────────────────────

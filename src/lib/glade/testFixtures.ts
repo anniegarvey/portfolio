@@ -13,6 +13,7 @@ export function makeGladeState(overrides?: Partial<GladeState>): GladeState {
       "petting-technique": { tier: 1, xp: 0 },
     },
     pantry: { ingredients: {}, treats: {} },
+    speciesTrust: {},
     ...overrides,
   };
 }

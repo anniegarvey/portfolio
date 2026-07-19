@@ -40,4 +40,10 @@ describe("save/load round trip", () => {
     localStorage.setItem(GLADE_KEY, JSON.stringify({ visitors: "nope" }));
     expect(loadGladeState()).toBe(null);
   });
+
+  it("defaults speciesTrust for states saved before daily visitor rotation", () => {
+    const { speciesTrust: _omitted, ...legacy } = createInitialState();
+    localStorage.setItem(GLADE_KEY, JSON.stringify(legacy));
+    expect(loadGladeState()?.speciesTrust).toEqual({});
+  });
 });
