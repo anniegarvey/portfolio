@@ -17,6 +17,11 @@ export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * Math.min(Math.max(t, 0), 1);
 }
 
+/** Clamps v to the range [lo, hi]. */
+export function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(Math.max(v, lo), hi);
+}
+
 /** Round to 1 decimal place — reduces SVG path string size without visible loss. */
 export function r(n: number): number {
   return Math.round(n * 10) / 10;

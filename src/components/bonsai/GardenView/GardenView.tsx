@@ -20,16 +20,13 @@ import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
 import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
+import { clamp } from "@/lib/bonsai/treeGenerator.math";
 
 // Trees positioned near an edge get clamped so they stay fully visible.
 // The mini tree container is ~90px wide and the garden uses percentage coords,
 // so we clamp x/y to keep the tree center away from the edges.
 const CLAMP_MIN = 8;
 const CLAMP_MAX = 92;
-
-function clamp(v: number, lo: number, hi: number) {
-  return Math.min(Math.max(v, lo), hi);
-}
 
 // ─── Mini Tree ────────────────────────────────────────────────────────────────
 

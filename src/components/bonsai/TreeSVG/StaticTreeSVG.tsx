@@ -10,6 +10,7 @@ import {
   type Leaf,
   type TreeSVGData,
 } from "@/lib/bonsai/treeGenerator";
+import { clamp } from "@/lib/bonsai/treeGenerator.math";
 
 // ─── Leaf Shape Paths ─────────────────────────────────────────────────────────
 
@@ -99,10 +100,6 @@ function PinnateLeaf({
 }
 
 // ─── Seed / Sprout Stage ──────────────────────────────────────────────────────
-
-function clamp(v: number, lo: number, hi: number) {
-  return Math.min(Math.max(v, lo), hi);
-}
 
 function SeedSprout({
   day,
