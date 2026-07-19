@@ -105,7 +105,7 @@ export function pickDailyVisitors(
   while (picked.length < count) {
     const weights = pool.map(weightFor);
     const total = weights.reduce((sum, w) => sum + w, 0);
-    // All remaining weight is on exhausted rarities — pick uniformly.
+    // Every remaining candidate is in a zero-weight rarity — pick uniformly.
     let index = total <= 0 ? Math.floor(rng() * pool.length) : pool.length - 1;
     if (total > 0) {
       let roll = rng() * total;
@@ -184,23 +184,29 @@ export function advanceGladeDay(
   }
 
   const visitorSpeciesIds = pickDailyVisitors(next, rng);
-  const visitors: WildVisitor[] = visitorSpeciesIds.map((speciesId) => ({
-    id: uuidv4(),
-    speciesId,
-    trust: Math.min(
-      (speciesTrust[speciesId] ?? 0) + sootheBonus,
+  let soothedVisitors = 0;
+  const visitors: WildVisitor[] = visitorSpeciesIds.map((speciesId) => {
+    const banked = speciesTrust[speciesId] ?? 0;
+    const trust = Math.min(
+      banked + sootheBonus,
       tameThresholdFor(speciesId) - 1,
-    ),
-    arrivedDate: today,
-    actionsToday: { treat: false, approach: false, pet: false },
-  }));
+    );
+    if (trust > banked) soothedVisitors += 1;
+    return {
+      id: uuidv4(),
+      speciesId,
+      trust,
+      arrivedDate: today,
+      actionsToday: { treat: false, approach: false, pet: false },
+    };
+  });
   next = { ...next, visitors };
 
   return {
     state: next,
     report: {
       soothedTrust: sootheBonus,
-      soothedVisitors: sootheBonus > 0 ? visitors.length : 0,
+      soothedVisitors,
       foraged,
       visitorSpeciesIds,
     },

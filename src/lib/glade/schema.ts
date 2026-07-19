@@ -151,7 +151,9 @@ export const GladeStateSchema = z.object({
    * species' next visit. Defaults so states saved before daily visitor
    * rotation still parse.
    */
-  speciesTrust: z.partialRecord(SpeciesIdSchema, z.number().min(0)).default({}),
+  speciesTrust: z
+    .partialRecord(SpeciesIdSchema, z.number().min(0))
+    .default(() => ({})),
   lastAdvanceDate: z.string().optional(),
 });
 export type GladeState = z.infer<typeof GladeStateSchema>;

@@ -173,6 +173,17 @@ describe("advanceGladeDay", () => {
     expect(report?.soothedVisitors).toBe(2);
   });
 
+  it("does not count visitors already capped below the threshold as soothed", () => {
+    const state = makeGladeState({
+      speciesTrust: { robin: tameThresholdFor("robin") - 1 },
+      residents: [makeResident("hedgehog")], // 1 soother
+    });
+    // rng 0 draws only robin, which is already at the cap and gains nothing.
+    const report = advanceGladeDay(state, TODAY, () => 0).report;
+    expect(report?.soothedTrust).toBe(3);
+    expect(report?.soothedVisitors).toBe(0);
+  });
+
   it("reports no soothed visitors without soother residents", () => {
     const report = advanceGladeDay(makeGladeState(), TODAY, () => 0.5).report;
     expect(report?.soothedTrust).toBe(0);
