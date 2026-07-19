@@ -35,29 +35,6 @@ WSL browser fix for E2E debugging: `npx @dbalabka/chrome-wsl`
 
 **Next.js 16 app** (`src/app/`) with React 19, TypeScript, [next-yak](https://github.com/DigitecGalaxus/next-yak) for CSS-in-JS that works in Server Components, and React Compiler enabled.
 
-### Route structure
-
-| Route | Feature |
-|---|---|
-| `/` | Portfolio home (hero, projects, about) |
-| `/energy-planner` | Energy Planner app |
-| `/bonsai` | Bonsai Garden game |
-| `/projects/energy-planner`, `/projects/bonsai`, etc. | Project showcase pages |
-
-### Feature modules
-
-Each feature lives under `src/lib/<feature>/`:
-
-**`src/lib/energy-planner/`** — schema (Zod), storage (IndexedDB via idb-keyval), context (React), utils  
-**`src/lib/bonsai/`** — schema, storage, context, growth engine, shop/inventory/pruning modules, SVG tree generator  
-**`src/lib/points/`** — cross-cutting currency shared between Energy Planner and Bonsai; handles localStorage persistence, particle animations, and sound
-
-Feature-specific React hooks live in `src/hooks/` (all Energy Planner domain logic). Feature-specific components live in `src/components/energy-planner/` and `src/components/bonsai/`.
-
-### Data flow (Energy Planner)
-
-`schema.ts` (Zod types) → `storage.ts` (idb-keyval IndexedDB) → `hooks/use*.ts` (state management) → `lib/energy-planner/context.tsx` (React context) → components
-
 All state is client-side; no server-side data fetching in feature pages.
 
 ### Domain vocabulary
@@ -66,8 +43,6 @@ See `CONTEXT.md` for canonical terms (Activity, Planned instance, Projected inst
 
 ### Testing
 
-- Unit tests co-located with source (`*.test.ts` / `*.test.tsx`), run with vitest + jsdom
-- E2E tests in `e2e/` by feature area (`energy-planner/`, `bonsai/`, `navigation/`)
 - IndexedDB is mocked via `fake-indexeddb`; `src/lib/energy-planner/__mocks__/storage.ts` for unit tests
 - Coverage thresholds enforced per-file; see `vitest.config.ts`
 - Flaky tests tracked in `e2e/FLAKY_TESTS.md`

@@ -91,7 +91,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -d node_modules ] || pnpm i || true",
+            "command": "[ -d node_modules ] || pnpm i || true > /dev/null 2>&1",
             "statusMessage": "Installing dependencies..."
           }
         ]
