@@ -4,7 +4,6 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  type DraggableAttributes,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -19,12 +18,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { styled } from "next-yak";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import type { ZoneConfig } from "@/lib/energy-planner/schema";
 import { Modal } from "../../Modal";
+import { ContentWithDragHandle } from "../SortableItem";
 import { ZoneFormModal } from "../ZoneFormModal";
 
 interface ZoneManagerModalProps {
@@ -226,46 +226,22 @@ function SortableZoneItem({
     transition,
   };
 
-  // We clone the first child (ZoneContent) to inject the handle with listeners
-  // Or better, we just provide a context or render prop.
-  // For simplicity since I control usage:
-  // I will assume children is ZoneContent and I want to attach listeners to the DragHandle inside it.
-
-  // Actually, sticking the listeners on the root "Item" is easier but prevents text selection in inputs.
+  // Sticking the listeners on the root "Item" is easier but prevents text selection in inputs.
   // We MUST use a handle.
 
   return (
     <Item ref={setNodeRef} style={style}>
-      <ZoneContentWithHandle attributes={attributes} listeners={listeners}>
+      <ContentWithDragHandle
+        ariaLabel="Reorder zone"
+        attributes={attributes}
+        listeners={listeners}
+      >
         {children}
-      </ZoneContentWithHandle>
+      </ContentWithDragHandle>
     </Item>
   );
 }
 
-import type { ReactNode } from "react";
-
-function ZoneContentWithHandle({
-  listeners,
-  attributes,
-  children,
-}: {
-  // biome-ignore lint/suspicious/noExplicitAny: dnd-kit listeners are complex
-  listeners: Record<string, any> | undefined;
-  attributes: DraggableAttributes;
-  children: ReactNode;
-}) {
-  return (
-    <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
-      <DragHandle {...listeners} {...attributes} aria-label="Reorder zone">
-        <GripVertical size={16} />
-      </DragHandle>
-      <div style={{ flex: 1 }}>{children}</div>
-    </div>
-  );
-}
-
-// Correct implementation used above
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -291,16 +267,6 @@ const ZoneContent = styled.div`
   align-items: center;
   padding: 8px 12px;
   gap: 12px;
-`;
-
-const DragHandle = styled.div`
-  color: light-dark(var(--color-grey-400), var(--color-grey-500));
-  cursor: grab;
-  padding: 8px;
-  /* This needs to receive the dnd listeners */
-  &:active {
-    cursor: grabbing;
-  }
 `;
 
 const ZoneName = styled.div`
