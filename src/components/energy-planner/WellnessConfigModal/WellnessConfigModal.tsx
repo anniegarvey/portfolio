@@ -4,7 +4,6 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  type DraggableAttributes,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -19,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { styled } from "next-yak";
 import type { ReactNode } from "react";
 import { useEffect, useId, useState } from "react";
@@ -29,6 +28,7 @@ import { useWellnessCheck } from "@/lib/wellness/context";
 import type { WellnessConfig, WellnessMetric } from "@/lib/wellness/schema";
 import { WellnessUnitSchema } from "@/lib/wellness/schema";
 import { Modal } from "../../Modal";
+import { ContentWithDragHandle } from "../SortableItem";
 import { WellnessMetricFormModal } from "./WellnessMetricFormModal";
 
 interface WellnessConfigModalProps {
@@ -305,30 +305,14 @@ function SortableMetricItem({
 
   return (
     <Item ref={setNodeRef} style={style}>
-      <MetricContentWithHandle attributes={attributes} listeners={listeners}>
+      <ContentWithDragHandle
+        ariaLabel="Reorder metric"
+        attributes={attributes}
+        listeners={listeners}
+      >
         {children}
-      </MetricContentWithHandle>
+      </ContentWithDragHandle>
     </Item>
-  );
-}
-
-function MetricContentWithHandle({
-  listeners,
-  attributes,
-  children,
-}: {
-  // biome-ignore lint/suspicious/noExplicitAny: dnd-kit listeners are complex
-  listeners: Record<string, any> | undefined;
-  attributes: DraggableAttributes;
-  children: ReactNode;
-}) {
-  return (
-    <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
-      <DragHandle {...listeners} {...attributes} aria-label="Reorder metric">
-        <GripVertical size={16} />
-      </DragHandle>
-      <div style={{ flex: 1 }}>{children}</div>
-    </div>
   );
 }
 
@@ -415,15 +399,6 @@ const MetricContent = styled.div`
   align-items: center;
   padding: 8px 12px;
   gap: 12px;
-`;
-
-const DragHandle = styled.div`
-  color: light-dark(var(--color-grey-400), var(--color-grey-500));
-  cursor: grab;
-  padding: 8px;
-  &:active {
-    cursor: grabbing;
-  }
 `;
 
 const MetricInfo = styled.div`
