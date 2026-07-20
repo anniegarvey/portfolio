@@ -11,6 +11,10 @@ import type {
 
 // ─── Species ──────────────────────────────────────────────────────────────────
 
+/** Where a tamed resident settles in the glade scene: air (top), tree (middle
+ * — perching songbirds and owls), or ground (bottom — everything else). */
+export type Habitat = "ground" | "tree" | "air";
+
 export interface SpeciesConfig {
   id: SpeciesId;
   name: string;
@@ -20,6 +24,7 @@ export interface SpeciesConfig {
   favouriteTreat: TreatId;
   preferredPosture: Posture;
   preferredPetSpot: PetSpot;
+  habitat: Habitat;
   /** Shown on the visitor card; hints at preferences. */
   blurb: string;
   /** Vague preference hint, readable from skill tier 1. */
@@ -38,6 +43,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "berry-bites",
     preferredPosture: "sit-still",
     preferredPetSpot: "back",
+    habitat: "tree",
     blurb: "A cheerful songbird whose morning tunes spark inspiration.",
     vagueHint: "Seems happiest when you keep very still.",
     clearHint: "Sit still nearby and stroke its back. Loves berry bites.",
@@ -51,6 +57,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "oat-cakes",
     preferredPosture: "crouch-low",
     preferredPetSpot: "behind-ears",
+    habitat: "ground",
     blurb: "A gentle grazer with a knack for finding good food.",
     vagueHint: "Gets nervous when you tower over it.",
     clearHint: "Crouch low and scratch behind the ears. Loves oat cakes.",
@@ -64,6 +71,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "nut-clusters",
     preferredPosture: "sit-still",
     preferredPetSpot: "chin",
+    habitat: "tree",
     blurb: "A busy hoarder who shares the best of its stash.",
     vagueHint: "Watches you closely; sudden moves send it darting off.",
     clearHint: "Sit still and offer a chin rub. Loves nut clusters.",
@@ -77,6 +85,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "cream-puffs",
     preferredPosture: "crouch-low",
     preferredPetSpot: "chin",
+    habitat: "ground",
     blurb: "A prickly-looking softie whose calm settles the whole glade.",
     vagueHint: "Curls up unless you come down to its level.",
     clearHint: "Crouch low and rub under the chin. Loves cream puffs.",
@@ -90,6 +99,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "oat-cakes",
     preferredPosture: "crouch-low",
     preferredPetSpot: "chin",
+    habitat: "ground",
     blurb: "A tiny scavenger with sharp eyes for every dropped seed.",
     vagueHint: "Vanishes into the grass the moment you loom.",
     clearHint: "Crouch low and offer a gentle chin rub. Loves oat cakes.",
@@ -103,6 +113,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "mint-crisps",
     preferredPosture: "slow-blink",
     preferredPetSpot: "chin",
+    habitat: "tree",
     blurb: "A pocket-sized singer whose bold song outsizes its body.",
     vagueHint: "Flits nervously unless your gaze goes soft.",
     clearHint: "Blink slowly and offer a chin scratch. Loves mint crisps.",
@@ -116,6 +127,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "oat-cakes",
     preferredPosture: "crouch-low",
     preferredPetSpot: "back",
+    habitat: "ground",
     blurb: "A velvet-coated digger whose steady calm settles the soil itself.",
     vagueHint:
       "Half-blind but keen-nosed — it trusts what stays close to the ground.",
@@ -130,6 +142,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "honey-drops",
     preferredPosture: "slow-blink",
     preferredPetSpot: "behind-ears",
+    habitat: "ground",
     blurb: "A clever wanderer whose presence draws curious creatures near.",
     vagueHint: "Meets your gaze; staring too hard feels like a challenge.",
     clearHint: "Blink slowly and scratch behind the ears. Loves honey drops.",
@@ -143,6 +156,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "mint-crisps",
     preferredPosture: "sit-still",
     preferredPetSpot: "back",
+    habitat: "ground",
     blurb: "A serene grazer whose quiet confidence reassures shy visitors.",
     vagueHint: "Startles at any movement — patience is everything.",
     clearHint: "Sit perfectly still and stroke its back. Loves mint crisps.",
@@ -156,6 +170,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "nut-clusters",
     preferredPosture: "slow-blink",
     preferredPetSpot: "chin",
+    habitat: "tree",
     blurb: "A wise night-watcher whose company sharpens your craft.",
     vagueHint: "Studies you with huge eyes; it seems to respond in kind.",
     clearHint: "Blink slowly and offer a chin scratch. Loves nut clusters.",
@@ -169,6 +184,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "honey-drops",
     preferredPosture: "crouch-low",
     preferredPetSpot: "back",
+    habitat: "ground",
     blurb: "A sturdy digger who unearths rare ingredients.",
     vagueHint: "Stands its ground; meet it low and unhurried.",
     clearHint: "Crouch low and pat its back firmly. Loves honey drops.",
@@ -182,6 +198,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "mint-crisps",
     preferredPosture: "crouch-low",
     preferredPetSpot: "behind-ears",
+    habitat: "ground",
     blurb: "A moss-covered cat-thing that grows herbs along its spine.",
     vagueHint: "Hugs the ground; it likes company down there.",
     clearHint: "Crouch low and scratch behind the ears. Loves mint crisps.",
@@ -195,6 +212,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "cream-puffs",
     preferredPosture: "slow-blink",
     preferredPetSpot: "back",
+    habitat: "ground",
     blurb: "A playful river-dweller whose antics draw curious onlookers.",
     vagueHint: "Meets mischief with mischief; an eager stare spoils the game.",
     clearHint: "Blink slowly and stroke its sleek back. Loves cream puffs.",
@@ -208,6 +226,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "mint-crisps",
     preferredPosture: "sit-still",
     preferredPetSpot: "behind-ears",
+    habitat: "ground",
     blurb: "A long-limbed sprinter whose wild energy stirs new ideas.",
     vagueHint: "Coiled to bolt — only perfect stillness reassures it.",
     clearHint:
@@ -222,6 +241,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "honey-drops",
     preferredPosture: "sit-still",
     preferredPetSpot: "chin",
+    habitat: "air",
     blurb:
       "A drifting seed-fluff spirit that settles wherever the air is calm.",
     vagueHint: "The lightest stir of air carries it away.",
@@ -236,6 +256,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "honey-drops",
     preferredPosture: "sit-still",
     preferredPetSpot: "back",
+    habitat: "air",
     blurb: "A tiny dragonfly-dragon whose glow is a lantern to lost creatures.",
     vagueHint: "Hovers just out of reach unless the air is utterly calm.",
     clearHint: "Sit still and smooth its wing-backs. Loves honey drops.",
@@ -249,6 +270,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "cream-puffs",
     preferredPosture: "slow-blink",
     preferredPetSpot: "back",
+    habitat: "air",
     blurb: "A drowsy cloud-sheep; everything nearby breathes a little slower.",
     vagueHint: "Drifts closer when your eyes go soft and sleepy.",
     clearHint: "Blink slowly and pat its woolly back. Loves cream puffs.",
@@ -262,6 +284,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "berry-bites",
     preferredPosture: "slow-blink",
     preferredPetSpot: "behind-ears",
+    habitat: "air",
     blurb: "A morning-dew spirit that whispers forgotten techniques.",
     vagueHint: "Shimmers brighter when you greet it gently, eye to eye.",
     clearHint: "Blink slowly and tickle behind its ears. Loves berry bites.",
@@ -275,6 +298,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "honey-drops",
     preferredPosture: "slow-blink",
     preferredPetSpot: "back",
+    habitat: "air",
     blurb:
       "A fire-moth of ancient warmth whose presence sharpens every tender gesture.",
     vagueHint: "Flame-shy; a soft, unhurried gaze seems to hold it.",
@@ -289,6 +313,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "berry-bites",
     preferredPosture: "crouch-low",
     preferredPetSpot: "behind-ears",
+    habitat: "ground",
     blurb:
       "An ancient root-creature that nurtures the glade with deep abundance.",
     vagueHint:
@@ -304,6 +329,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "cream-puffs",
     preferredPosture: "sit-still",
     preferredPetSpot: "chin",
+    habitat: "air",
     blurb:
       "A crystal-winged butterfly of perfect stillness — its every touch amplifies your patient skill.",
     vagueHint:
@@ -319,6 +345,7 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     favouriteTreat: "mint-crisps",
     preferredPosture: "crouch-low",
     preferredPetSpot: "back",
+    habitat: "ground",
     blurb:
       "A primordial forest spirit whose roots run deep, filling the glade with inexhaustible gifts.",
     vagueHint:
@@ -533,3 +560,17 @@ export const TRUST_VISIT_BONUS = 3;
 
 /** Flat trust bonus added per herald resident on any matched approach or pet action. */
 export const HERALD_TRUST_BONUS = 5;
+
+// ─── Resident Placement ──────────────────────────────────────────────────────
+
+/**
+ * Vertical placement band for a newly-tamed resident, as a percentage of the
+ * glade scene's height, keyed by habitat: air residents settle near the top
+ * (above the treeline), tree residents around the mid-scene treeline, and
+ * ground residents in the near meadow at the bottom.
+ */
+export const HABITAT_Y_RANGE: Record<Habitat, { min: number; max: number }> = {
+  air: { min: 14, max: 30 },
+  tree: { min: 38, max: 58 },
+  ground: { min: 66, max: 85 },
+};

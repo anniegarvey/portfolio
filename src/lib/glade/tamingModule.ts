@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
+  HABITAT_Y_RANGE,
   HERALD_TRUST_BONUS,
   RECIPES,
   SPECIES,
@@ -51,7 +52,8 @@ function noAction(state: GladeState): ActionResult {
 
 /**
  * Applies a trust gain to a visitor and converts it to a resident when the
- * species' tame threshold is reached. `rng` picks the new resident's spot.
+ * species' tame threshold is reached. `rng` picks the new resident's spot
+ * within its habitat's vertical band (see HABITAT_Y_RANGE).
  */
 function applyTrust(
   state: GladeState,
@@ -67,6 +69,7 @@ function applyTrust(
   if (trust >= threshold) {
     // The species is tamed for good — its banked visit trust is obsolete.
     const { [visitor.speciesId]: _tamed, ...speciesTrust } = state.speciesTrust;
+    const { min, max } = HABITAT_Y_RANGE[SPECIES[visitor.speciesId].habitat];
     return {
       state: {
         ...state,
@@ -77,7 +80,7 @@ function applyTrust(
             id: uuidv4(),
             speciesId: visitor.speciesId,
             tamedDate: today,
-            position: { x: 10 + rng() * 80, y: 30 + rng() * 55 },
+            position: { x: 10 + rng() * 80, y: min + rng() * (max - min) },
           },
         ],
         speciesTrust,
