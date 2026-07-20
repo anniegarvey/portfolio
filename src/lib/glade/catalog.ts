@@ -11,8 +11,9 @@ import type {
 
 // ─── Species ──────────────────────────────────────────────────────────────────
 
-/** Where a tamed resident settles in the glade scene: air (top), tree (middle
- * — perching songbirds and owls), or ground (bottom — everything else). */
+/** Where a tamed resident settles in the glade scene: air (top — fantastical
+ * fliers), tree (middle — species that perch, like birds and squirrels), or
+ * ground (bottom — everything else). */
 export type Habitat = "ground" | "tree" | "air";
 
 export interface SpeciesConfig {
