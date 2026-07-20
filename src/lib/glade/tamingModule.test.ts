@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RECIPES, SPECIES, tameThresholdFor } from "./catalog";
+import { HABITAT_Y_RANGE, RECIPES, SPECIES, tameThresholdFor } from "./catalog";
 import {
   approachTrustGain,
   approachVisitor,
@@ -261,8 +261,36 @@ describe("taming", () => {
     expect(resident.tamedDate).toBe(TODAY);
     expect(resident.position.x).toBeGreaterThanOrEqual(10);
     expect(resident.position.x).toBeLessThanOrEqual(90);
-    expect(resident.position.y).toBeGreaterThanOrEqual(30);
-    expect(resident.position.y).toBeLessThanOrEqual(85);
+    // Robin is a tree-dwelling species.
+    expect(resident.position.y).toBeGreaterThanOrEqual(
+      HABITAT_Y_RANGE.tree.min,
+    );
+    expect(resident.position.y).toBeLessThanOrEqual(HABITAT_Y_RANGE.tree.max);
+  });
+
+  it("places a new resident within its species' habitat band", () => {
+    const cases: [
+      speciesId: "rabbit" | "robin" | "glimmerwing",
+      habitat: "ground" | "tree" | "air",
+    ][] = [
+      ["rabbit", "ground"],
+      ["robin", "tree"],
+      ["glimmerwing", "air"],
+    ];
+    for (const [speciesId, habitat] of cases) {
+      const threshold = tameThresholdFor(speciesId);
+      const visitor = makeVisitor({ speciesId, trust: threshold - 1 });
+      const state = makeGladeState({ visitors: [visitor] });
+      const result = petVisitor(state, visitor.id, "back", TODAY, () => 0.9);
+      const { min, max } = HABITAT_Y_RANGE[habitat];
+      expect(result.state.residents[0].position.y).toBeGreaterThanOrEqual(min);
+      expect(result.state.residents[0].position.y).toBeLessThanOrEqual(max);
+    }
+  });
+
+  it("orders habitat bands top to bottom as air, tree, ground with no overlap", () => {
+    expect(HABITAT_Y_RANGE.air.max).toBeLessThan(HABITAT_Y_RANGE.tree.min);
+    expect(HABITAT_Y_RANGE.tree.max).toBeLessThan(HABITAT_Y_RANGE.ground.min);
   });
 
   it("clears the species' banked trust when tamed", () => {
