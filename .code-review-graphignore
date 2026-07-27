@@ -1,0 +1,7 @@
+# Paths excluded from the code-review-graph knowledge graph.
+# Patterns follow .gitignore syntax; these are added to the tool's built-in
+# defaults (node_modules, .next, coverage, lockfiles, ...), not a replacement.
+
+# Agent tooling, not application code. Indexing it put ~40% of the graph's
+# nodes in skill scripts and crowded them into search results.
+.claude/
