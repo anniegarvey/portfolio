@@ -42,6 +42,7 @@
     "reports/**",
     "skills-lock.json",
     ".gitignore",
-    "**/manifest.json"
+    "**/manifest.json",
+    ".mcp.json"
   ]
 }
