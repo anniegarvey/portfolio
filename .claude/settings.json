@@ -84,6 +84,16 @@
             "statusMessage": "Formatting..."
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >/dev/null || true; command -v code-review-graph >/dev/null 2>&1 || exit 0; git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph update --skip-flows --repo \"$(git rev-parse --show-toplevel 2>/dev/null)\" || true",
+            "timeout": 30
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -95,6 +105,16 @@
             "statusMessage": "Installing dependencies..."
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >/dev/null || true; command -v code-review-graph >/dev/null 2>&1 || exit 0; git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph status --repo \"$(git rev-parse --show-toplevel 2>/dev/null)\" || echo 'Not a git repo, skipping'",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionEnd": [
@@ -104,6 +124,19 @@
           {
             "type": "command",
             "command": "[ -f .port ] && PORT=$(cat .port) && PID=$(ss -tlnp \"sport = :$PORT\" 2>/dev/null | grep -oP 'pid=\\K[0-9]+' | head -1) && [ -n \"$PID\" ] && kill -- -$(ps -o pgid= -p $PID 2>/dev/null | tr -d ' ') 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >/dev/null || true; command -v code-review-graph >/dev/null 2>&1 || exit 0; git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph embed --provider local --repo \"$(git rev-parse --show-toplevel 2>/dev/null)\" >/dev/null 2>&1 || true",
+            "timeout": 60,
+            "statusMessage": "Embedding graph..."
           }
         ]
       }

@@ -94,3 +94,5 @@ build-data
 
 # Claude local
 .claude/scheduled_tasks.lock
+# Added by code-review-graph
+.code-review-graph/

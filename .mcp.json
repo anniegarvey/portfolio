@@ -11,6 +11,11 @@
         "${HOME}/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome"
       ],
       "env": {}
+    },
+    "code-review-graph": {
+      "command": "/home/annie/.venvs/code-review-graph/bin/python",
+      "args": ["-m", "code_review_graph", "serve"],
+      "type": "stdio"
     }
   }
 }
