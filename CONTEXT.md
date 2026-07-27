@@ -137,7 +137,75 @@ The once-per-calendar-day tick: yesterday's wild visitors depart (banking trust)
 
 ---
 
+## Meadowmere
+
+A smallholding sim in the Stardew Valley mould. The player grows crops on a grid of plots, forages the wilds for materials, and befriends three neighbours by giving them things they like. A chain of quests ties the three loops together and gates every unlock. No failure states — crops never wither and friendship never decays.
+
+### Terms
+
+**Crop**
+A catalog definition of a plantable kind: seed cost in points, days to mature, base yield, and the **Produce** it gives. The source of truth for growing behaviour — never duplicated into game state.
+
+**Plot**
+One tile of the farm. Either bare or holding a **Planting**. The farm starts with six and grows to at most twelve through quest rewards.
+
+**Planting**
+A crop sown in a plot. Holds its `cropId`, `plantedDate`, and how many days it has been watered.
+
+**Growth stage**
+A label derived from days since `plantedDate`: Seed → Sprout → Budding → Ripe. Derived on every read, never counted up day by day, so time away from the game ripens crops correctly (see ADR 0005).
+
+**Watering**
+Once per plot per calendar day. Each watered day adds one to the eventual harvest — watering is a bonus that raises yield, never a requirement for growth.
+
+**Produce**
+What harvesting a ripe planting yields. Spent on **Gifts** and **Quest** deliveries; never sold.
+
+**Material**
+An item gathered from the **Wilds**. Interchangeable with produce as gift and quest currency — both are **Items** in one vocabulary.
+
+**Item**
+Anything that can sit in the **Larder**: produce or material.
+
+**Larder**
+The player's item store. (Distinct from the Creature Glade's **Pantry**, which holds ingredients and treats.)
+
+**Wilds**
+The land beyond the farm, made up of **Sites**. Named "wilds" rather than "zones" — **Zone** already means a time-of-day slot in the Energy Planner.
+
+**Site**
+A named place in the wilds (The Hedgerow, The Riverbank, Stonewood) with its own material pool. Only the hedgerow is open at the start; the rest are unlocked by quests.
+
+**Forage trip**
+One visit to an unlocked site, turning up one or two of a material. Three trips a day, refilled by the **Daily Meadowmere advance**.
+
+**Neighbour**
+One of three villagers — Nessa, Bram, Marigold — each with a set of liked **Items** and a **Friendship** meter.
+
+**Friendship**
+A per-neighbour meter from 0–100, raised by **Gifts** and quest rewards, never lowered. Crossing a threshold advances the **Friendship tier**.
+
+**Friendship tier**
+A label derived from friendship: Stranger → Acquaintance → Friend → Confidant → Dear Friend. Some quests require reaching a tier.
+
+**Gift**
+One item given to one neighbour, once per neighbour per calendar day. A liked item earns more friendship than a neutral one; nothing a neighbour receives ever loses them any.
+
+**Quest**
+An objective set by a neighbour. Auto-unlocks when its prerequisites are met — there is no accept step. Only `completedQuestIds` is stored; a quest's status (_locked_ → _active_ → _ready_ → _completed_) and its progress checklist are derived from current state, so progress can't desync from the larder it is counted against.
+
+**Quest requirement**
+What a quest asks for: items to hand in, and/or a friendship tier to have reached. Both are checked against current state. Handing in consumes the items; friendship is a standing relationship, not a cost.
+
+**Quest reward**
+What a quest pays out: seeds, items, a crop unlock, a site unlock, extra plots, or friendship — never points (see ADR 0003 and ADR 0005).
+
+**Daily Meadowmere advance**
+The once-per-calendar-day tick: forage trips refill and the digest reports what ripened while the player was away. Growth needs no work here because it is derived. Watering and gifting limits expire on their own, being date-stamped. Mirrors the Bonsai **Daily advance** and **Daily glade advance** pattern.
+
+---
+
 ## Shared Infrastructure
 
 **Points system**
-The cross-cutting module that manages the points currency shared between the Energy Planner and the Playground games (Bonsai Garden, Creature Glade). Handles awarding, spending, particle animations, and localStorage persistence.
+The cross-cutting module that manages the points currency shared between the Energy Planner and the Playground games (Bonsai Garden, Creature Glade, Meadowmere). Handles awarding, spending, particle animations, and localStorage persistence.

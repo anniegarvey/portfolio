@@ -8,6 +8,7 @@ import {
 } from "../utils/mocks";
 import { makeBonsaiGameState } from "../utils/seed-bonsai";
 import { makeGladeGameState } from "../utils/seed-glade";
+import { makeMeadowmereGameState } from "../utils/seed-meadowmere";
 import { seedEnergyPlannerStorage } from "../utils/seed-storage";
 import { getDevToolsMask } from "./reveal-all";
 
@@ -35,6 +36,25 @@ const BONSAI_KEY = "bonsai-game-state-v2";
 
 const GLADE_STATE = JSON.stringify(makeGladeGameState());
 const GLADE_KEY = "glade-game-state";
+
+// Plantings are dated relative to today, so the derived growth stages — and
+// therefore the render — stay identical whenever this runs.
+const MEADOWMERE_STATE = JSON.stringify(
+  makeMeadowmereGameState({
+    plots: [
+      { cropId: "parsnip", plantedDaysAgo: 3, wateredDays: 2 },
+      { cropId: "cornflower", plantedDaysAgo: 1, wateredDays: 1 },
+      null,
+      null,
+      null,
+      null,
+    ],
+    seeds: { parsnip: 3, cornflower: 2 },
+    inventory: { acorn: 2 },
+    unlockedCropIds: ["parsnip", "cornflower"],
+  }),
+);
+const MEADOWMERE_KEY = "meadowmere-game-state";
 
 // ─── Energy Planner ────────────────────────────────────────────────────────────
 
@@ -130,6 +150,41 @@ test.describe("Glade", () => {
         .getByRole("region", { name: "Glade ecosystem" })
         .waitFor({ state: "visible" });
       await expect(page).toHaveScreenshot(`glade-${theme}.png`, {
+        fullPage: true,
+        mask: getDevToolsMask(page),
+      });
+    });
+  }
+});
+
+// ─── Meadowmere ────────────────────────────────────────────────────────────────
+
+test.describe("Meadowmere", () => {
+  for (const theme of ["light", "dark"] as const) {
+    test(`${theme} theme`, async ({ page }) => {
+      await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
+      await page.evaluate(
+        ({ stateJson, key, themeKey, themeValue }) => {
+          const state = JSON.parse(stateJson);
+          // Stamp today so the daily advance doesn't fire and open a digest
+          // over the page.
+          const now = new Date();
+          state.lastAdvanceDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          localStorage.setItem(key, JSON.stringify(state));
+          localStorage.setItem(themeKey, themeValue);
+        },
+        {
+          stateJson: MEADOWMERE_STATE,
+          key: MEADOWMERE_KEY,
+          themeKey: "theme",
+          themeValue: theme,
+        },
+      );
+      await page.reload();
+      await page
+        .getByRole("heading", { name: "Seed tray" })
+        .waitFor({ state: "visible" });
+      await expect(page).toHaveScreenshot(`meadowmere-${theme}.png`, {
         fullPage: true,
         mask: getDevToolsMask(page),
       });
