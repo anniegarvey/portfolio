@@ -46,7 +46,7 @@ describe("forage trips", () => {
     render(<WildsPanel />);
 
     expect(
-      screen.getByText("You're out of forage trips — more tomorrow."),
+      screen.getByText("You’re out of forage trips — more tomorrow."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Forage" })).toBeDisabled();
   });

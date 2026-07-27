@@ -27,7 +27,7 @@ export function WildsPanel() {
         <Hint>
           {left > 0
             ? `${left} forage ${left === 1 ? "trip" : "trips"} left today.`
-            : "You're out of forage trips — more tomorrow."}
+            : "You’re out of forage trips — more tomorrow."}
         </Hint>
 
         <SiteGrid>

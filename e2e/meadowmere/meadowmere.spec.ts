@@ -108,7 +108,7 @@ test.describe("Meadowmere", () => {
       ),
     ).toBeVisible();
     await expect(
-      page.getByText("You've already given Marigold something today."),
+      page.getByText("You’ve already given Marigold something today."),
     ).toBeVisible();
   });
 

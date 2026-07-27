@@ -312,7 +312,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
     giverId: "nessa",
     title: "A Bed for Parsnips",
     description:
-      "Nessa needs three parsnips for the inn's soup pot. Plant, water and harvest them.",
+      "Nessa needs three parsnips for the inn’s soup pot. Plant, water and harvest them.",
     unlock: {},
     requirement: { items: { "parsnip-root": 3 } },
     reward: {
@@ -321,7 +321,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       friendship: 10,
     },
     thanks:
-      "\"Perfect. Here — cornflower seeds. Marigold's mad for them, if you're looking to make friends.\"",
+      '"Perfect. Here — cornflower seeds. Marigold’s mad for them, if you’re looking to make friends."',
   },
   "down-to-the-riverbank": {
     id: "down-to-the-riverbank",
@@ -333,7 +333,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
     requirement: { items: { acorn: 2, "bramble-berry": 2 } },
     reward: { unlockSiteId: "riverbank", friendship: 10 },
     thanks:
-      "\"You've a good eye. Follow the lane past the stile — the riverbank's yours to forage now.\"",
+      '"You’ve a good eye. Follow the lane past the stile — the riverbank’s yours to forage now."',
   },
   "clay-for-the-kiln": {
     id: "clay-for-the-kiln",
@@ -361,14 +361,14 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       unlockSiteId: "stonewood",
     },
     thanks:
-      '"Come on then. Stonewood\'s through the top gate — and take these strawberry seeds, they do well by you."',
+      '"Come on then. Stonewood’s through the top gate — and take these strawberry seeds, they do well by you."',
   },
   "the-harvest-table": {
     id: "the-harvest-table",
     giverId: "nessa",
     title: "The Harvest Table",
     description:
-      "The inn's autumn supper needs a centrepiece. Nessa asks for four strawberries and three jars of wild honey.",
+      "The inn’s autumn supper needs a centrepiece. Nessa asks for four strawberries and three jars of wild honey.",
     unlock: { afterQuestIds: ["sweet-on-you"] },
     requirement: { items: { strawberry: 4, "wild-honey": 3 } },
     reward: {
@@ -377,7 +377,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       friendship: 12,
     },
     thanks:
-      '"That\'s the supper saved. Take these pumpkin seeds — I want the biggest one you can grow."',
+      '"That’s the supper saved. Take these pumpkin seeds — I want the biggest one you can grow."',
   },
   "three-good-friends": {
     id: "three-good-friends",

@@ -126,7 +126,7 @@ describe("gifting", () => {
 
     expect(screen.getByRole("button", { name: "Give gift" })).toBeDisabled();
     expect(
-      screen.getByText("You've already given Marigold something today."),
+      screen.getByText("You’ve already given Marigold something today."),
     ).toBeInTheDocument();
   });
 

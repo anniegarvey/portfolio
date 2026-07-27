@@ -103,7 +103,7 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
           value={chosenItemId}
         >
           <SelectTrigger aria-labelledby={giftLabelId}>
-            <SelectValue placeholder="Choose a gift..." />
+            <SelectValue placeholder="Choose a gift…" />
           </SelectTrigger>
           <SelectContent>
             {holdings.map((item) => (
@@ -130,7 +130,7 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
 
       <GiftHint>
         {giftedToday
-          ? `You've already given ${neighbour.name} something today.`
+          ? `You’ve already given ${neighbour.name} something today.`
           : holdings.length === 0
             ? "Nothing to give yet — harvest or forage something first."
             : "One gift per neighbour per day."}

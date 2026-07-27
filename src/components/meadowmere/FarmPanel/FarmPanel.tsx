@@ -160,6 +160,10 @@ const SeedChip = styled.button`
   color: inherit;
   transition: border-color 150ms ease, background 150ms ease;
 
+  &:hover:not(:disabled):not([aria-pressed="true"]) {
+    border-color: light-dark(var(--color-grey-400), var(--color-grey-500));
+  }
+
   &[aria-pressed="true"] {
     border-color: light-dark(var(--color-orange-500), var(--color-orange-400));
     background: light-dark(var(--color-orange-50), var(--color-grey-700));

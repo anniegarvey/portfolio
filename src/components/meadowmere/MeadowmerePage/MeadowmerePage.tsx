@@ -38,7 +38,7 @@ export function MeadowmerePage() {
       <Layout>
         <Intro>
           A smallholding at the edge of the valley. Grow what you can, forage
-          what you can&apos;t, and get to know the neighbours.
+          what you can&rsquo;t, and get to know the neighbours.
         </Intro>
 
         <DailyDigest />

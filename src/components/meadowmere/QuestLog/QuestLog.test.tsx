@@ -103,7 +103,7 @@ describe("QuestLog", () => {
     render(<QuestLog />);
 
     expect(screen.getByText("Completed")).toBeInTheDocument();
-    expect(screen.getByText(/Marigold's mad for them/)).toBeInTheDocument();
+    expect(screen.getByText(/Marigold’s mad for them/)).toBeInTheDocument();
     expect(screen.getByText("Down to the Riverbank")).toBeInTheDocument();
   });
 
