@@ -527,6 +527,13 @@ const MiniTreeContainer = styled.div`
   border-radius: 8px;
   padding: 4px;
   transition: filter 150ms ease;
+  /* Each tree gets its own compositor layer. A mature garden is tens of
+     thousands of SVG nodes, and without this they share the page layer — so
+     any repaint anywhere (the soil darkening on water, the nav menu opening)
+     re-rasters every tree and drops frames. Permanent, not hover-scoped:
+     the point is that the layer already exists when the repaint arrives.
+     Promoted on filter because that is the property this element animates. */
+  will-change: filter;
 
   &:focus-visible {
     outline: 2px solid var(--color-primary-400);
