@@ -13,7 +13,13 @@ import {
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
 import { INGREDIENTS, SPECIES } from "./catalog";
-import { addIngredient, cookTreat } from "./cookingModule";
+import {
+  addIngredient,
+  addIngredients,
+  cookTreat,
+  missingIngredients,
+  missingIngredientsCost,
+} from "./cookingModule";
 import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
 import type {
   GladeState,
@@ -78,6 +84,8 @@ export interface GladeContextType {
   petVisitor: (visitorId: string, spot: PetSpot, fromRect?: DOMRect) => void;
   cookTreat: (treatId: TreatId) => void;
   buyIngredient: (ingredientId: IngredientId) => boolean;
+  /** Buys every ingredient still missing for a recipe in one purchase. */
+  buyMissingIngredients: (treatId: TreatId) => boolean;
   buyLesson: (skillId: SkillId) => boolean;
 }
 
@@ -254,6 +262,17 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [setState, spendPoints],
   );
 
+  const handleBuyMissingIngredients = useCallback(
+    (treatId: TreatId): boolean => {
+      const missing = missingIngredients(state, treatId);
+      if (Object.keys(missing).length === 0) return false;
+      if (!spendPoints(missingIngredientsCost(missing))) return false;
+      setState((prev) => addIngredients(prev, missing));
+      return true;
+    },
+    [state, setState, spendPoints],
+  );
+
   const handleNameResident = useCallback(
     (residentId: string, name: string) => {
       const trimmed = name.trim().slice(0, 24);
@@ -299,6 +318,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         petVisitor: handlePetVisitor,
         cookTreat: handleCookTreat,
         buyIngredient: handleBuyIngredient,
+        buyMissingIngredients: handleBuyMissingIngredients,
         buyLesson: handleBuyLesson,
       }}
     >

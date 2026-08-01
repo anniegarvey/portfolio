@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { addIngredient, canCook, cookTreat } from "./cookingModule";
+import {
+  addIngredient,
+  addIngredients,
+  canCook,
+  cookTreat,
+  missingIngredients,
+  missingIngredientsCost,
+} from "./cookingModule";
 import { makeGladeState, makeSkill } from "./testFixtures";
 
 describe("addIngredient", () => {
@@ -30,6 +37,43 @@ describe("canCook", () => {
       skills: { ...state.skills, "treat-cooking": makeSkill({ tier: 2 }) },
     };
     expect(canCook(skilled, "honey-drops")).toBe(true);
+  });
+});
+
+describe("missingIngredients", () => {
+  it("returns the shortfall for each under-stocked ingredient", () => {
+    const state = makeGladeState({
+      pantry: { ingredients: { honey: 1 }, treats: {} },
+    });
+    expect(missingIngredients(state, "honey-drops")).toEqual({ oats: 1 });
+  });
+
+  it("returns an empty object when the recipe is already fully stocked", () => {
+    const state = makeGladeState({
+      pantry: { ingredients: { honey: 1, oats: 1 }, treats: {} },
+    });
+    expect(missingIngredients(state, "honey-drops")).toEqual({});
+  });
+});
+
+describe("missingIngredientsCost", () => {
+  it("sums the cost of each missing ingredient by its shortfall amount", () => {
+    // honey costs 5, oats costs 3
+    expect(missingIngredientsCost({ honey: 1, oats: 2 })).toBe(11);
+  });
+
+  it("is zero for an empty shortfall", () => {
+    expect(missingIngredientsCost({})).toBe(0);
+  });
+});
+
+describe("addIngredients", () => {
+  it("adds each ingredient by its given amount to existing stock", () => {
+    const state = makeGladeState({
+      pantry: { ingredients: { honey: 1 }, treats: {} },
+    });
+    const next = addIngredients(state, { honey: 2, oats: 1 });
+    expect(next.pantry.ingredients).toEqual({ honey: 3, oats: 1 });
   });
 });
 

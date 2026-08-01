@@ -10,11 +10,15 @@ import {
   RECIPES,
 } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
-import { canCook } from "@/lib/glade/cookingModule";
+import {
+  canCook,
+  missingIngredients,
+  missingIngredientsCost,
+} from "@/lib/glade/cookingModule";
 import { usePoints } from "@/lib/points/context";
 
 export function KitchenPanel() {
-  const { state, cookTreat, buyIngredient } = useGlade();
+  const { state, cookTreat, buyIngredient, buyMissingIngredients } = useGlade();
   const { points } = usePoints();
   const cookingTier = state.skills["treat-cooking"].tier;
 
@@ -53,6 +57,8 @@ export function KitchenPanel() {
                   `${count} ${INGREDIENTS[ingredientId as keyof typeof INGREDIENTS].name.toLowerCase()}`,
               )
               .join(", ");
+            const missing = missingIngredients(state, treatId);
+            const missingCost = missingIngredientsCost(missing);
             return (
               <Item key={treatId}>
                 <ItemName>
@@ -66,13 +72,26 @@ export function KitchenPanel() {
                     Unlocks at Treat Cooking tier {recipe.requiredTier}
                   </ItemMeta>
                 ) : (
-                  <Button
-                    disabled={!canCook(state, treatId)}
-                    onClick={() => cookTreat(treatId)}
-                    size="sm"
-                  >
-                    Cook
-                  </Button>
+                  <ButtonRow>
+                    <Button
+                      disabled={!canCook(state, treatId)}
+                      onClick={() => cookTreat(treatId)}
+                      size="sm"
+                    >
+                      Cook
+                    </Button>
+                    {missingCost > 0 && (
+                      <Button
+                        disabled={points < missingCost}
+                        onClick={() => buyMissingIngredients(treatId)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Buy missing <Coins aria-hidden size={13} />{" "}
+                        {missingCost}
+                      </Button>
+                    )}
+                  </ButtonRow>
                 )}
               </Item>
             );
@@ -127,4 +146,10 @@ const ItemName = styled.span`
 const ItemMeta = styled.span`
   font-size: 0.8rem;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 `;

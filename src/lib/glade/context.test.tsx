@@ -46,6 +46,10 @@ function GladeDebug() {
       <span data-testid="berries">
         {ctx.state.pantry.ingredients.berries ?? 0}
       </span>
+      <span data-testid="honey">{ctx.state.pantry.ingredients.honey ?? 0}</span>
+      <span data-testid="hazelnuts">
+        {ctx.state.pantry.ingredients.hazelnuts ?? 0}
+      </span>
       <span data-testid="berry-bites">
         {ctx.state.pantry.treats["berry-bites"] ?? 0}
       </span>
@@ -137,6 +141,18 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.buyIngredient("berries")} type="button">
         Buy Berries
+      </button>
+      <button
+        onClick={() => ctx.buyMissingIngredients("honey-drops")}
+        type="button"
+      >
+        Buy Missing Honey Drops
+      </button>
+      <button
+        onClick={() => ctx.buyMissingIngredients("nut-clusters")}
+        type="button"
+      >
+        Buy Missing Nut Clusters
       </button>
       <button onClick={() => ctx.buyLesson("petting-technique")} type="button">
         Buy Lesson
@@ -256,6 +272,72 @@ describe("GladeProvider", () => {
 
     await user.click(screen.getByRole("button", { name: "Buy Berries" }));
     expect(screen.getByTestId("berries")).toHaveTextContent("4");
+  });
+
+  it("buying missing ingredients spends points for the shortfall and stocks the pantry", async () => {
+    // Default pantry has no honey; honey-drops needs 1 (cost 5).
+    seedLocalStorage();
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("honey");
+
+    await user.click(
+      screen.getByRole("button", { name: "Buy Missing Honey Drops" }),
+    );
+    expect(mockSpend).toHaveBeenCalledWith(5);
+    expect(screen.getByTestId("honey")).toHaveTextContent("1");
+  });
+
+  it("buys a multi-ingredient shortfall in a single purchase", async () => {
+    // Nut Clusters needs 2 hazelnuts (cost 5 each) and 1 honey (cost 5);
+    // default pantry has neither, so the whole shortfall is missing.
+    seedLocalStorage({
+      skills: {
+        "treat-cooking": { tier: 3, xp: 0 },
+        "body-language": { tier: 1, xp: 0 },
+        "petting-technique": { tier: 1, xp: 0 },
+      },
+    });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("hazelnuts");
+
+    await user.click(
+      screen.getByRole("button", { name: "Buy Missing Nut Clusters" }),
+    );
+    expect(mockSpend).toHaveBeenCalledWith(15);
+    expect(screen.getByTestId("hazelnuts")).toHaveTextContent("2");
+    expect(screen.getByTestId("honey")).toHaveTextContent("1");
+  });
+
+  it("does not spend points when the recipe has no missing ingredients", async () => {
+    seedLocalStorage({
+      pantry: { ingredients: { berries: 4, oats: 4, honey: 1 }, treats: {} },
+    });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("honey");
+
+    await user.click(
+      screen.getByRole("button", { name: "Buy Missing Honey Drops" }),
+    );
+    expect(mockSpend).not.toHaveBeenCalled();
+  });
+
+  it("does not stock the pantry when points are insufficient for missing ingredients", async () => {
+    seedLocalStorage();
+    setupMockPoints(false);
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("honey");
+
+    await user.click(
+      screen.getByRole("button", { name: "Buy Missing Honey Drops" }),
+    );
+    expect(screen.getByTestId("honey")).toHaveTextContent("0");
   });
 
   it("buying a lesson spends points and advances the tier", async () => {
