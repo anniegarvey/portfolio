@@ -43,6 +43,39 @@ test.describe("Creature Glade", () => {
     await expect(page.getByText("Fed for today")).toBeVisible();
   });
 
+  test("quick-buying missing ingredients unlocks cooking a recipe", async ({
+    page,
+  }) => {
+    await goToGladeWithSeed(page, {
+      skills: {
+        "treat-cooking": { tier: 2, xp: 0 },
+        "body-language": { tier: 1, xp: 0 },
+        "petting-technique": { tier: 1, xp: 0 },
+      },
+      ingredients: { oats: 1 },
+      points: 20,
+    });
+
+    await page.getByRole("tab", { name: "Kitchen" }).click();
+    const honeyDropsCard = page.getByText("Honey Drops ×0").locator("..");
+
+    // Missing 1 honey (cost 5) — Cook is disabled until it's bought.
+    await expect(
+      honeyDropsCard.getByRole("button", { name: "Cook" }),
+    ).toBeDisabled();
+    await honeyDropsCard.getByRole("button", { name: "Buy missing 5" }).click();
+
+    await expect(
+      honeyDropsCard.getByRole("button", { name: /^Buy missing/ }),
+    ).toHaveCount(0);
+    await honeyDropsCard.getByRole("button", { name: "Cook" }).click();
+    await expect(
+      page
+        .getByRole("tabpanel", { name: "Kitchen" })
+        .getByText("Honey Drops ×1"),
+    ).toBeVisible();
+  });
+
   test("petting the preferred spot tames a visitor at full trust", async ({
     page,
   }) => {
