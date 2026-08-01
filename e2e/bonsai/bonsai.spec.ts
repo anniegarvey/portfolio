@@ -164,6 +164,33 @@ test.describe("Bonsai Garden", () => {
     await expect(page.getByText("Watered today")).toBeVisible();
   });
 
+  test("garden water tool waters on press, before the pointer is released", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
+
+    await page.getByRole("button", { name: "Water", exact: true }).click();
+
+    const tree = page.getByRole("button", { name: /pine.*click to water/i });
+    const box = await tree.boundingBox();
+    if (!box) throw new Error("tree not found");
+
+    // #7a4f2a is the watered-soil fill; nothing else in the SVG uses it.
+    const wateredSoil = page.locator('ellipse[fill="#7a4f2a"]');
+    await expect(wateredSoil).toHaveCount(0);
+
+    // Press and hold — deliberately no mouse.up(). The soil must already be
+    // dark while the pointer is still down; a pointerup-based handler would
+    // leave it light here. `.click()` dispatches both events so it cannot
+    // tell the two implementations apart, which is why this test exists.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+
+    await expect(wateredSoil.first()).toBeVisible();
+
+    await page.mouse.up();
+  });
+
   test("dragging a tree in water mode does not move it", async ({ page }) => {
     await goToBonsaiWithSeed(page, { ownedToolIds: ["watering-can"] });
 

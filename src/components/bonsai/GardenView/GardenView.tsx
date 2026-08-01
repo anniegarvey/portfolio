@@ -81,8 +81,10 @@ function MiniTree({
       e.stopPropagation();
       // Water acts on press, not release. Waiting for pointerup put the whole
       // press duration (~120ms) between the tap and any feedback. Leaving
-      // dragState unset makes handlePointerUp a no-op, so this can't double-fire.
+      // dragState unset makes handlePointerUp a no-op, and ignoring secondary
+      // pointers stops a second finger on the same tree firing it again.
       if (gardenTool === "water") {
+        if (!e.isPrimary) return;
         onWater(tree.id);
         return;
       }
@@ -476,10 +478,6 @@ const MiniTreeContainer = styled.div`
   padding: 4px;
   transition: filter 150ms ease;
 
-  &:active {
-    cursor: grabbing;
-  }
-
   &:focus-visible {
     outline: 2px solid var(--color-primary-400);
     outline-offset: 2px;
@@ -489,9 +487,11 @@ const MiniTreeContainer = styled.div`
     filter: brightness(1.08);
   }
 
-  /* Press feedback lands on the same frame as the pointerdown — no transition
-     in, so the tap is acknowledged instantly. It still eases back out. */
+  /* Must stay after :hover — equal specificity, so source order decides which
+     filter wins while a hovering pointer is pressed. Press feedback lands on
+     the same frame as the pointerdown (no transition in), and eases back out. */
   &:active {
+    cursor: grabbing;
     filter: brightness(1.15);
     transition: none;
   }
