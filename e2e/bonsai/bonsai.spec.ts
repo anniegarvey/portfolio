@@ -503,9 +503,11 @@ test.describe("Bonsai Garden", () => {
     browser,
   }) => {
     // Section heights, top to bottom: garden toolbar, garden, tab list, and the
-    // active tab panel.
+    // active tab panel. Every one of these is font-metric dependent, so wait for
+    // Lexend rather than measuring a fallback face on one side of the comparison.
     const heights = (target: Page) =>
-      target.evaluate(() => {
+      target.evaluate(async () => {
+        await document.fonts.ready;
         const layout = document.querySelector("main")
           ?.lastElementChild as HTMLElement;
         const garden = layout.firstElementChild as HTMLElement;
@@ -516,41 +518,49 @@ test.describe("Bonsai Garden", () => {
           garden: h(garden.lastElementChild),
           tabList: h(layout.querySelector('[role="tablist"]')),
           panel: h(layout.querySelector('[role="tabpanel"]:not([hidden])')),
+          // Each pill against its real button. Row count alone is too coarse —
+          // a drifted width only changes it at the widths where it happens to
+          // tip a wrap.
+          toolWidths: [...(garden.firstElementChild?.children ?? [])].map(
+            (el) => Math.round(el.getBoundingClientRect().width),
+          ),
         };
       });
 
     // 480px sits in the band where the toolbar wraps onto a second row, which
-    // is where a mismatch would cost a whole 52px row.
-    for (const width of [375, 480, 1280]) {
-      await page.setViewportSize({ width, height: 900 });
-      // The default seed owns no tools — the state a first-time visitor lands in.
-      await goToBonsaiWithSeed(page, { ownedToolIds: [] });
-      await expect(
-        page.getByRole("img", { name: /bonsai tree/i }).first(),
-      ).toBeVisible();
-      const loaded = await heights(page);
+    // is where a mismatch would cost a whole 52px row. Demo mode adds a fifth
+    // toolbar button, and it is the entry point the case study links to.
+    for (const demoMode of [false, true]) {
+      for (const width of [375, 480, 1280]) {
+        const label = `viewport ${width}px${demoMode ? " (demo)" : ""}`;
+        await page.setViewportSize({ width, height: 900 });
+        // The default seed owns no tools — the state a first-time visitor lands in.
+        await goToBonsaiWithSeed(page, { demoMode, ownedToolIds: [] });
+        await expect(
+          page.getByRole("img", { name: /bonsai tree/i }).first(),
+        ).toBeVisible();
+        const loaded = await heights(page);
 
-      const noJs = await browser.newContext({
-        javaScriptEnabled: false,
-        viewport: { width, height: 900 },
-      });
-      const skeletonPage = await noJs.newPage();
-      await skeletonPage.goto(`${page.url().split("/bonsai")[0]}/bonsai`);
-      const skeleton = await heights(skeletonPage);
-      await noJs.close();
+        const noJs = await browser.newContext({
+          javaScriptEnabled: false,
+          viewport: { width, height: 900 },
+        });
+        const skeletonPage = await noJs.newPage();
+        await skeletonPage.goto(new URL(page.url()).toString());
+        const skeleton = await heights(skeletonPage);
+        await noJs.close();
 
-      const { panel: skeletonPanel, ...skeletonChrome } = skeleton;
-      const { panel: loadedPanel, ...loadedChrome } = loaded;
-      expect(skeletonChrome, `viewport ${width}px`).toEqual(loadedChrome);
+        const { panel: skeletonPanel, ...skeletonChrome } = skeleton;
+        const { panel: loadedPanel, ...loadedChrome } = loaded;
+        expect(skeletonChrome, label).toEqual(loadedChrome);
 
-      // A tree card's name and "Needs water" badge wrap onto a second line on
-      // narrow phones, which the skeleton can't predict — so allow one line of
-      // downward settle, but no more, and never a shrink.
-      const drift = (loadedPanel ?? 0) - (skeletonPanel ?? 0);
-      expect(drift, `viewport ${width}px panel drift`).toBeGreaterThanOrEqual(
-        0,
-      );
-      expect(drift, `viewport ${width}px panel drift`).toBeLessThanOrEqual(24);
+        // A tree card's name and "Needs water" badge wrap onto a second line on
+        // narrow phones, which the skeleton can't predict — so allow one line of
+        // downward settle, but no more, and never a shrink.
+        const drift = (loadedPanel ?? 0) - (skeletonPanel ?? 0);
+        expect(drift, `${label} panel drift`).toBeGreaterThanOrEqual(0);
+        expect(drift, `${label} panel drift`).toBeLessThanOrEqual(24);
+      }
     }
   });
 
