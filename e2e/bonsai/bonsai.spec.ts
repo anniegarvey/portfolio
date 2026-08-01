@@ -467,6 +467,33 @@ test.describe("Bonsai Garden", () => {
     ).toBeVisible();
   });
 
+  // The saved game lives in localStorage, so the server render and the first
+  // client render can only show a placeholder. Disabling JavaScript freezes the
+  // page in exactly that pre-hydration state, which is what a user sees for the
+  // first moments after landing on the page.
+  test.describe("before the saved game loads", () => {
+    test.use({ javaScriptEnabled: false });
+
+    test("shows a loading state instead of claiming the garden is empty", async ({
+      page,
+    }) => {
+      await page.goto("/bonsai");
+
+      await expect(
+        page.getByRole("status", { name: "Loading garden" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("status", { name: "Loading tree collection" }),
+      ).toBeVisible();
+
+      await expect(page.getByText(/your garden is empty/i)).toHaveCount(0);
+      await expect(page.getByText(/don.t have any trees yet/i)).toHaveCount(0);
+      // No garden tools either — rendering them would show the locked "buy a
+      // watering can" state before we know whether one has been bought.
+      await expect(page.getByRole("main").getByRole("button")).toHaveCount(0);
+    });
+  });
+
   test("accessibility scan", async ({ page, makeAxeBuilder }) => {
     await page.goto("/bonsai");
     // Wait for the garden tree to render before scanning

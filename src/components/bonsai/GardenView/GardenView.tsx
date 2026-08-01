@@ -13,6 +13,7 @@ import {
 import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
+import { SkeletonBox } from "@/components/Skeleton";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
@@ -184,6 +185,34 @@ function MiniTree({
   );
 }
 
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+// Pill widths match the unlocked tool buttons (Tend 86, Move 87, Water 90,
+// Hose 84) so the toolbar wraps onto the same number of rows before and after
+// the saved game loads. The garden reuses the real `Garden` box, so its height
+// is identical by construction.
+const TOOL_PILL_WIDTHS = ["86px", "87px", "90px", "84px"];
+
+function GardenViewSkeleton() {
+  return (
+    <GardenWrapper aria-busy="true" aria-label="Loading garden" role="status">
+      <GardenToolbar>
+        {TOOL_PILL_WIDTHS.map((width) => (
+          <SkeletonBox
+            $height="44px"
+            $radius="6px"
+            $width={width}
+            key={width}
+          />
+        ))}
+      </GardenToolbar>
+      <Garden>
+        <SkeletonBox $height="100%" $radius="14px" />
+      </Garden>
+    </GardenWrapper>
+  );
+}
+
 // ─── Garden View ──────────────────────────────────────────────────────────────
 
 interface GardenViewProps {
@@ -194,6 +223,7 @@ interface GardenViewProps {
 export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
   const {
     state,
+    isLoading,
     placingSpeciesId,
     cancelPlanting,
     confirmPlantAt,
@@ -232,6 +262,8 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     },
     [placingSpeciesId, confirmPlantAt, gardenTool, state.trees, waterTree],
   );
+
+  if (isLoading) return <GardenViewSkeleton />;
 
   const isPlacing = placingSpeciesId !== null;
 
