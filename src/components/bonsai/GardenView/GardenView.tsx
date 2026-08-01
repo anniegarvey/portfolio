@@ -12,7 +12,7 @@ import {
 } from "react";
 import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
-import { TreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
+import { StaticTreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import { SkeletonBox } from "@/components/Skeleton";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
@@ -185,7 +185,11 @@ function MiniTree({
           } as React.CSSProperties
         }
       >
-        <TreeSVG tree={tree} />
+        {/* StaticTreeSVG, not TreeSVG: the garden never passes `activeTool`, so
+            TreeSVG's per-branch pruning hit targets are unreachable here — and
+            doubly so under MiniSVGWrapper's `pointer-events: none`. Pruning
+            happens in the tending modal. */}
+        <StaticTreeSVG tree={tree} />
       </MiniSVGWrapper>
       <TreeNameTag>
         {config.emoji} {displayName}
