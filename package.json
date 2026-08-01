@@ -20,6 +20,7 @@
     "generate-snapshots": "tsx scripts/generate-bonsai-snapshots.ts",
     "snapshot-grid": "tsx scripts/snapshot-grid.ts",
     "snapshot-seeds": "tsx scripts/snapshot-seeds.ts",
+    "measure-bonsai-paint": "node scripts/measure-bonsai-paint.mjs",
     "build-data:view": "node scripts/build-data-viewer.js"
   },
   "dependencies": {
