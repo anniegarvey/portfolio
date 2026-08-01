@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "scripts": {
+    "branch:cleanup": "git fetch origin --prune && git branch --merged origin/main | grep -vE '^\\*|^\\+' | sed 's/^ *//' | grep -vxE 'main' | xargs -r git branch -d",
     "dev": "PORT=$(node scripts/pick-port.js) next dev",
     "build": "node scripts/timed-run.js build next build",
     "start": "next start",
