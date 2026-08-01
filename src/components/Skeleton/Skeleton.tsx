@@ -15,10 +15,14 @@ export const SkeletonBox = styled.div<{
   width: ${({ $width }) => $width ?? "100%"};
   height: ${({ $height }) => $height ?? "16px"};
   border-radius: ${({ $radius }) => $radius ?? "4px"};
-  background: light-dark(
+  /* The 800px sweep is narrower than a full-width box, so paint the base grey
+     underneath rather than letting the gradient tile into repeated bands. */
+  background-color: light-dark(var(--color-grey-200), var(--color-grey-800));
+  background-image: light-dark(
     linear-gradient(90deg, var(--color-grey-200) 25%, var(--color-grey-100) 50%, var(--color-grey-200) 75%),
     linear-gradient(90deg, var(--color-grey-800) 25%, var(--color-grey-700) 50%, var(--color-grey-800) 75%)
   );
+  background-repeat: no-repeat;
   background-size: 800px 100%;
   animation: ${shimmer} 1.4s ease-in-out infinite;
 

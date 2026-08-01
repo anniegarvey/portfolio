@@ -187,24 +187,38 @@ function MiniTree({
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
-// Pill widths match the unlocked tool buttons (Tend 86, Move 87, Water 90,
-// Hose 84) so the toolbar wraps onto the same number of rows before and after
-// the saved game loads. The garden reuses the real `Garden` box, so its height
-// is identical by construction.
-const TOOL_PILL_WIDTHS = ["86px", "87px", "90px", "84px"];
+// `GardenToolbar` wraps, so the pill widths decide how many rows the toolbar
+// occupies while loading. They match the locked tool buttons (Tend 86, Move 87,
+// Water 130, Hose 145) — the wider of the two variants, and the one every
+// visitor without a watering can gets — so the skeleton never reserves less
+// room than the real toolbar needs. `bonsai.spec.ts` pins these against the
+// rendered toolbar. The garden reuses the real `Garden` box, so its height is
+// identical by construction.
+const TOOL_PILL_WIDTHS = ["86px", "87px", "130px", "145px"];
+const ADVANCE_DAY_PILL_WIDTH = "153px";
 
-function GardenViewSkeleton() {
+// role + aria-busy mirror DayPlannerSkeleton's named <section>: the
+// placeholders are decorative, so the region is named rather than announced.
+function GardenViewSkeleton({ demoMode }: { demoMode: boolean }) {
   return (
-    <GardenWrapper aria-busy="true" aria-label="Loading garden" role="status">
+    <GardenWrapper aria-busy="true" aria-label="Loading garden…" role="region">
       <GardenToolbar>
-        {TOOL_PILL_WIDTHS.map((width) => (
+        {TOOL_PILL_WIDTHS.map((width, i) => (
           <SkeletonBox
             $height="44px"
             $radius="6px"
             $width={width}
-            key={width}
+            // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders, order never changes
+            key={i}
           />
         ))}
+        {demoMode && (
+          <PushedSkeletonPill
+            $height="44px"
+            $radius="6px"
+            $width={ADVANCE_DAY_PILL_WIDTH}
+          />
+        )}
       </GardenToolbar>
       <Garden>
         <SkeletonBox $height="100%" $radius="14px" />
@@ -263,7 +277,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     [placingSpeciesId, confirmPlantAt, gardenTool, state.trees, waterTree],
   );
 
-  if (isLoading) return <GardenViewSkeleton />;
+  if (isLoading) return <GardenViewSkeleton demoMode={demoMode} />;
 
   const isPlacing = placingSpeciesId !== null;
 
@@ -470,6 +484,10 @@ const ToolPrice = styled.span`
 `;
 
 const PushedAdvanceDay = styled(AdvanceDayButton)`
+  margin-left: auto;
+`;
+
+const PushedSkeletonPill = styled(SkeletonBox)`
   margin-left: auto;
 `;
 

@@ -16,8 +16,8 @@ function TreeCollectionSkeleton() {
   return (
     <CollectionWrapper
       aria-busy="true"
-      aria-label="Loading tree collection"
-      role="status"
+      aria-label="Loading tree collection…"
+      role="region"
     >
       <Section>
         <SkeletonTitleRow>
