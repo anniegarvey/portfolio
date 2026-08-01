@@ -193,6 +193,33 @@ describe("BonsaiProvider", () => {
     );
   });
 
+  it("clears isLoading only once the saved game has been read", async () => {
+    seedLocalStorage();
+    const renders: string[] = [];
+
+    function LoadProbe() {
+      const { isLoading, state } = useBonsai();
+      renders.push(`${isLoading}:${state.trees.length}`);
+      return <span data-testid="loading">{String(isLoading)}</span>;
+    }
+
+    render(
+      <BonsaiProvider>
+        <LoadProbe />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("loading")).toHaveTextContent("false"),
+    );
+
+    // Starts loading with the empty placeholder state...
+    expect(renders[0]).toBe("true:0");
+    // ...and never renders as "loaded" while the placeholder is still in place,
+    // which is what would flash "you have no trees" onto the page.
+    expect(renders).not.toContain("false:0");
+  });
+
   it("advanceDay does not grow the tree if it has not been watered", async () => {
     renderBonsai();
     await waitFor(() =>

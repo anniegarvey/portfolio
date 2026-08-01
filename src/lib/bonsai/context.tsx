@@ -45,6 +45,13 @@ import {
 
 export interface BonsaiContextType {
   state: BonsaiGameState;
+  /**
+   * True until the saved game has been read from localStorage on mount. The
+   * server render and first client render both see the empty placeholder
+   * state, so consumers must show a loading state rather than claim the
+   * garden and inventory are empty.
+   */
+  isLoading: boolean;
   /** The species being placed right now, or null when not in placement mode. */
   placingSpeciesId: SpeciesId | null;
   beginPlanting: (speciesId: SpeciesId) => void;
@@ -103,6 +110,7 @@ export function BonsaiProvider({
 }) {
   const { spendPoints } = usePoints();
   const [state, setStateRaw] = useState<BonsaiGameState>(EMPTY_STATE);
+  const [isLoading, setIsLoading] = useState(true);
   const [placingSpeciesId, setPlacingSpeciesId] = useState<SpeciesId | null>(
     null,
   );
@@ -141,6 +149,9 @@ export function BonsaiProvider({
 
       return next;
     });
+    // Batched with the setState above, so the loaded game and the "ready" flag
+    // land in the same commit — consumers never see the empty state unmasked.
+    setIsLoading(false);
   }, [setState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Actions ──────────────────────────────────────────────────────────────
@@ -256,6 +267,7 @@ export function BonsaiProvider({
     <BonsaiContext.Provider
       value={{
         state,
+        isLoading,
         placingSpeciesId,
         beginPlanting,
         cancelPlanting,

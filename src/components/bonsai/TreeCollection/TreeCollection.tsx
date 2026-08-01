@@ -2,10 +2,38 @@
 
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
+import { SkeletonBox } from "@/components/Skeleton";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree, SpeciesId } from "@/lib/bonsai/schema";
 import { getGrowthLabel } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
+
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+// One card is the minimum every saved game has — trees can be planted but never
+// removed — so the collection only ever grows downwards once loading finishes.
+function TreeCollectionSkeleton() {
+  return (
+    <CollectionWrapper
+      aria-busy="true"
+      aria-label="Loading tree collection…"
+      role="region"
+    >
+      <Section>
+        <SkeletonTitleRow>
+          <SkeletonBox $height="14px" $width="110px" />
+        </SkeletonTitleRow>
+        <SkeletonCard>
+          <SkeletonBox $height="32px" $radius="16px" $width="32px" />
+          <SkeletonCardBody>
+            <SkeletonBox $height="14px" $width="40%" />
+            <SkeletonBox $height="12px" $width="25%" />
+          </SkeletonCardBody>
+        </SkeletonCard>
+      </Section>
+    </CollectionWrapper>
+  );
+}
 
 interface TreeCollectionProps {
   onOpenTree: (tree: BonsaiTree) => void;
@@ -16,8 +44,10 @@ export function TreeCollection({
   onOpenTree,
   onNavigateToShop,
 }: TreeCollectionProps) {
-  const { state, beginPlanting, availablePotCount } = useBonsai();
+  const { state, isLoading, beginPlanting, availablePotCount } = useBonsai();
   const hasAvailablePot = availablePotCount() > 0;
+
+  if (isLoading) return <TreeCollectionSkeleton />;
 
   const ownedSeeds = state.inventory.ownedSpeciesIds;
 
@@ -265,4 +295,30 @@ const EmptyState = styled.div`
   text-align: center;
   color: light-dark(var(--color-grey-500), var(--color-grey-400));
   font-size: 1.3rem;
+`;
+
+// Fixed heights mirror the rendered SectionTitle (36px) and TreeCard (76px) so
+// the panel keeps its height when the real collection replaces the skeleton.
+const SkeletonTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  height: 36px;
+`;
+
+const SkeletonCard = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 76px;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 2px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+  background: light-dark(var(--color-grey-50), var(--color-grey-900));
+`;
+
+const SkeletonCardBody = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;

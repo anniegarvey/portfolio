@@ -10,6 +10,8 @@
 //   vitest. tsc always runs regardless of which area is matched.
 //   Add a new entry here whenever a new feature area is introduced:
 //     "src/**/my-feature/**": "e2e/my-feature"
+//   Code shared between areas can list several dirs:
+//     "src/components/Shared/**": ["e2e/my-feature", "e2e/other-feature"]
 //
 // "skip": files that need no validation at all — assets, docs, design files,
 //   tooling scripts. Changes to these are silently ignored.
@@ -224,6 +226,11 @@ const e2eDirs = new Set();
 const vitestFiles = [];
 const unmatchedSrc = [];
 
+/** An "areas" value is one e2e dir, or several for code shared between areas. */
+function addAreas(dirs) {
+  for (const dir of Array.isArray(dirs) ? dirs : [dirs]) e2eDirs.add(dir);
+}
+
 for (const file of staged) {
   // Files that never need validation (assets, docs, design files)
   if (matchesAny(file, map.skip)) continue;
@@ -242,7 +249,7 @@ for (const file of staged) {
     let matched = false;
     for (const [pattern, dir] of Object.entries(map.areas)) {
       if (matchGlob(pattern, file)) {
-        e2eDirs.add(dir);
+        addAreas(dir);
         matched = true;
       }
     }
@@ -269,7 +276,7 @@ for (const file of staged) {
     let matched = false;
     for (const [pattern, dir] of Object.entries(map.areas)) {
       if (matchGlob(pattern, file)) {
-        e2eDirs.add(dir);
+        addAreas(dir);
         matched = true;
       }
     }

@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import {
   expect,
   test,
@@ -492,6 +493,102 @@ test.describe("Bonsai Garden", () => {
         .getByRole("tab", { name: "Stands" })
         .and(page.locator("[data-state='active']")),
     ).toBeVisible();
+  });
+
+  // The saved game lives in localStorage, so the server render and the first
+  // client render can only show a placeholder. Disabling JavaScript freezes the
+  // page in exactly that pre-hydration state, which is what a user sees for the
+  // first moments after landing on the page.
+  test.describe("before the saved game loads", () => {
+    test.use({ javaScriptEnabled: false });
+
+    test("shows a loading state instead of claiming the garden is empty", async ({
+      page,
+    }) => {
+      await page.goto("/bonsai");
+
+      await expect(
+        page.getByRole("region", { name: "Loading garden…" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("region", { name: "Loading tree collection…" }),
+      ).toBeVisible();
+
+      await expect(page.getByText(/your garden is empty/i)).toHaveCount(0);
+      await expect(page.getByText(/don.t have any trees yet/i)).toHaveCount(0);
+      // No garden tools either — rendering them would show the locked "buy a
+      // watering can" state before we know whether one has been bought.
+      await expect(page.getByRole("main").getByRole("button")).toHaveCount(0);
+    });
+  });
+
+  // The skeleton's dimensions are hand-tuned to the loaded page, so nothing but
+  // this test stops an unrelated style tweak (a tool button's padding, a tree
+  // card's font size) from reintroducing the layout jump.
+  test("loading skeleton reserves the space the loaded page uses", async ({
+    page,
+    browser,
+  }) => {
+    // Section heights, top to bottom: garden toolbar, garden, tab list, and the
+    // active tab panel. Every one of these is font-metric dependent, so wait for
+    // Lexend rather than measuring a fallback face on one side of the comparison.
+    const heights = (target: Page) =>
+      target.evaluate(async () => {
+        await document.fonts.ready;
+        const layout = document.querySelector("main")
+          ?.lastElementChild as HTMLElement;
+        const garden = layout.firstElementChild as HTMLElement;
+        const h = (el: Element | null | undefined) =>
+          el ? Math.round(el.getBoundingClientRect().height) : null;
+        return {
+          toolbar: h(garden.firstElementChild),
+          garden: h(garden.lastElementChild),
+          tabList: h(layout.querySelector('[role="tablist"]')),
+          panel: h(layout.querySelector('[role="tabpanel"]:not([hidden])')),
+          // Each pill against its real button. Row count alone is too coarse —
+          // a drifted width only changes it at the widths where it happens to
+          // tip a wrap.
+          toolWidths: [...(garden.firstElementChild?.children ?? [])].map(
+            (el) => Math.round(el.getBoundingClientRect().width),
+          ),
+        };
+      });
+
+    // 480px sits in the band where the toolbar wraps onto a second row, which
+    // is where a mismatch would cost a whole 52px row. Demo mode adds a fifth
+    // toolbar button, and it is the entry point the case study links to.
+    for (const demoMode of [false, true]) {
+      for (const width of [375, 480, 1280]) {
+        const label = `viewport ${width}px${demoMode ? " (demo)" : ""}`;
+        await page.setViewportSize({ width, height: 900 });
+        // The default seed owns no tools — the state a first-time visitor lands in.
+        await goToBonsaiWithSeed(page, { demoMode, ownedToolIds: [] });
+        await expect(
+          page.getByRole("img", { name: /bonsai tree/i }).first(),
+        ).toBeVisible();
+        const loaded = await heights(page);
+
+        const noJs = await browser.newContext({
+          javaScriptEnabled: false,
+          viewport: { width, height: 900 },
+        });
+        const skeletonPage = await noJs.newPage();
+        await skeletonPage.goto(new URL(page.url()).toString());
+        const skeleton = await heights(skeletonPage);
+        await noJs.close();
+
+        const { panel: skeletonPanel, ...skeletonChrome } = skeleton;
+        const { panel: loadedPanel, ...loadedChrome } = loaded;
+        expect(skeletonChrome, label).toEqual(loadedChrome);
+
+        // A tree card's name and "Needs water" badge wrap onto a second line on
+        // narrow phones, which the skeleton can't predict — so allow one line of
+        // downward settle, but no more, and never a shrink.
+        const drift = (loadedPanel ?? 0) - (skeletonPanel ?? 0);
+        expect(drift, `${label} panel drift`).toBeGreaterThanOrEqual(0);
+        expect(drift, `${label} panel drift`).toBeLessThanOrEqual(24);
+      }
+    }
   });
 
   test("accessibility scan", async ({ page, makeAxeBuilder }) => {
