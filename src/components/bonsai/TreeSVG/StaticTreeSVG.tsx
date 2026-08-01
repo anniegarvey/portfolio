@@ -997,7 +997,10 @@ export function StaticTreeSVG({
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const SoilEllipse = styled.ellipse`
-  transition: fill 0.8s ease;
+  /* ease-out, not ease: the darkening has to read immediately on tap. The old
+     0.8s ease spent its first ~150ms barely moving, which is what made
+     watering feel laggy. */
+  transition: fill 0.18s ease-out;
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

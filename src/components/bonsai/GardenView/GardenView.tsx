@@ -79,17 +79,26 @@ function MiniTree({
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (isPlacing) return;
       e.stopPropagation();
+      // Water acts on press, not release. Waiting for pointerup put the whole
+      // press duration (~120ms) between the tap and any feedback. Leaving
+      // dragState unset makes handlePointerUp a no-op, and ignoring secondary
+      // pointers stops a second finger on the same tree firing it again.
+      if (gardenTool === "water") {
+        if (!e.isPrimary) return;
+        onWater(tree.id);
+        return;
+      }
       dragState.current = {
         startX: e.clientX,
         startY: e.clientY,
         moved: false,
       };
-      // Only capture the pointer in move mode — tend and water don't drag
+      // Only capture the pointer in move mode — tend doesn't drag
       if (gardenTool === "move") {
         (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
       }
     },
-    [isPlacing, gardenTool],
+    [isPlacing, gardenTool, onWater, tree.id],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: gardenRef is a stable ref object
@@ -123,12 +132,12 @@ function MiniTree({
       if (!dragState.current) return;
       if (!dragState.current.moved) {
         if (gardenTool === "tend") onOpen(tree);
-        else if (gardenTool === "water") onWater(tree.id);
+        // water: already fired on pointerdown
         // move and hose: click on individual tree does nothing (hose waters all)
       }
       dragState.current = null;
     },
-    [tree, onOpen, onWater, gardenTool],
+    [tree, onOpen, gardenTool],
   );
 
   const displayName = tree.name ?? config.label;
@@ -469,10 +478,6 @@ const MiniTreeContainer = styled.div`
   padding: 4px;
   transition: filter 150ms ease;
 
-  &:active {
-    cursor: grabbing;
-  }
-
   &:focus-visible {
     outline: 2px solid var(--color-primary-400);
     outline-offset: 2px;
@@ -480,6 +485,15 @@ const MiniTreeContainer = styled.div`
 
   &:hover {
     filter: brightness(1.08);
+  }
+
+  /* Must stay after :hover — equal specificity, so source order decides which
+     filter wins while a hovering pointer is pressed. Press feedback lands on
+     the same frame as the pointerdown (no transition in), and eases back out. */
+  &:active {
+    cursor: grabbing;
+    filter: brightness(1.15);
+    transition: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
