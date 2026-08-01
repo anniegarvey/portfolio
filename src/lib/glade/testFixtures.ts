@@ -58,6 +58,7 @@ export function makeGladeContext(
     petVisitor: vi.fn(),
     cookTreat: vi.fn(),
     buyIngredient: vi.fn().mockReturnValue(false),
+    buyMissingIngredients: vi.fn().mockReturnValue(false),
     buyLesson: vi.fn().mockReturnValue(false),
     ...overrides,
   };
