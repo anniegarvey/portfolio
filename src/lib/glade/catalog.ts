@@ -3,6 +3,7 @@ import type {
   IngredientId,
   PetSpot,
   Posture,
+  PreferenceKind,
   Rarity,
   SkillId,
   SpeciesId,
@@ -616,6 +617,13 @@ export const SKILL_UNLOCK_REQUIREMENT: Record<
   "body-language": null,
   "petting-technique": { skillId: "body-language", tier: 2 },
   "treat-cooking": { skillId: "petting-technique", tier: 2 },
+};
+
+/** Which taming skill governs each preference type's hint progression. */
+export const PREFERENCE_SKILL: Record<PreferenceKind, SkillId> = {
+  treat: "treat-cooking",
+  posture: "body-language",
+  petSpot: "petting-technique",
 };
 
 export const MAX_TIER = 5;

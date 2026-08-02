@@ -4,8 +4,11 @@ import {
   buyLesson,
   canBuyLesson,
   gainXp,
-  hasClearHints,
+  isConfirmedHintUnlocked,
   isSkillUnlocked,
+  isToggletipVisible,
+  isTriedLogUnlocked,
+  isVagueHintUnlocked,
   nextLessonCost,
 } from "./skillsModule";
 import { makeGladeState, makeSkill } from "./testFixtures";
@@ -152,20 +155,81 @@ describe("buyLesson", () => {
   });
 });
 
-describe("hasClearHints", () => {
-  it("is false at starting tiers", () => {
-    expect(hasClearHints(makeGladeState())).toBe(false);
+describe("isVagueHintUnlocked", () => {
+  it("is false below tier 2 on the mapped skill", () => {
+    const state = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill(),
+      },
+    });
+    expect(isVagueHintUnlocked(state, "posture")).toBe(false);
   });
 
-  it("unlocks when body-language and petting tiers sum to 6", () => {
+  it("unlocks per type at tier 2 on that type's own mapped skill", () => {
+    const state = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill({ tier: 2 }),
+        "petting-technique": makeSkill(),
+      },
+    });
+    expect(isVagueHintUnlocked(state, "posture")).toBe(true);
+    expect(isVagueHintUnlocked(state, "petSpot")).toBe(false);
+    expect(isVagueHintUnlocked(state, "treat")).toBe(false);
+  });
+});
+
+describe("isToggletipVisible", () => {
+  it("is false when no skill has reached tier 3", () => {
+    const state = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill({ tier: 2 }),
+        "petting-technique": makeSkill({ tier: 2 }),
+      },
+    });
+    expect(isToggletipVisible(state)).toBe(false);
+  });
+
+  it("becomes visible once any one of the three skills reaches tier 3", () => {
     const state = makeGladeState({
       skills: {
         "treat-cooking": makeSkill(),
         "body-language": makeSkill({ tier: 3 }),
+        "petting-technique": makeSkill(),
+      },
+    });
+    expect(isToggletipVisible(state)).toBe(true);
+  });
+});
+
+describe("isConfirmedHintUnlocked", () => {
+  it("is gated per type on that type's own mapped skill reaching tier 3", () => {
+    const state = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill({ tier: 3 }),
+        "petting-technique": makeSkill({ tier: 2 }),
+      },
+    });
+    expect(isConfirmedHintUnlocked(state, "posture")).toBe(true);
+    expect(isConfirmedHintUnlocked(state, "petSpot")).toBe(false);
+  });
+});
+
+describe("isTriedLogUnlocked", () => {
+  it("is gated per type on that type's own mapped skill reaching tier 4", () => {
+    const state = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill({ tier: 4 }),
         "petting-technique": makeSkill({ tier: 3 }),
       },
     });
-    expect(hasClearHints(state)).toBe(true);
+    expect(isTriedLogUnlocked(state, "posture")).toBe(true);
+    expect(isTriedLogUnlocked(state, "petSpot")).toBe(false);
   });
 });
 

@@ -1,11 +1,12 @@
 import {
   lessonCostFor,
   MAX_TIER,
+  PREFERENCE_SKILL,
   SKILL_UNLOCK_REQUIREMENT,
   SPECIES,
   xpThresholdFor,
 } from "./catalog";
-import type { GladeState, SkillId } from "./schema";
+import type { GladeState, PreferenceKind, SkillId } from "./schema";
 
 /** A skill is unlocked once its prerequisite (if any) reaches the required tier. */
 export function isSkillUnlocked(state: GladeState, skillId: SkillId): boolean {
@@ -68,14 +69,56 @@ export function buyLesson(state: GladeState, skillId: SkillId): GladeState {
   };
 }
 
+/** Whether a preference type's mapped skill (see `PREFERENCE_SKILL`) has reached the given tier. */
+function preferenceSkillAtTier(
+  state: GladeState,
+  kind: PreferenceKind,
+  tier: number,
+): boolean {
+  return state.skills[PREFERENCE_SKILL[kind]].tier >= tier;
+}
+
 /**
- * Preference hints sharpen with handling experience: clear hints unlock once
- * Body Language and Petting Technique tiers sum to 6 (e.g. 3 + 3).
+ * A preference type's vague hint becomes visible once its mapped skill
+ * reaches tier 2 — its first completed level — independent of whether that
+ * preference has actually been discovered yet.
  */
-export function hasClearHints(state: GladeState): boolean {
-  return (
-    state.skills["body-language"].tier +
-      state.skills["petting-technique"].tier >=
-    6
+export function isVagueHintUnlocked(
+  state: GladeState,
+  kind: PreferenceKind,
+): boolean {
+  return preferenceSkillAtTier(state, kind, 2);
+}
+
+/**
+ * The shared preference toggletip appears once any one of the three taming
+ * skills reaches tier 3, whichever gets there first for a given playthrough.
+ */
+export function isToggletipVisible(state: GladeState): boolean {
+  return (Object.keys(PREFERENCE_SKILL) as PreferenceKind[]).some((kind) =>
+    preferenceSkillAtTier(state, kind, 3),
   );
+}
+
+/**
+ * A preference type's toggletip section reveals its confirmed hint (once
+ * discovered) once that type's own mapped skill reaches tier 3.
+ */
+export function isConfirmedHintUnlocked(
+  state: GladeState,
+  kind: PreferenceKind,
+): boolean {
+  return preferenceSkillAtTier(state, kind, 3);
+}
+
+/**
+ * A preference type's toggletip section upgrades to a full log of every
+ * option tried so far once that type's own mapped skill reaches tier 4 — an
+ * elimination aid for narrowing down a preference not yet discovered.
+ */
+export function isTriedLogUnlocked(
+  state: GladeState,
+  kind: PreferenceKind,
+): boolean {
+  return preferenceSkillAtTier(state, kind, 4);
 }

@@ -52,4 +52,10 @@ describe("save/load round trip", () => {
     localStorage.setItem(GLADE_KEY, JSON.stringify(legacy));
     expect(loadGladeState()?.discoveredPreferences).toEqual({});
   });
+
+  it("defaults triedPreferences for states saved before attempt tracking", () => {
+    const { triedPreferences: _omitted, ...legacy } = createInitialState();
+    localStorage.setItem(GLADE_KEY, JSON.stringify(legacy));
+    expect(loadGladeState()?.triedPreferences).toEqual({});
+  });
 });

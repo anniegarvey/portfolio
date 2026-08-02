@@ -97,6 +97,43 @@ describe("offerTreat", () => {
     expect(result.state.discoveredPreferences.rabbit).toBeUndefined();
   });
 
+  it("records the treat as tried whether or not it matched", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      pantry: { ingredients: {}, treats: { "berry-bites": 1 } },
+    });
+    const result = offerTreat(
+      state,
+      visitor.id,
+      "berry-bites",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.triedPreferences.rabbit).toEqual({
+      treat: ["berry-bites"],
+    });
+  });
+
+  it("does not duplicate a treat already recorded as tried", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      pantry: { ingredients: {}, treats: { "berry-bites": 1 } },
+      triedPreferences: { rabbit: { treat: ["berry-bites"] } },
+    });
+    const result = offerTreat(
+      state,
+      visitor.id,
+      "berry-bites",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.triedPreferences.rabbit).toEqual({
+      treat: ["berry-bites"],
+    });
+  });
+
   it("refuses a second treat the same day", () => {
     const visitor = makeVisitor({
       actionsToday: { treat: true, approach: false, pet: false },
@@ -232,6 +269,21 @@ describe("approachVisitor", () => {
       fixedRng,
     );
     expect(result.state.discoveredPreferences.rabbit).toBeUndefined();
+  });
+
+  it("records the posture as tried whether or not it matched", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({ visitors: [visitor] });
+    const result = approachVisitor(
+      state,
+      visitor.id,
+      "slow-blink",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.triedPreferences.rabbit).toEqual({
+      posture: ["slow-blink"],
+    });
   });
 
   it("refuses a second approach the same day", () => {
@@ -383,6 +435,27 @@ describe("petVisitor", () => {
     );
     expect(result.state.discoveredPreferences).toEqual({
       rabbit: { treat: true, petSpot: true },
+    });
+  });
+
+  it("records the pet spot as tried whether or not it matched", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({ visitors: [visitor] });
+    const result = petVisitor(state, visitor.id, "chin", TODAY, fixedRng);
+    expect(result.state.triedPreferences.rabbit).toEqual({
+      petSpot: ["chin"],
+    });
+  });
+
+  it("appends a newly tried pet spot alongside previously tried ones", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      triedPreferences: { rabbit: { petSpot: ["chin"] } },
+    });
+    const result = petVisitor(state, visitor.id, "back", TODAY, fixedRng);
+    expect(result.state.triedPreferences.rabbit).toEqual({
+      petSpot: ["chin", "back"],
     });
   });
 

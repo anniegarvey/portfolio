@@ -6,13 +6,15 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 
 interface ToggletipProps {
-  content: string;
+  content: React.ReactNode;
+  /** Trigger button label. Defaults to "About". */
+  label?: string;
 }
 
-export function Toggletip({ content }: ToggletipProps) {
+export function Toggletip({ content, label = "About" }: ToggletipProps) {
   const [open, setOpen] = useState(false);
   const id = useId();
-  const wrapperRef = useRef<HTMLSpanElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -47,22 +49,22 @@ export function Toggletip({ content }: ToggletipProps) {
         onClick={() => setOpen((v) => !v)}
         variant="outline"
       >
-        About
+        {label}
       </Button>
       <Popover hidden={!open} id={id} role="status">
-        {content}
+        {open && content}
       </Popover>
     </Wrapper>
   );
 }
 
-const Wrapper = styled.span`
+const Wrapper = styled.div`
   position: relative;
   display: inline-flex;
   align-items: center;
 `;
 
-const Popover = styled.span`
+const Popover = styled.div`
   position: absolute;
   top: calc(100% + 6px);
   left: 50%;

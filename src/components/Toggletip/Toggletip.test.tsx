@@ -76,4 +76,26 @@ describe("Toggletip", () => {
     await user.click(screen.getByRole("button", { name: "About" }));
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("uses a custom trigger label when provided", () => {
+    render(<Toggletip content={CONTENT} label="Preference hints" />);
+    expect(
+      screen.getByRole("button", { name: "Preference hints" }),
+    ).toBeInTheDocument();
+  });
+
+  it("accepts rich content, not just plain strings", async () => {
+    const user = userEvent.setup();
+    render(
+      <Toggletip
+        content={
+          <ul>
+            <li>Tried crouch-low</li>
+          </ul>
+        }
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "About" }));
+    expect(screen.getByText("Tried crouch-low")).toBeVisible();
+  });
 });

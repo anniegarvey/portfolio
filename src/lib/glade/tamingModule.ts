@@ -71,6 +71,37 @@ function discoverPreference(
   };
 }
 
+type TriedValue<K extends PreferenceKind> = K extends "treat"
+  ? TreatId
+  : K extends "posture"
+    ? Posture
+    : PetSpot;
+
+/**
+ * Logs a specific option as tried for a species' preference type, regardless
+ * of whether it matched — the elimination trail a high-tier toggletip reads
+ * from to help find an undiscovered preference.
+ */
+function recordAttempt<K extends PreferenceKind>(
+  state: GladeState,
+  speciesId: SpeciesId,
+  kind: K,
+  value: TriedValue<K>,
+): GladeState {
+  const existing = state.triedPreferences[speciesId]?.[kind] ?? [];
+  if ((existing as TriedValue<K>[]).includes(value)) return state;
+  return {
+    ...state,
+    triedPreferences: {
+      ...state.triedPreferences,
+      [speciesId]: {
+        ...state.triedPreferences[speciesId],
+        [kind]: [...existing, value],
+      },
+    },
+  };
+}
+
 /**
  * Applies a trust gain to a visitor and converts it to a resident when the
  * species' tame threshold is reached. `rng` picks the new resident's spot
@@ -143,9 +174,10 @@ export function offerTreat(
   const favourite = SPECIES[visitor.speciesId].favouriteTreat === treatId;
   const gain = treatTrustGain(treatId, favourite);
 
+  const tried = recordAttempt(state, visitor.speciesId, "treat", treatId);
   const discovered = favourite
-    ? discoverPreference(state, visitor.speciesId, "treat")
-    : state;
+    ? discoverPreference(tried, visitor.speciesId, "treat")
+    : tried;
   const withSpentTreat: GladeState = {
     ...discovered,
     pantry: {
@@ -191,9 +223,10 @@ export function approachVisitor(
     approachTrustGain(state.skills["body-language"].tier, matched) +
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
+  const tried = recordAttempt(state, visitor.speciesId, "posture", posture);
   const discovered = matched
-    ? discoverPreference(state, visitor.speciesId, "posture")
-    : state;
+    ? discoverPreference(tried, visitor.speciesId, "posture")
+    : tried;
   const withXp = gainXp(discovered, "body-language");
   const applied = applyTrust(withXp, visitor, gain, "approach", today, rng);
   return {
@@ -224,9 +257,10 @@ export function petVisitor(
     petTrustGain(state.skills["petting-technique"].tier, matched) +
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
+  const tried = recordAttempt(state, visitor.speciesId, "petSpot", spot);
   const discovered = matched
-    ? discoverPreference(state, visitor.speciesId, "petSpot")
-    : state;
+    ? discoverPreference(tried, visitor.speciesId, "petSpot")
+    : tried;
   const withXp = gainXp(discovered, "petting-technique");
   const applied = applyTrust(withXp, visitor, gain, "pet", today, rng);
   return {
