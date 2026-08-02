@@ -5,6 +5,7 @@ import { type RefObject, useId, useRef } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { UnlockNotice } from "@/components/glade/UnlockNotice";
+import { Toggletip } from "@/components/Toggletip";
 import {
   ALL_TREAT_IDS,
   PET_SPOT_LABELS,
@@ -16,38 +17,57 @@ import {
 } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type {
-  DiscoveredPreference,
+  GladeState,
   PetSpot,
   Posture,
+  PreferenceKind,
   TreatId,
   WildVisitor,
 } from "@/lib/glade/schema";
-import { hasClearHints, isSkillUnlocked } from "@/lib/glade/skillsModule";
+import {
+  isConfirmedHintUnlocked,
+  isSkillUnlocked,
+  isToggletipVisible,
+  isTriedLogUnlocked,
+  isVagueHintUnlocked,
+} from "@/lib/glade/skillsModule";
 
 const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
 
-/** The hint text for each preference type the player has already discovered. */
-function discoveredHints(
-  species: SpeciesConfig,
-  discovered: DiscoveredPreference | undefined,
-  clearHints: boolean,
-): string[] {
-  const hints: string[] = [];
-  if (discovered?.posture) {
-    hints.push(
-      clearHints ? species.clearPostureHint : species.vaguePostureHint,
-    );
-  }
-  if (discovered?.petSpot) {
-    hints.push(
-      clearHints ? species.clearPetSpotHint : species.vaguePetSpotHint,
-    );
-  }
-  if (discovered?.treat) {
-    hints.push(clearHints ? species.clearTreatHint : species.vagueTreatHint);
-  }
-  return hints;
+const PREFERENCE_KINDS: PreferenceKind[] = ["treat", "posture", "petSpot"];
+
+const PREFERENCE_LABELS: Record<PreferenceKind, string> = {
+  treat: "Favourite treat",
+  posture: "Preferred posture",
+  petSpot: "Preferred pet spot",
+};
+
+const VAGUE_HINT: Record<PreferenceKind, (species: SpeciesConfig) => string> = {
+  treat: (species) => species.vagueTreatHint,
+  posture: (species) => species.vaguePostureHint,
+  petSpot: (species) => species.vaguePetSpotHint,
+};
+
+const CLEAR_HINT: Record<PreferenceKind, (species: SpeciesConfig) => string> = {
+  treat: (species) => species.clearTreatHint,
+  posture: (species) => species.clearPostureHint,
+  petSpot: (species) => species.clearPetSpotHint,
+};
+
+/** Every option for a preference type, used to render the tier-4 elimination log. */
+const PREFERENCE_OPTIONS: Record<
+  PreferenceKind,
+  { value: string; label: string }[]
+> = {
+  treat: ALL_TREAT_IDS.map((id) => ({ value: id, label: RECIPES[id].name })),
+  posture: POSTURES.map((p) => ({ value: p, label: POSTURE_LABELS[p] })),
+  petSpot: PET_SPOTS.map((s) => ({ value: s, label: PET_SPOT_LABELS[s] })),
+};
+
+/** Preference kinds whose vague hint is currently visible for this species. */
+function visibleHintKinds(state: GladeState): PreferenceKind[] {
+  return PREFERENCE_KINDS.filter((kind) => isVagueHintUnlocked(state, kind));
 }
 
 export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
@@ -58,11 +78,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const species = SPECIES[visitor.speciesId];
   const threshold = tameThresholdFor(visitor.speciesId);
   const trustPct = Math.round((visitor.trust / threshold) * 100);
-  const hints = discoveredHints(
-    species,
-    state.discoveredPreferences[visitor.speciesId],
-    hasClearHints(state),
-  );
+  const hintKinds = visibleHintKinds(state);
 
   // Feedback for the most recent action, only on the card it was taken on
   const feedback =
@@ -83,9 +99,17 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
         {species.name} <Rarity>· {species.rarity}</Rarity>
       </Name>
       <Blurb>{species.blurb}</Blurb>
-      {hints.map((hint) => (
-        <Hint key={hint}>{hint}</Hint>
+      {hintKinds.map((kind) => (
+        <Hint key={kind}>{VAGUE_HINT[kind](species)}</Hint>
       ))}
+      {isToggletipVisible(state) && (
+        <ToggletipRow>
+          <Toggletip
+            content={<PreferenceDetails species={species} visitor={visitor} />}
+            label="Preference details"
+          />
+        </ToggletipRow>
+      )}
 
       <TrustTrack
         aria-label={`Trust: ${visitor.trust} of ${threshold}`}
@@ -224,6 +248,65 @@ function PetActionGroup({
   );
 }
 
+/**
+ * The shared toggletip's content: one section per currently-visible
+ * preference type. Each section's own depth (nothing / confirmed hint /
+ * full tried-vs-untried log) tracks that type's own skill tier independently
+ * of what triggered the toggletip's overall visibility.
+ */
+function PreferenceDetails({
+  species,
+  visitor,
+}: {
+  species: SpeciesConfig;
+  visitor: WildVisitor;
+}) {
+  const { state } = useGlade();
+  const baseId = useId();
+  const discovered = state.discoveredPreferences[visitor.speciesId];
+  const tried = state.triedPreferences[visitor.speciesId];
+
+  return (
+    <DetailsList>
+      {visibleHintKinds(state).map((kind) => {
+        const labelId = `${baseId}-${kind}`;
+        return (
+          <DetailsSection aria-labelledby={labelId} key={kind} role="group">
+            <DetailsLabel id={labelId}>{PREFERENCE_LABELS[kind]}</DetailsLabel>
+            {isConfirmedHintUnlocked(state, kind) ? (
+              discovered?.[kind] ? (
+                <DetailsHint>{CLEAR_HINT[kind](species)}</DetailsHint>
+              ) : (
+                <DetailsPlaceholder>Not yet confirmed.</DetailsPlaceholder>
+              )
+            ) : (
+              <DetailsPlaceholder>
+                Keep training to learn more.
+              </DetailsPlaceholder>
+            )}
+            {isTriedLogUnlocked(state, kind) && (
+              <TriedList kind={kind} tried={tried?.[kind] ?? []} />
+            )}
+          </DetailsSection>
+        );
+      })}
+    </DetailsList>
+  );
+}
+
+/** Every option for a preference type, marked tried or not — an elimination aid. */
+function TriedList({ kind, tried }: { kind: PreferenceKind; tried: string[] }) {
+  return (
+    <TriedItems>
+      {PREFERENCE_OPTIONS[kind].map(({ value, label }) => (
+        <TriedItem data-tried={tried.includes(value)} key={value}>
+          {label} — {tried.includes(value) ? "tried" : "not yet tried"}
+        </TriedItem>
+      ))}
+    </TriedItems>
+  );
+}
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const Card = styled.section`
@@ -329,4 +412,58 @@ const Done = styled.span`
   font-size: 0.85rem;
   font-style: italic;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const ToggletipRow = styled.div`
+  display: flex;
+`;
+
+const DetailsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  text-align: left;
+`;
+
+const DetailsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+`;
+
+const DetailsLabel = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+const DetailsHint = styled.span`
+  font-size: 0.85rem;
+`;
+
+const DetailsPlaceholder = styled.span`
+  font-size: 0.85rem;
+  font-style: italic;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const TriedItems = styled.ul`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+`;
+
+const TriedItem = styled.li`
+  font-size: 0.8rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: light-dark(var(--color-grey-100), var(--color-grey-700));
+
+  &[data-tried="true"] {
+    color: light-dark(var(--color-grey-600), var(--color-grey-400));
+  }
 `;
