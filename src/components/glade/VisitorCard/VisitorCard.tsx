@@ -10,10 +10,12 @@ import {
   POSTURE_LABELS,
   RECIPES,
   SPECIES,
+  type SpeciesConfig,
   tameThresholdFor,
 } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type {
+  DiscoveredPreference,
   PetSpot,
   Posture,
   TreatId,
@@ -23,6 +25,29 @@ import { hasClearHints } from "@/lib/glade/skillsModule";
 
 const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
+
+/** The hint text for each preference type the player has already discovered. */
+function discoveredHints(
+  species: SpeciesConfig,
+  discovered: DiscoveredPreference | undefined,
+  clearHints: boolean,
+): string[] {
+  const hints: string[] = [];
+  if (discovered?.posture) {
+    hints.push(
+      clearHints ? species.clearPostureHint : species.vaguePostureHint,
+    );
+  }
+  if (discovered?.petSpot) {
+    hints.push(
+      clearHints ? species.clearPetSpotHint : species.vaguePetSpotHint,
+    );
+  }
+  if (discovered?.treat) {
+    hints.push(clearHints ? species.clearTreatHint : species.vagueTreatHint);
+  }
+  return hints;
+}
 
 export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const { state, lastAction, offerTreat, approachVisitor, petVisitor } =
@@ -35,6 +60,11 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const trustPct = Math.round((visitor.trust / threshold) * 100);
   const availableTreats = ALL_TREAT_IDS.filter(
     (id) => (state.pantry.treats[id] ?? 0) > 0,
+  );
+  const hints = discoveredHints(
+    species,
+    state.discoveredPreferences[visitor.speciesId],
+    hasClearHints(state),
   );
 
   // Feedback for the most recent action, only on the card it was taken on
@@ -56,9 +86,9 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
         {species.name} <Rarity>· {species.rarity}</Rarity>
       </Name>
       <Blurb>{species.blurb}</Blurb>
-      <Hint>
-        {hasClearHints(state) ? species.clearHint : species.vagueHint}
-      </Hint>
+      {hints.map((hint) => (
+        <Hint key={hint}>{hint}</Hint>
+      ))}
 
       <TrustTrack
         aria-label={`Trust: ${visitor.trust} of ${threshold}`}

@@ -109,7 +109,7 @@ A tamed creature living in the glade. Contributes its species' benefit each **Da
 One of three interactions a wild visitor accepts each day: _offer treat_, _approach_ (body language), and _pet_. Approach and pet each involve a light choice (posture / petting spot) checked against the species' preference — a matching choice earns bonus trust, a mismatch earns reduced trust, never negative.
 
 **Preference**
-A species' favoured approach posture and petting spot. Hinted at in the visitor's description; hints get clearer at higher skill tiers.
+A species' favoured treat, approach posture, and petting spot. Each of the three has its own hint, hidden until a matching action confirms that specific one — guessing the pet spot right doesn't reveal the treat or posture. Discovered hints get clearer at higher skill tiers.
 
 **Taming skill**
 One of three player skills: _Treat Cooking_, _Body Language_, _Petting Technique_. Skills gain XP through use and advance in tiers.

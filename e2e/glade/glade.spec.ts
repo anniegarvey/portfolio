@@ -21,6 +21,29 @@ test.describe("Creature Glade", () => {
     await expect(page.getByText("Trust 0/60")).toBeVisible();
   });
 
+  test("hides a visitor's preference hints until each is guessed correctly", async ({
+    page,
+  }) => {
+    await goToGladeWithSeed(page);
+
+    const postureHint = page.getByText(
+      "Seems happiest when you keep very still.",
+    );
+    const petSpotHint = page.getByText(
+      "Puffs its feathers when a hand passes along its length.",
+    );
+    await expect(postureHint).toBeHidden();
+    await expect(petSpotHint).toBeHidden();
+
+    // Robin's preferred pet spot is "back" — a match confirms only that
+    // guess, without raising trust enough to tame it (needs 60).
+    await page.getByRole("button", { name: "Along the back" }).click();
+
+    await expect(petSpotHint).toBeVisible();
+    // Posture wasn't guessed — its hint stays hidden.
+    await expect(postureHint).toBeHidden();
+  });
+
   test("cooking a treat and offering it raises trust (favourite = double)", async ({
     page,
   }) => {
