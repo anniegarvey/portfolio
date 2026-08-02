@@ -10,6 +10,7 @@ import type {
   GladeState,
   PetSpot,
   Posture,
+  PreferenceKind,
   SpeciesId,
   TreatId,
   WildVisitor,
@@ -51,17 +52,21 @@ function noAction(state: GladeState): ActionResult {
   return { state, trustGained: null, tamed: false, matched: false };
 }
 
-/** Unlocks a species' hint text once a matching action confirms its preference. */
+/** Unlocks one of a species' hint texts once a matching action confirms it. */
 function discoverPreference(
   state: GladeState,
   speciesId: SpeciesId,
+  kind: PreferenceKind,
 ): GladeState {
-  if (state.discoveredPreferences[speciesId]) return state;
+  if (state.discoveredPreferences[speciesId]?.[kind]) return state;
   return {
     ...state,
     discoveredPreferences: {
       ...state.discoveredPreferences,
-      [speciesId]: true,
+      [speciesId]: {
+        ...state.discoveredPreferences[speciesId],
+        [kind]: true,
+      },
     },
   };
 }
@@ -138,7 +143,7 @@ export function offerTreat(
   const gain = treatTrustGain(treatId, favourite);
 
   const discovered = favourite
-    ? discoverPreference(state, visitor.speciesId)
+    ? discoverPreference(state, visitor.speciesId, "treat")
     : state;
   const withSpentTreat: GladeState = {
     ...discovered,
@@ -186,7 +191,7 @@ export function approachVisitor(
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
   const discovered = matched
-    ? discoverPreference(state, visitor.speciesId)
+    ? discoverPreference(state, visitor.speciesId, "posture")
     : state;
   const withXp = gainXp(discovered, "body-language");
   const applied = applyTrust(withXp, visitor, gain, "approach", today, rng);
@@ -218,7 +223,7 @@ export function petVisitor(
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
   const discovered = matched
-    ? discoverPreference(state, visitor.speciesId)
+    ? discoverPreference(state, visitor.speciesId, "petSpot")
     : state;
   const withXp = gainXp(discovered, "petting-technique");
   const applied = applyTrust(withXp, visitor, gain, "pet", today, rng);
