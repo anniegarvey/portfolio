@@ -37,6 +37,9 @@ vi.mock("@/components/glade/VisitorCard", () => ({
 vi.mock("@/components/glade/KitchenPanel", () => ({
   KitchenPanel: () => null,
 }));
+vi.mock("@/components/glade/PantryPanel", () => ({
+  PantryPanel: () => null,
+}));
 vi.mock("@/components/glade/SkillsPanel", () => ({
   SkillsPanel: () => null,
 }));

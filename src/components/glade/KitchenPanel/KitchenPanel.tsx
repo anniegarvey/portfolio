@@ -3,12 +3,7 @@
 import { Coins } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
-import {
-  ALL_INGREDIENT_IDS,
-  ALL_TREAT_IDS,
-  INGREDIENTS,
-  RECIPES,
-} from "@/lib/glade/catalog";
+import { ALL_TREAT_IDS, INGREDIENTS, RECIPES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import {
   canCook,
@@ -18,33 +13,12 @@ import {
 import { usePoints } from "@/lib/points/context";
 
 export function KitchenPanel() {
-  const { state, cookTreat, buyIngredient, buyMissingIngredients } = useGlade();
+  const { state, cookTreat, buyMissingIngredients } = useGlade();
   const { points } = usePoints();
   const cookingTier = state.skills["treat-cooking"].tier;
 
   return (
     <Panel>
-      <Section>
-        <SectionTitle>Pantry</SectionTitle>
-        <Grid>
-          {ALL_INGREDIENT_IDS.map((id) => (
-            <Item key={id}>
-              <ItemName>
-                {INGREDIENTS[id].name} ×{state.pantry.ingredients[id] ?? 0}
-              </ItemName>
-              <Button
-                disabled={points < INGREDIENTS[id].cost}
-                onClick={() => buyIngredient(id)}
-                size="sm"
-                variant="outline"
-              >
-                Buy <Coins aria-hidden size={13} /> {INGREDIENTS[id].cost}
-              </Button>
-            </Item>
-          ))}
-        </Grid>
-      </Section>
-
       <Section>
         <SectionTitle>Recipes</SectionTitle>
         <Grid>
