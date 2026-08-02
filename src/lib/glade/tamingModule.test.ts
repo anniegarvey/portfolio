@@ -136,12 +136,41 @@ describe("offerTreat", () => {
     const result = offerTreat(state, "nope", "berry-bites", TODAY, fixedRng);
     expect(result.trustGained).toBe(null);
   });
+
+  it("does nothing while treat-cooking is locked", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      pantry: { ingredients: {}, treats: { "berry-bites": 2 } },
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill(), // tier 1 — locks treat-cooking
+      },
+    });
+    const result = offerTreat(
+      state,
+      visitor.id,
+      "berry-bites",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.trustGained).toBe(null);
+    expect(result.state).toBe(state);
+  });
 });
 
 describe("approachVisitor", () => {
   it("raises trust and grants body-language XP", () => {
     const visitor = makeVisitor({ speciesId: "rabbit" });
-    const state = makeGladeState({ visitors: [visitor] });
+    const state = makeGladeState({
+      visitors: [visitor],
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(), // tier 1 — pins the trust-gain math
+        "petting-technique": makeSkill(),
+      },
+    });
     const result = approachVisitor(
       state,
       visitor.id,
@@ -157,7 +186,14 @@ describe("approachVisitor", () => {
 
   it("gives reduced (never negative) trust on a mismatch", () => {
     const visitor = makeVisitor({ speciesId: "rabbit" });
-    const state = makeGladeState({ visitors: [visitor] });
+    const state = makeGladeState({
+      visitors: [visitor],
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(), // tier 1 — pins the trust-gain math
+        "petting-technique": makeSkill(),
+      },
+    });
     const result = approachVisitor(
       state,
       visitor.id,
@@ -279,7 +315,14 @@ describe("approachVisitor", () => {
 describe("petVisitor", () => {
   it("raises trust and grants petting-technique XP", () => {
     const visitor = makeVisitor({ speciesId: "rabbit" });
-    const state = makeGladeState({ visitors: [visitor] });
+    const state = makeGladeState({
+      visitors: [visitor],
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill({ tier: 2 }), // unlocks petting-technique
+        "petting-technique": makeSkill(), // tier 1 — pins the trust-gain math
+      },
+    });
     const result = petVisitor(
       state,
       visitor.id,
@@ -350,6 +393,27 @@ describe("petVisitor", () => {
     const state = makeGladeState({ visitors: [visitor] });
     const result = petVisitor(state, visitor.id, "chin", TODAY, fixedRng);
     expect(result.trustGained).toBe(null);
+  });
+
+  it("does nothing while petting-technique is locked", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(), // tier 1 — locks petting-technique
+        "petting-technique": makeSkill(),
+      },
+    });
+    const result = petVisitor(
+      state,
+      visitor.id,
+      "behind-ears",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.trustGained).toBe(null);
+    expect(result.state).toBe(state);
   });
 });
 

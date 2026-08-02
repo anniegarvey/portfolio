@@ -106,13 +106,13 @@ A per-species meter raised by taming actions, with the threshold set by rarity. 
 A tamed creature living in the glade. Contributes its species' benefit each **Daily glade advance**.
 
 **Taming action**
-One of three interactions a wild visitor accepts each day: _offer treat_, _approach_ (body language), and _pet_. Approach and pet each involve a light choice (posture / petting spot) checked against the species' preference — a matching choice earns bonus trust, a mismatch earns reduced trust, never negative.
+One of three interactions a wild visitor accepts each day: _offer treat_, _approach_ (body language), and _pet_. Approach and pet each involve a light choice (posture / petting spot) checked against the species' preference — a matching choice earns bonus trust, a mismatch earns reduced trust, never negative. Pet and offer treat are locked at first — see **Taming skill** for the unlock order.
 
 **Preference**
 A species' favoured treat, approach posture, and petting spot. Each of the three has its own hint, hidden until a matching action confirms that specific one — guessing the pet spot right doesn't reveal the treat or posture. Discovered hints get clearer at higher skill tiers.
 
 **Taming skill**
-One of three player skills: _Treat Cooking_, _Body Language_, _Petting Technique_. Skills gain XP through use and advance in tiers.
+One of three player skills: _Treat Cooking_, _Body Language_, _Petting Technique_. Skills gain XP through use and advance in tiers. They unlock sequentially: Body Language is available from the start; reaching tier 2 unlocks Petting Technique (and the pet action); reaching tier 2 in Petting Technique unlocks Treat Cooking (and cooking/offering treats). A locked skill neither earns XP nor accepts a lesson (see ADR 0005).
 
 **Skill tier**
 A skill's level. Advancing requires both a full XP bar and buying a **Lesson** with points. Higher tiers raise trust gains, sharpen preference hints, and unlock recipes.

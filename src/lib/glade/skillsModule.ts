@@ -1,5 +1,18 @@
-import { lessonCostFor, MAX_TIER, SPECIES, xpThresholdFor } from "./catalog";
+import {
+  lessonCostFor,
+  MAX_TIER,
+  SKILL_UNLOCK_REQUIREMENT,
+  SPECIES,
+  xpThresholdFor,
+} from "./catalog";
 import type { GladeState, SkillId } from "./schema";
+
+/** A skill is unlocked once its prerequisite (if any) reaches the required tier. */
+export function isSkillUnlocked(state: GladeState, skillId: SkillId): boolean {
+  const requirement = SKILL_UNLOCK_REQUIREMENT[skillId];
+  if (requirement === null) return true;
+  return state.skills[requirement.skillId].tier >= requirement.tier;
+}
 
 /**
  * Grants XP to a skill, clamped at the current tier's threshold (the bar
@@ -21,8 +34,9 @@ export function gainXp(state: GladeState, skillId: SkillId): GladeState {
   };
 }
 
-/** A lesson is buyable when the XP bar is full and the skill isn't maxed. */
+/** A lesson is buyable when the skill is unlocked, its XP bar is full, and it isn't maxed. */
 export function canBuyLesson(state: GladeState, skillId: SkillId): boolean {
+  if (!isSkillUnlocked(state, skillId)) return false;
   const skill = state.skills[skillId];
   const threshold = xpThresholdFor(skill.tier);
   return threshold !== null && skill.xp >= threshold;

@@ -3,6 +3,7 @@
 import { Coins } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
+import { UnlockNotice } from "@/components/glade/UnlockNotice";
 import { ALL_TREAT_IDS, INGREDIENTS, RECIPES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import {
@@ -10,67 +11,73 @@ import {
   missingIngredients,
   missingIngredientsCost,
 } from "@/lib/glade/cookingModule";
+import { isSkillUnlocked } from "@/lib/glade/skillsModule";
 import { usePoints } from "@/lib/points/context";
 
 export function KitchenPanel() {
   const { state, cookTreat, buyMissingIngredients } = useGlade();
   const { points } = usePoints();
   const cookingTier = state.skills["treat-cooking"].tier;
+  const cookingUnlocked = isSkillUnlocked(state, "treat-cooking");
 
   return (
     <Panel>
       <Section>
         <SectionTitle>Recipes</SectionTitle>
-        <Grid>
-          {ALL_TREAT_IDS.map((treatId) => {
-            const recipe = RECIPES[treatId];
-            const locked = cookingTier < recipe.requiredTier;
-            const ingredientList = Object.entries(recipe.ingredients)
-              .map(
-                ([ingredientId, count]) =>
-                  `${count} ${INGREDIENTS[ingredientId as keyof typeof INGREDIENTS].name.toLowerCase()}`,
-              )
-              .join(", ");
-            const missing = missingIngredients(state, treatId);
-            const missingCost = missingIngredientsCost(missing);
-            return (
-              <Item key={treatId}>
-                <ItemName>
-                  {recipe.name} ×{state.pantry.treats[treatId] ?? 0}
-                </ItemName>
-                <ItemMeta>
-                  {ingredientList} · +{recipe.potency} trust
-                </ItemMeta>
-                {locked ? (
+        {!cookingUnlocked ? (
+          <UnlockNotice skillId="treat-cooking" />
+        ) : (
+          <Grid>
+            {ALL_TREAT_IDS.map((treatId) => {
+              const recipe = RECIPES[treatId];
+              const locked = cookingTier < recipe.requiredTier;
+              const ingredientList = Object.entries(recipe.ingredients)
+                .map(
+                  ([ingredientId, count]) =>
+                    `${count} ${INGREDIENTS[ingredientId as keyof typeof INGREDIENTS].name.toLowerCase()}`,
+                )
+                .join(", ");
+              const missing = missingIngredients(state, treatId);
+              const missingCost = missingIngredientsCost(missing);
+              return (
+                <Item key={treatId}>
+                  <ItemName>
+                    {recipe.name} ×{state.pantry.treats[treatId] ?? 0}
+                  </ItemName>
                   <ItemMeta>
-                    Unlocks at Treat Cooking tier {recipe.requiredTier}
+                    {ingredientList} · +{recipe.potency} trust
                   </ItemMeta>
-                ) : (
-                  <ButtonRow>
-                    <Button
-                      disabled={!canCook(state, treatId)}
-                      onClick={() => cookTreat(treatId)}
-                      size="sm"
-                    >
-                      Cook
-                    </Button>
-                    {missingCost > 0 && (
+                  {locked ? (
+                    <ItemMeta>
+                      Unlocks at Treat Cooking tier {recipe.requiredTier}
+                    </ItemMeta>
+                  ) : (
+                    <ButtonRow>
                       <Button
-                        disabled={points < missingCost}
-                        onClick={() => buyMissingIngredients(treatId)}
+                        disabled={!canCook(state, treatId)}
+                        onClick={() => cookTreat(treatId)}
                         size="sm"
-                        variant="outline"
                       >
-                        Buy missing <Coins aria-hidden size={13} />{" "}
-                        {missingCost}
+                        Cook
                       </Button>
-                    )}
-                  </ButtonRow>
-                )}
-              </Item>
-            );
-          })}
-        </Grid>
+                      {missingCost > 0 && (
+                        <Button
+                          disabled={points < missingCost}
+                          onClick={() => buyMissingIngredients(treatId)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Buy missing <Coins aria-hidden size={13} />{" "}
+                          {missingCost}
+                        </Button>
+                      )}
+                    </ButtonRow>
+                  )}
+                </Item>
+              );
+            })}
+          </Grid>
+        )}
       </Section>
     </Panel>
   );

@@ -24,7 +24,13 @@ test.describe("Creature Glade", () => {
   test("hides a visitor's preference hints until each is guessed correctly", async ({
     page,
   }) => {
-    await goToGladeWithSeed(page);
+    await goToGladeWithSeed(page, {
+      skills: {
+        "treat-cooking": { tier: 1, xp: 0 },
+        "body-language": { tier: 2, xp: 0 }, // unlocks petting-technique
+        "petting-technique": { tier: 1, xp: 0 },
+      },
+    });
 
     const postureHint = page.getByText(
       "Seems happiest when you keep very still.",
@@ -47,7 +53,13 @@ test.describe("Creature Glade", () => {
   test("cooking a treat and offering it raises trust (favourite = double)", async ({
     page,
   }) => {
-    await goToGladeWithSeed(page);
+    await goToGladeWithSeed(page, {
+      skills: {
+        "treat-cooking": { tier: 1, xp: 0 },
+        "body-language": { tier: 1, xp: 0 },
+        "petting-technique": { tier: 2, xp: 0 }, // unlocks treat-cooking
+      },
+    });
 
     // Cook Berry Bites in the kitchen (2 of the 4 seeded berries)
     await page.getByRole("tab", { name: "Kitchen" }).click();
@@ -73,7 +85,7 @@ test.describe("Creature Glade", () => {
       skills: {
         "treat-cooking": { tier: 2, xp: 0 },
         "body-language": { tier: 1, xp: 0 },
-        "petting-technique": { tier: 1, xp: 0 },
+        "petting-technique": { tier: 2, xp: 0 }, // unlocks treat-cooking
       },
       ingredients: { oats: 1 },
       points: 20,
@@ -103,7 +115,14 @@ test.describe("Creature Glade", () => {
     page,
   }) => {
     // Robin needs 60 trust; preferred spot is the back (tier 1 match = +11)
-    await goToGladeWithSeed(page, { visitorTrust: 59 });
+    await goToGladeWithSeed(page, {
+      visitorTrust: 59,
+      skills: {
+        "treat-cooking": { tier: 1, xp: 0 },
+        "body-language": { tier: 2, xp: 0 }, // unlocks petting-technique
+        "petting-technique": { tier: 1, xp: 0 },
+      },
+    });
 
     await page.getByRole("button", { name: "Along the back" }).click();
 
@@ -178,10 +197,90 @@ test.describe("Creature Glade", () => {
   test("core action buttons meet the 44px touch target", async ({ page }) => {
     await goToGladeWithSeed(page);
 
-    // A representative compact (size="sm") action button on the visitor card.
+    // A representative compact (size="sm") action button on the visitor
+    // card. Approach is always unlocked, unlike Pet and Offer a treat.
     const box = await page
-      .getByRole("button", { name: "Along the back" })
+      .getByRole("button", { name: "Sit still" })
       .boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test("pet and offer-treat actions are locked until their skills unlock", async ({
+    page,
+  }) => {
+    await goToGladeWithSeed(page);
+    const robinCard = page.getByRole("region", { name: /^Robin/ });
+
+    // Approach is available from the start.
+    await expect(
+      robinCard.getByRole("button", { name: "Sit still" }),
+    ).toBeVisible();
+
+    // Pet and Offer a treat are locked until Body Language / Petting
+    // Technique reach tier 2 — scoped to the visitor card since the
+    // Skills tab (mounted by default) shows identical messages.
+    await expect(
+      robinCard.getByRole("button", { name: "Along the back" }),
+    ).toBeHidden();
+    await expect(
+      robinCard.getByText("Unlocks at Body Language tier 2"),
+    ).toBeVisible();
+    await expect(
+      robinCard.getByText("Unlocks at Petting Technique tier 2"),
+    ).toBeVisible();
+
+    await page.getByRole("tab", { name: "Skills" }).click();
+    const skillsPanel = page.getByRole("tabpanel", { name: "Skills" });
+    await expect(
+      skillsPanel.getByRole("heading", { name: "Petting Technique" }),
+    ).toBeVisible();
+    await expect(
+      skillsPanel.getByText("Unlocks at Body Language tier 2"),
+    ).toBeVisible();
+    await expect(
+      skillsPanel.getByText("Unlocks at Petting Technique tier 2"),
+    ).toBeVisible();
+
+    await page.getByRole("tab", { name: "Kitchen" }).click();
+    await expect(
+      page
+        .getByRole("tabpanel", { name: "Kitchen" })
+        .getByText("Unlocks at Petting Technique tier 2"),
+    ).toBeVisible();
+  });
+
+  test("resetting the glade wipes progress back to a fresh start", async ({
+    page,
+  }) => {
+    await goToGladeWithSeed(page, {
+      residents: [{ speciesId: "rabbit", x: 30, y: 60 }],
+      skills: {
+        "treat-cooking": { tier: 1, xp: 0 },
+        "body-language": { tier: 3, xp: 0 },
+        "petting-technique": { tier: 2, xp: 0 },
+      },
+    });
+
+    await page.getByRole("button", { name: "Reset glade" }).click();
+    await page
+      .getByRole("dialog", { name: "Reset the glade?" })
+      .getByRole("button", { name: "Reset glade" })
+      .click();
+
+    // Back to a single fresh robin at zero trust and no residents.
+    await expect(page.getByRole("heading", { name: /^Robin/ })).toBeVisible();
+    await expect(page.getByText("Trust 0/60")).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Glade ecosystem" }).getByText("Rabbit"),
+    ).toBeHidden();
+
+    // Petting Technique is locked again, matching a brand-new save. Scoped
+    // to the Skills tab (default-active) since the visitor card's Pet
+    // action shows an identical message.
+    await expect(
+      page
+        .getByRole("tabpanel", { name: "Skills" })
+        .getByText("Unlocks at Body Language tier 2"),
+    ).toBeVisible();
   });
 });

@@ -15,7 +15,7 @@ import type {
   TreatId,
   WildVisitor,
 } from "./schema";
-import { gainXp } from "./skillsModule";
+import { gainXp, isSkillUnlocked } from "./skillsModule";
 
 // ─── Trust Math ───────────────────────────────────────────────────────────────
 
@@ -135,6 +135,7 @@ export function offerTreat(
   today: string,
   rng: () => number = Math.random,
 ): ActionResult {
+  if (!isSkillUnlocked(state, "treat-cooking")) return noAction(state);
   const visitor = state.visitors.find((v) => v.id === visitorId);
   if (!visitor || visitor.actionsToday.treat) return noAction(state);
   if ((state.pantry.treats[treatId] ?? 0) < 1) return noAction(state);
@@ -211,6 +212,7 @@ export function petVisitor(
   today: string,
   rng: () => number = Math.random,
 ): ActionResult {
+  if (!isSkillUnlocked(state, "petting-technique")) return noAction(state);
   const visitor = state.visitors.find((v) => v.id === visitorId);
   if (!visitor || visitor.actionsToday.pet) return noAction(state);
 

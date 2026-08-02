@@ -3,77 +3,94 @@
 import { Coins } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
+import { UnlockNotice } from "@/components/glade/UnlockNotice";
 import { MAX_TIER, SKILL_NAMES, xpThresholdFor } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { SkillId } from "@/lib/glade/schema";
-import { canBuyLesson, nextLessonCost } from "@/lib/glade/skillsModule";
+import {
+  canBuyLesson,
+  isSkillUnlocked,
+  nextLessonCost,
+} from "@/lib/glade/skillsModule";
 import { usePoints } from "@/lib/points/context";
 
 const SKILL_DESCRIPTIONS: Record<SkillId, string> = {
-  "treat-cooking":
-    "Unlocks new recipes. Earn XP by cooking treats in the kitchen.",
   "body-language":
     "Calmer approaches build more trust. Earn XP by approaching visitors.",
   "petting-technique":
     "Better petting builds more trust. Earn XP by petting visitors.",
+  "treat-cooking":
+    "Unlocks new recipes. Earn XP by cooking treats in the kitchen.",
 };
 
 const SKILL_IDS = Object.keys(SKILL_NAMES) as SkillId[];
 
 export function SkillsPanel() {
-  const { state, buyLesson } = useGlade();
-  const { points } = usePoints();
-
   return (
     <Panel>
-      {SKILL_IDS.map((skillId) => {
-        const skill = state.skills[skillId];
-        const threshold = xpThresholdFor(skill.tier);
-        const maxed = threshold === null;
-        const xpPct = maxed ? 100 : Math.round((skill.xp / threshold) * 100);
-        const cost = nextLessonCost(state, skillId);
-
-        return (
-          <SkillCard key={skillId}>
-            <SkillHeader>
-              <SkillName>{SKILL_NAMES[skillId]}</SkillName>
-              <Tier>
-                Tier {skill.tier}/{MAX_TIER}
-              </Tier>
-            </SkillHeader>
-            <Description>{SKILL_DESCRIPTIONS[skillId]}</Description>
-            <XpTrack
-              aria-label={
-                maxed
-                  ? `${SKILL_NAMES[skillId]}: mastered`
-                  : `${SKILL_NAMES[skillId]} XP: ${skill.xp} of ${threshold}`
-              }
-              aria-valuemax={threshold ?? skill.xp}
-              aria-valuemin={0}
-              aria-valuenow={skill.xp}
-              role="meter"
-            >
-              <XpFill style={{ width: `${xpPct}%` }} />
-            </XpTrack>
-            {maxed ? (
-              <Mastered>Mastered</Mastered>
-            ) : canBuyLesson(state, skillId) ? (
-              <Button
-                disabled={cost !== null && points < cost}
-                onClick={() => buyLesson(skillId)}
-                size="sm"
-              >
-                Take lesson <Coins aria-hidden size={13} /> {cost}
-              </Button>
-            ) : (
-              <Progress>
-                {skill.xp}/{threshold} XP to next lesson
-              </Progress>
-            )}
-          </SkillCard>
-        );
-      })}
+      {SKILL_IDS.map((skillId) => (
+        <SkillCardItem key={skillId} skillId={skillId} />
+      ))}
     </Panel>
+  );
+}
+
+function SkillCardItem({ skillId }: { skillId: SkillId }) {
+  const { state, buyLesson } = useGlade();
+  const { points } = usePoints();
+  const skill = state.skills[skillId];
+  const unlocked = isSkillUnlocked(state, skillId);
+  const threshold = xpThresholdFor(skill.tier);
+  const maxed = threshold === null;
+  const xpPct = maxed ? 100 : Math.round((skill.xp / threshold) * 100);
+  const cost = nextLessonCost(state, skillId);
+
+  return (
+    <SkillCard>
+      <SkillHeader>
+        <SkillName>{SKILL_NAMES[skillId]}</SkillName>
+        {unlocked && (
+          <Tier>
+            Tier {skill.tier}/{MAX_TIER}
+          </Tier>
+        )}
+      </SkillHeader>
+      <Description>{SKILL_DESCRIPTIONS[skillId]}</Description>
+      {!unlocked ? (
+        <UnlockNotice skillId={skillId} />
+      ) : (
+        <>
+          <XpTrack
+            aria-label={
+              maxed
+                ? `${SKILL_NAMES[skillId]}: mastered`
+                : `${SKILL_NAMES[skillId]} XP: ${skill.xp} of ${threshold}`
+            }
+            aria-valuemax={threshold ?? skill.xp}
+            aria-valuemin={0}
+            aria-valuenow={skill.xp}
+            role="meter"
+          >
+            <XpFill style={{ width: `${xpPct}%` }} />
+          </XpTrack>
+          {maxed ? (
+            <Mastered>Mastered</Mastered>
+          ) : canBuyLesson(state, skillId) ? (
+            <Button
+              disabled={cost !== null && points < cost}
+              onClick={() => buyLesson(skillId)}
+              size="sm"
+            >
+              Take lesson <Coins aria-hidden size={13} /> {cost}
+            </Button>
+          ) : (
+            <Progress>
+              {skill.xp}/{threshold} XP to next lesson
+            </Progress>
+          )}
+        </>
+      )}
+    </SkillCard>
   );
 }
 

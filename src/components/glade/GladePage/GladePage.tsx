@@ -8,6 +8,7 @@ import { DailyDigest } from "@/components/glade/DailyDigest";
 import { GladeScene } from "@/components/glade/GladeScene";
 import { KitchenPanel } from "@/components/glade/KitchenPanel";
 import { PantryPanel } from "@/components/glade/PantryPanel";
+import { ResetGlade } from "@/components/glade/ResetGlade";
 import { SkillsPanel } from "@/components/glade/SkillsPanel";
 import { TameCelebration } from "@/components/glade/TameCelebration";
 import { TamedCard } from "@/components/glade/TamedCard";
@@ -68,7 +69,7 @@ export function GladePage() {
           )}
         </section>
 
-        <PageTabs defaultValue="kitchen">
+        <PageTabs defaultValue="skills">
           <PageTabsList aria-label="Glade sections">
             <PageTab value="pantry">Pantry</PageTab>
             <PageTab value="kitchen">Kitchen</PageTab>
@@ -89,6 +90,8 @@ export function GladePage() {
             <CollectionPanel />
           </Tabs.Content>
         </PageTabs>
+
+        <ResetGlade />
       </Layout>
     </MaxWidthWrapper>
   );

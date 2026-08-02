@@ -87,6 +87,8 @@ export interface GladeContextType {
   /** Buys every ingredient still missing for a recipe in one purchase. */
   buyMissingIngredients: (treatId: TreatId) => boolean;
   buyLesson: (skillId: SkillId) => boolean;
+  /** Wipes all glade progress back to a fresh start. Does not touch points. */
+  resetGlade: () => void;
 }
 
 const GladeContext = createContext<GladeContextType | undefined>(undefined);
@@ -299,6 +301,17 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [state, setState, spendPoints],
   );
 
+  // Wipes persisted and in-flight session state alike so no stale
+  // celebration/report can outlive the reset. Points are untouched — they're
+  // a currency shared with Bonsai, not part of glade progress.
+  const handleResetGlade = useCallback(() => {
+    setLastAction(null);
+    clearCelebration();
+    clearDailyReport();
+    clearTamedVisitor();
+    setState(() => createInitialState());
+  }, [setState, clearCelebration, clearDailyReport, clearTamedVisitor]);
+
   return (
     <GladeContext.Provider
       value={{
@@ -321,6 +334,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         buyIngredient: handleBuyIngredient,
         buyMissingIngredients: handleBuyMissingIngredients,
         buyLesson: handleBuyLesson,
+        resetGlade: handleResetGlade,
       }}
     >
       {children}

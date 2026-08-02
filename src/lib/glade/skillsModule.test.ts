@@ -5,6 +5,7 @@ import {
   canBuyLesson,
   gainXp,
   hasClearHints,
+  isSkillUnlocked,
   nextLessonCost,
 } from "./skillsModule";
 import { makeGladeState, makeSkill } from "./testFixtures";
@@ -101,7 +102,7 @@ describe("canBuyLesson / nextLessonCost", () => {
       skills: {
         "treat-cooking": makeSkill({ xp: XP_THRESHOLDS[0] }),
         "body-language": makeSkill(),
-        "petting-technique": makeSkill(),
+        "petting-technique": makeSkill({ tier: 2 }),
       },
     });
     expect(canBuyLesson(state, "treat-cooking")).toBe(true);
@@ -113,11 +114,22 @@ describe("canBuyLesson / nextLessonCost", () => {
       skills: {
         "treat-cooking": makeSkill({ tier: 5, xp: 99 }),
         "body-language": makeSkill(),
-        "petting-technique": makeSkill(),
+        "petting-technique": makeSkill({ tier: 2 }),
       },
     });
     expect(canBuyLesson(state, "treat-cooking")).toBe(false);
     expect(nextLessonCost(state, "treat-cooking")).toBe(null);
+  });
+
+  it("is never buyable while the skill is locked, even with a full XP bar", () => {
+    const state = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill({ xp: XP_THRESHOLDS[0] }),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill(), // tier 1 — locks treat-cooking
+      },
+    });
+    expect(canBuyLesson(state, "treat-cooking")).toBe(false);
   });
 });
 
@@ -127,7 +139,7 @@ describe("buyLesson", () => {
       skills: {
         "treat-cooking": makeSkill({ xp: XP_THRESHOLDS[0] }),
         "body-language": makeSkill(),
-        "petting-technique": makeSkill(),
+        "petting-technique": makeSkill({ tier: 2 }),
       },
     });
     const next = buyLesson(state, "treat-cooking");
@@ -154,5 +166,56 @@ describe("hasClearHints", () => {
       },
     });
     expect(hasClearHints(state)).toBe(true);
+  });
+});
+
+describe("isSkillUnlocked", () => {
+  it("body-language is always unlocked", () => {
+    const state = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill(),
+      },
+    });
+    expect(isSkillUnlocked(state, "body-language")).toBe(true);
+  });
+
+  it("petting-technique is locked until body-language reaches tier 2", () => {
+    const locked = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill(),
+      },
+    });
+    const unlocked = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill({ tier: 2 }),
+        "petting-technique": makeSkill(),
+      },
+    });
+    expect(isSkillUnlocked(locked, "petting-technique")).toBe(false);
+    expect(isSkillUnlocked(unlocked, "petting-technique")).toBe(true);
+  });
+
+  it("treat-cooking is locked until petting-technique reaches tier 2", () => {
+    const locked = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill(),
+      },
+    });
+    const unlocked = makeGladeState({
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill({ tier: 2 }),
+      },
+    });
+    expect(isSkillUnlocked(locked, "treat-cooking")).toBe(false);
+    expect(isSkillUnlocked(unlocked, "treat-cooking")).toBe(true);
   });
 });

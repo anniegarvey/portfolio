@@ -29,7 +29,19 @@ function setupMockPoints(spendResult = true) {
 function seedLocalStorage(overrides?: object) {
   const base = createInitialState();
   // Mark today as already advanced so mount doesn't spawn extra visitors.
-  const merged = { ...base, lastAdvanceDate: TODAY, ...overrides };
+  // Body Language and Petting Technique default to tier 2 so Petting
+  // Technique and Treat Cooking start unlocked — most tests exercise
+  // pet/cook/offer as generic taming actions, not the unlock gating itself.
+  const merged = {
+    ...base,
+    lastAdvanceDate: TODAY,
+    skills: {
+      "treat-cooking": { tier: 1, xp: 0 },
+      "body-language": { tier: 2, xp: 0 },
+      "petting-technique": { tier: 2, xp: 0 },
+    },
+    ...overrides,
+  };
   localStorage.setItem(GLADE_KEY, JSON.stringify(merged));
 }
 
@@ -156,6 +168,9 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.buyLesson("petting-technique")} type="button">
         Buy Lesson
+      </button>
+      <button onClick={() => ctx.resetGlade()} type="button">
+        Reset Glade
       </button>
     </div>
   );
@@ -344,7 +359,7 @@ describe("GladeProvider", () => {
     seedLocalStorage({
       skills: {
         "treat-cooking": { tier: 1, xp: 0 },
-        "body-language": { tier: 1, xp: 0 },
+        "body-language": { tier: 2, xp: 0 },
         "petting-technique": { tier: 1, xp: XP_THRESHOLDS[0] },
       },
     });
@@ -495,6 +510,38 @@ describe("GladeProvider", () => {
       screen.getByRole("button", { name: "Clear Tamed Visitor" }),
     );
     expect(screen.getByTestId("tamed-resident-id")).toHaveTextContent("none");
+  });
+
+  it("resetGlade wipes progress back to a fresh state and persists it", async () => {
+    seedLocalStorage({
+      residents: [
+        {
+          id: "00000000-0000-4000-8000-000000000050",
+          speciesId: "rabbit",
+          tamedDate: TODAY,
+          position: { x: 30, y: 70 },
+        },
+      ],
+      skills: {
+        "treat-cooking": { tier: 3, xp: 0 },
+        "body-language": { tier: 3, xp: 0 },
+        "petting-technique": { tier: 3, xp: 2 },
+      },
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("trust");
+    expect(screen.getByTestId("resident-count")).toHaveTextContent("1");
+
+    await user.click(screen.getByRole("button", { name: "Reset Glade" }));
+
+    expect(screen.getByTestId("visitor-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("resident-count")).toHaveTextContent("0");
+    expect(screen.getByTestId("petting-xp")).toHaveTextContent("0");
+
+    const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "{}");
+    expect(stored.residents).toEqual([]);
+    expect(stored.skills["body-language"]).toEqual({ tier: 1, xp: 0 });
   });
 
   it("useGlade throws outside the provider", () => {

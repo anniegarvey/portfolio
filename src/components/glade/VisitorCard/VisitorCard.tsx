@@ -1,9 +1,10 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useId, useRef } from "react";
+import { type RefObject, useId, useRef } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
+import { UnlockNotice } from "@/components/glade/UnlockNotice";
 import {
   ALL_TREAT_IDS,
   PET_SPOT_LABELS,
@@ -21,7 +22,7 @@ import type {
   TreatId,
   WildVisitor,
 } from "@/lib/glade/schema";
-import { hasClearHints } from "@/lib/glade/skillsModule";
+import { hasClearHints, isSkillUnlocked } from "@/lib/glade/skillsModule";
 
 const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
@@ -50,17 +51,13 @@ function discoveredHints(
 }
 
 export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
-  const { state, lastAction, offerTreat, approachVisitor, petVisitor } =
-    useGlade();
+  const { state, lastAction, approachVisitor } = useGlade();
   const headingId = useId();
   const portraitRef = useRef<HTMLDivElement>(null);
 
   const species = SPECIES[visitor.speciesId];
   const threshold = tameThresholdFor(visitor.speciesId);
   const trustPct = Math.round((visitor.trust / threshold) * 100);
-  const availableTreats = ALL_TREAT_IDS.filter(
-    (id) => (state.pantry.treats[id] ?? 0) > 0,
-  );
   const hints = discoveredHints(
     species,
     state.discoveredPreferences[visitor.speciesId],
@@ -106,33 +103,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
       {feedback !== null && <Feedback role="status">{feedback}</Feedback>}
 
       <Actions>
-        <ActionGroup>
-          <GroupLabel>Offer a treat</GroupLabel>
-          {visitor.actionsToday.treat ? (
-            <Done>Fed for today</Done>
-          ) : availableTreats.length === 0 ? (
-            <Done>No treats cooked yet</Done>
-          ) : (
-            <ChoiceRow>
-              {availableTreats.map((treatId: TreatId) => (
-                <Button
-                  key={treatId}
-                  onClick={() =>
-                    offerTreat(
-                      visitor.id,
-                      treatId,
-                      portraitRef.current?.getBoundingClientRect(),
-                    )
-                  }
-                  size="sm"
-                  variant="outline"
-                >
-                  {RECIPES[treatId].name} ×{state.pantry.treats[treatId]}
-                </Button>
-              ))}
-            </ChoiceRow>
-          )}
-        </ActionGroup>
+        <TreatActionGroup portraitRef={portraitRef} visitor={visitor} />
 
         <ActionGroup>
           <GroupLabel>Approach</GroupLabel>
@@ -160,33 +131,96 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
           )}
         </ActionGroup>
 
-        <ActionGroup>
-          <GroupLabel>Pet</GroupLabel>
-          {visitor.actionsToday.pet ? (
-            <Done>Petted today</Done>
-          ) : (
-            <ChoiceRow>
-              {PET_SPOTS.map((spot) => (
-                <Button
-                  key={spot}
-                  onClick={() =>
-                    petVisitor(
-                      visitor.id,
-                      spot,
-                      portraitRef.current?.getBoundingClientRect(),
-                    )
-                  }
-                  size="sm"
-                  variant="outline"
-                >
-                  {PET_SPOT_LABELS[spot]}
-                </Button>
-              ))}
-            </ChoiceRow>
-          )}
-        </ActionGroup>
+        <PetActionGroup portraitRef={portraitRef} visitor={visitor} />
       </Actions>
     </Card>
+  );
+}
+
+function TreatActionGroup({
+  visitor,
+  portraitRef,
+}: {
+  visitor: WildVisitor;
+  portraitRef: RefObject<HTMLDivElement | null>;
+}) {
+  const { state, offerTreat } = useGlade();
+  const treatUnlocked = isSkillUnlocked(state, "treat-cooking");
+  const availableTreats = ALL_TREAT_IDS.filter(
+    (id) => (state.pantry.treats[id] ?? 0) > 0,
+  );
+
+  return (
+    <ActionGroup>
+      <GroupLabel>Offer a treat</GroupLabel>
+      {!treatUnlocked ? (
+        <UnlockNotice skillId="treat-cooking" />
+      ) : visitor.actionsToday.treat ? (
+        <Done>Fed for today</Done>
+      ) : availableTreats.length === 0 ? (
+        <Done>No treats cooked yet</Done>
+      ) : (
+        <ChoiceRow>
+          {availableTreats.map((treatId: TreatId) => (
+            <Button
+              key={treatId}
+              onClick={() =>
+                offerTreat(
+                  visitor.id,
+                  treatId,
+                  portraitRef.current?.getBoundingClientRect(),
+                )
+              }
+              size="sm"
+              variant="outline"
+            >
+              {RECIPES[treatId].name} ×{state.pantry.treats[treatId]}
+            </Button>
+          ))}
+        </ChoiceRow>
+      )}
+    </ActionGroup>
+  );
+}
+
+function PetActionGroup({
+  visitor,
+  portraitRef,
+}: {
+  visitor: WildVisitor;
+  portraitRef: RefObject<HTMLDivElement | null>;
+}) {
+  const { state, petVisitor } = useGlade();
+  const petUnlocked = isSkillUnlocked(state, "petting-technique");
+
+  return (
+    <ActionGroup>
+      <GroupLabel>Pet</GroupLabel>
+      {!petUnlocked ? (
+        <UnlockNotice skillId="petting-technique" />
+      ) : visitor.actionsToday.pet ? (
+        <Done>Petted today</Done>
+      ) : (
+        <ChoiceRow>
+          {PET_SPOTS.map((spot) => (
+            <Button
+              key={spot}
+              onClick={() =>
+                petVisitor(
+                  visitor.id,
+                  spot,
+                  portraitRef.current?.getBoundingClientRect(),
+                )
+              }
+              size="sm"
+              variant="outline"
+            >
+              {PET_SPOT_LABELS[spot]}
+            </Button>
+          ))}
+        </ChoiceRow>
+      )}
+    </ActionGroup>
   );
 }
 

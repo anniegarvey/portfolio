@@ -38,6 +38,18 @@ describe("canCook", () => {
     };
     expect(canCook(skilled, "honey-drops")).toBe(true);
   });
+
+  it("is false while treat-cooking itself is locked", () => {
+    const state = makeGladeState({
+      pantry: { ingredients: { berries: 2 }, treats: {} },
+      skills: {
+        "treat-cooking": makeSkill(),
+        "body-language": makeSkill(),
+        "petting-technique": makeSkill(), // tier 1 — locks treat-cooking
+      },
+    });
+    expect(canCook(state, "berry-bites")).toBe(false);
+  });
 });
 
 describe("missingIngredients", () => {

@@ -595,10 +595,27 @@ export const ROLE_DESCRIPTIONS: Record<BenefitRole, string> = {
 
 // ─── Skills ───────────────────────────────────────────────────────────────────
 
+// Ordered to match the unlock sequence (see SKILL_UNLOCK_REQUIREMENT below),
+// since SkillsPanel renders skill cards in this key order.
 export const SKILL_NAMES: Record<SkillId, string> = {
-  "treat-cooking": "Treat Cooking",
   "body-language": "Body Language",
   "petting-technique": "Petting Technique",
+  "treat-cooking": "Treat Cooking",
+};
+
+/**
+ * Skills unlock in sequence so the tree can't be maxed out in a couple of
+ * weeks: Body Language is available from the start, Petting Technique
+ * unlocks once Body Language reaches the given tier, and Treat Cooking
+ * unlocks once Petting Technique does. Null means always unlocked.
+ */
+export const SKILL_UNLOCK_REQUIREMENT: Record<
+  SkillId,
+  { skillId: SkillId; tier: number } | null
+> = {
+  "body-language": null,
+  "petting-technique": { skillId: "body-language", tier: 2 },
+  "treat-cooking": { skillId: "petting-technique", tier: 2 },
 };
 
 export const MAX_TIER = 5;

@@ -46,6 +46,9 @@ vi.mock("@/components/glade/SkillsPanel", () => ({
 vi.mock("@/components/glade/CollectionPanel", () => ({
   CollectionPanel: () => null,
 }));
+vi.mock("@/components/glade/ResetGlade", () => ({
+  ResetGlade: () => null,
+}));
 
 const robin = makeVisitor({ id: "v-1", speciesId: "robin" });
 const rabbit = makeVisitor({ id: "v-2", speciesId: "rabbit" });
