@@ -1,7 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useId, useRef } from "react";
+import { type RefObject, useId, useRef } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import {
@@ -9,17 +9,20 @@ import {
   PET_SPOT_LABELS,
   POSTURE_LABELS,
   RECIPES,
+  SKILL_NAMES,
+  SKILL_UNLOCK_REQUIREMENT,
   SPECIES,
   tameThresholdFor,
 } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type {
+  GladeState,
   PetSpot,
   Posture,
   TreatId,
   WildVisitor,
 } from "@/lib/glade/schema";
-import { hasClearHints } from "@/lib/glade/skillsModule";
+import { hasClearHints, isSkillUnlocked } from "@/lib/glade/skillsModule";
 
 const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
@@ -33,9 +36,6 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const species = SPECIES[visitor.speciesId];
   const threshold = tameThresholdFor(visitor.speciesId);
   const trustPct = Math.round((visitor.trust / threshold) * 100);
-  const availableTreats = ALL_TREAT_IDS.filter(
-    (id) => (state.pantry.treats[id] ?? 0) > 0,
-  );
 
   // Feedback for the most recent action, only on the card it was taken on
   const feedback =
@@ -76,33 +76,12 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
       {feedback !== null && <Feedback role="status">{feedback}</Feedback>}
 
       <Actions>
-        <ActionGroup>
-          <GroupLabel>Offer a treat</GroupLabel>
-          {visitor.actionsToday.treat ? (
-            <Done>Fed for today</Done>
-          ) : availableTreats.length === 0 ? (
-            <Done>No treats cooked yet</Done>
-          ) : (
-            <ChoiceRow>
-              {availableTreats.map((treatId: TreatId) => (
-                <Button
-                  key={treatId}
-                  onClick={() =>
-                    offerTreat(
-                      visitor.id,
-                      treatId,
-                      portraitRef.current?.getBoundingClientRect(),
-                    )
-                  }
-                  size="sm"
-                  variant="outline"
-                >
-                  {RECIPES[treatId].name} ×{state.pantry.treats[treatId]}
-                </Button>
-              ))}
-            </ChoiceRow>
-          )}
-        </ActionGroup>
+        <TreatActionGroup
+          offerTreat={offerTreat}
+          portraitRef={portraitRef}
+          state={state}
+          visitor={visitor}
+        />
 
         <ActionGroup>
           <GroupLabel>Approach</GroupLabel>
@@ -130,33 +109,115 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
           )}
         </ActionGroup>
 
-        <ActionGroup>
-          <GroupLabel>Pet</GroupLabel>
-          {visitor.actionsToday.pet ? (
-            <Done>Petted today</Done>
-          ) : (
-            <ChoiceRow>
-              {PET_SPOTS.map((spot) => (
-                <Button
-                  key={spot}
-                  onClick={() =>
-                    petVisitor(
-                      visitor.id,
-                      spot,
-                      portraitRef.current?.getBoundingClientRect(),
-                    )
-                  }
-                  size="sm"
-                  variant="outline"
-                >
-                  {PET_SPOT_LABELS[spot]}
-                </Button>
-              ))}
-            </ChoiceRow>
-          )}
-        </ActionGroup>
+        <PetActionGroup
+          petVisitor={petVisitor}
+          portraitRef={portraitRef}
+          state={state}
+          visitor={visitor}
+        />
       </Actions>
     </Card>
+  );
+}
+
+function TreatActionGroup({
+  visitor,
+  state,
+  offerTreat,
+  portraitRef,
+}: {
+  visitor: WildVisitor;
+  state: GladeState;
+  offerTreat: (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => void;
+  portraitRef: RefObject<HTMLDivElement | null>;
+}) {
+  const treatUnlocked = isSkillUnlocked(state, "treat-cooking");
+  const treatRequirement = SKILL_UNLOCK_REQUIREMENT["treat-cooking"];
+  const availableTreats = ALL_TREAT_IDS.filter(
+    (id) => (state.pantry.treats[id] ?? 0) > 0,
+  );
+
+  return (
+    <ActionGroup>
+      <GroupLabel>Offer a treat</GroupLabel>
+      {!treatUnlocked ? (
+        <Locked>
+          {treatRequirement &&
+            `Unlocks at ${SKILL_NAMES[treatRequirement.skillId]} tier ${treatRequirement.tier}`}
+        </Locked>
+      ) : visitor.actionsToday.treat ? (
+        <Done>Fed for today</Done>
+      ) : availableTreats.length === 0 ? (
+        <Done>No treats cooked yet</Done>
+      ) : (
+        <ChoiceRow>
+          {availableTreats.map((treatId: TreatId) => (
+            <Button
+              key={treatId}
+              onClick={() =>
+                offerTreat(
+                  visitor.id,
+                  treatId,
+                  portraitRef.current?.getBoundingClientRect(),
+                )
+              }
+              size="sm"
+              variant="outline"
+            >
+              {RECIPES[treatId].name} ×{state.pantry.treats[treatId]}
+            </Button>
+          ))}
+        </ChoiceRow>
+      )}
+    </ActionGroup>
+  );
+}
+
+function PetActionGroup({
+  visitor,
+  state,
+  petVisitor,
+  portraitRef,
+}: {
+  visitor: WildVisitor;
+  state: GladeState;
+  petVisitor: (visitorId: string, spot: PetSpot, fromRect?: DOMRect) => void;
+  portraitRef: RefObject<HTMLDivElement | null>;
+}) {
+  const petUnlocked = isSkillUnlocked(state, "petting-technique");
+  const petRequirement = SKILL_UNLOCK_REQUIREMENT["petting-technique"];
+
+  return (
+    <ActionGroup>
+      <GroupLabel>Pet</GroupLabel>
+      {!petUnlocked ? (
+        <Locked>
+          {petRequirement &&
+            `Unlocks at ${SKILL_NAMES[petRequirement.skillId]} tier ${petRequirement.tier}`}
+        </Locked>
+      ) : visitor.actionsToday.pet ? (
+        <Done>Petted today</Done>
+      ) : (
+        <ChoiceRow>
+          {PET_SPOTS.map((spot) => (
+            <Button
+              key={spot}
+              onClick={() =>
+                petVisitor(
+                  visitor.id,
+                  spot,
+                  portraitRef.current?.getBoundingClientRect(),
+                )
+              }
+              size="sm"
+              variant="outline"
+            >
+              {PET_SPOT_LABELS[spot]}
+            </Button>
+          ))}
+        </ChoiceRow>
+      )}
+    </ActionGroup>
   );
 }
 
@@ -262,6 +323,12 @@ const ChoiceRow = styled.div`
 `;
 
 const Done = styled.span`
+  font-size: 0.85rem;
+  font-style: italic;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const Locked = styled.span`
   font-size: 0.85rem;
   font-style: italic;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
