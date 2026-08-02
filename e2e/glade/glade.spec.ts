@@ -21,33 +21,48 @@ test.describe("Creature Glade", () => {
     await expect(page.getByText("Trust 0/60")).toBeVisible();
   });
 
-  test("hides a visitor's preference hints until each is guessed correctly", async ({
+  test("shows a preference hint once its skill reaches tier 2, regardless of guessing", async ({
     page,
   }) => {
     await goToGladeWithSeed(page, {
       skills: {
         "treat-cooking": { tier: 1, xp: 0 },
-        "body-language": { tier: 2, xp: 0 }, // unlocks petting-technique
+        "body-language": { tier: 2, xp: 0 }, // unlocks petting-technique; posture hint now visible
+        "petting-technique": { tier: 1, xp: 0 }, // unlocked, but tier 1 — pet-spot hint stays hidden
+      },
+    });
+
+    await expect(
+      page.getByText("Seems happiest when you keep very still."),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Puffs its feathers when a hand passes along its length."),
+    ).toBeHidden();
+  });
+
+  test("the shared preference toggletip appears at tier 3 and only confirms a hint once guessed", async ({
+    page,
+  }) => {
+    await goToGladeWithSeed(page, {
+      skills: {
+        "treat-cooking": { tier: 1, xp: 0 },
+        "body-language": { tier: 3, xp: 0 },
         "petting-technique": { tier: 1, xp: 0 },
       },
     });
 
-    const postureHint = page.getByText(
-      "Seems happiest when you keep very still.",
-    );
-    const petSpotHint = page.getByText(
-      "Puffs its feathers when a hand passes along its length.",
-    );
-    await expect(postureHint).toBeHidden();
-    await expect(petSpotHint).toBeHidden();
+    const toggletipTrigger = page.getByRole("button", {
+      name: "Preference details",
+    });
+    await expect(toggletipTrigger).toBeVisible();
+    await toggletipTrigger.click();
+    await expect(page.getByText("Not yet confirmed.")).toBeVisible();
 
-    // Robin's preferred pet spot is "back" — a match confirms only that
-    // guess, without raising trust enough to tame it (needs 60).
-    await page.getByRole("button", { name: "Along the back" }).click();
+    await toggletipTrigger.click(); // close before acting, same as a real user would
+    await page.getByRole("button", { name: "Sit still" }).click(); // robin's preferred posture
 
-    await expect(petSpotHint).toBeVisible();
-    // Posture wasn't guessed — its hint stays hidden.
-    await expect(postureHint).toBeHidden();
+    await toggletipTrigger.click();
+    await expect(page.getByText("Sit still nearby.")).toBeVisible();
   });
 
   test("cooking a treat and offering it raises trust (favourite = double)", async ({
