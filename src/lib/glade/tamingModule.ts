@@ -10,6 +10,8 @@ import type {
   GladeState,
   PetSpot,
   Posture,
+  PreferenceKind,
+  SpeciesId,
   TreatId,
   WildVisitor,
 } from "./schema";
@@ -48,6 +50,25 @@ export interface ActionResult {
 
 function noAction(state: GladeState): ActionResult {
   return { state, trustGained: null, tamed: false, matched: false };
+}
+
+/** Unlocks one of a species' hint texts once a matching action confirms it. */
+function discoverPreference(
+  state: GladeState,
+  speciesId: SpeciesId,
+  kind: PreferenceKind,
+): GladeState {
+  if (state.discoveredPreferences[speciesId]?.[kind]) return state;
+  return {
+    ...state,
+    discoveredPreferences: {
+      ...state.discoveredPreferences,
+      [speciesId]: {
+        ...state.discoveredPreferences[speciesId],
+        [kind]: true,
+      },
+    },
+  };
 }
 
 /**
@@ -122,13 +143,16 @@ export function offerTreat(
   const favourite = SPECIES[visitor.speciesId].favouriteTreat === treatId;
   const gain = treatTrustGain(treatId, favourite);
 
+  const discovered = favourite
+    ? discoverPreference(state, visitor.speciesId, "treat")
+    : state;
   const withSpentTreat: GladeState = {
-    ...state,
+    ...discovered,
     pantry: {
-      ...state.pantry,
+      ...discovered.pantry,
       treats: {
-        ...state.pantry.treats,
-        [treatId]: (state.pantry.treats[treatId] ?? 0) - 1,
+        ...discovered.pantry.treats,
+        [treatId]: (discovered.pantry.treats[treatId] ?? 0) - 1,
       },
     },
   };
@@ -167,7 +191,10 @@ export function approachVisitor(
     approachTrustGain(state.skills["body-language"].tier, matched) +
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
-  const withXp = gainXp(state, "body-language");
+  const discovered = matched
+    ? discoverPreference(state, visitor.speciesId, "posture")
+    : state;
+  const withXp = gainXp(discovered, "body-language");
   const applied = applyTrust(withXp, visitor, gain, "approach", today, rng);
   return {
     state: applied.state,
@@ -197,7 +224,10 @@ export function petVisitor(
     petTrustGain(state.skills["petting-technique"].tier, matched) +
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
-  const withXp = gainXp(state, "petting-technique");
+  const discovered = matched
+    ? discoverPreference(state, visitor.speciesId, "petSpot")
+    : state;
+  const withXp = gainXp(discovered, "petting-technique");
   const applied = applyTrust(withXp, visitor, gain, "pet", today, rng);
   return {
     state: applied.state,

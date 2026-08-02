@@ -69,6 +69,34 @@ describe("offerTreat", () => {
     expect(result.trustGained).toBe(RECIPES["oat-cakes"].potency * 2);
   });
 
+  it("discovers only the treat preference when the favourite treat is offered", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      pantry: { ingredients: {}, treats: { "oat-cakes": 1 } },
+    });
+    const result = offerTreat(state, visitor.id, "oat-cakes", TODAY, fixedRng);
+    expect(result.state.discoveredPreferences.rabbit).toEqual({
+      treat: true,
+    });
+  });
+
+  it("does not discover the treat preference on a non-favourite treat", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      pantry: { ingredients: {}, treats: { "berry-bites": 1 } },
+    });
+    const result = offerTreat(
+      state,
+      visitor.id,
+      "berry-bites",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.discoveredPreferences.rabbit).toBeUndefined();
+  });
+
   it("refuses a second treat the same day", () => {
     const visitor = makeVisitor({
       actionsToday: { treat: true, approach: false, pet: false },
@@ -178,6 +206,34 @@ describe("approachVisitor", () => {
     expect(result.state.visitors[0].trust).toBe(3);
   });
 
+  it("discovers only the posture preference on a matched approach", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({ visitors: [visitor] });
+    const result = approachVisitor(
+      state,
+      visitor.id,
+      "crouch-low",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.discoveredPreferences.rabbit).toEqual({
+      posture: true,
+    });
+  });
+
+  it("does not discover the posture preference on a mismatched approach", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({ visitors: [visitor] });
+    const result = approachVisitor(
+      state,
+      visitor.id,
+      "slow-blink",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.discoveredPreferences.rabbit).toBeUndefined();
+  });
+
   it("refuses a second approach the same day", () => {
     const visitor = makeVisitor({
       actionsToday: { treat: false, approach: true, pet: false },
@@ -277,6 +333,57 @@ describe("petVisitor", () => {
     expect(result.matched).toBe(true);
     expect(result.trustGained).toBe(11);
     expect(result.state.skills["petting-technique"].xp).toBe(1);
+  });
+
+  it("discovers only the pet-spot preference on a matched petting spot", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({ visitors: [visitor] });
+    const result = petVisitor(
+      state,
+      visitor.id,
+      "behind-ears",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.discoveredPreferences.rabbit).toEqual({
+      petSpot: true,
+    });
+  });
+
+  it("does not re-discover an already-known pet-spot preference", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      discoveredPreferences: { rabbit: { petSpot: true } },
+    });
+    const result = petVisitor(
+      state,
+      visitor.id,
+      "behind-ears",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.discoveredPreferences).toEqual({
+      rabbit: { petSpot: true },
+    });
+  });
+
+  it("accumulates independently discovered preference types for the same species", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const state = makeGladeState({
+      visitors: [visitor],
+      discoveredPreferences: { rabbit: { treat: true } },
+    });
+    const result = petVisitor(
+      state,
+      visitor.id,
+      "behind-ears",
+      TODAY,
+      fixedRng,
+    );
+    expect(result.state.discoveredPreferences).toEqual({
+      rabbit: { treat: true, petSpot: true },
+    });
   });
 
   it("refuses a second petting the same day", () => {

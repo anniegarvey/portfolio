@@ -144,6 +144,17 @@ export const PantrySchema = z.object({
 });
 export type Pantry = z.infer<typeof PantrySchema>;
 
+// ─── Preference Discovery ───────────────────────────────────────────────────────
+
+/** Which of a species' three preference hints have been confirmed by a matching action. */
+export const DiscoveredPreferenceSchema = z.object({
+  treat: z.boolean().optional(),
+  posture: z.boolean().optional(),
+  petSpot: z.boolean().optional(),
+});
+export type DiscoveredPreference = z.infer<typeof DiscoveredPreferenceSchema>;
+export type PreferenceKind = keyof DiscoveredPreference;
+
 // ─── Game State ───────────────────────────────────────────────────────────────
 
 export const GladeStateSchema = z.object({
@@ -159,6 +170,15 @@ export const GladeStateSchema = z.object({
    */
   speciesTrust: z
     .partialRecord(SpeciesIdSchema, z.number().min(0))
+    .default(() => ({})),
+  /**
+   * Per-species, per-preference-type discovery: each of treat/posture/pet
+   * spot unlocks its own hint independently, the first time a matching
+   * taming action confirms it. Defaults so states saved before hint-gating
+   * still parse.
+   */
+  discoveredPreferences: z
+    .partialRecord(SpeciesIdSchema, DiscoveredPreferenceSchema)
     .default(() => ({})),
   lastAdvanceDate: z.string().optional(),
 });

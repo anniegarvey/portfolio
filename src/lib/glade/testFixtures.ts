@@ -2,13 +2,12 @@ import { vi } from "vitest";
 import type { GladeContextType } from "./context";
 import type { GladeState, SkillState, WildVisitor } from "./schema";
 
-/** Builds a GladeState with sensible defaults, overridable per test. */
 /**
- * Body Language and Petting Technique default to tier 2 so Petting
- * Technique and Treat Cooking start unlocked (see SKILL_UNLOCK_REQUIREMENT)
- * — most tests exercise pet/treat actions incidentally, not the unlock
- * gating itself, so tests specifically covering gating override tiers back
- * down to 1.
+ * Builds a GladeState with sensible defaults, overridable per test. Body
+ * Language and Petting Technique default to tier 2 so Petting Technique and
+ * Treat Cooking start unlocked (see SKILL_UNLOCK_REQUIREMENT) — most tests
+ * exercise pet/treat actions incidentally, not the unlock gating itself, so
+ * tests specifically covering gating override tiers back down to 1.
  */
 export function makeGladeState(overrides?: Partial<GladeState>): GladeState {
   return {
@@ -21,6 +20,7 @@ export function makeGladeState(overrides?: Partial<GladeState>): GladeState {
     },
     pantry: { ingredients: {}, treats: {} },
     speciesTrust: {},
+    discoveredPreferences: {},
     ...overrides,
   };
 }

@@ -106,6 +106,7 @@ const EMPTY_STATE: GladeState = {
   },
   pantry: { ingredients: {}, treats: {} },
   speciesTrust: {},
+  discoveredPreferences: {},
 };
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
