@@ -160,6 +160,14 @@ export const GladeStateSchema = z.object({
   speciesTrust: z
     .partialRecord(SpeciesIdSchema, z.number().min(0))
     .default(() => ({})),
+  /**
+   * Species whose favourite treat/posture/pet spot has been confirmed by a
+   * matching taming action. Hint text stays hidden until discovered. Defaults
+   * so states saved before hint-gating still parse.
+   */
+  discoveredPreferences: z
+    .partialRecord(SpeciesIdSchema, z.boolean())
+    .default(() => ({})),
   lastAdvanceDate: z.string().optional(),
 });
 export type GladeState = z.infer<typeof GladeStateSchema>;

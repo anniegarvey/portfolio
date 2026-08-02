@@ -46,4 +46,10 @@ describe("save/load round trip", () => {
     localStorage.setItem(GLADE_KEY, JSON.stringify(legacy));
     expect(loadGladeState()?.speciesTrust).toEqual({});
   });
+
+  it("defaults discoveredPreferences for states saved before hint-gating", () => {
+    const { discoveredPreferences: _omitted, ...legacy } = createInitialState();
+    localStorage.setItem(GLADE_KEY, JSON.stringify(legacy));
+    expect(loadGladeState()?.discoveredPreferences).toEqual({});
+  });
 });

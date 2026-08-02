@@ -14,6 +14,7 @@ export function makeGladeState(overrides?: Partial<GladeState>): GladeState {
     },
     pantry: { ingredients: {}, treats: {} },
     speciesTrust: {},
+    discoveredPreferences: {},
     ...overrides,
   };
 }
