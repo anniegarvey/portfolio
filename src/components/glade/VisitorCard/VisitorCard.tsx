@@ -56,9 +56,11 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
         {species.name} <Rarity>· {species.rarity}</Rarity>
       </Name>
       <Blurb>{species.blurb}</Blurb>
-      <Hint>
-        {hasClearHints(state) ? species.clearHint : species.vagueHint}
-      </Hint>
+      {state.discoveredPreferences[visitor.speciesId] && (
+        <Hint>
+          {hasClearHints(state) ? species.clearHint : species.vagueHint}
+        </Hint>
+      )}
 
       <TrustTrack
         aria-label={`Trust: ${visitor.trust} of ${threshold}`}
