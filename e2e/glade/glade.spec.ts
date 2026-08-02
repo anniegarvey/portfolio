@@ -189,7 +189,7 @@ test.describe("Creature Glade", () => {
 
     // Pet and Offer a treat are locked until Body Language / Petting
     // Technique reach tier 2 — scoped to the visitor card since the
-    // Kitchen tab (mounted by default) shows an identical message.
+    // Skills tab (mounted by default) shows identical messages.
     await expect(
       robinCard.getByRole("button", { name: "Along the back" }),
     ).toBeHidden();
@@ -245,9 +245,13 @@ test.describe("Creature Glade", () => {
       page.getByRole("region", { name: "Glade ecosystem" }).getByText("Rabbit"),
     ).toBeHidden();
 
-    // Petting Technique is locked again, matching a brand-new save.
+    // Petting Technique is locked again, matching a brand-new save. Scoped
+    // to the Skills tab (default-active) since the visitor card's Pet
+    // action shows an identical message.
     await expect(
-      page.getByText("Unlocks at Body Language tier 2"),
+      page
+        .getByRole("tabpanel", { name: "Skills" })
+        .getByText("Unlocks at Body Language tier 2"),
     ).toBeVisible();
   });
 });

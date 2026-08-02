@@ -69,7 +69,7 @@ export function GladePage() {
           )}
         </section>
 
-        <PageTabs defaultValue="kitchen">
+        <PageTabs defaultValue="skills">
           <PageTabsList aria-label="Glade sections">
             <PageTab value="pantry">Pantry</PageTab>
             <PageTab value="kitchen">Kitchen</PageTab>

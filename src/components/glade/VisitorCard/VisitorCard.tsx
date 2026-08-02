@@ -4,19 +4,17 @@ import { styled } from "next-yak";
 import { type RefObject, useId, useRef } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
+import { UnlockNotice } from "@/components/glade/UnlockNotice";
 import {
   ALL_TREAT_IDS,
   PET_SPOT_LABELS,
   POSTURE_LABELS,
   RECIPES,
-  SKILL_NAMES,
-  SKILL_UNLOCK_REQUIREMENT,
   SPECIES,
   tameThresholdFor,
 } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type {
-  GladeState,
   PetSpot,
   Posture,
   TreatId,
@@ -28,8 +26,7 @@ const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
 
 export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
-  const { state, lastAction, offerTreat, approachVisitor, petVisitor } =
-    useGlade();
+  const { state, lastAction, approachVisitor } = useGlade();
   const headingId = useId();
   const portraitRef = useRef<HTMLDivElement>(null);
 
@@ -76,12 +73,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
       {feedback !== null && <Feedback role="status">{feedback}</Feedback>}
 
       <Actions>
-        <TreatActionGroup
-          offerTreat={offerTreat}
-          portraitRef={portraitRef}
-          state={state}
-          visitor={visitor}
-        />
+        <TreatActionGroup portraitRef={portraitRef} visitor={visitor} />
 
         <ActionGroup>
           <GroupLabel>Approach</GroupLabel>
@@ -109,12 +101,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
           )}
         </ActionGroup>
 
-        <PetActionGroup
-          petVisitor={petVisitor}
-          portraitRef={portraitRef}
-          state={state}
-          visitor={visitor}
-        />
+        <PetActionGroup portraitRef={portraitRef} visitor={visitor} />
       </Actions>
     </Card>
   );
@@ -122,17 +109,13 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
 
 function TreatActionGroup({
   visitor,
-  state,
-  offerTreat,
   portraitRef,
 }: {
   visitor: WildVisitor;
-  state: GladeState;
-  offerTreat: (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => void;
   portraitRef: RefObject<HTMLDivElement | null>;
 }) {
+  const { state, offerTreat } = useGlade();
   const treatUnlocked = isSkillUnlocked(state, "treat-cooking");
-  const treatRequirement = SKILL_UNLOCK_REQUIREMENT["treat-cooking"];
   const availableTreats = ALL_TREAT_IDS.filter(
     (id) => (state.pantry.treats[id] ?? 0) > 0,
   );
@@ -141,10 +124,7 @@ function TreatActionGroup({
     <ActionGroup>
       <GroupLabel>Offer a treat</GroupLabel>
       {!treatUnlocked ? (
-        <Locked>
-          {treatRequirement &&
-            `Unlocks at ${SKILL_NAMES[treatRequirement.skillId]} tier ${treatRequirement.tier}`}
-        </Locked>
+        <UnlockNotice skillId="treat-cooking" />
       ) : visitor.actionsToday.treat ? (
         <Done>Fed for today</Done>
       ) : availableTreats.length === 0 ? (
@@ -175,26 +155,19 @@ function TreatActionGroup({
 
 function PetActionGroup({
   visitor,
-  state,
-  petVisitor,
   portraitRef,
 }: {
   visitor: WildVisitor;
-  state: GladeState;
-  petVisitor: (visitorId: string, spot: PetSpot, fromRect?: DOMRect) => void;
   portraitRef: RefObject<HTMLDivElement | null>;
 }) {
+  const { state, petVisitor } = useGlade();
   const petUnlocked = isSkillUnlocked(state, "petting-technique");
-  const petRequirement = SKILL_UNLOCK_REQUIREMENT["petting-technique"];
 
   return (
     <ActionGroup>
       <GroupLabel>Pet</GroupLabel>
       {!petUnlocked ? (
-        <Locked>
-          {petRequirement &&
-            `Unlocks at ${SKILL_NAMES[petRequirement.skillId]} tier ${petRequirement.tier}`}
-        </Locked>
+        <UnlockNotice skillId="petting-technique" />
       ) : visitor.actionsToday.pet ? (
         <Done>Petted today</Done>
       ) : (
@@ -323,12 +296,6 @@ const ChoiceRow = styled.div`
 `;
 
 const Done = styled.span`
-  font-size: 0.85rem;
-  font-style: italic;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
-`;
-
-const Locked = styled.span`
   font-size: 0.85rem;
   font-style: italic;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));

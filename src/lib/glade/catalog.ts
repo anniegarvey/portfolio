@@ -493,10 +493,12 @@ export const ROLE_DESCRIPTIONS: Record<BenefitRole, string> = {
 
 // ─── Skills ───────────────────────────────────────────────────────────────────
 
+// Ordered to match the unlock sequence (see SKILL_UNLOCK_REQUIREMENT below),
+// since SkillsPanel renders skill cards in this key order.
 export const SKILL_NAMES: Record<SkillId, string> = {
-  "treat-cooking": "Treat Cooking",
   "body-language": "Body Language",
   "petting-technique": "Petting Technique",
+  "treat-cooking": "Treat Cooking",
 };
 
 /**

@@ -3,14 +3,10 @@
 import { Coins } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
-import {
-  MAX_TIER,
-  SKILL_NAMES,
-  SKILL_UNLOCK_REQUIREMENT,
-  xpThresholdFor,
-} from "@/lib/glade/catalog";
+import { UnlockNotice } from "@/components/glade/UnlockNotice";
+import { MAX_TIER, SKILL_NAMES, xpThresholdFor } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
-import type { GladeState, SkillId } from "@/lib/glade/schema";
+import type { SkillId } from "@/lib/glade/schema";
 import {
   canBuyLesson,
   isSkillUnlocked,
@@ -19,49 +15,31 @@ import {
 import { usePoints } from "@/lib/points/context";
 
 const SKILL_DESCRIPTIONS: Record<SkillId, string> = {
-  "treat-cooking":
-    "Unlocks new recipes. Earn XP by cooking treats in the kitchen.",
   "body-language":
     "Calmer approaches build more trust. Earn XP by approaching visitors.",
   "petting-technique":
     "Better petting builds more trust. Earn XP by petting visitors.",
+  "treat-cooking":
+    "Unlocks new recipes. Earn XP by cooking treats in the kitchen.",
 };
 
 const SKILL_IDS = Object.keys(SKILL_NAMES) as SkillId[];
 
 export function SkillsPanel() {
-  const { state, buyLesson } = useGlade();
-  const { points } = usePoints();
-
   return (
     <Panel>
       {SKILL_IDS.map((skillId) => (
-        <SkillCardItem
-          buyLesson={buyLesson}
-          key={skillId}
-          points={points}
-          skillId={skillId}
-          state={state}
-        />
+        <SkillCardItem key={skillId} skillId={skillId} />
       ))}
     </Panel>
   );
 }
 
-function SkillCardItem({
-  skillId,
-  state,
-  points,
-  buyLesson,
-}: {
-  skillId: SkillId;
-  state: GladeState;
-  points: number;
-  buyLesson: (skillId: SkillId) => boolean;
-}) {
+function SkillCardItem({ skillId }: { skillId: SkillId }) {
+  const { state, buyLesson } = useGlade();
+  const { points } = usePoints();
   const skill = state.skills[skillId];
   const unlocked = isSkillUnlocked(state, skillId);
-  const requirement = SKILL_UNLOCK_REQUIREMENT[skillId];
   const threshold = xpThresholdFor(skill.tier);
   const maxed = threshold === null;
   const xpPct = maxed ? 100 : Math.round((skill.xp / threshold) * 100);
@@ -79,10 +57,7 @@ function SkillCardItem({
       </SkillHeader>
       <Description>{SKILL_DESCRIPTIONS[skillId]}</Description>
       {!unlocked ? (
-        <Locked>
-          {requirement &&
-            `Unlocks at ${SKILL_NAMES[requirement.skillId]} tier ${requirement.tier}`}
-        </Locked>
+        <UnlockNotice skillId={skillId} />
       ) : (
         <>
           <XpTrack
@@ -190,10 +165,4 @@ const Mastered = styled.span`
   font-size: 0.85rem;
   font-weight: 700;
   color: light-dark(var(--color-secondary-700), var(--color-secondary-400));
-`;
-
-const Locked = styled.span`
-  font-size: 0.85rem;
-  font-style: italic;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;

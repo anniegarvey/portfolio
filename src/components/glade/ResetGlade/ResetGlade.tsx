@@ -15,40 +15,47 @@ export function ResetGlade() {
     <Section aria-labelledby={headingId}>
       <Heading id={headingId}>Danger zone</Heading>
       <Description>
-        Reset the glade to the very beginning: wild visitors, residents, skills,
-        and the pantry are all wiped. Points are not affected.
+        Reset the glade to its very first day: residents and skill progress are
+        lost, discovered species return to the Collection's unknowns, and wild
+        visitors and the pantry go back to their starting state. Points are not
+        affected.
       </Description>
       <Button
         intent="secondary"
         onClick={() => setConfirming(true)}
+        size="sm"
         variant="outline"
       >
         Reset glade
       </Button>
 
       <Modal
-        description="This action cannot be undone. All wild visitors, residents, skill progress, and pantry stock will be permanently lost."
+        description="This action cannot be undone. Residents, skill progress, and discovered species will be permanently lost."
         isOpen={confirming}
         onClose={() => setConfirming(false)}
         showDescription
         title="Reset the glade?"
       >
         <ConfirmationActions>
+          {/* Cancel first in DOM/tab order, ahead of the destructive
+              action, matching most confirm dialogs elsewhere in the app. */}
+          <Button
+            intent="secondary"
+            onClick={() => setConfirming(false)}
+            size="sm"
+            variant="outline"
+          >
+            Cancel
+          </Button>
           <Button
             intent="danger"
             onClick={() => {
               resetGlade();
               setConfirming(false);
             }}
+            size="sm"
           >
             Reset glade
-          </Button>
-          <Button
-            intent="secondary"
-            onClick={() => setConfirming(false)}
-            variant="outline"
-          >
-            Cancel
           </Button>
         </ConfirmationActions>
       </Modal>
@@ -83,6 +90,6 @@ const Description = styled.p`
 const ConfirmationActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
 `;

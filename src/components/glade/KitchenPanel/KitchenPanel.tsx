@@ -3,13 +3,8 @@
 import { Coins } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
-import {
-  ALL_TREAT_IDS,
-  INGREDIENTS,
-  RECIPES,
-  SKILL_NAMES,
-  SKILL_UNLOCK_REQUIREMENT,
-} from "@/lib/glade/catalog";
+import { UnlockNotice } from "@/components/glade/UnlockNotice";
+import { ALL_TREAT_IDS, INGREDIENTS, RECIPES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import {
   canCook,
@@ -24,17 +19,13 @@ export function KitchenPanel() {
   const { points } = usePoints();
   const cookingTier = state.skills["treat-cooking"].tier;
   const cookingUnlocked = isSkillUnlocked(state, "treat-cooking");
-  const cookingRequirement = SKILL_UNLOCK_REQUIREMENT["treat-cooking"];
 
   return (
     <Panel>
       <Section>
         <SectionTitle>Recipes</SectionTitle>
         {!cookingUnlocked ? (
-          <Locked>
-            {cookingRequirement &&
-              `Unlocks at ${SKILL_NAMES[cookingRequirement.skillId]} tier ${cookingRequirement.tier}`}
-          </Locked>
+          <UnlockNotice skillId="treat-cooking" />
         ) : (
           <Grid>
             {ALL_TREAT_IDS.map((treatId) => {
@@ -142,11 +133,4 @@ const ButtonRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-`;
-
-const Locked = styled.p`
-  margin: 0;
-  font-size: 0.85rem;
-  font-style: italic;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
