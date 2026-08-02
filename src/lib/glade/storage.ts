@@ -45,6 +45,7 @@ export function createInitialState(): GladeState {
     },
     speciesTrust: {},
     discoveredPreferences: {},
+    triedPreferences: {},
     // Day one's arrival is the starter robin — no extra spawn on first mount.
     lastAdvanceDate: getTodayDateString(),
   };

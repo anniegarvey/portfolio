@@ -155,6 +155,14 @@ export const DiscoveredPreferenceSchema = z.object({
 export type DiscoveredPreference = z.infer<typeof DiscoveredPreferenceSchema>;
 export type PreferenceKind = keyof DiscoveredPreference;
 
+/** Which specific options have been tried for a species' three preference types, right or wrong. */
+export const TriedPreferenceSchema = z.object({
+  treat: z.array(TreatIdSchema).optional(),
+  posture: z.array(PostureSchema).optional(),
+  petSpot: z.array(PetSpotSchema).optional(),
+});
+export type TriedPreference = z.infer<typeof TriedPreferenceSchema>;
+
 // ─── Game State ───────────────────────────────────────────────────────────────
 
 export const GladeStateSchema = z.object({
@@ -179,6 +187,15 @@ export const GladeStateSchema = z.object({
    */
   discoveredPreferences: z
     .partialRecord(SpeciesIdSchema, DiscoveredPreferenceSchema)
+    .default(() => ({})),
+  /**
+   * Per-species, per-preference-type log of every specific option tried so
+   * far (right or wrong) — an elimination aid for narrowing down a
+   * preference not yet discovered. Defaults so states saved before this
+   * tracking existed still parse.
+   */
+  triedPreferences: z
+    .partialRecord(SpeciesIdSchema, TriedPreferenceSchema)
     .default(() => ({})),
   lastAdvanceDate: z.string().optional(),
 });
