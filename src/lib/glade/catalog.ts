@@ -28,10 +28,18 @@ export interface SpeciesConfig {
   habitat: Habitat;
   /** Shown on the visitor card; hints at preferences. */
   blurb: string;
-  /** Vague preference hint, readable from skill tier 1. */
-  vagueHint: string;
-  /** Precise preference hint, revealed at higher skill tiers. */
-  clearHint: string;
+  /** Vague favourite-treat hint, readable from skill tier 1. Shown once the treat is discovered. */
+  vagueTreatHint: string;
+  /** Precise favourite-treat hint, revealed at higher skill tiers. */
+  clearTreatHint: string;
+  /** Vague posture hint, readable from skill tier 1. Shown once the posture is discovered. */
+  vaguePostureHint: string;
+  /** Precise posture hint, revealed at higher skill tiers. */
+  clearPostureHint: string;
+  /** Vague pet-spot hint, readable from skill tier 1. Shown once the pet spot is discovered. */
+  vaguePetSpotHint: string;
+  /** Precise pet-spot hint, revealed at higher skill tiers. */
+  clearPetSpotHint: string;
 }
 
 export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
@@ -46,8 +54,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "back",
     habitat: "tree",
     blurb: "A cheerful songbird whose morning tunes spark inspiration.",
-    vagueHint: "Seems happiest when you keep very still.",
-    clearHint: "Sit still nearby and stroke its back. Loves berry bites.",
+    vagueTreatHint:
+      "Perks up at the first whiff of something plucked fresh off a bush.",
+    clearTreatHint: "Loves berry bites.",
+    vaguePostureHint: "Seems happiest when you keep very still.",
+    clearPostureHint: "Sit still nearby.",
+    vaguePetSpotHint: "Puffs its feathers when a hand passes along its length.",
+    clearPetSpotHint: "Stroke its back.",
   },
   rabbit: {
     id: "rabbit",
@@ -60,8 +73,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "behind-ears",
     habitat: "ground",
     blurb: "A gentle grazer with a knack for finding good food.",
-    vagueHint: "Gets nervous when you tower over it.",
-    clearHint: "Crouch low and scratch behind the ears. Loves oat cakes.",
+    vagueTreatHint: "Noses hopefully toward anything warm and grainy.",
+    clearTreatHint: "Loves oat cakes.",
+    vaguePostureHint: "Gets nervous when you tower over it.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Leans its head sideways toward a hand near its ears.",
+    clearPetSpotHint: "Scratch behind the ears.",
   },
   squirrel: {
     id: "squirrel",
@@ -74,8 +91,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "chin",
     habitat: "tree",
     blurb: "A busy hoarder who shares the best of its stash.",
-    vagueHint: "Watches you closely; sudden moves send it darting off.",
-    clearHint: "Sit still and offer a chin rub. Loves nut clusters.",
+    vagueTreatHint: "Perks up at the crack of something hard-shelled nearby.",
+    clearTreatHint: "Loves nut clusters.",
+    vaguePostureHint: "Watches you closely; sudden moves send it darting off.",
+    clearPostureHint: "Sit still.",
+    vaguePetSpotHint: "Tilts its head up when you reach toward its face.",
+    clearPetSpotHint: "Offer a chin rub.",
   },
   hedgehog: {
     id: "hedgehog",
@@ -88,8 +109,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "chin",
     habitat: "ground",
     blurb: "A prickly-looking softie whose calm settles the whole glade.",
-    vagueHint: "Curls up unless you come down to its level.",
-    clearHint: "Crouch low and rub under the chin. Loves cream puffs.",
+    vagueTreatHint:
+      "Uncurls slightly at the smell of something rich and creamy.",
+    clearTreatHint: "Loves cream puffs.",
+    vaguePostureHint: "Curls up unless you come down to its level.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Peeks out from its curl when you reach low and gentle.",
+    clearPetSpotHint: "Rub under the chin.",
   },
   mouse: {
     id: "mouse",
@@ -102,8 +128,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "chin",
     habitat: "ground",
     blurb: "A tiny scavenger with sharp eyes for every dropped seed.",
-    vagueHint: "Vanishes into the grass the moment you loom.",
-    clearHint: "Crouch low and offer a gentle chin rub. Loves oat cakes.",
+    vagueTreatHint: "Sniffs the air for something baked and crumbly.",
+    clearTreatHint: "Loves oat cakes.",
+    vaguePostureHint: "Vanishes into the grass the moment you loom.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Lifts its tiny face toward a careful fingertip.",
+    clearPetSpotHint: "Offer a gentle chin rub.",
   },
   wren: {
     id: "wren",
@@ -116,8 +146,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "chin",
     habitat: "tree",
     blurb: "A pocket-sized singer whose bold song outsizes its body.",
-    vagueHint: "Flits nervously unless your gaze goes soft.",
-    clearHint: "Blink slowly and offer a chin scratch. Loves mint crisps.",
+    vagueTreatHint: "Perks its head at anything cool and herby.",
+    clearTreatHint: "Loves mint crisps.",
+    vaguePostureHint: "Flits nervously unless your gaze goes soft.",
+    clearPostureHint: "Blink slowly.",
+    vaguePetSpotHint: "Tips its beak up, inviting a gentle touch up close.",
+    clearPetSpotHint: "Offer a chin scratch.",
   },
   mole: {
     id: "mole",
@@ -130,9 +164,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "back",
     habitat: "ground",
     blurb: "A velvet-coated digger whose steady calm settles the soil itself.",
-    vagueHint:
+    vagueTreatHint: "Snuffles blindly toward the smell of warm grain.",
+    clearTreatHint: "Loves oat cakes.",
+    vaguePostureHint:
       "Half-blind but keen-nosed — it trusts what stays close to the ground.",
-    clearHint: "Crouch low and smooth its velvet back. Loves oat cakes.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Arches slightly at a touch along its spine.",
+    clearPetSpotHint: "Smooth its velvet back.",
   },
   fox: {
     id: "fox",
@@ -145,8 +183,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "behind-ears",
     habitat: "ground",
     blurb: "A clever wanderer whose presence draws curious creatures near.",
-    vagueHint: "Meets your gaze; staring too hard feels like a challenge.",
-    clearHint: "Blink slowly and scratch behind the ears. Loves honey drops.",
+    vagueTreatHint: "Tracks anything with a hint of sweetness on the air.",
+    clearTreatHint: "Loves honey drops.",
+    vaguePostureHint:
+      "Meets your gaze; staring too hard feels like a challenge.",
+    clearPostureHint: "Blink slowly.",
+    vaguePetSpotHint: "Tilts its head when fingers stray near its ears.",
+    clearPetSpotHint: "Scratch behind the ears.",
   },
   deer: {
     id: "deer",
@@ -159,8 +202,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "back",
     habitat: "ground",
     blurb: "A serene grazer whose quiet confidence reassures shy visitors.",
-    vagueHint: "Startles at any movement — patience is everything.",
-    clearHint: "Sit perfectly still and stroke its back. Loves mint crisps.",
+    vagueTreatHint: "Noses toward anything with a sharp, green scent.",
+    clearTreatHint: "Loves mint crisps.",
+    vaguePostureHint: "Startles at any movement — patience is everything.",
+    clearPostureHint: "Sit perfectly still.",
+    vaguePetSpotHint: "Leans faintly into a hand run along its flank.",
+    clearPetSpotHint: "Stroke its back.",
   },
   owl: {
     id: "owl",
@@ -173,8 +220,14 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "chin",
     habitat: "tree",
     blurb: "A wise night-watcher whose company sharpens your craft.",
-    vagueHint: "Studies you with huge eyes; it seems to respond in kind.",
-    clearHint: "Blink slowly and offer a chin scratch. Loves nut clusters.",
+    vagueTreatHint: "Turns its head sharply at the scent of roasted nuts.",
+    clearTreatHint: "Loves nut clusters.",
+    vaguePostureHint:
+      "Studies you with huge eyes; it seems to respond in kind.",
+    clearPostureHint: "Blink slowly.",
+    vaguePetSpotHint:
+      "Lowers its head slightly when you reach toward its face.",
+    clearPetSpotHint: "Offer a chin scratch.",
   },
   badger: {
     id: "badger",
@@ -187,8 +240,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "back",
     habitat: "ground",
     blurb: "A sturdy digger who unearths rare ingredients.",
-    vagueHint: "Stands its ground; meet it low and unhurried.",
-    clearHint: "Crouch low and pat its back firmly. Loves honey drops.",
+    vagueTreatHint: "Digs eagerly toward the smell of something sticky-sweet.",
+    clearTreatHint: "Loves honey drops.",
+    vaguePostureHint: "Stands its ground; meet it low and unhurried.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Settles when a firm hand runs the length of it.",
+    clearPetSpotHint: "Pat its back firmly.",
   },
   mosskit: {
     id: "mosskit",
@@ -201,8 +258,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "behind-ears",
     habitat: "ground",
     blurb: "A moss-covered cat-thing that grows herbs along its spine.",
-    vagueHint: "Hugs the ground; it likes company down there.",
-    clearHint: "Crouch low and scratch behind the ears. Loves mint crisps.",
+    vagueTreatHint: "Chews thoughtfully on anything leafy and sharp-smelling.",
+    clearTreatHint: "Loves mint crisps.",
+    vaguePostureHint: "Hugs the ground; it likes company down there.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Leans its mossy head toward a hand near its ears.",
+    clearPetSpotHint: "Scratch behind the ears.",
   },
   otter: {
     id: "otter",
@@ -215,8 +276,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "back",
     habitat: "ground",
     blurb: "A playful river-dweller whose antics draw curious onlookers.",
-    vagueHint: "Meets mischief with mischief; an eager stare spoils the game.",
-    clearHint: "Blink slowly and stroke its sleek back. Loves cream puffs.",
+    vagueTreatHint: "Splashes eagerly toward anything soft and creamy.",
+    clearTreatHint: "Loves cream puffs.",
+    vaguePostureHint:
+      "Meets mischief with mischief; an eager stare spoils the game.",
+    clearPostureHint: "Blink slowly.",
+    vaguePetSpotHint: "Rolls to offer its length to a passing hand.",
+    clearPetSpotHint: "Stroke its sleek back.",
   },
   hare: {
     id: "hare",
@@ -229,9 +295,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "behind-ears",
     habitat: "ground",
     blurb: "A long-limbed sprinter whose wild energy stirs new ideas.",
-    vagueHint: "Coiled to bolt — only perfect stillness reassures it.",
-    clearHint:
-      "Sit still and scratch behind those long ears. Loves mint crisps.",
+    vagueTreatHint: "Twitches its nose at anything crisp and herbal.",
+    clearTreatHint: "Loves mint crisps.",
+    vaguePostureHint: "Coiled to bolt — only perfect stillness reassures it.",
+    clearPostureHint: "Sit still.",
+    vaguePetSpotHint: "Angles its long ears toward a careful hand.",
+    clearPetSpotHint: "Scratch behind those long ears.",
   },
   thistledown: {
     id: "thistledown",
@@ -245,8 +314,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     habitat: "air",
     blurb:
       "A drifting seed-fluff spirit that settles wherever the air is calm.",
-    vagueHint: "The lightest stir of air carries it away.",
-    clearHint: "Sit still and tickle under its chin. Loves honey drops.",
+    vagueTreatHint: "Drifts toward the faintest trace of amber sweetness.",
+    clearTreatHint: "Loves honey drops.",
+    vaguePostureHint: "The lightest stir of air carries it away.",
+    clearPostureHint: "Sit still.",
+    vaguePetSpotHint: "Tilts upward toward the gentlest touch.",
+    clearPetSpotHint: "Tickle under its chin.",
   },
   glimmerwing: {
     id: "glimmerwing",
@@ -259,8 +332,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "back",
     habitat: "air",
     blurb: "A tiny dragonfly-dragon whose glow is a lantern to lost creatures.",
-    vagueHint: "Hovers just out of reach unless the air is utterly calm.",
-    clearHint: "Sit still and smooth its wing-backs. Loves honey drops.",
+    vagueTreatHint: "Circles anything glistening and sweet.",
+    clearTreatHint: "Loves honey drops.",
+    vaguePostureHint:
+      "Hovers just out of reach unless the air is utterly calm.",
+    clearPostureHint: "Sit still.",
+    vaguePetSpotHint: "Shivers its wings at a touch along their length.",
+    clearPetSpotHint: "Smooth its wing-backs.",
   },
   puffloaf: {
     id: "puffloaf",
@@ -273,8 +351,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "back",
     habitat: "air",
     blurb: "A drowsy cloud-sheep; everything nearby breathes a little slower.",
-    vagueHint: "Drifts closer when your eyes go soft and sleepy.",
-    clearHint: "Blink slowly and pat its woolly back. Loves cream puffs.",
+    vagueTreatHint: "Drifts toward anything light, sweet, and cloud-soft.",
+    clearTreatHint: "Loves cream puffs.",
+    vaguePostureHint: "Drifts closer when your eyes go soft and sleepy.",
+    clearPostureHint: "Blink slowly.",
+    vaguePetSpotHint: "Fluffs up when stroked along its woolly length.",
+    clearPetSpotHint: "Pat its woolly back.",
   },
   dewsprite: {
     id: "dewsprite",
@@ -287,8 +369,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     preferredPetSpot: "behind-ears",
     habitat: "air",
     blurb: "A morning-dew spirit that whispers forgotten techniques.",
-    vagueHint: "Shimmers brighter when you greet it gently, eye to eye.",
-    clearHint: "Blink slowly and tickle behind its ears. Loves berry bites.",
+    vagueTreatHint: "Brightens at the smell of dew-fresh fruit.",
+    clearTreatHint: "Loves berry bites.",
+    vaguePostureHint: "Shimmers brighter when you greet it gently, eye to eye.",
+    clearPostureHint: "Blink slowly.",
+    vaguePetSpotHint: "Shimmers when fingers stray near the base of its ears.",
+    clearPetSpotHint: "Tickle behind its ears.",
   },
   emberveil: {
     id: "emberveil",
@@ -302,8 +388,12 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     habitat: "air",
     blurb:
       "A fire-moth of ancient warmth whose presence sharpens every tender gesture.",
-    vagueHint: "Flame-shy; a soft, unhurried gaze seems to hold it.",
-    clearHint: "Blink slowly and stroke along its back. Loves honey drops.",
+    vagueTreatHint: "Warms at the scent of something golden and sweet.",
+    clearTreatHint: "Loves honey drops.",
+    vaguePostureHint: "Flame-shy; a soft, unhurried gaze seems to hold it.",
+    clearPostureHint: "Blink slowly.",
+    vaguePetSpotHint: "Glows faintly at a touch along its length.",
+    clearPetSpotHint: "Stroke along its back.",
   },
   thornwhisper: {
     id: "thornwhisper",
@@ -317,9 +407,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     habitat: "ground",
     blurb:
       "An ancient root-creature that nurtures the glade with deep abundance.",
-    vagueHint:
+    vagueTreatHint: "Roots twitch toward the nearest bramble of fruit.",
+    clearTreatHint: "Loves berry bites.",
+    vaguePostureHint:
       "Tangles of root and moss — it eases when you match its low height.",
-    clearHint: "Crouch low and scratch behind its ears. Loves berry bites.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Leans its thorny crown toward a hand near its ears.",
+    clearPetSpotHint: "Scratch behind its ears.",
   },
   mirewing: {
     id: "mirewing",
@@ -333,9 +427,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     habitat: "air",
     blurb:
       "A crystal-winged butterfly of perfect stillness — its every touch amplifies your patient skill.",
-    vagueHint:
+    vagueTreatHint: "Settles closer to anything delicate and cream-filled.",
+    clearTreatHint: "Loves cream puffs.",
+    vaguePostureHint:
       "Lands only in absolute calm; the faintest motion sends it aloft.",
-    clearHint: "Sit still and offer a chin scratch. Loves cream puffs.",
+    clearPostureHint: "Sit still.",
+    vaguePetSpotHint: "Tilts its crystal wings toward a touch near its face.",
+    clearPetSpotHint: "Offer a chin scratch.",
   },
   fernmother: {
     id: "fernmother",
@@ -349,9 +447,13 @@ export const SPECIES: Record<SpeciesId, SpeciesConfig> = {
     habitat: "ground",
     blurb:
       "A primordial forest spirit whose roots run deep, filling the glade with inexhaustible gifts.",
-    vagueHint:
+    vagueTreatHint: "Draws slow roots toward anything green and fragrant.",
+    clearTreatHint: "Loves mint crisps.",
+    vaguePostureHint:
       "Ancient and slow; you need to come all the way down to meet it.",
-    clearHint: "Crouch low and stroke along its back. Loves mint crisps.",
+    clearPostureHint: "Crouch low.",
+    vaguePetSpotHint: "Sways gently at a touch along its mossy length.",
+    clearPetSpotHint: "Stroke along its back.",
   },
 };
 
