@@ -10,6 +10,7 @@ import type {
   GladeState,
   PetSpot,
   Posture,
+  SpeciesId,
   TreatId,
   WildVisitor,
 } from "./schema";
@@ -48,6 +49,21 @@ export interface ActionResult {
 
 function noAction(state: GladeState): ActionResult {
   return { state, trustGained: null, tamed: false, matched: false };
+}
+
+/** Unlocks a species' hint text once a matching action confirms its preference. */
+function discoverPreference(
+  state: GladeState,
+  speciesId: SpeciesId,
+): GladeState {
+  if (state.discoveredPreferences[speciesId]) return state;
+  return {
+    ...state,
+    discoveredPreferences: {
+      ...state.discoveredPreferences,
+      [speciesId]: true,
+    },
+  };
 }
 
 /**
@@ -121,13 +137,16 @@ export function offerTreat(
   const favourite = SPECIES[visitor.speciesId].favouriteTreat === treatId;
   const gain = treatTrustGain(treatId, favourite);
 
+  const discovered = favourite
+    ? discoverPreference(state, visitor.speciesId)
+    : state;
   const withSpentTreat: GladeState = {
-    ...state,
+    ...discovered,
     pantry: {
-      ...state.pantry,
+      ...discovered.pantry,
       treats: {
-        ...state.pantry.treats,
-        [treatId]: (state.pantry.treats[treatId] ?? 0) - 1,
+        ...discovered.pantry.treats,
+        [treatId]: (discovered.pantry.treats[treatId] ?? 0) - 1,
       },
     },
   };
@@ -166,7 +185,10 @@ export function approachVisitor(
     approachTrustGain(state.skills["body-language"].tier, matched) +
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
-  const withXp = gainXp(state, "body-language");
+  const discovered = matched
+    ? discoverPreference(state, visitor.speciesId)
+    : state;
+  const withXp = gainXp(discovered, "body-language");
   const applied = applyTrust(withXp, visitor, gain, "approach", today, rng);
   return {
     state: applied.state,
@@ -195,7 +217,10 @@ export function petVisitor(
     petTrustGain(state.skills["petting-technique"].tier, matched) +
     (matched ? heralds * HERALD_TRUST_BONUS : 0);
 
-  const withXp = gainXp(state, "petting-technique");
+  const discovered = matched
+    ? discoverPreference(state, visitor.speciesId)
+    : state;
+  const withXp = gainXp(discovered, "petting-technique");
   const applied = applyTrust(withXp, visitor, gain, "pet", today, rng);
   return {
     state: applied.state,
