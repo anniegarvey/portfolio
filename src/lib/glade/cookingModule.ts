@@ -1,6 +1,6 @@
 import { INGREDIENTS, RECIPES } from "./catalog";
 import type { GladeState, IngredientId, TreatId } from "./schema";
-import { gainXp } from "./skillsModule";
+import { gainXp, isSkillUnlocked } from "./skillsModule";
 
 /**
  * Adds one ingredient to the pantry. Caller is responsible for spending
@@ -66,6 +66,7 @@ export function addIngredients(
 
 /** True when the recipe's tier is unlocked and all ingredients are in stock. */
 export function canCook(state: GladeState, treatId: TreatId): boolean {
+  if (!isSkillUnlocked(state, "treat-cooking")) return false;
   const recipe = RECIPES[treatId];
   if (state.skills["treat-cooking"].tier < recipe.requiredTier) return false;
   return Object.entries(recipe.ingredients).every(

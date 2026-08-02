@@ -3,14 +3,21 @@ import type { GladeContextType } from "./context";
 import type { GladeState, SkillState, WildVisitor } from "./schema";
 
 /** Builds a GladeState with sensible defaults, overridable per test. */
+/**
+ * Body Language and Petting Technique default to tier 2 so Petting
+ * Technique and Treat Cooking start unlocked (see SKILL_UNLOCK_REQUIREMENT)
+ * — most tests exercise pet/treat actions incidentally, not the unlock
+ * gating itself, so tests specifically covering gating override tiers back
+ * down to 1.
+ */
 export function makeGladeState(overrides?: Partial<GladeState>): GladeState {
   return {
     visitors: [],
     residents: [],
     skills: {
       "treat-cooking": { tier: 1, xp: 0 },
-      "body-language": { tier: 1, xp: 0 },
-      "petting-technique": { tier: 1, xp: 0 },
+      "body-language": { tier: 2, xp: 0 },
+      "petting-technique": { tier: 2, xp: 0 },
     },
     pantry: { ingredients: {}, treats: {} },
     speciesTrust: {},
@@ -60,6 +67,7 @@ export function makeGladeContext(
     buyIngredient: vi.fn().mockReturnValue(false),
     buyMissingIngredients: vi.fn().mockReturnValue(false),
     buyLesson: vi.fn().mockReturnValue(false),
+    resetGlade: vi.fn(),
     ...overrides,
   };
 }
