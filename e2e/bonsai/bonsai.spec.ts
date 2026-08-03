@@ -591,6 +591,55 @@ test.describe("Bonsai Garden", () => {
     }
   });
 
+  // The skeleton pins Water/Hose pill widths to the locked variant (wider,
+  // and what every new visitor sees), but the real toolbar's unlocked pills
+  // used to be narrower — so buying either tool mid-session reflowed the
+  // toolbar. Confirms both variants render at the same width, at the same
+  // viewports the skeleton-parity test above pins against the skeleton, so
+  // the loaded toolbar can't drift from the reserved size in either state.
+  test("Water and Hose toolbar pills keep their width once unlocked", async ({
+    page,
+  }) => {
+    // Named by accessible name rather than DOM position: the locked and
+    // unlocked pills both contain "Water"/"Hose" in their text (see the
+    // `title`s in GardenView.tsx), so this fails loudly if either button
+    // goes missing instead of silently comparing two empty reads. `.first()`
+    // disambiguates from the "Needs water" tree card in the Collection tab —
+    // the toolbar renders first in document order.
+    const pillWidth = async (name: RegExp) => {
+      const box = await page
+        .getByRole("button", { name })
+        .first()
+        .boundingBox();
+      if (!box) throw new Error(`no bounding box for ${name}`);
+      return Math.round(box.width);
+    };
+
+    for (const width of [375, 480, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await goToBonsaiWithSeed(page, { points: 5000 });
+
+      const lockedWater = await pillWidth(/water/i);
+      const lockedHose = await pillWidth(/hose/i);
+
+      await page.getByRole("tab", { name: "Shop" }).click();
+      await page.getByRole("tab", { name: "Tools" }).click();
+      for (const item of ["Watering Can", "Garden Hose"]) {
+        const card = page.getByRole("tabpanel").locator(`text=${item}`).first();
+        await card
+          .locator("xpath=ancestor::*[2]")
+          .getByRole("button", { name: "Buy" })
+          .click();
+      }
+
+      const unlockedWater = await pillWidth(/water/i);
+      const unlockedHose = await pillWidth(/hose/i);
+
+      expect(unlockedWater, `width ${width}px`).toBe(lockedWater);
+      expect(unlockedHose, `width ${width}px`).toBe(lockedHose);
+    }
+  });
+
   test("accessibility scan", async ({ page, makeAxeBuilder }) => {
     await page.goto("/bonsai");
     // Wait for the garden tree to render before scanning

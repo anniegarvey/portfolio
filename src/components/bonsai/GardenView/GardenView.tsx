@@ -207,7 +207,13 @@ function MiniTree({
 // room than the real toolbar needs. `bonsai.spec.ts` pins these against the
 // rendered toolbar. The garden reuses the real `Garden` box, so its height is
 // identical by construction.
-const TOOL_PILL_WIDTHS = ["86px", "87px", "130px", "145px"];
+//
+// Water and Hose are pinned to these same widths in the real toolbar (see
+// WaterToolBtn/HoseToolBtn below), so buying a tool mid-session — which swaps
+// the locked pill for the unlocked one — can't reflow the toolbar either.
+const WATER_PILL_WIDTH = "130px";
+const HOSE_PILL_WIDTH = "145px";
+const TOOL_PILL_WIDTHS = ["86px", "87px", WATER_PILL_WIDTH, HOSE_PILL_WIDTH];
 const ADVANCE_DAY_PILL_WIDTH = "153px";
 
 // role + aria-busy mirror DayPlannerSkeleton's named <section>: the
@@ -316,7 +322,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
           Move
         </ToolBtn>
         {hasWateringCan ? (
-          <ToolBtn
+          <WaterToolBtn
             data-active={gardenTool === "water" || undefined}
             onClick={() => setGardenTool("water")}
             title="Water trees"
@@ -324,9 +330,9 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
           >
             <Droplets size={15} />
             Water
-          </ToolBtn>
+          </WaterToolBtn>
         ) : (
-          <LockedToolBtn
+          <LockedWaterToolBtn
             onClick={() => onNavigateToShop("watering-can")}
             title="Watering Can (locked)"
             type="button"
@@ -337,10 +343,10 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
               <Coins size={12} />
               {TOOL_PRICES["watering-can"]}
             </ToolPrice>
-          </LockedToolBtn>
+          </LockedWaterToolBtn>
         )}
         {hasGardenHose ? (
-          <ToolBtn
+          <HoseToolBtn
             data-active={gardenTool === "hose" || undefined}
             onClick={() => setGardenTool("hose")}
             title="Garden Hose — water all trees"
@@ -348,9 +354,9 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
           >
             <Wind size={15} />
             Hose
-          </ToolBtn>
+          </HoseToolBtn>
         ) : (
-          <LockedToolBtn
+          <LockedHoseToolBtn
             onClick={() => onNavigateToShop("garden-hose")}
             title="Garden Hose (locked)"
             type="button"
@@ -361,7 +367,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
               <Coins size={12} />
               {TOOL_PRICES["garden-hose"]}
             </ToolPrice>
-          </LockedToolBtn>
+          </LockedHoseToolBtn>
         )}
         {demoMode && <PushedAdvanceDay />}
       </GardenToolbar>
@@ -485,6 +491,29 @@ const LockedToolBtn = styled.button`
     background: light-dark(#f9f7f5, #242930);
     border-color: color-mix(in oklch, var(--color-points) 60%, transparent);
   }
+`;
+
+// Buying a tool swaps the locked pill for the unlocked one, which is narrower
+// (no lock icon, no price badge) — pinning both to the locked pill's width
+// keeps the swap from reflowing the toolbar mid-session. Only the unlocked
+// variant needs centering: its content no longer fills the pinned width on
+// its own, while the locked variant's (icon + label + price) already does.
+const WaterToolBtn = styled(ToolBtn)`
+  min-width: ${WATER_PILL_WIDTH};
+  justify-content: center;
+`;
+
+const LockedWaterToolBtn = styled(LockedToolBtn)`
+  min-width: ${WATER_PILL_WIDTH};
+`;
+
+const HoseToolBtn = styled(ToolBtn)`
+  min-width: ${HOSE_PILL_WIDTH};
+  justify-content: center;
+`;
+
+const LockedHoseToolBtn = styled(LockedToolBtn)`
+  min-width: ${HOSE_PILL_WIDTH};
 `;
 
 const ToolPrice = styled.span`
