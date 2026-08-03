@@ -13,6 +13,10 @@ import {
 import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
 import { StaticTreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
+import {
+  WaterSprinkles,
+  type WaterSprinklesHandle,
+} from "@/components/bonsai/WaterSprinkles";
 import { SkeletonBox } from "@/components/Skeleton";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
@@ -61,6 +65,7 @@ function MiniTree({
     startY: number;
     moved: boolean;
   } | null>(null);
+  const sprinklesRef = useRef<WaterSprinklesHandle>(null);
 
   const pos = tree.gardenPosition ?? { x: 50, y: 50 };
   const config = SPECIES_CONFIG[tree.speciesId];
@@ -87,6 +92,11 @@ function MiniTree({
       if (gardenTool === "water") {
         if (!e.isPrimary) return;
         onWater(tree.id);
+        const rect = e.currentTarget.getBoundingClientRect();
+        sprinklesRef.current?.start(
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+        );
         return;
       }
       dragState.current = {
@@ -105,6 +115,11 @@ function MiniTree({
   // biome-ignore lint/correctness/useExhaustiveDependencies: gardenRef is a stable ref object
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (gardenTool === "water") {
+        const rect = e.currentTarget.getBoundingClientRect();
+        sprinklesRef.current?.move(e.clientX - rect.left, e.clientY - rect.top);
+        return;
+      }
       if (!(dragState.current && gardenRef.current) || gardenTool !== "move")
         return;
       const dx = e.clientX - dragState.current.startX;
@@ -130,6 +145,9 @@ function MiniTree({
 
   const handlePointerUp = useCallback(
     (_e: ReactPointerEvent<HTMLDivElement>) => {
+      // Water's sprinkle stream must stop even though dragState is never set
+      // for that tool (see handlePointerDown), so this runs before the guard.
+      sprinklesRef.current?.stop();
       if (!dragState.current) return;
       if (!dragState.current.moved) {
         if (gardenTool === "tend") onOpen(tree);
@@ -160,7 +178,9 @@ function MiniTree({
           // hose: keyboard on individual tree does nothing
         }
       }}
+      onPointerCancel={() => sprinklesRef.current?.stop()}
       onPointerDown={handlePointerDown}
+      onPointerLeave={() => sprinklesRef.current?.stop()}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       role="button"
@@ -194,6 +214,7 @@ function MiniTree({
       <TreeNameTag>
         {config.emoji} {displayName}
       </TreeNameTag>
+      <WaterSprinkles ref={sprinklesRef} />
     </MiniTreeContainer>
   );
 }
