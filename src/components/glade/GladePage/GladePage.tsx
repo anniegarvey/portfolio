@@ -71,20 +71,20 @@ export function GladePage() {
 
         <PageTabs defaultValue="skills">
           <PageTabsList aria-label="Glade sections">
-            <PageTab value="pantry">Pantry</PageTab>
-            <PageTab value="kitchen">Kitchen</PageTab>
             <PageTab value="skills">Skills</PageTab>
+            <PageTab value="kitchen">Kitchen</PageTab>
+            <PageTab value="pantry">Pantry</PageTab>
             <PageTab value="collection">Collection</PageTab>
           </PageTabsList>
 
-          <Tabs.Content value="pantry">
-            <PantryPanel />
+          <Tabs.Content value="skills">
+            <SkillsPanel />
           </Tabs.Content>
           <Tabs.Content value="kitchen">
             <KitchenPanel />
           </Tabs.Content>
-          <Tabs.Content value="skills">
-            <SkillsPanel />
+          <Tabs.Content value="pantry">
+            <PantryPanel />
           </Tabs.Content>
           <Tabs.Content value="collection">
             <CollectionPanel />

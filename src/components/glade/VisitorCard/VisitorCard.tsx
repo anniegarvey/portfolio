@@ -127,8 +127,6 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
       {feedback !== null && <Feedback role="status">{feedback}</Feedback>}
 
       <Actions>
-        <TreatActionGroup portraitRef={portraitRef} visitor={visitor} />
-
         <ActionGroup>
           <GroupLabel>Approach</GroupLabel>
           {visitor.actionsToday.approach ? (
@@ -156,8 +154,51 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
         </ActionGroup>
 
         <PetActionGroup portraitRef={portraitRef} visitor={visitor} />
+
+        <TreatActionGroup portraitRef={portraitRef} visitor={visitor} />
       </Actions>
     </Card>
+  );
+}
+
+function PetActionGroup({
+  visitor,
+  portraitRef,
+}: {
+  visitor: WildVisitor;
+  portraitRef: RefObject<HTMLDivElement | null>;
+}) {
+  const { state, petVisitor } = useGlade();
+  const petUnlocked = isSkillUnlocked(state, "petting-technique");
+
+  return (
+    <ActionGroup>
+      <GroupLabel>Pet</GroupLabel>
+      {!petUnlocked ? (
+        <UnlockNotice skillId="petting-technique" />
+      ) : visitor.actionsToday.pet ? (
+        <Done>Petted today</Done>
+      ) : (
+        <ChoiceRow>
+          {PET_SPOTS.map((spot) => (
+            <Button
+              key={spot}
+              onClick={() =>
+                petVisitor(
+                  visitor.id,
+                  spot,
+                  portraitRef.current?.getBoundingClientRect(),
+                )
+              }
+              size="sm"
+              variant="outline"
+            >
+              {PET_SPOT_LABELS[spot]}
+            </Button>
+          ))}
+        </ChoiceRow>
+      )}
+    </ActionGroup>
   );
 }
 
@@ -199,47 +240,6 @@ function TreatActionGroup({
               variant="outline"
             >
               {RECIPES[treatId].name} ×{state.pantry.treats[treatId]}
-            </Button>
-          ))}
-        </ChoiceRow>
-      )}
-    </ActionGroup>
-  );
-}
-
-function PetActionGroup({
-  visitor,
-  portraitRef,
-}: {
-  visitor: WildVisitor;
-  portraitRef: RefObject<HTMLDivElement | null>;
-}) {
-  const { state, petVisitor } = useGlade();
-  const petUnlocked = isSkillUnlocked(state, "petting-technique");
-
-  return (
-    <ActionGroup>
-      <GroupLabel>Pet</GroupLabel>
-      {!petUnlocked ? (
-        <UnlockNotice skillId="petting-technique" />
-      ) : visitor.actionsToday.pet ? (
-        <Done>Petted today</Done>
-      ) : (
-        <ChoiceRow>
-          {PET_SPOTS.map((spot) => (
-            <Button
-              key={spot}
-              onClick={() =>
-                petVisitor(
-                  visitor.id,
-                  spot,
-                  portraitRef.current?.getBoundingClientRect(),
-                )
-              }
-              size="sm"
-              variant="outline"
-            >
-              {PET_SPOT_LABELS[spot]}
             </Button>
           ))}
         </ChoiceRow>
