@@ -16,7 +16,9 @@ import { keyframes, styled } from "next-yak";
 import {
   type KeyboardEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
+  useRef,
   useState,
 } from "react";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
@@ -25,6 +27,10 @@ import {
   TreeSVG,
   WATER_CURSOR,
 } from "@/components/bonsai/TreeSVG";
+import {
+  WaterSprinkles,
+  type WaterSprinklesHandle,
+} from "@/components/bonsai/WaterSprinkles";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { FERTILISER_EFFECTS, SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
@@ -71,10 +77,30 @@ function WaterableSVGContainer({
 }) {
   const { waterTree, state } = useBonsai();
   const isWatering = activeTool === "watering-can";
+  const sprinklesRef = useRef<WaterSprinklesHandle>(null);
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => onWaterKeyDown(e, () => waterTree(tree.id)),
     [tree.id, waterTree],
   );
+  const handlePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!isWatering) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      sprinklesRef.current?.start(e.clientX - rect.left, e.clientY - rect.top);
+    },
+    [isWatering],
+  );
+  const handlePointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!isWatering) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      sprinklesRef.current?.move(e.clientX - rect.left, e.clientY - rect.top);
+    },
+    [isWatering],
+  );
+  const handlePointerEnd = useCallback(() => {
+    sprinklesRef.current?.stop();
+  }, []);
 
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
@@ -84,6 +110,11 @@ function WaterableSVGContainer({
       aria-label={isWatering ? "Water the tree" : undefined}
       onClick={isWatering ? () => waterTree(tree.id) : undefined}
       onKeyDown={isWatering ? handleKeyDown : undefined}
+      onPointerCancel={isWatering ? handlePointerEnd : undefined}
+      onPointerDown={isWatering ? handlePointerDown : undefined}
+      onPointerLeave={isWatering ? handlePointerEnd : undefined}
+      onPointerMove={isWatering ? handlePointerMove : undefined}
+      onPointerUp={isWatering ? handlePointerEnd : undefined}
       role={isWatering ? "button" : undefined}
       style={{
         borderColor: bgConfig.borderColor,
@@ -95,6 +126,7 @@ function WaterableSVGContainer({
       <TreeSVGLayer>
         <TreeSVG activeTool={activeTool} cropTop tree={tree} />
       </TreeSVGLayer>
+      <WaterSprinkles ref={sprinklesRef} />
     </SVGContainer>
   );
 }
