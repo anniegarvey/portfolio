@@ -5,7 +5,7 @@ description: Use this whenever a code change is requested. Covers planning, work
 
 # Code Change
 
-- Use /grill-with-docs to flesh out the plan first
+- When clarification is needed, run a `/grilling` sessions using the `/domain-modeling` skill.
 - Implement the feature, breaking work into small, focused commits
 - If you need to run the dev server, run `pnpm dev`. The port number will be in the `.port` file
 - Check your changes using react-review, and apply recommended fixes
