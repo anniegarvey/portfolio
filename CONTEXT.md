@@ -137,7 +137,104 @@ The once-per-calendar-day tick: yesterday's wild visitors depart (banking trust)
 
 ---
 
+## Meadowmere
+
+A smallholding sim in the Stardew Valley mould. The player walks a farmer around a single map, growing crops, foraging materials, and befriending three neighbours by giving them things they like. A chain of quests ties the loops together and gates every unlock. No failure states — crops never wither and friendship never decays.
+
+### The world
+
+**Vale**
+The one map everything happens on: a grid of **Tiles** with a terrain layer and a set of **Features** standing on it. Nothing about it is persisted — it is derived from a fixed layout plus game state.
+
+**Tile**
+One square of the Vale. Its terrain decides whether the **Farmer** can stand on it.
+
+**Farmer**
+The player character. Has a position and a **Facing**.
+
+**Facing**
+Which of the four directions the farmer is looking. The tile in front is where every interaction happens.
+
+**Feature**
+Something standing on a tile that the farmer can act on: a **Plot**, a **Site**, a **Cottage**, or the **Seed stall**. Every feature blocks movement, so the rule is the same for all of them — stand beside it, face it, act on it.
+
+**Cottage**
+Where a **Neighbour** lives. Calling on one is how gifts are given and quests handed in.
+
+**Seed stall**
+Where seed packets are bought with points. The only thing points are spent on in Meadowmere (see ADR 0007).
+
+**Interaction**
+The action available on a feature given current state, plus the wording for it ("Water Parsnip in Plot 4"). Derived, never stored, so the prompt under the map and the feature's button can never disagree.
+
+### The loops
+
+**Crop**
+A catalog definition of a plantable kind: seed cost in points, days to mature, base yield, and the **Produce** it gives. The source of truth for growing behaviour — never duplicated into game state.
+
+**Plot**
+One bed on the farm. Either bare or holding a **Planting**. The farm starts with six and grows to at most twelve through quest rewards, a row at a time.
+
+**Planting**
+A crop sown in a plot. Holds its `cropId`, `plantedDate`, and how many days it has been watered.
+
+**Growth stage**
+A label derived from days since `plantedDate`: Seed → Sprout → Budding → Ripe. Derived on every read, never counted up day by day, so time away from the game ripens crops correctly (see ADR 0007).
+
+**Watering**
+Once per plot per calendar day. Each watered day adds one to the eventual harvest — watering is a bonus that raises yield, never a requirement for growth.
+
+**Produce**
+What harvesting a ripe planting yields. Spent on **Gifts** and **Quest** deliveries; never sold.
+
+**Material**
+An item gathered from the **Wilds**. Interchangeable with produce as gift and quest currency — both are **Items** in one vocabulary.
+
+**Item**
+Anything that can sit in the **Larder**: produce or material.
+
+**Larder**
+The player's item store. (Distinct from the Creature Glade's **Pantry**, which holds ingredients and treats.)
+
+**Wilds**
+The land beyond the farm, made up of **Sites**. Named "wilds" rather than "zones" — **Zone** already means a time-of-day slot in the Energy Planner.
+
+**Site**
+A named place in the wilds (The Hedgerow, The Riverbank, Stonewood) with its own material pool. Only the hedgerow is open at the start; the rest are unlocked by quests, and stand behind a shut gate on the map until then.
+
+**Forage trip**
+One visit to an unlocked site, turning up one or two of a material. Three trips a day, refilled by the **Daily Meadowmere advance**.
+
+**Neighbour**
+One of three villagers — Nessa, Bram, Marigold — each with a set of liked **Items**, a **Friendship** meter, and a **Cottage** on the map.
+
+**Friendship**
+A per-neighbour meter from 0–100, raised by **Gifts** and quest rewards, never lowered. Crossing a threshold advances the **Friendship tier**.
+
+**Friendship tier**
+A label derived from friendship: Stranger → Acquaintance → Friend → Confidant → Dear Friend. Some quests require reaching a tier.
+
+**Gift**
+One item given to one neighbour, once per neighbour per calendar day. A liked item earns more friendship than a neutral one; nothing a neighbour receives ever loses them any.
+
+**Quest**
+An objective set by a neighbour. Auto-unlocks when its prerequisites are met — there is no accept step — and is handed in by calling on whoever set it. Only `completedQuestIds` is stored; a quest's status (_locked_ → _active_ → _ready_ → _completed_) and its progress checklist are derived from current state, so progress can't desync from the larder it is counted against.
+
+**Quest journal**
+A read-only account of the whole chain, opened from above the map. Quests are handed in at a **Cottage**, not here.
+
+**Quest requirement**
+What a quest asks for: items to hand in, and/or a friendship tier to have reached. Both are checked against current state. Handing in consumes the items; friendship is a standing relationship, not a cost.
+
+**Quest reward**
+What a quest pays out: seeds, items, a crop unlock, a site unlock, extra plots, or friendship — never points (see ADR 0003 and ADR 0007).
+
+**Daily Meadowmere advance**
+The once-per-calendar-day tick: forage trips refill and the digest reports what ripened while the player was away. Growth needs no work here because it is derived. Watering and gifting limits expire on their own, being date-stamped. Mirrors the Bonsai **Daily advance** and **Daily glade advance** pattern.
+
+---
+
 ## Shared Infrastructure
 
 **Points system**
-The cross-cutting module that manages the points currency shared between the Energy Planner and the Playground games (Bonsai Garden, Creature Glade). Handles awarding, spending, particle animations, and localStorage persistence.
+The cross-cutting module that manages the points currency shared between the Energy Planner and the Playground games (Bonsai Garden, Creature Glade, Meadowmere). Handles awarding, spending, particle animations, and localStorage persistence.
