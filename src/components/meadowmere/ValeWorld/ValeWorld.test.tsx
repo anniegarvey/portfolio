@@ -1,6 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MeadowmereContextType,
   useMeadowmere,
@@ -56,8 +62,36 @@ const stage = () => screen.getByRole("application");
  */
 const prompt = () => stage().parentElement?.querySelector("p:last-of-type");
 
+/**
+ * jsdom has no matchMedia, so the world would play back every walk on a 90ms
+ * timer — which fires after most of these tests have finished, outside act().
+ * Reduced motion is the default here: the farmer is put where they are going
+ * and no timer is involved. The two tests that are about the walk itself turn
+ * it back off.
+ */
+function setReducedMotion(reduce: boolean) {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: reduce && query.includes("prefers-reduced-motion"),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+}
+
+/** Waits inside act(), so walk timers land as React updates, not stray ones. */
+async function settle(ms: number) {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  setReducedMotion(true);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("walking", () => {
@@ -199,10 +233,15 @@ describe("acting on what the farmer faces", () => {
 
     // Focusing a hotspot and pressing space is the button's own activation;
     // the world must not also act on whatever the farmer happens to face.
-    screen.getByRole("button", { name: "Call on Nessa" }).focus();
+    // Wrapped because focus tells the world what the keyboard has landed on.
+    act(() => {
+      screen.getByRole("button", { name: "Call on Nessa" }).focus();
+    });
     await userEvent.keyboard("{ }");
 
     expect(waterPlot).not.toHaveBeenCalled();
+    // Space activated the hotspot, so let the door it opened settle.
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 
   it("ignores keys that are neither movement nor action", async () => {
@@ -275,6 +314,7 @@ describe("clicking a place on the map", () => {
   });
 
   it("walks the farmer over and leaves them facing what they used", async () => {
+    setReducedMotion(false);
     mock();
     render(<ValeWorld />);
 
@@ -290,6 +330,20 @@ describe("clicking a place on the map", () => {
       },
       { timeout: 4000 },
     );
+    // Let the walk wind itself up rather than leaving a timer to fire loose.
+    await settle(200);
+  });
+
+  it("puts the farmer straight there when they'd rather not watch a walk", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Forage The Hedgerow/ }),
+    );
+
+    // No timer, no intermediate tiles — the farmer is simply in front of it.
+    expect(prompt()).toHaveTextContent("Forage The Hedgerow");
   });
 
   it("needs no walk when the farmer is already stood beside it", async () => {
@@ -361,21 +415,23 @@ describe("clicking a place on the map", () => {
   });
 
   it("abandons the walk when the player takes the reins back", async () => {
-    const user = userEvent.setup({ delay: null });
+    setReducedMotion(false);
     mock();
     render(<ValeWorld />);
 
+    // Dispatched synchronously so the reins are taken back before the walk's
+    // first 90ms step, with no await in between for a timer to slip through.
     // Plot 6 is right across the farm, so the walk is several tiles long.
-    await user.click(
+    fireEvent.click(
       screen.getByRole("button", {
         name: "Plot 6 — bare soil, no seed chosen",
       }),
     );
-    stage().focus();
-    await user.keyboard("{ArrowDown}{ArrowRight}");
+    fireEvent.keyDown(stage(), { key: "ArrowDown" });
+    fireEvent.keyDown(stage(), { key: "ArrowRight" });
 
     // Long enough that the abandoned walk would have arrived had it continued.
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await settle(800);
 
     expect(prompt()).not.toHaveTextContent("Plot 6");
   });

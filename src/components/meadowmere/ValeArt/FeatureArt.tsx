@@ -9,9 +9,9 @@ import type { CropId, NeighbourId, SiteId } from "@/lib/meadowmere/schema";
 
 const SOIL = "var(--vale-soil)";
 const SOIL_DARK = "var(--vale-soil-dark)";
-const LEAF = "#5d9c4a";
-const LEAF_DARK = "#3f7a34";
-const STEM = "#4a8038";
+const LEAF = "var(--vale-leaf)";
+const LEAF_DARK = "var(--vale-leaf-dark)";
+const STEM = "var(--vale-stem)";
 
 /** Ripe colours per crop, so a full bed reads at a glance. */
 const CROP_COLOURS: Record<CropId, { main: string; accent: string }> = {
@@ -221,10 +221,17 @@ function Stonewood() {
   return (
     <g transform="translate(0, -12)">
       <path d="M2 34 L7 22 L14 21 L18 34 Z" fill="var(--vale-rock)" />
-      <rect fill="#6b4a30" height="16" rx="2" width="6" x="18" y="20" />
-      <ellipse cx="21" cy="16" fill="#2f6b3a" rx="13" ry="10" />
-      <ellipse cx="14" cy="11" fill="#3f7f46" rx="9" ry="7" />
-      <ellipse cx="27" cy="10" fill="#3f7f46" rx="7" ry="6" />
+      <rect
+        fill="var(--vale-bark)"
+        height="16"
+        rx="2"
+        width="6"
+        x="18"
+        y="20"
+      />
+      <ellipse cx="21" cy="16" fill="var(--vale-canopy)" rx="13" ry="10" />
+      <ellipse cx="14" cy="11" fill="var(--vale-canopy-lit)" rx="9" ry="7" />
+      <ellipse cx="27" cy="10" fill="var(--vale-canopy-lit)" rx="7" ry="6" />
       <ellipse cx="9" cy="32" fill="#c9784a" rx="3" ry="1.8" />
       <rect fill="#e8d8b8" height="4" width="1.6" x="8.2" y="32" />
     </g>
@@ -237,13 +244,13 @@ function Riverbank() {
       <path d="M0 24 q10 -5 20 0 q8 3 12 1 v13 H0 Z" fill="var(--vale-soil)" />
       <path
         d="M8 30 L6 16 M12 31 L12 15 M16 30 L18 17"
-        stroke="#7fa650"
+        stroke="var(--vale-reed)"
         strokeLinecap="round"
         strokeWidth="2.2"
       />
       <ellipse cx="10" cy="15" fill="#a9713c" rx="1.6" ry="3.4" />
-      <ellipse cx="24" cy="31" fill="#b08968" rx="5" ry="3" />
-      <ellipse cx="22" cy="29" fill="#c49a76" rx="3" ry="2" />
+      <ellipse cx="24" cy="31" fill="var(--vale-clay)" rx="5" ry="3" />
+      <ellipse cx="22" cy="29" fill="var(--vale-clay-lit)" rx="3" ry="2" />
     </g>
   );
 }

@@ -7,10 +7,17 @@ import { CROPS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
 import type { RipenedEntry } from "@/lib/meadowmere/meadowmereEngine";
 
+/** "Strawberry" → "Strawberries"; everything else in the catalog takes an s. */
+function pluralise(name: string): string {
+  return name.endsWith("y") ? `${name.slice(0, -1)}ies` : `${name}s`;
+}
+
 /** "3 Parsnips" / "1 Pumpkin and 2 Strawberries" */
 function describeRipened(ripened: RipenedEntry[]): string {
   const parts = ripened.map(({ cropId, count }) =>
-    count === 1 ? `1 ${CROPS[cropId].name}` : `${count} ${CROPS[cropId].name}s`,
+    count === 1
+      ? `1 ${CROPS[cropId].name}`
+      : `${count} ${pluralise(CROPS[cropId].name)}`,
   );
   if (parts.length <= 1) return parts.join("");
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;

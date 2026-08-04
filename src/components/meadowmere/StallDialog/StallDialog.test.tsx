@@ -70,7 +70,9 @@ describe("StallDialog", () => {
     mock();
     render(<StallDialog onClose={onClose} open />);
 
-    await userEvent.click(screen.getByRole("button", { name: /Buy seed/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Buy Parsnip seed for 4 points" }),
+    );
     expect(buySeed).toHaveBeenCalledWith("parsnip");
   });
 
@@ -79,7 +81,9 @@ describe("StallDialog", () => {
     mock();
     render(<StallDialog onClose={onClose} open />);
 
-    expect(screen.getByRole("button", { name: /Buy seed/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /^Buy Parsnip seed/ }),
+    ).toBeDisabled();
   });
 
   it("offers a crop for sale once a quest unlocks it", () => {
@@ -90,7 +94,13 @@ describe("StallDialog", () => {
     });
     render(<StallDialog onClose={onClose} open />);
 
-    expect(screen.getAllByRole("button", { name: /Buy seed/ })).toHaveLength(2);
+    // Each is named for its own crop, so a shopper can tell them apart.
+    expect(
+      screen.getAllByRole("button", { name: /^Buy .* seed for/ }),
+    ).toHaveLength(2);
+    expect(
+      screen.getByRole("button", { name: "Buy Cornflower seed for 6 points" }),
+    ).toBeInTheDocument();
   });
 
   it("closes when asked", async () => {

@@ -102,7 +102,7 @@ export function QuestLog() {
 
 const List = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr));
   gap: 1rem;
 `;
 

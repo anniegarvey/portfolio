@@ -2,7 +2,7 @@
 
 import { Coins, Footprints, ScrollText, Sprout } from "lucide-react";
 import { styled } from "next-yak";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Modal } from "@/components/Modal";
 import { QuestLog } from "@/components/meadowmere/QuestLog";
 import { ALL_CROP_IDS, CROPS, ITEMS } from "@/lib/meadowmere/catalog";
@@ -27,6 +27,10 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
   const { state } = useMeadowmere();
   const { points } = usePoints();
   const [questsOpen, setQuestsOpen] = useState(false);
+  // Each region is named by the heading it already shows, so a screen reader
+  // doesn't announce a region and a heading as two unrelated things.
+  const pouchId = useId();
+  const larderId = useId();
 
   const unlocked = ALL_CROP_IDS.filter((id) =>
     state.unlockedCropIds.includes(id),
@@ -58,8 +62,8 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
         </QuestsButton>
       </Group>
 
-      <Section aria-label="Seed pouch">
-        <GroupLabel>
+      <Section aria-labelledby={pouchId}>
+        <GroupLabel id={pouchId}>
           <Sprout aria-hidden size={15} />
           Seed in hand
         </GroupLabel>
@@ -88,8 +92,8 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
         )}
       </Section>
 
-      <Section aria-label="Larder">
-        <GroupLabel>Larder</GroupLabel>
+      <Section aria-labelledby={larderId}>
+        <GroupLabel id={larderId}>Larder</GroupLabel>
         {larder.length === 0 ? (
           <Muted>Empty.</Muted>
         ) : (

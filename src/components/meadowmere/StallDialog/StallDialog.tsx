@@ -50,6 +50,9 @@ export function StallDialog({
                 <Meta>Locked — earned through a quest.</Meta>
               ) : (
                 <Button
+                  // Five buttons reading "Buy seed 12" are indistinguishable
+                  // to anyone navigating the shop by button.
+                  aria-label={`Buy ${crop.name} seed for ${crop.seedCost} points`}
                   disabled={points < crop.seedCost}
                   onClick={() => buySeed(cropId)}
                   size="sm"
@@ -70,7 +73,7 @@ export function StallDialog({
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: 0.75rem;
 `;
 

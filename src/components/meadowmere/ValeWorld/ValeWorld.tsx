@@ -91,9 +91,23 @@ export function ValeWorld() {
   const [selectedCropId, setSelectedCropId] = useState<CropId | null>(null);
   const [visiting, setVisiting] = useState<NeighbourId | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
-  const [announcement, setAnnouncement] = useState("");
+  /** What the keyboard has tabbed to, which overrides what the farmer faces. */
+  const [focused, setFocused] = useState<Interaction | null>(null);
+  /**
+   * A live region only fires when its text actually changes, so watering two
+   * plots in a row would announce once. The tick gives each result its own
+   * identity; the region is keyed on it and remounts.
+   */
+  const [announcement, setAnnouncement] = useState({ text: "", tick: 0 });
+  const announce = useCallback((text: string) => {
+    setAnnouncement((prev) => ({ text, tick: prev.tick + 1 }));
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Read inside activateFeature so a walk — which changes the pose every 90ms
+  // — doesn't hand all nineteen hotspots a new callback on every step.
+  const poseRef = useRef(pose);
+  poseRef.current = pose;
   const today = getTodayDateString();
   const instructionsId = useId();
 
@@ -103,35 +117,42 @@ export function ValeWorld() {
   useEffect(() => {
     const view = scrollRef.current;
     if (view === null) return;
-    const tileWidth = view.scrollWidth / VALE_WIDTH;
-    const centred = (pose.x + 0.5) * tileWidth - view.clientWidth / 2;
-    view.scrollLeft = Math.max(
-      0,
-      Math.min(centred, view.scrollWidth - view.clientWidth),
-    );
+    const centreOnFarmer = () => {
+      const tileWidth = view.scrollWidth / VALE_WIDTH;
+      const centred = (pose.x + 0.5) * tileWidth - view.clientWidth / 2;
+      view.scrollLeft = Math.max(
+        0,
+        Math.min(centred, view.scrollWidth - view.clientWidth),
+      );
+    };
+    centreOnFarmer();
+    // Rotating a phone changes how much of the map fits, which would otherwise
+    // leave the farmer off to one side until their next step.
+    window.addEventListener("resize", centreOnFarmer);
+    return () => window.removeEventListener("resize", centreOnFarmer);
   }, [pose.x]);
 
   // Results that flow through the game context get announced here; sowing and
   // watering produce no notice, so those are announced where they happen.
   useEffect(() => {
-    if (notice !== null) setAnnouncement(describeNotice(notice));
-  }, [notice]);
+    if (notice !== null) announce(describeNotice(notice));
+  }, [notice, announce]);
 
   const performInteraction = useCallback(
     (interaction: Interaction) => {
       const { action } = interaction;
       if (action === null) {
-        setAnnouncement(interaction.label);
+        announce(interaction.label);
         return;
       }
       switch (action.type) {
         case "plant":
           plantSeed(action.plotId, action.cropId);
-          setAnnouncement(`Sowed ${CROPS[action.cropId].name}.`);
+          announce(`Sowed ${CROPS[action.cropId].name}.`);
           break;
         case "water":
           waterPlot(action.plotId);
-          setAnnouncement("Watered.");
+          announce("Watered.");
           break;
         case "harvest":
           harvestPlot(action.plotId);
@@ -147,7 +168,7 @@ export function ValeWorld() {
           break;
       }
     },
-    [plantSeed, waterPlot, harvestPlot, forage],
+    [plantSeed, waterPlot, harvestPlot, forage, announce],
   );
 
   /**
@@ -157,12 +178,15 @@ export function ValeWorld() {
    * reduced-motion users take exactly the same code path.
    */
   const activateFeature = useCallback(
-    (feature: Feature, interaction: Interaction) => {
-      const route = routeToFeature(state, pose, feature);
-      performInteraction(interaction);
+    (feature: Feature) => {
+      const from = poseRef.current;
+      const route = routeToFeature(state, from, feature);
+      // Re-derived here rather than taken from the scene, so the world stays
+      // the only authority on what activating something actually does.
+      performInteraction(interactionFor(state, feature, selectedCropId, today));
       if (route === null) return;
 
-      const arrival = route.path.at(-1) ?? pose;
+      const arrival = route.path.at(-1) ?? from;
       const reduced =
         typeof window.matchMedia === "function" &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -174,7 +198,7 @@ export function ValeWorld() {
       }
       setWalk(route);
     },
-    [state, pose, performInteraction],
+    [state, selectedCropId, today, performInteraction],
   );
 
   // Plays back an auto-walk a tile at a time. Game state is already settled by
@@ -204,6 +228,9 @@ export function ValeWorld() {
         return;
       }
       if (!ACTION_KEYS.has(event.key)) return;
+      // Movement is fine to repeat; acting is not. Holding E on a forage site
+      // would otherwise spend every trip left in under a second.
+      if (event.repeat) return;
       // Enter and Space belong to a focused hotspot; only the world's own
       // action keys are handled here.
       if (event.key !== "e" && event.key !== "E") {
@@ -213,22 +240,23 @@ export function ValeWorld() {
       const ahead = tileInFront(pose);
       const feature = featureAt(state, ahead.x, ahead.y);
       if (feature === null) {
-        setAnnouncement("Nothing here.");
+        announce("Nothing here.");
         return;
       }
       performInteraction(interactionFor(state, feature, selectedCropId, today));
     },
-    [state, pose, selectedCropId, today, performInteraction],
+    [state, pose, selectedCropId, today, performInteraction, announce],
   );
 
   const aheadFeature = (() => {
     const ahead = tileInFront(pose);
     return featureAt(state, ahead.x, ahead.y);
   })();
-  const prompt =
+  const facing =
     aheadFeature === null
       ? null
       : interactionFor(state, aheadFeature, selectedCropId, today);
+  const prompt = focused ?? facing;
 
   return (
     <Layout>
@@ -259,6 +287,7 @@ export function ValeWorld() {
         <Track>
           <ValeScene
             onActivateFeature={activateFeature}
+            onFocusFeature={setFocused}
             pose={pose}
             selectedCropId={selectedCropId}
             state={state}
@@ -268,12 +297,14 @@ export function ValeWorld() {
         </Track>
       </Stage>
 
-      <Prompt aria-hidden={prompt === null}>
+      {/* Announced as well as shown: walking up to something is how you find
+          out what it offers, so a screen reader has to hear it too. */}
+      <Prompt aria-live="polite">
         {prompt === null ? "Walk up to something to use it." : prompt.label}
       </Prompt>
 
-      <LiveRegion aria-atomic="true" aria-live="polite">
-        {announcement}
+      <LiveRegion aria-atomic="true" aria-live="polite" key={announcement.tick}>
+        {announcement.text}
       </LiveRegion>
 
       <NeighbourDialog

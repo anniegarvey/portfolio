@@ -127,7 +127,7 @@ test.describe("Meadowmere", () => {
     await expect(
       stall.getByText(/Nothing here pays points back/),
     ).toBeVisible();
-    await stall.getByRole("button", { name: /Buy seed/ }).click();
+    await stall.getByRole("button", { name: /^Buy Parsnip seed/ }).click();
     await stall.getByRole("button", { name: "Close modal" }).click();
 
     await expect(

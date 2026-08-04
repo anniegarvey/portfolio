@@ -32,7 +32,7 @@ export function NeighbourDialog({
   neighbourId,
   onClose,
 }: NeighbourDialogProps) {
-  const { state, claimQuest } = useMeadowmere();
+  const { state, claimQuest, clearNotice } = useMeadowmere();
   if (neighbourId === null) return null;
 
   const neighbour = NEIGHBOURS[neighbourId];
@@ -44,7 +44,13 @@ export function NeighbourDialog({
     <Modal
       description={`Give ${neighbour.name} a gift, or hand in what they asked for.`}
       isOpen
-      onClose={onClose}
+      onClose={() => {
+        // The gift reaction is read from the shared notice, which nothing else
+        // clears — without this, reopening a door replays an old thank-you as
+        // though it had just happened.
+        clearNotice();
+        onClose();
+      }}
       title={neighbour.name}
     >
       <Body>

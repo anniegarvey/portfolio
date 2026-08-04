@@ -29,9 +29,11 @@ function renderScene(
   props: Partial<React.ComponentProps<typeof ValeScene>> = {},
 ) {
   const onActivateFeature = vi.fn();
+  const onFocusFeature = vi.fn();
   const result = render(
     <ValeScene
       onActivateFeature={onActivateFeature}
+      onFocusFeature={onFocusFeature}
       pose={POSE}
       selectedCropId={null}
       state={state}
@@ -40,7 +42,7 @@ function renderScene(
       {...props}
     />,
   );
-  return { ...result, onActivateFeature };
+  return { ...result, onActivateFeature, onFocusFeature };
 }
 
 describe("ValeScene", () => {
@@ -66,7 +68,7 @@ describe("ValeScene", () => {
     expect(screen.getAllByRole("button")).toHaveLength(MAX_PLOTS + 3 + 3 + 1);
   });
 
-  it("hands the feature and its interaction back when a button is used", async () => {
+  it("hands the feature back when its button is used", async () => {
     const { onActivateFeature } = renderScene(stateWith(6));
 
     await userEvent.click(
@@ -75,10 +77,23 @@ describe("ValeScene", () => {
 
     expect(onActivateFeature).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "cottage", neighbourId: "marigold" }),
+    );
+  });
+
+  it("reports the interaction the keyboard lands on, and when it leaves", () => {
+    const { onFocusFeature } = renderScene(stateWith(6));
+    const bram = screen.getByRole("button", { name: "Call on Bram" });
+
+    // A hotspot's label is invisible, so focusing one has to say what it does.
+    bram.focus();
+    expect(onFocusFeature).toHaveBeenCalledWith(
       expect.objectContaining({
-        action: { type: "visit", neighbourId: "marigold" },
+        action: { type: "visit", neighbourId: "bram" },
       }),
     );
+
+    bram.blur();
+    expect(onFocusFeature).toHaveBeenLastCalledWith(null);
   });
 
   it("names a plot by what can be done to it right now", () => {

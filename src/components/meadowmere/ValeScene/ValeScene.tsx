@@ -53,7 +53,9 @@ function FeatureBody({
   feature: Feature;
   state: MeadowmereState;
   today: string;
-}) {
+  // Annotated so a new Feature kind fails the build here rather than silently
+  // rendering nothing.
+}): React.JSX.Element {
   switch (feature.kind) {
     case "plot": {
       const { planting } = state.plots[feature.index];
@@ -86,7 +88,13 @@ export interface ValeSceneProps {
   selectedCropId: CropId | null;
   today: string;
   /** Fired by clicking or activating a feature's button. */
-  onActivateFeature: (feature: Feature, interaction: Interaction) => void;
+  onActivateFeature: (feature: Feature) => void;
+  /**
+   * The interaction the keyboard has landed on, or null when focus leaves the
+   * map. A hotspot's label is invisible by design, so this is how a sighted
+   * keyboard player learns what the tile they have tabbed to would do.
+   */
+  onFocusFeature: (interaction: Interaction | null) => void;
 }
 
 export function ValeScene({
@@ -96,6 +104,7 @@ export function ValeScene({
   selectedCropId,
   today,
   onActivateFeature,
+  onFocusFeature,
 }: ValeSceneProps) {
   const features = valeFeatures(state);
   // Painted back to front, so a cottage roof overlaps the grass behind it.
@@ -159,7 +168,9 @@ export function ValeScene({
           return (
             <Hotspot
               key={`${feature.kind}-${feature.x}-${feature.y}`}
-              onClick={() => onActivateFeature(feature, interaction)}
+              onBlur={() => onFocusFeature(null)}
+              onClick={() => onActivateFeature(feature)}
+              onFocus={() => onFocusFeature(interaction)}
               style={tileBox(feature.x, feature.y)}
               type="button"
             >
@@ -220,6 +231,19 @@ const Stage = styled.div`
   --vale-stall-counter: light-dark(#a9814f, #6b5233);
   --vale-stall-awning: light-dark(#c2703f, #7d4728);
   --vale-stall-cloth: light-dark(#f0e3c8, #9b917e);
+
+  /* Foliage, the same reasoning as the buildings. Ripe crops keep their vivid
+     catalog colours in both themes — a ready harvest is the thing the player
+     is scanning the farm for. */
+  --vale-leaf: light-dark(#5d9c4a, #3f6b36);
+  --vale-leaf-dark: light-dark(#3f7a34, #2c5227);
+  --vale-stem: light-dark(#4a8038, #34592a);
+  --vale-bark: light-dark(#6b4a30, #45301f);
+  --vale-canopy: light-dark(#2f6b3a, #1f4526);
+  --vale-canopy-lit: light-dark(#3f7f46, #2a5730);
+  --vale-reed: light-dark(#7fa650, #4f6a35);
+  --vale-clay: light-dark(#b08968, #6f5642);
+  --vale-clay-lit: light-dark(#c49a76, #806450);
 `;
 
 /**
@@ -252,6 +276,9 @@ const Hotspots = styled.div`
  */
 const Hotspot = styled.button`
   position: absolute;
+  /* The primary control of the game, tapped over and over on a phone — without
+     this every tap waits out the double-tap-to-zoom delay. */
+  touch-action: manipulation;
   padding: 0;
   background: none;
   border: 2px solid transparent;
