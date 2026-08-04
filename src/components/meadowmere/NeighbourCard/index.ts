@@ -1,0 +1,1 @@
+export { NeighbourCard } from "./NeighbourCard";

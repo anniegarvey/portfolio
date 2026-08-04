@@ -8,6 +8,7 @@ import {
 } from "../utils/mocks";
 import { makeBonsaiGameState } from "../utils/seed-bonsai";
 import { makeGladeGameState } from "../utils/seed-glade";
+import { makeMeadowmereGameState } from "../utils/seed-meadowmere";
 import { seedEnergyPlannerStorage } from "../utils/seed-storage";
 import { getDevToolsMask } from "./reveal-all";
 
@@ -35,6 +36,27 @@ const BONSAI_KEY = "bonsai-game-state-v2";
 
 const GLADE_STATE = JSON.stringify(makeGladeGameState());
 const GLADE_KEY = "glade-game-state";
+
+// A farm mid-run: crops at three different stages, a stocked larder, and the
+// riverbank opened, so the snapshot covers most of what the Vale can draw.
+const MEADOWMERE_STATE = JSON.stringify(
+  makeMeadowmereGameState({
+    plots: [
+      { cropId: "parsnip", plantedDaysAgo: 2 },
+      { cropId: "cornflower", plantedDaysAgo: 1, wateredToday: true },
+      { cropId: "strawberry", plantedDaysAgo: 0 },
+      null,
+      { cropId: "pumpkin", plantedDaysAgo: 5 },
+      null,
+    ],
+    seeds: { parsnip: 3, cornflower: 1 },
+    inventory: { acorn: 2, "river-clay": 1 },
+    unlockedCropIds: ["parsnip", "cornflower", "strawberry", "pumpkin"],
+    unlockedSiteIds: ["hedgerow", "riverbank"],
+    completedQuestIds: ["a-bed-for-parsnips"],
+  }),
+);
+const MEADOWMERE_KEY = "meadowmere-game-state";
 
 // ─── Energy Planner ────────────────────────────────────────────────────────────
 
@@ -130,6 +152,41 @@ test.describe("Glade", () => {
         .getByRole("region", { name: "Glade ecosystem" })
         .waitFor({ state: "visible" });
       await expect(page).toHaveScreenshot(`glade-${theme}.png`, {
+        fullPage: true,
+        mask: getDevToolsMask(page),
+      });
+    });
+  }
+});
+
+// ─── Meadowmere ───────────────────────────────────────────────────────────────
+
+test.describe("Meadowmere", () => {
+  for (const theme of ["light", "dark"] as const) {
+    test(`${theme} theme`, async ({ page }) => {
+      await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
+      await page.evaluate(
+        ({ stateJson, key, themeKey, themeValue }) => {
+          const state = JSON.parse(stateJson);
+          // Stamp today so the daily advance doesn't fire and pop a digest
+          // over the page.
+          const now = new Date();
+          state.lastAdvanceDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          localStorage.setItem(key, JSON.stringify(state));
+          localStorage.setItem(themeKey, themeValue);
+        },
+        {
+          stateJson: MEADOWMERE_STATE,
+          key: MEADOWMERE_KEY,
+          themeKey: "theme",
+          themeValue: theme,
+        },
+      );
+      await page.reload();
+      await page
+        .getByRole("application", { name: "The Vale — Meadowmere's map" })
+        .waitFor({ state: "visible" });
+      await expect(page).toHaveScreenshot(`meadowmere-${theme}.png`, {
         fullPage: true,
         mask: getDevToolsMask(page),
       });
