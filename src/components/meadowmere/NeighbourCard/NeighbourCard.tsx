@@ -2,7 +2,7 @@
 
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { styled } from "next-yak";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import {
   Select,
@@ -33,6 +33,13 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
   // "" rather than null so the Select is controlled from the first render
   // (Radix warns when a value flips from undefined to defined).
   const [chosenItemId, setChosenItemId] = useState<ItemId | "">("");
+  // Giving disables the button that was focused, so focus the reaction it
+  // produced rather than letting focus fall back to the dialog.
+  const [justGave, setJustGave] = useState(false);
+  const reactionRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (justGave) reactionRef.current?.focus();
+  }, [justGave]);
   const giftLabelId = useId();
 
   const neighbour = NEIGHBOURS[neighbourId];
@@ -116,6 +123,7 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
           onClick={() => {
             if (chosenItemId === "") return;
             giveGift(neighbourId, chosenItemId);
+            setJustGave(true);
             // Clear the choice: giving away the last of an item drops it from
             // the list, which would otherwise leave the trigger showing blank.
             setChosenItemId("");
@@ -134,7 +142,12 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
             : "One gift per neighbour per day."}
       </GiftHint>
 
-      <Reaction aria-atomic="true" aria-live="polite">
+      <Reaction
+        aria-atomic="true"
+        aria-live="polite"
+        ref={reactionRef}
+        tabIndex={reaction === "" ? undefined : -1}
+      >
         {reaction}
       </Reaction>
     </Card>

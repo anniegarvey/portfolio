@@ -186,3 +186,25 @@ describe("gifting", () => {
     expect(screen.queryByText(/Marigold loved/)).not.toBeInTheDocument();
   });
 });
+
+describe("focus after giving", () => {
+  it("makes the reaction focusable so focus isn't lost when the button disables", async () => {
+    mock({
+      state: makeMeadowmereState({ inventory: { acorn: 1 } }),
+      notice: {
+        kind: "gift",
+        neighbourId: "bram",
+        itemId: "acorn",
+        liked: true,
+        friendshipGained: 12,
+        newTierName: null,
+      },
+    });
+    render(<NeighbourCard neighbourId="bram" />);
+
+    expect(screen.getByText(/loved the acorn/)).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
+  });
+});

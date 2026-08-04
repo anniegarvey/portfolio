@@ -80,6 +80,18 @@ describe("NeighbourDialog", () => {
     expect(claimQuest).toHaveBeenCalledWith("a-bed-for-parsnips");
   });
 
+  it("moves focus to the outcome, since the button it replaces was focused", async () => {
+    // Rendered already-complete: the badge is what a hand-in leaves behind.
+    mock({
+      state: makeMeadowmereState({
+        completedQuestIds: ["a-bed-for-parsnips"],
+      }),
+    });
+    render(<NeighbourDialog neighbourId="nessa" onClose={onClose} />);
+
+    expect(screen.getByText("Handed in")).toHaveAttribute("tabindex", "-1");
+  });
+
   it("shows the giver's thanks once it's done", () => {
     mock({
       state: makeMeadowmereState({

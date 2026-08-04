@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { styled } from "next-yak";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { NeighbourCard } from "@/components/meadowmere/NeighbourCard";
@@ -12,7 +13,7 @@ import {
   questStatus,
   visibleQuests,
 } from "@/lib/meadowmere/questsModule";
-import type { NeighbourId } from "@/lib/meadowmere/schema";
+import type { NeighbourId, QuestId } from "@/lib/meadowmere/schema";
 
 /**
  * What happens when the farmer knocks on a door: how things stand with this
@@ -33,6 +34,14 @@ export function NeighbourDialog({
   onClose,
 }: NeighbourDialogProps) {
   const { state, claimQuest, clearNotice } = useMeadowmere();
+  // Handing in a quest swaps the button that was focused for static text, so
+  // focus would fall back to the dialog. Move it to the outcome instead.
+  const [justHandedIn, setJustHandedIn] = useState<QuestId | null>(null);
+  const handedInRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (justHandedIn !== null) handedInRef.current?.focus();
+  }, [justHandedIn]);
+
   if (neighbourId === null) return null;
 
   const neighbour = NEIGHBOURS[neighbourId];
@@ -80,13 +89,19 @@ export function NeighbourDialog({
                     </Checklist>
                   )}
                   {done ? (
-                    <DoneBadge>
+                    <DoneBadge
+                      ref={quest.id === justHandedIn ? handedInRef : undefined}
+                      tabIndex={-1}
+                    >
                       <Check aria-hidden size={14} /> Handed in
                     </DoneBadge>
                   ) : (
                     <Button
                       disabled={status !== "ready"}
-                      onClick={() => claimQuest(quest.id)}
+                      onClick={() => {
+                        claimQuest(quest.id);
+                        setJustHandedIn(quest.id);
+                      }}
                       size="sm"
                     >
                       {status === "ready"
@@ -170,6 +185,7 @@ const Line = styled.li<{ $met: boolean }>`
 
 const DoneBadge = styled.p`
   display: inline-flex;
+  outline-offset: 3px;
   align-items: center;
   gap: 0.3rem;
   margin: 0;

@@ -64,3 +64,15 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 |------|----------|
 | `e2e/bonsai/bonsai.spec.ts` > "locked stand button navigates to shop Stands tab" | 1 |
 | `e2e/bonsai/bonsai.spec.ts` > "watering can tool shows hint and marks tree as watered" | 1 |
+
+---
+
+## Parallel load race: Glade reset clears visitors but not skills
+
+**Symptom:** After confirming "Reset glade", the visitor half of the reset lands — the page snapshot shows a fresh Robin at `Trust 0/60` — but the Skills tab still shows the *seeded* tiers (Body Language 3/5, Petting Technique 2/5, Treat Cooking 1/5) instead of a brand-new save. The test then fails on `getByRole("tabpanel", { name: "Skills" }).getByText("Unlocks at Body Language tier 2")`. Only fails under `pnpm validate`, which runs vitest, Playwright and tsc concurrently; passes in isolation and on a standalone `pnpm exec playwright test e2e/glade` (13/13). Reproduced twice in a row under `validate`.
+
+**Root cause (suspected):** A race between `goToGladeWithSeed`'s seed-then-reload and the glade's own hydration/daily-advance effect. The partial result — visitors reset, skills not — suggests the reset writes fresh state, then the mount effect finishes loading the seeded save and writes its skills back over the top. Distinct from the other entries here: this is not "too slow to render" but two writers landing in the wrong order, so the assertion sees a genuinely inconsistent state rather than an unrendered one.
+
+| Test | Failures |
+|------|----------|
+| `e2e/glade/glade.spec.ts` > "resetting the glade wipes progress back to a fresh start" | 2 |
