@@ -165,6 +165,77 @@ describe("acting on what the farmer faces", () => {
     expect(waterPlot).toHaveBeenCalledWith("plot-0");
   });
 
+  it("acts on a space press when the map itself has focus", async () => {
+    mock({
+      state: farmState({
+        plots: [
+          {
+            id: "plot-0",
+            planting: makePlanting({ plantedDate: "2999-01-01" }),
+          },
+        ],
+      }),
+    });
+    render(<ValeWorld />);
+    stage().focus();
+
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}{ }");
+
+    expect(waterPlot).toHaveBeenCalledWith("plot-0");
+  });
+
+  it("leaves space alone when a hotspot has focus, so it presses the button", async () => {
+    mock({
+      state: farmState({
+        plots: [
+          {
+            id: "plot-0",
+            planting: makePlanting({ plantedDate: "2999-01-01" }),
+          },
+        ],
+      }),
+    });
+    render(<ValeWorld />);
+
+    // Focusing a hotspot and pressing space is the button's own activation;
+    // the world must not also act on whatever the farmer happens to face.
+    screen.getByRole("button", { name: "Call on Nessa" }).focus();
+    await userEvent.keyboard("{ }");
+
+    expect(waterPlot).not.toHaveBeenCalled();
+  });
+
+  it("ignores keys that are neither movement nor action", async () => {
+    mock();
+    render(<ValeWorld />);
+    stage().focus();
+
+    await userEvent.keyboard("qz7");
+
+    expect(plantSeed).not.toHaveBeenCalled();
+    expect(screen.getByText("Walk up to something to use it.")).toBeVisible();
+  });
+
+  it("harvests a ripe plot", async () => {
+    mock({
+      state: farmState({
+        // Parsnip matures in two days; this one is long past.
+        plots: [
+          {
+            id: "plot-0",
+            planting: makePlanting({ plantedDate: "2020-01-01" }),
+          },
+        ],
+      }),
+    });
+    render(<ValeWorld />);
+    stage().focus();
+
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}e");
+
+    expect(harvestPlot).toHaveBeenCalledWith("plot-0");
+  });
+
   it("does nothing when there is nothing ahead", async () => {
     mock();
     render(<ValeWorld />);
@@ -207,14 +278,62 @@ describe("clicking a place on the map", () => {
     mock();
     render(<ValeWorld />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Call on Bram" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Forage The Hedgerow/ }),
+    );
 
+    // The prompt only names the hedgerow once the farmer has actually arrived
+    // in front of it — the hotspot button carries that wording all along.
     await waitFor(
       () => {
-        expect(screen.getByText("Call on Bram")).toBeVisible();
+        expect(prompt()).toHaveTextContent("Forage The Hedgerow");
       },
       { timeout: 4000 },
     );
+  });
+
+  it("needs no walk when the farmer is already stood beside it", async () => {
+    mock();
+    render(<ValeWorld />);
+    stage().focus();
+
+    // Step to (2,3), which is beside Plot 1 — the route has no tiles in it.
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Plot 1 — bare soil, no seed chosen",
+      }),
+    );
+
+    expect(prompt()).toHaveTextContent("Plot 1 — bare soil, no seed chosen");
+  });
+
+  it("closes the neighbour's door again", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Call on Nessa" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  it("closes the stall again", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Browse the seed stall" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   it("opens the neighbour's door when their cottage is used", async () => {
