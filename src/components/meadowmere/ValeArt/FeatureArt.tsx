@@ -292,9 +292,21 @@ const COTTAGE_STYLE: Record<
   NeighbourId,
   { wall: string; roof: string; roofLit: string }
 > = {
-  nessa: { wall: "#e0cfae", roof: "#b5583f", roofLit: "#c96a4d" },
-  bram: { wall: "#b58a5e", roof: "#5f6f4a", roofLit: "#71835a" },
-  marigold: { wall: "#dcd0e2", roof: "#7a6a9c", roofLit: "#8f7fb0" },
+  nessa: {
+    wall: "var(--vale-nessa-wall)",
+    roof: "var(--vale-nessa-roof)",
+    roofLit: "var(--vale-nessa-roof-lit)",
+  },
+  bram: {
+    wall: "var(--vale-bram-wall)",
+    roof: "var(--vale-bram-roof)",
+    roofLit: "var(--vale-bram-roof-lit)",
+  },
+  marigold: {
+    wall: "var(--vale-marigold-wall)",
+    roof: "var(--vale-marigold-roof)",
+    roofLit: "var(--vale-marigold-roof-lit)",
+  },
 };
 
 export function CottageArt({ neighbourId }: { neighbourId: NeighbourId }) {
@@ -304,15 +316,50 @@ export function CottageArt({ neighbourId }: { neighbourId: NeighbourId }) {
       <rect fill={wall} height="28" rx="1.5" width="30" x="1" y="20" />
       <path d="M-2 22 L16 5 L34 22 Z" fill={roof} />
       <path d="M-2 22 L16 5 L16 22 Z" fill={roofLit} />
-      <rect fill="#6d4c41" height="13" rx="1" width="9" x="11.5" y="35" />
+      <rect
+        fill="var(--vale-door)"
+        height="13"
+        rx="1"
+        width="9"
+        x="11.5"
+        y="35"
+      />
       <circle cx="18.6" cy="42" fill="#e5c165" r="1" />
-      <rect fill="#8fc4d8" height="7" rx="1" width="7" x="3" y="24" />
-      <rect fill="#8fc4d8" height="7" rx="1" width="7" x="22" y="24" />
-      <rect fill="#8a7f6d" height="9" rx="1.2" width="6" x="24" y="2" />
+      <rect
+        fill="var(--vale-window)"
+        height="7"
+        rx="1"
+        width="7"
+        x="3"
+        y="24"
+      />
+      <rect
+        fill="var(--vale-window)"
+        height="7"
+        rx="1"
+        width="7"
+        x="22"
+        y="24"
+      />
+      <rect
+        fill="var(--vale-chimney)"
+        height="9"
+        rx="1.2"
+        width="6"
+        x="24"
+        y="2"
+      />
       {neighbourId === "nessa" && (
         <>
           {/* Inn sign hanging by the door. */}
-          <rect fill="#6d4c41" height="7" rx="1" width="10" x="1" y="35" />
+          <rect
+            fill="var(--vale-door)"
+            height="7"
+            rx="1"
+            width="10"
+            x="1"
+            y="35"
+          />
           <circle cx="6" cy="38.5" fill="#e5c165" r="2" />
         </>
       )}
@@ -341,13 +388,34 @@ export function CottageArt({ neighbourId }: { neighbourId: NeighbourId }) {
 export function StallArt() {
   return (
     <g transform="translate(0, -12)">
-      <rect fill="#8a6a45" height="4" rx="1" width="3" x="2" y="26" />
-      <rect fill="#8a6a45" height="4" rx="1" width="3" x="27" y="26" />
-      <rect fill="#a9814f" height="14" rx="1.5" width="30" x="1" y="30" />
-      <path d="M0 26 h32 v-4 h-32 Z" fill="#c2703f" />
+      <rect
+        fill="var(--vale-stall-post)"
+        height="4"
+        rx="1"
+        width="3"
+        x="2"
+        y="26"
+      />
+      <rect
+        fill="var(--vale-stall-post)"
+        height="4"
+        rx="1"
+        width="3"
+        x="27"
+        y="26"
+      />
+      <rect
+        fill="var(--vale-stall-counter)"
+        height="14"
+        rx="1.5"
+        width="30"
+        x="1"
+        y="30"
+      />
+      <path d="M0 26 h32 v-4 h-32 Z" fill="var(--vale-stall-awning)" />
       {[0, 1, 2, 3].map((i) => (
         <rect
-          fill="#f0e3c8"
+          fill="var(--vale-stall-cloth)"
           height="4"
           key={i}
           width="4"
@@ -355,8 +423,20 @@ export function StallArt() {
           y="22"
         />
       ))}
-      <rect fill="#7a5a3a" height="22" width="2.4" x="2" y="22" />
-      <rect fill="#7a5a3a" height="22" width="2.4" x="27.6" y="22" />
+      <rect
+        fill="var(--vale-stall-post)"
+        height="22"
+        width="2.4"
+        x="2"
+        y="22"
+      />
+      <rect
+        fill="var(--vale-stall-post)"
+        height="22"
+        width="2.4"
+        x="27.6"
+        y="22"
+      />
       {/* Seed sacks on the counter. */}
       <ellipse cx="9" cy="33" fill="#d8c39c" rx="4" ry="3.4" />
       <ellipse cx="18" cy="34" fill="#c4ab7e" rx="3.4" ry="3" />

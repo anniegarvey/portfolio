@@ -2,10 +2,10 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
   ALL_CROP_IDS,
+  ALL_NEIGHBOUR_IDS,
   ALL_SITE_IDS,
   GROWTH_STAGES,
 } from "@/lib/meadowmere/catalog";
-import { ALL_NEIGHBOUR_IDS } from "@/lib/meadowmere/catalog";
 import type { Facing } from "@/lib/meadowmere/movement";
 import { FarmerSVG } from "./FarmerSVG";
 import { CottageArt, PlotArt, SiteArt, StallArt } from "./FeatureArt";
@@ -13,7 +13,12 @@ import { TerrainLayer } from "./TerrainLayer";
 
 /** SVG fragments need an <svg> root to render into. */
 function renderSvg(node: React.ReactNode) {
-  return render(<svg aria-hidden>{node}</svg>);
+  return render(
+    <svg role="presentation">
+      <title>Test harness</title>
+      {node}
+    </svg>,
+  );
 }
 
 const FACINGS: Facing[] = ["up", "down", "left", "right"];

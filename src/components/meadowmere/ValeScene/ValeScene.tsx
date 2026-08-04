@@ -195,6 +195,31 @@ const Stage = styled.div`
   --vale-soil: light-dark(#9b7350, #4f3a29);
   --vale-soil-dark: light-dark(#7a5739, #3a2a1d);
   --vale-fallow: light-dark(#8aab68, #3d5738);
+
+  /* Buildings get their own dusk values rather than staying daylight-bright
+     against a darkened valley. The farmer keeps fixed colours: the one thing
+     that should never recede is the character you are steering. */
+  --vale-farmhouse-wall: light-dark(#d8c39c, #7b6a4e);
+  --vale-farmhouse-roof: light-dark(#a9553f, #6d3628);
+  --vale-farmhouse-roof-lit: light-dark(#bd6349, #7d4231);
+  --vale-window: light-dark(#8fc4d8, #d9b25a);
+  --vale-door: light-dark(#6d4c41, #47301f);
+  --vale-chimney: light-dark(#8a7f6d, #5b5346);
+
+  --vale-nessa-wall: light-dark(#e0cfae, #82755c);
+  --vale-nessa-roof: light-dark(#b5583f, #71382a);
+  --vale-nessa-roof-lit: light-dark(#c96a4d, #874536);
+  --vale-bram-wall: light-dark(#b58a5e, #6b5238);
+  --vale-bram-roof: light-dark(#5f6f4a, #3c4730);
+  --vale-bram-roof-lit: light-dark(#71835a, #4a5a3c);
+  --vale-marigold-wall: light-dark(#dcd0e2, #766a80);
+  --vale-marigold-roof: light-dark(#7a6a9c, #4c4265);
+  --vale-marigold-roof-lit: light-dark(#8f7fb0, #5d5178);
+
+  --vale-stall-post: light-dark(#7a5a3a, #4e3a25);
+  --vale-stall-counter: light-dark(#a9814f, #6b5233);
+  --vale-stall-awning: light-dark(#c2703f, #7d4728);
+  --vale-stall-cloth: light-dark(#f0e3c8, #9b917e);
 `;
 
 /**

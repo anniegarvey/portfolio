@@ -142,14 +142,49 @@ function FarmhouseTile({ x, y }: { x: number; y: number }) {
     <>
       <GrassTile x={x} y={y} />
       <g transform="translate(0, -14)">
-        <rect fill="#d8c39c" height="26" rx="1.5" width="30" x="1" y="18" />
-        <path d="M-2 20 L16 4 L34 20 Z" fill="#a9553f" />
-        <path d="M-2 20 L16 4 L16 20 Z" fill="#bd6349" />
-        <rect fill="#6d4c41" height="12" rx="1" width="8" x="12" y="32" />
+        <rect
+          fill="var(--vale-farmhouse-wall)"
+          height="26"
+          rx="1.5"
+          width="30"
+          x="1"
+          y="18"
+        />
+        <path d="M-2 20 L16 4 L34 20 Z" fill="var(--vale-farmhouse-roof)" />
+        <path d="M-2 20 L16 4 L16 20 Z" fill="var(--vale-farmhouse-roof-lit)" />
+        <rect
+          fill="var(--vale-door)"
+          height="12"
+          rx="1"
+          width="8"
+          x="12"
+          y="32"
+        />
         <circle cx="18.4" cy="38" fill="#e5c165" r="0.9" />
-        <rect fill="#7ec8e3" height="7" rx="1" width="7" x="3" y="22" />
-        <rect fill="#7ec8e3" height="7" rx="1" width="7" x="22" y="22" />
-        <rect fill="#8a7f6d" height="9" rx="1.2" width="6" x="23" y="0" />
+        <rect
+          fill="var(--vale-window)"
+          height="7"
+          rx="1"
+          width="7"
+          x="3"
+          y="22"
+        />
+        <rect
+          fill="var(--vale-window)"
+          height="7"
+          rx="1"
+          width="7"
+          x="22"
+          y="22"
+        />
+        <rect
+          fill="var(--vale-chimney)"
+          height="9"
+          rx="1.2"
+          width="6"
+          x="23"
+          y="0"
+        />
       </g>
     </>
   );

@@ -89,6 +89,37 @@ describe("walking", () => {
     expect(prompt()).toHaveTextContent("Plot 1 — bare soil, no seed chosen");
   });
 
+  it("keeps the farmer in view when the map is too wide to fit", async () => {
+    mock();
+    render(<ValeWorld />);
+    const view = stage();
+    // jsdom does no layout, so stand in for a 640px map in a 320px window.
+    Object.defineProperty(view, "scrollWidth", {
+      configurable: true,
+      value: 640,
+    });
+    Object.defineProperty(view, "clientWidth", {
+      configurable: true,
+      value: 320,
+    });
+    view.focus();
+
+    // Down to the walkway, then east along it well past the halfway mark.
+    await userEvent.keyboard(
+      "{ArrowDown}{ArrowDown}{ArrowRight}".concat(
+        "{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}",
+      ),
+    );
+
+    expect(view.scrollLeft).toBeGreaterThan(0);
+  });
+
+  it("does not scroll the map while the farmer is near its west edge", () => {
+    mock();
+    render(<ValeWorld />);
+    expect(stage().scrollLeft).toBe(0);
+  });
+
   it("stops at the hedge instead of walking off the map", async () => {
     mock();
     render(<ValeWorld />);
@@ -217,7 +248,9 @@ describe("clicking a place on the map", () => {
 
     // Plot 6 is right across the farm, so the walk is several tiles long.
     await user.click(
-      screen.getByRole("button", { name: "Plot 6 — bare soil, no seed chosen" }),
+      screen.getByRole("button", {
+        name: "Plot 6 — bare soil, no seed chosen",
+      }),
     );
     stage().focus();
     await user.keyboard("{ArrowDown}{ArrowRight}");

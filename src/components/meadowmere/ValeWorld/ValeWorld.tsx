@@ -1,7 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
 import { StallDialog } from "@/components/meadowmere/StallDialog";
 import { ValeHUD } from "@/components/meadowmere/ValeHUD";
@@ -28,7 +28,7 @@ import {
 } from "@/lib/meadowmere/movement";
 import type { CropId, NeighbourId } from "@/lib/meadowmere/schema";
 import type { Feature, Tile } from "@/lib/meadowmere/valeMap";
-import { FARMER_START, featureAt } from "@/lib/meadowmere/valeMap";
+import { FARMER_START, featureAt, VALE_WIDTH } from "@/lib/meadowmere/valeMap";
 
 /**
  * The playable world: a farmer you walk around the Vale, and the one action
@@ -93,8 +93,23 @@ export function ValeWorld() {
   const [shopOpen, setShopOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const today = getTodayDateString();
   const instructionsId = useId();
+
+  // Below about 640px the map has to scroll sideways to keep its tiles big
+  // enough to tap, so the view follows the farmer. Only the map's own
+  // scrollLeft is touched — scrollIntoView would drag the whole page with it.
+  useEffect(() => {
+    const view = scrollRef.current;
+    if (view === null) return;
+    const tileWidth = view.scrollWidth / VALE_WIDTH;
+    const centred = (pose.x + 0.5) * tileWidth - view.clientWidth / 2;
+    view.scrollLeft = Math.max(
+      0,
+      Math.min(centred, view.scrollWidth - view.clientWidth),
+    );
+  }, [pose.x]);
 
   // Results that flow through the game context get announced here; sowing and
   // watering produce no notice, so those are announced where they happen.
@@ -237,17 +252,20 @@ export function ValeWorld() {
         aria-describedby={instructionsId}
         aria-label="The Vale — Meadowmere's map"
         onKeyDown={handleKeyDown}
+        ref={scrollRef}
         role="application"
         tabIndex={0}
       >
-        <ValeScene
-          onActivateFeature={activateFeature}
-          pose={pose}
-          selectedCropId={selectedCropId}
-          state={state}
-          today={today}
-          walking={walk !== null}
-        />
+        <Track>
+          <ValeScene
+            onActivateFeature={activateFeature}
+            pose={pose}
+            selectedCropId={selectedCropId}
+            state={state}
+            today={today}
+            walking={walk !== null}
+          />
+        </Track>
       </Stage>
 
       <Prompt aria-hidden={prompt === null}>
@@ -277,7 +295,9 @@ const Layout = styled.div`
 
 const Stage = styled.div`
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   border: 3px solid light-dark(var(--color-grey-300), var(--color-grey-700));
   background: light-dark(#93c26d, #46653f);
 
@@ -285,6 +305,15 @@ const Stage = styled.div`
     outline: 3px solid var(--color-primary-400);
     outline-offset: 3px;
   }
+`;
+
+/**
+ * A floor under the map's width: 16 tiles at 40px. Narrower than this and a
+ * tile — which is also its button — drops below the 24px minimum tap target,
+ * so on a phone the map scrolls sideways rather than shrinking.
+ */
+const Track = styled.div`
+  min-width: 640px;
 `;
 
 const Instructions = styled.p`
