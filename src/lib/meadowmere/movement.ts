@@ -59,6 +59,21 @@ function neighbours(tile: Tile): Tile[] {
   }));
 }
 
+/** Walks the breadth-first tree back from `to` to the tile it started on. */
+function retrace(
+  cameFrom: Map<string, Tile | null>,
+  from: Tile,
+  to: Tile,
+): Tile[] {
+  const path: Tile[] = [];
+  let step: Tile | undefined = to;
+  while (step !== undefined && !samePosition(step, from)) {
+    path.unshift(step);
+    step = cameFrom.get(tileKey(step)) ?? undefined;
+  }
+  return path;
+}
+
 /**
  * Shortest walk from `from` to `to`, as the tiles to step through (excluding
  * the tile started on). Null when there's no way round. Breadth-first, which
@@ -77,17 +92,8 @@ export function findPath(
 
   while (queue.length > 0) {
     const current = queue.shift() as Tile;
-    if (samePosition(current, to)) {
-      const path: Tile[] = [];
-      for (
-        let step: Tile | undefined = current;
-        step !== undefined && !samePosition(step, from);
-        step = cameFrom.get(tileKey(step)) ?? undefined
-      ) {
-        path.unshift(step);
-      }
-      return path;
-    }
+    if (samePosition(current, to)) return retrace(cameFrom, from, current);
+
     for (const next of neighbours(current)) {
       if (cameFrom.has(tileKey(next))) continue;
       if (!isWalkable(state, next.x, next.y)) continue;

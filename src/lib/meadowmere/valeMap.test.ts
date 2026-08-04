@@ -192,6 +192,21 @@ describe("valeMap", () => {
     });
   });
 
+  describe("sight lines", () => {
+    // Cottages are drawn half a tile taller than they stand, and the scene
+    // paints back to front — so anything on the tile above one is hidden by
+    // its roof.
+    it("puts nothing on the tile directly above a cottage", () => {
+      const state = stateWithPlots(MAX_PLOTS);
+      const features = valeFeatures(state);
+      for (const cottage of features.filter((f) => f.kind === "cottage")) {
+        expect(
+          features.find((f) => f.x === cottage.x && f.y === cottage.y - 1),
+        ).toBeUndefined();
+      }
+    });
+  });
+
   describe("reachability", () => {
     // Every feature must have somewhere to stand beside it, or the loop it
     // belongs to becomes unplayable.

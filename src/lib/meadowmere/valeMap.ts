@@ -39,21 +39,21 @@ const WALKABLE_TERRAIN: ReadonlySet<TerrainId> = new Set<TerrainId>([
 
 /**
  * The map, one character per tile. The hedge boundary keeps the farmer in, the
- * river runs down the west side, and the lane at x=8 links the farm to the
- * cottages.
+ * river runs down the west side, and the lane at x=8 runs the height of the
+ * valley with a spur to each cottage door and one west to the seed stall.
  */
 const TERRAIN_ROWS = [
   "TTTTTTTTTTTTTTTT",
-  "~.H.....,....#*T",
+  "~.H.....,....#.T",
+  "~.....,,,,,,...T",
   "~.......,......T",
+  "~..*....,..*...T",
+  "~.......,,,,...T",
   "~.......,......T",
-  "~..*....,......T",
+  "~.*.....,....*.T",
+  "~.......,,,,.*.T",
   "~.......,......T",
-  "~.......,......T",
-  "~.......,......T",
-  "~.......,....*.T",
-  "~.......,......T",
-  "~.......,......T",
+  "~.*.....,..*...T",
   "TTTTTTTTTTTTTTTT",
 ] as const;
 
@@ -110,9 +110,15 @@ const PLOT_TILES: readonly Tile[] = [
   { x: 5, y: 9 },
 ];
 
+/**
+ * Sites stand one row inside the boundary rather than in it: each is drawn
+ * taller than its tile, and on the edge row the top of the art would be clipped
+ * away. For the same reason none of them sits directly above a cottage, whose
+ * roof rises half a tile and would hide it.
+ */
 const SITE_TILES: Record<SiteId, Tile> = {
-  hedgerow: { x: 5, y: 0 },
-  stonewood: { x: 12, y: 0 },
+  hedgerow: { x: 5, y: 1 },
+  stonewood: { x: 14, y: 1 },
   riverbank: { x: 0, y: 6 },
 };
 

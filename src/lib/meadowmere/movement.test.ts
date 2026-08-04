@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  type FarmerPose,
   FACING_DELTAS,
+  type FarmerPose,
   facingTowards,
   findPath,
   routeToFeature,
