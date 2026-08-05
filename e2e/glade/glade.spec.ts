@@ -276,18 +276,26 @@ test.describe("Creature Glade", () => {
       },
     });
 
+    const scene = page.getByRole("region", { name: "Glade ecosystem" });
+
+    // Wait for the seeded save to be on screen before resetting. The rabbit
+    // resident exists only in the seed, so it proves the mount load has
+    // landed — reset it any earlier and there is nothing to prove wiped.
+    await expect(scene.getByText("Rabbit")).toBeVisible();
+
     await page.getByRole("button", { name: "Reset glade" }).click();
     await page
       .getByRole("dialog", { name: "Reset the glade?" })
       .getByRole("button", { name: "Reset glade" })
       .click();
 
-    // Back to a single fresh robin at zero trust and no residents.
+    // Back to a single fresh robin at zero trust and no residents. The empty
+    // scene is what tells the two saves apart — the seed's robin is also at
+    // Trust 0/60, so those two assertions alone would pass either way.
+    await expect(scene.getByText("The glade is quiet…")).toBeVisible();
+    await expect(scene.getByText("Rabbit")).toBeHidden();
     await expect(page.getByRole("heading", { name: /^Robin/ })).toBeVisible();
     await expect(page.getByText("Trust 0/60")).toBeVisible();
-    await expect(
-      page.getByRole("region", { name: "Glade ecosystem" }).getByText("Rabbit"),
-    ).toBeHidden();
 
     // Petting Technique is locked again, matching a brand-new save. Scoped
     // to the Skills tab (default-active) since the visitor card's Pet
