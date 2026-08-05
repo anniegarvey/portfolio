@@ -73,9 +73,11 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 
 **Root cause (identified, fixed):** Not a partial write — the *whole* seeded save was restored. The state looked half-reset only because three of the four earlier assertions couldn't tell the two saves apart (the seed's own visitor is a robin at trust 0), and they ran during the brief window before the revert landed.
 
-`GladeProvider`'s mount effect reads localStorage into a local `result`, then dispatches `setState(() => result.state)`. Under load the first `click()` lands before hydration and is replayed, so the reset can be applied *before* that dispatch — and because the updater ignored `prev`, the stale snapshot then unconditionally restored the pre-reset save to both React state and localStorage. Confirmed by deferring the effect's dispatch by 1.5s: the reset applies, then at t=1200ms the rabbit resident and tier-3 skills both come back.
+`GladeProvider`'s mount effect reads localStorage into a local `result`, then dispatches it. Under load the first `click()` lands before hydration and React replays it ahead of the effect — and because `setState` persists *inside* its updater (i.e. at render time, not dispatch time), the effect's read still saw the pre-reset save. Its snapshot then restored that save wholesale, to React state and localStorage alike. Confirmed by deferring the effect's dispatch by 1.5s: the reset applies, then at t=1200ms the rabbit resident and the tier-3 skills both come back.
 
-Fixed in `src/lib/glade/context.tsx` by installing the mount load only over the SSR placeholder (`prev === EMPTY_STATE ? result.state : prev`), so a newer write always wins. The test also now waits for the seeded save to render before resetting, and asserts the empty-scene message rather than facts true of both saves.
+Fixed in `src/lib/glade/context.tsx`: a `stateWritten` ref, set by the first real write, makes the mount load bail out entirely when something has already replaced the SSR placeholder — state *and* daily report, so a reset can't be followed by a digest for the day it discarded.
+
+Covered by `does not let a stale mount load revert a reset that landed first` in `src/lib/glade/context.test.tsx`, which reproduces the ordering deterministically (a child resetting from `useLayoutEffect`, plus a stale `loadGladeState`) and fails without the fix. The e2e test now waits for the seeded save to render before resetting, and asserts the empty-scene message rather than facts true of both saves.
 
 | Test | Failures |
 |------|----------|

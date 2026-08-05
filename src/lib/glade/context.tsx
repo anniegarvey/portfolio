@@ -134,8 +134,13 @@ export function GladeProvider({ children }: { children: ReactNode }) {
   }, []);
   const gladeSceneRef = useRef<HTMLDivElement | null>(null);
 
+  // Set by the first real write, so the mount load below can tell whether
+  // anything has already replaced EMPTY_STATE.
+  const stateWritten = useRef(false);
+
   // Persist every state change
   const setState = useCallback((updater: (prev: GladeState) => GladeState) => {
+    stateWritten.current = true;
     setStateRaw((prev) => {
       const next = updater(prev);
       saveGladeState(next);
@@ -155,11 +160,14 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       loadGladeState() ?? createInitialState(),
       todayStr,
     );
-    // `result` is a snapshot read before this update is applied, so a write
-    // that lands in between — a reset, say — has to win: replaying the
-    // snapshot would restore the old save to state and localStorage alike.
-    // Installing it only over EMPTY_STATE keeps the newer write.
-    setState((prev) => (prev === EMPTY_STATE ? result.state : prev));
+    // `result` is a snapshot of the save as it was before this point, so a
+    // write that got in first — a reset, say — is newer and has to win.
+    // Applying the snapshot anyway would restore the old save to state and
+    // localStorage alike, and show a digest for the day it just discarded.
+    // Under load the reset really does get in first: its click lands before
+    // hydration and React replays it ahead of this effect.
+    if (stateWritten.current) return;
+    setState(() => result.state);
     if (result.report !== null) setDailyReport(result.report);
   }, [setState]);
 
