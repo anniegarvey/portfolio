@@ -67,11 +67,15 @@ Track known flaky tests here. Each entry records the symptom, affected tests, an
 
 ---
 
-## Parallel load race: Glade reset clears visitors but not skills
+## Load race: Glade reset reverted by the mount load
 
-**Symptom:** After confirming "Reset glade", the visitor half of the reset lands — the page snapshot shows a fresh Robin at `Trust 0/60` — but the Skills tab still shows the *seeded* tiers (Body Language 3/5, Petting Technique 2/5, Treat Cooking 1/5) instead of a brand-new save. The test then fails on `getByRole("tabpanel", { name: "Skills" }).getByText("Unlocks at Body Language tier 2")`. Only fails under `pnpm validate`, which runs vitest, Playwright and tsc concurrently; passes in isolation and on a standalone `pnpm exec playwright test e2e/glade` (13/13). Fails on most `validate` runs, so it is closer to reliably broken under contention than to occasional — worth fixing rather than just tracking.
+**Symptom:** After confirming "Reset glade", the page shows a Robin at `Trust 0/60` but the Skills tab still shows the *seeded* tiers (Body Language 3/5, Petting Technique 2/5, Treat Cooking 1/5). The test then fails on `getByRole("tabpanel", { name: "Skills" }).getByText("Unlocks at Body Language tier 2")`. Only failed under `pnpm validate`, which runs vitest, Playwright and tsc concurrently.
 
-**Root cause (suspected):** A race between `goToGladeWithSeed`'s seed-then-reload and the glade's own hydration/daily-advance effect. The partial result — visitors reset, skills not — suggests the reset writes fresh state, then the mount effect finishes loading the seeded save and writes its skills back over the top. Distinct from the other entries here: this is not "too slow to render" but two writers landing in the wrong order, so the assertion sees a genuinely inconsistent state rather than an unrendered one.
+**Root cause (identified, fixed):** Not a partial write — the *whole* seeded save was restored. The state looked half-reset only because three of the four earlier assertions couldn't tell the two saves apart (the seed's own visitor is a robin at trust 0), and they ran during the brief window before the revert landed.
+
+`GladeProvider`'s mount effect reads localStorage into a local `result`, then dispatches `setState(() => result.state)`. Under load the first `click()` lands before hydration and is replayed, so the reset can be applied *before* that dispatch — and because the updater ignored `prev`, the stale snapshot then unconditionally restored the pre-reset save to both React state and localStorage. Confirmed by deferring the effect's dispatch by 1.5s: the reset applies, then at t=1200ms the rabbit resident and tier-3 skills both come back.
+
+Fixed in `src/lib/glade/context.tsx` by installing the mount load only over the SSR placeholder (`prev === EMPTY_STATE ? result.state : prev`), so a newer write always wins. The test also now waits for the seeded save to render before resetting, and asserts the empty-scene message rather than facts true of both saves.
 
 | Test | Failures |
 |------|----------|
