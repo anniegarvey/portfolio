@@ -1,15 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useLayoutEffect, useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePoints } from "@/lib/points/context";
 import { LESSON_COSTS, XP_THRESHOLDS } from "./catalog";
 import { GladeProvider, useGlade } from "./context";
-import { createInitialState } from "./storage";
+import type { GladeState } from "./schema";
+import { createInitialState, loadGladeState } from "./storage";
 import { makeVisitor } from "./testFixtures";
 
 vi.mock("@/lib/points/context", () => ({
   usePoints: vi.fn(),
 }));
+
+// Real storage throughout, except where a test needs the mount load to
+// return a snapshot older than what is on disk (see the reset-race test).
+vi.mock("./storage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./storage")>();
+  return { ...actual, loadGladeState: vi.fn(actual.loadGladeState) };
+});
 
 const GLADE_KEY = "glade-game-state";
 const TODAY = new Date().toISOString().split("T")[0];
@@ -43,6 +52,7 @@ function seedLocalStorage(overrides?: object) {
     ...overrides,
   };
   localStorage.setItem(GLADE_KEY, JSON.stringify(merged));
+  return merged as GladeState;
 }
 
 // ─── Test Component ───────────────────────────────────────────────────────────
@@ -182,6 +192,23 @@ function renderGlade() {
       <GladeDebug />
     </GladeProvider>,
   );
+}
+
+/**
+ * Resets during the commit that mounts the provider. Layout effects run
+ * before the provider's passive mount effect, so the reset lands while the
+ * load is still in flight — the ordering a replayed pre-hydration click
+ * produces in the browser.
+ */
+function ResetDuringMount() {
+  const { resetGlade } = useGlade();
+  const reset = useRef(false);
+  useLayoutEffect(() => {
+    if (reset.current) return;
+    reset.current = true;
+    resetGlade();
+  }, [resetGlade]);
+  return null;
 }
 
 beforeEach(() => {
@@ -542,6 +569,43 @@ describe("GladeProvider", () => {
     const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "{}");
     expect(stored.residents).toEqual([]);
     expect(stored.skills["body-language"]).toEqual({ tier: 1, xp: 0 });
+  });
+
+  it("does not let a stale mount load revert a reset that landed first", async () => {
+    const seeded = seedLocalStorage({
+      residents: [
+        {
+          id: "00000000-0000-4000-8000-000000000050",
+          speciesId: "rabbit",
+          tamedDate: TODAY,
+          position: { x: 30, y: 70 },
+        },
+      ],
+      skills: {
+        "treat-cooking": { tier: 3, xp: 0 },
+        "body-language": { tier: 3, xp: 0 },
+        "petting-technique": { tier: 2, xp: 0 },
+      },
+    });
+
+    // The mount load reads the save before its update is applied, so it can
+    // hold a snapshot taken before the reset wrote — that is the whole race.
+    vi.mocked(loadGladeState).mockReturnValueOnce(seeded);
+
+    render(
+      <GladeProvider>
+        <ResetDuringMount />
+        <GladeDebug />
+      </GladeProvider>,
+    );
+
+    // Replaying that snapshot would bring the rabbit and tier-3 skills back.
+    expect(await screen.findByTestId("resident-count")).toHaveTextContent("0");
+    expect(screen.getByTestId("cooking-tier")).toHaveTextContent("1");
+
+    const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "{}");
+    expect(stored.residents).toEqual([]);
+    expect(stored.skills["treat-cooking"]).toEqual({ tier: 1, xp: 0 });
   });
 
   it("useGlade throws outside the provider", () => {
