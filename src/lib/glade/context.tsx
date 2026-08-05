@@ -160,12 +160,12 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       loadGladeState() ?? createInitialState(),
       todayStr,
     );
-    // `result` is a snapshot of the save as it was before this point, so a
-    // write that got in first — a reset, say — is newer and has to win.
-    // Applying the snapshot anyway would restore the old save to state and
-    // localStorage alike, and show a digest for the day it just discarded.
-    // Under load the reset really does get in first: its click lands before
-    // hydration and React replays it ahead of this effect.
+    // `result` is a snapshot of the save as it was before this point, and
+    // under load a write can beat it here — `setState` persists inside its
+    // updater, so the read above can still see the pre-write save. Applying
+    // the snapshot anyway would restore the old save to state and
+    // localStorage alike, and show a digest for the day it just discarded,
+    // so anything already written wins.
     if (stateWritten.current) return;
     setState(() => result.state);
     if (result.report !== null) setDailyReport(result.report);
