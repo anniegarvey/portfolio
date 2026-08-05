@@ -155,7 +155,11 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       loadGladeState() ?? createInitialState(),
       todayStr,
     );
-    setState(() => result.state);
+    // `result` is a snapshot read before this update is applied, so a write
+    // that lands in between — a reset, say — has to win: replaying the
+    // snapshot would restore the old save to state and localStorage alike.
+    // Installing it only over EMPTY_STATE keeps the newer write.
+    setState((prev) => (prev === EMPTY_STATE ? result.state : prev));
     if (result.report !== null) setDailyReport(result.report);
   }, [setState]);
 
