@@ -41,7 +41,9 @@ function plotInteraction(
 
   if (plot.planting === null) {
     if (selectedCropId === null) {
-      return { action: null, label: `${name} — bare soil, no seed chosen` };
+      // Names the way out, not just the obstacle: this is the one step of
+      // Meadowmere a new player has no way of guessing.
+      return { action: null, label: `${name} — pick a seed in hand to sow` };
     }
     const crop = CROPS[selectedCropId];
     if (!canPlant(state, plot.id, selectedCropId)) {

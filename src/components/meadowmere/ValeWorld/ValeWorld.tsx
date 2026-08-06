@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { styled } from "next-yak";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
@@ -85,14 +86,21 @@ export function ValeWorld() {
     facing: "down",
   });
   /** Remaining tiles of an auto-walk. Purely how the farmer gets there. */
-  const [walk, setWalk] = useState<{ path: Tile[]; facing: Facing } | null>(
-    null,
-  );
+  const [walk, setWalk] = useState<{
+    path: Tile[];
+    facing: Facing;
+    /**
+     * What the walk was ordered for. Shown while it plays back, so the prompt
+     * says what the player asked for rather than flickering through every tile
+     * the farmer crosses to get there.
+     */
+    interaction: Interaction;
+  } | null>(null);
   const [selectedCropId, setSelectedCropId] = useState<CropId | null>(null);
   const [visiting, setVisiting] = useState<NeighbourId | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
-  /** What the keyboard has tabbed to, which overrides what the farmer faces. */
-  const [focused, setFocused] = useState<Interaction | null>(null);
+  /** The feature focus has landed on, which overrides what the farmer faces. */
+  const [focused, setFocused] = useState<Feature | null>(null);
   /**
    * A live region only fires when its text actually changes, so watering two
    * plots in a row would announce once. The tick gives each result its own
@@ -111,6 +119,22 @@ export function ValeWorld() {
   const today = getTodayDateString();
   const instructionsId = useId();
 
+  /**
+   * Which way the map still has valley left to show. On a phone two thirds of
+   * it is off screen, and a tile you can't see is a tile you can't tap — so
+   * the edges have to say there is more.
+   */
+  const [more, setMore] = useState({ west: false, east: false });
+  const syncEdges = useCallback(() => {
+    const view = scrollRef.current;
+    if (view === null) return;
+    const furthest = view.scrollWidth - view.clientWidth;
+    setMore({
+      west: view.scrollLeft > 1,
+      east: view.scrollLeft < furthest - 1,
+    });
+  }, []);
+
   // Below about 640px the map has to scroll sideways to keep its tiles big
   // enough to tap, so the view follows the farmer. Only the map's own
   // scrollLeft is touched — scrollIntoView would drag the whole page with it.
@@ -124,13 +148,14 @@ export function ValeWorld() {
         0,
         Math.min(centred, view.scrollWidth - view.clientWidth),
       );
+      syncEdges();
     };
     centreOnFarmer();
     // Rotating a phone changes how much of the map fits, which would otherwise
     // leave the farmer off to one side until their next step.
     window.addEventListener("resize", centreOnFarmer);
     return () => window.removeEventListener("resize", centreOnFarmer);
-  }, [pose.x]);
+  }, [pose.x, syncEdges]);
 
   // Results that flow through the game context get announced here; sowing and
   // watering produce no notice, so those are announced where they happen.
@@ -183,7 +208,8 @@ export function ValeWorld() {
       const route = routeToFeature(state, from, feature);
       // Re-derived here rather than taken from the scene, so the world stays
       // the only authority on what activating something actually does.
-      performInteraction(interactionFor(state, feature, selectedCropId, today));
+      const interaction = interactionFor(state, feature, selectedCropId, today);
+      performInteraction(interaction);
       if (route === null) return;
 
       const arrival = route.path.at(-1) ?? from;
@@ -196,7 +222,7 @@ export function ValeWorld() {
         setWalk(null);
         return;
       }
-      setWalk(route);
+      setWalk({ ...route, interaction });
     },
     [state, selectedCropId, today, performInteraction],
   );
@@ -213,7 +239,7 @@ export function ValeWorld() {
     const timer = setTimeout(() => {
       const [next, ...rest] = walk.path;
       setPose((prev) => ({ ...next, facing: facingTowards(prev, next) }));
-      setWalk({ path: rest, facing: walk.facing });
+      setWalk({ ...walk, path: rest });
     }, STEP_MS);
     return () => clearTimeout(timer);
   }, [walk]);
@@ -252,11 +278,14 @@ export function ValeWorld() {
     const ahead = tileInFront(pose);
     return featureAt(state, ahead.x, ahead.y);
   })();
-  const facing =
-    aheadFeature === null
+  const promptFor = (feature: Feature | null) =>
+    feature === null
       ? null
-      : interactionFor(state, aheadFeature, selectedCropId, today);
-  const prompt = focused ?? facing;
+      : interactionFor(state, feature, selectedCropId, today);
+  // Focus wins over what the farmer faces; a walk in progress wins over the
+  // tiles being crossed to get there.
+  const prompt =
+    promptFor(focused) ?? walk?.interaction ?? promptFor(aheadFeature);
 
   return (
     <Layout>
@@ -266,42 +295,64 @@ export function ValeWorld() {
       />
 
       <Instructions id={instructionsId}>
-        Walk with the arrow keys or W, A, S and D. Press E to use whatever the
-        farmer is facing. You can also click, or tab to, any place on the map to
-        walk there and use it.
+        Tap any place on the map to walk there and use it. Swipe the map
+        sideways — the valley is wider than the screen. With a keyboard: arrow
+        keys or W, A, S and D to walk, E to use whatever the farmer faces.
       </Instructions>
 
-      {/*
-        role="application" is deliberate: it asks screen readers to pass arrow
-        and action keys through to the game rather than using them to browse.
-        Every feature also carries a real button, so nothing here depends on it.
-      */}
-      <Stage
-        aria-describedby={instructionsId}
-        aria-label="The Vale — Meadowmere's map"
-        onKeyDown={handleKeyDown}
-        ref={scrollRef}
-        role="application"
-        tabIndex={0}
-      >
-        <Track>
-          <ValeScene
-            onActivateFeature={activateFeature}
-            onFocusFeature={setFocused}
-            pose={pose}
-            selectedCropId={selectedCropId}
-            state={state}
-            today={today}
-            walking={walk !== null}
-          />
-        </Track>
-      </Stage>
+      {/* The prompt is laid over the map rather than left under it: on a phone
+          the map is taller than the space above the fold, so a line below it
+          would never be on screen at the moment the player needed it. */}
+      <Frame>
+        {/*
+          role="application" is deliberate: it asks screen readers to pass arrow
+          and action keys through to the game rather than using them to browse.
+          Every feature also carries a real button, so nothing here depends on
+          it.
+        */}
+        <Stage
+          aria-describedby={instructionsId}
+          aria-label="The Vale — Meadowmere's map"
+          onKeyDown={handleKeyDown}
+          onScroll={syncEdges}
+          ref={scrollRef}
+          role="application"
+          tabIndex={0}
+        >
+          <Track>
+            <ValeScene
+              onActivateFeature={activateFeature}
+              onFocusFeature={setFocused}
+              pose={pose}
+              selectedCropId={selectedCropId}
+              state={state}
+              today={today}
+              walking={walk !== null}
+            />
+          </Track>
+        </Stage>
 
-      {/* Announced as well as shown: walking up to something is how you find
-          out what it offers, so a screen reader has to hear it too. */}
-      <Prompt aria-live="polite">
-        {prompt === null ? "Walk up to something to use it." : prompt.label}
-      </Prompt>
+        {/* Decoration for a scroll the player performs on the map itself, so
+            these stay out of the tab order and out of the pointer's way. */}
+        {more.west && (
+          <WestEdge aria-hidden>
+            <ChevronLeft size={22} />
+          </WestEdge>
+        )}
+        {more.east && (
+          <EastEdge aria-hidden>
+            <ChevronRight size={22} />
+          </EastEdge>
+        )}
+
+        {/* Announced as well as shown: walking up to something is how you find
+            out what it offers, so a screen reader has to hear it too. */}
+        <PromptLayer>
+          <Prompt role="status">
+            {prompt === null ? "Walk up to something to use it." : prompt.label}
+          </Prompt>
+        </PromptLayer>
+      </Frame>
 
       <LiveRegion aria-atomic="true" aria-live="polite" key={announcement.tick}>
         {announcement.text}
@@ -324,6 +375,11 @@ const Layout = styled.div`
   gap: 0.75rem;
 `;
 
+/** Anchors everything laid over the map: the prompt and the two scroll cues. */
+const Frame = styled.div`
+  position: relative;
+`;
+
 const Stage = styled.div`
   border-radius: 12px;
   overflow-x: auto;
@@ -336,6 +392,45 @@ const Stage = styled.div`
     outline: 3px solid var(--color-primary-400);
     outline-offset: 3px;
   }
+`;
+
+/**
+ * Where the map runs on past the edge of the screen. Inset by the frame's
+ * border so the cue sits on the valley rather than on top of the border.
+ */
+const Edge = styled.div`
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 2rem;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: light-dark(var(--color-grey-900), #fff);
+`;
+
+const WestEdge = styled(Edge)`
+  left: 3px;
+  justify-content: flex-start;
+  border-top-left-radius: 9px;
+  border-bottom-left-radius: 9px;
+  background: linear-gradient(
+    to right,
+    light-dark(rgb(255 255 255 / 0.7), rgb(0 0 0 / 0.55)),
+    transparent
+  );
+`;
+
+const EastEdge = styled(Edge)`
+  right: 3px;
+  justify-content: flex-end;
+  border-top-right-radius: 9px;
+  border-bottom-right-radius: 9px;
+  background: linear-gradient(
+    to left,
+    light-dark(rgb(255 255 255 / 0.7), rgb(0 0 0 / 0.55)),
+    transparent
+  );
 `;
 
 /**
@@ -357,12 +452,44 @@ const Instructions = styled.p`
   }
 `;
 
+/**
+ * Holds the prompt over the map, inside its border, without taking any height
+ * from it. Absolute rather than in flow so the map keeps its 4:3 shape, and
+ * full height so the sticky prompt inside has the whole map to travel over.
+ */
+const PromptLayer = styled.div`
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+`;
+
+/**
+ * A pill at the foot of the map. Sticky rather than simply pinned there: the
+ * map is often taller than the window — a phone held sideways, a laptop, the
+ * whole map at desktop width — and a prompt at the bottom of the map would
+ * then be off screen exactly when the player needed to read it. Sized to its
+ * text so what it floats over is a strip of grass rather than a row of plots.
+ */
 const Prompt = styled.p`
-  margin: 0;
-  min-height: 1.5rem;
+  position: sticky;
+  bottom: 0.5rem;
+  max-width: calc(100% - 1rem);
+  margin: 0 0 0.5rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
   font-weight: 700;
   text-align: center;
+  background: light-dark(rgb(255 255 255 / 0.92), rgb(23 23 23 / 0.92));
   color: light-dark(var(--color-orange-700), var(--color-orange-400));
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.25);
+
+  @media ${QUERIES.PHABLET_UP} {
+    font-size: 0.95rem;
+  }
 `;
 
 const LiveRegion = styled.span`

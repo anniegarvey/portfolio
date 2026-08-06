@@ -85,6 +85,15 @@ async function settle(ms: number) {
   });
 }
 
+/**
+ * Plays an auto-walk out to its end. Effects flush once per act() block, so a
+ * walk advances one tile per settle however long that settle waits — hence a
+ * call per tile rather than a single wait long enough for all of them.
+ */
+async function playBackWalk(tiles: number) {
+  for (let i = 0; i <= tiles; i += 1) await settle(120);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   setReducedMotion(true);
@@ -110,7 +119,7 @@ describe("walking", () => {
     // the farmer only turns to face it.
     await userEvent.keyboard("{ArrowDown}{ArrowRight}");
 
-    expect(prompt()).toHaveTextContent("Plot 1 — bare soil, no seed chosen");
+    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
   });
 
   it("accepts W A S D as well as the arrow keys", async () => {
@@ -120,7 +129,7 @@ describe("walking", () => {
 
     await userEvent.keyboard("sd");
 
-    expect(prompt()).toHaveTextContent("Plot 1 — bare soil, no seed chosen");
+    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
   });
 
   it("keeps the farmer in view when the map is too wide to fit", async () => {
@@ -295,7 +304,7 @@ describe("acting on what the farmer faces", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowRight}e");
 
     expect(plantSeed).not.toHaveBeenCalled();
-    expect(prompt()).toHaveTextContent("Plot 1 — bare soil, no seed chosen");
+    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
   });
 });
 
@@ -318,32 +327,50 @@ describe("clicking a place on the map", () => {
     mock();
     render(<ValeWorld />);
 
-    await userEvent.click(
+    fireEvent.click(
+      screen.getByRole("button", { name: /Forage The Hedgerow/ }),
+    );
+    // (2,2) to (5,2), the tile below the hedgerow.
+    await playBackWalk(3);
+    stage().focus();
+    await userEvent.keyboard("e");
+
+    // A second trip can only land if the farmer really walked over and is now
+    // stood in front of the hedgerow.
+    expect(forage).toHaveBeenCalledTimes(2);
+  });
+
+  it("names where a walk is headed rather than every tile it crosses", async () => {
+    setReducedMotion(false);
+    mock();
+    render(<ValeWorld />);
+
+    // Dispatched without focus, so the prompt has only the walk to go on.
+    fireEvent.click(
       screen.getByRole("button", { name: /Forage The Hedgerow/ }),
     );
 
-    // The prompt only names the hedgerow once the farmer has actually arrived
-    // in front of it — the hotspot button carries that wording all along.
-    await waitFor(
-      () => {
-        expect(prompt()).toHaveTextContent("Forage The Hedgerow");
-      },
-      { timeout: 4000 },
-    );
-    // Let the walk wind itself up rather than leaving a timer to fire loose.
-    await settle(200);
+    // One tile in, on open grass with nothing ahead — and still saying what the
+    // player asked for rather than "Walk up to something to use it."
+    await settle(120);
+    expect(prompt()).toHaveTextContent("Forage The Hedgerow");
+    // Let the walk wind itself up rather than leaving timers to fire loose.
+    await playBackWalk(3);
   });
 
   it("puts the farmer straight there when they'd rather not watch a walk", async () => {
     mock();
     render(<ValeWorld />);
 
-    await userEvent.click(
+    fireEvent.click(
       screen.getByRole("button", { name: /Forage The Hedgerow/ }),
     );
+    stage().focus();
+    await userEvent.keyboard("e");
 
-    // No timer, no intermediate tiles — the farmer is simply in front of it.
-    expect(prompt()).toHaveTextContent("Forage The Hedgerow");
+    // No timer and no intermediate tiles: the farmer is in front of it already,
+    // so the action key lands a second trip straight away.
+    expect(forage).toHaveBeenCalledTimes(2);
   });
 
   it("needs no walk when the farmer is already stood beside it", async () => {
@@ -353,13 +380,42 @@ describe("clicking a place on the map", () => {
 
     // Step to (2,3), which is beside Plot 1 — the route has no tiles in it.
     await userEvent.keyboard("{ArrowDown}");
-    await userEvent.click(
+    fireEvent.click(
       screen.getByRole("button", {
-        name: "Plot 1 — bare soil, no seed chosen",
+        name: "Plot 1 — pick a seed in hand to sow",
       }),
     );
 
-    expect(prompt()).toHaveTextContent("Plot 1 — bare soil, no seed chosen");
+    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
+  });
+
+  it("moves the prompt on once the tile it is focused on has changed", () => {
+    mock();
+    const { rerender } = render(<ValeWorld />);
+
+    // Tapping a hotspot focuses it, and focus wins over what the farmer faces.
+    // If the prompt froze on the label it was tapped under, a phone player who
+    // just sowed a plot would be told to sow it again.
+    act(() => {
+      screen
+        .getByRole("button", { name: "Plot 1 — pick a seed in hand to sow" })
+        .focus();
+    });
+    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
+
+    mock({
+      state: farmState({
+        plots: [
+          {
+            id: "plot-0",
+            planting: makePlanting({ plantedDate: "2999-01-01" }),
+          },
+        ],
+      }),
+    });
+    rerender(<ValeWorld />);
+
+    expect(prompt()).toHaveTextContent("Water Parsnip in Plot 1");
   });
 
   it("closes the neighbour's door again", async () => {
@@ -424,7 +480,7 @@ describe("clicking a place on the map", () => {
     // Plot 6 is right across the farm, so the walk is several tiles long.
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Plot 6 — bare soil, no seed chosen",
+        name: "Plot 6 — pick a seed in hand to sow",
       }),
     );
     fireEvent.keyDown(stage(), { key: "ArrowDown" });
@@ -510,12 +566,28 @@ describe("announcements", () => {
 });
 
 describe("controls", () => {
-  it("explains both ways of playing", () => {
+  it("leads with tapping, which is the only way to play on a phone", () => {
     mock();
     render(<ValeWorld />);
 
-    expect(screen.getByText(/Walk with the arrow keys/)).toBeVisible();
-    expect(stage()).toHaveAccessibleDescription(/Press E to use/);
+    expect(screen.getByText(/^Tap any place on the map/)).toBeVisible();
+    expect(stage()).toHaveAccessibleDescription(/arrow keys or W, A, S and D/);
+  });
+
+  it("says the map runs on past the edge of a narrow screen", () => {
+    mock();
+    render(<ValeWorld />);
+
+    expect(screen.getByText(/Swipe the map sideways/)).toBeVisible();
+  });
+
+  it("says how to sow, which is the one step the map cannot show", () => {
+    mock();
+    render(<ValeWorld />);
+
+    expect(
+      screen.getByText("Pick a seed, then tap a bare plot to sow it."),
+    ).toBeVisible();
   });
 
   it("names the map for assistive tech", () => {

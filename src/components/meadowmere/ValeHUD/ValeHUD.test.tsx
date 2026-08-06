@@ -125,6 +125,24 @@ describe("the seed pouch", () => {
     renderHUD();
     expect(screen.getByRole("button", { name: /Parsnip/ })).toBeDisabled();
   });
+
+  // Sowing is two steps and only the second one happens on the map, so the
+  // pouch has to say what taking a seed in hand is for.
+  it("says what to do with a seed once one is in hand", () => {
+    mock({ state: makeMeadowmereState({ seeds: { parsnip: 2 } }) });
+    renderHUD("parsnip");
+    expect(
+      screen.getByText("Now tap a bare plot to sow Parsnip."),
+    ).toBeInTheDocument();
+  });
+
+  it("says to take a seed in hand first when none is chosen", () => {
+    mock({ state: makeMeadowmereState({ seeds: { parsnip: 2 } }) });
+    renderHUD();
+    expect(
+      screen.getByText("Pick a seed, then tap a bare plot to sow it."),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("the quest journal", () => {

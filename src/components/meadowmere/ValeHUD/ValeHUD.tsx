@@ -70,25 +70,34 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
         {unlocked.length === 0 ? (
           <Muted>No seeds yet — buy some at the stall.</Muted>
         ) : (
-          unlocked.map((cropId) => {
-            const count = seedCount(state, cropId);
-            const selected = selectedCropId === cropId;
-            return (
-              <SeedChip
-                aria-label={`${CROPS[cropId].name}, ${count} ${count === 1 ? "seed" : "seeds"}`}
-                aria-pressed={selected}
-                disabled={count === 0}
-                key={cropId}
-                onClick={() => onSelectCrop(selected ? null : cropId)}
-                type="button"
-              >
-                <span aria-hidden>{CROPS[cropId].glyph}</span>
-                <span aria-hidden>
-                  {CROPS[cropId].name} ×{count}
-                </span>
-              </SeedChip>
-            );
-          })
+          <>
+            {unlocked.map((cropId) => {
+              const count = seedCount(state, cropId);
+              const selected = selectedCropId === cropId;
+              return (
+                <SeedChip
+                  aria-label={`${CROPS[cropId].name}, ${count} ${count === 1 ? "seed" : "seeds"}`}
+                  aria-pressed={selected}
+                  disabled={count === 0}
+                  key={cropId}
+                  onClick={() => onSelectCrop(selected ? null : cropId)}
+                  type="button"
+                >
+                  <span aria-hidden>{CROPS[cropId].glyph}</span>
+                  <span aria-hidden>
+                    {CROPS[cropId].name} ×{count}
+                  </span>
+                </SeedChip>
+              );
+            })}
+            {/* Sowing is two steps and only the second one happens on the map,
+                so the first says out loud what it is for. */}
+            <Hint>
+              {selectedCropId === null
+                ? "Pick a seed, then tap a bare plot to sow it."
+                : `Now tap a bare plot to sow ${CROPS[selectedCropId].name}.`}
+            </Hint>
+          </>
         )}
       </Section>
 
@@ -164,6 +173,11 @@ const Stat = styled.span`
 const Muted = styled.span`
   font-size: 0.9rem;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+/** Its own line under the chips, so it reads as a step rather than a chip. */
+const Hint = styled(Muted)`
+  flex-basis: 100%;
 `;
 
 const Holding = styled.span`

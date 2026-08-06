@@ -10,7 +10,6 @@ import {
 } from "@/components/meadowmere/ValeArt/FeatureArt";
 import { TerrainLayer } from "@/components/meadowmere/ValeArt/TerrainLayer";
 import { growthStageOf } from "@/lib/meadowmere/farmingModule";
-import type { Interaction } from "@/lib/meadowmere/interaction";
 import { interactionFor } from "@/lib/meadowmere/interaction";
 import type { FarmerPose } from "@/lib/meadowmere/movement";
 import type { CropId, MeadowmereState } from "@/lib/meadowmere/schema";
@@ -90,11 +89,14 @@ export interface ValeSceneProps {
   /** Fired by clicking or activating a feature's button. */
   onActivateFeature: (feature: Feature) => void;
   /**
-   * The interaction the keyboard has landed on, or null when focus leaves the
-   * map. A hotspot's label is invisible by design, so this is how a sighted
-   * keyboard player learns what the tile they have tabbed to would do.
+   * The feature focus has landed on, or null when it leaves the map. A
+   * hotspot's label is invisible by design, so this is how a sighted player
+   * learns what the tile they have tabbed to — or just tapped — would do. The
+   * feature is passed rather than its interaction so the world re-reads it
+   * against current state: tapping a plot sows into it, and the prompt must
+   * move on to watering rather than sitting on the label it was tapped under.
    */
-  onFocusFeature: (interaction: Interaction | null) => void;
+  onFocusFeature: (feature: Feature | null) => void;
 }
 
 export function ValeScene({
@@ -170,7 +172,7 @@ export function ValeScene({
               key={`${feature.kind}-${feature.x}-${feature.y}`}
               onBlur={() => onFocusFeature(null)}
               onClick={() => onActivateFeature(feature)}
-              onFocus={() => onFocusFeature(interaction)}
+              onFocus={() => onFocusFeature(feature)}
               style={tileBox(feature.x, feature.y)}
               type="button"
             >
@@ -287,9 +289,13 @@ const Hotspot = styled.button`
   font-size: 0;
   color: transparent;
 
-  &:hover {
-    border-color: light-dark(rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.5));
-    background: rgb(255 255 255 / 0.12);
+  /* Guarded, or the highlight sticks to the last tile tapped on a touch screen
+     — there is no pointer to move away and clear it. */
+  @media (hover: hover) {
+    &:hover {
+      border-color: light-dark(rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.5));
+      background: rgb(255 255 255 / 0.12);
+    }
   }
 
   &:focus-visible {

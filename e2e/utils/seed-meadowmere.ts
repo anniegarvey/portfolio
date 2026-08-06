@@ -112,4 +112,11 @@ export async function goToMeadowmereWithSeed(
   );
 
   await page.reload();
+
+  // The map is server-rendered from the empty state and only fills in on
+  // mount, and the stall, the cottages and the sites are drawn either way — so
+  // a click dispatched before hydration lands on a real button with no handler
+  // behind it yet and is silently swallowed. Plots exist only once the client
+  // state is in, so waiting for one is waiting for the map to be live.
+  await page.getByRole("button", { name: /Plot 1/ }).waitFor();
 }
