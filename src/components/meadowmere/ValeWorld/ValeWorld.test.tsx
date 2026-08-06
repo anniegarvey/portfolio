@@ -63,6 +63,12 @@ const stage = () => screen.getByRole("application");
 const prompt = () => stage().parentElement?.querySelector("p:last-of-type");
 
 /**
+ * The visually hidden region that speaks results. Named the same way, because
+ * a refusal reads identically on the button, the prompt and here.
+ */
+const liveRegion = () => document.querySelector('span[aria-live="polite"]');
+
+/**
  * jsdom has no matchMedia, so the world would play back every walk on a 90ms
  * timer — which fires after most of these tests have finished, outside act().
  * Reduced motion is the default here: the farmer is put where they are going
@@ -522,6 +528,24 @@ describe("clicking a place on the map", () => {
 });
 
 describe("announcements", () => {
+  it("speaks a refusal, so a second try at the same plot is not silent", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Plot 1 — bare soil, needs a seed in hand",
+      }),
+    );
+
+    // The prompt shows this as well, but a live region only speaks when its
+    // text changes — and trying the same plot again is exactly what a player
+    // does when the first try seemed to do nothing.
+    expect(liveRegion()).toHaveTextContent(
+      "Plot 1 — bare soil, needs a seed in hand",
+    );
+  });
+
   it("announces what a harvest turned up", () => {
     mock({ notice: { kind: "harvest", cropId: "parsnip", amount: 3 } });
     render(<ValeWorld />);

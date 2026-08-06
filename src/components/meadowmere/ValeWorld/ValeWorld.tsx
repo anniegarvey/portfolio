@@ -180,9 +180,14 @@ export function ValeWorld() {
   const performInteraction = useCallback(
     (interaction: Interaction) => {
       const { action } = interaction;
-      // Nothing to do here. Whether that is worth saying out loud depends on
-      // whether the prompt is about to say it anyway, so the callers decide.
-      if (action === null) return;
+      // Nothing to do here, and the refusal goes to the live region even though
+      // the prompt is showing the same words. The prompt only speaks when its
+      // text changes, so on the second try at the same plot — the natural thing
+      // to do when the first seemed to do nothing — it would say nothing at all.
+      if (action === null) {
+        announce(interaction.label);
+        return;
+      }
       switch (action.type) {
         case "plant":
           plantSeed(action.plotId, action.cropId);
@@ -264,11 +269,7 @@ export function ValeWorld() {
       announce("Nothing here.");
       return;
     }
-    const interaction = interactionFor(state, feature, selectedCropId, today);
-    // The prompt already reads this, and pressing the action key against it
-    // changes nothing on screen — so it has to be said rather than shown.
-    if (interaction.action === null) announce(interaction.label);
-    performInteraction(interaction);
+    performInteraction(interactionFor(state, feature, selectedCropId, today));
   }, [state, pose, selectedCropId, today, performInteraction, announce]);
 
   const handleKeyDown = useCallback(

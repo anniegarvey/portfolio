@@ -76,6 +76,26 @@ test.describe("Meadowmere on a phone", () => {
     await expect(page.getByText("Cook at the Hollow Inn")).toBeVisible();
   });
 
+  // The gift select is the only control in the game that isn't a plain button:
+  // a Radix popover inside a Radix dialog, which is exactly the shape that
+  // tends to come apart on touch.
+  test("gives a neighbour a gift through the select, by tap", async ({
+    page,
+  }) => {
+    await goToMeadowmereWithSeed(page, {
+      inventory: { "river-clay": 2 },
+      neighbours: { marigold: { friendship: 16 } },
+    });
+
+    await page.getByRole("button", { name: "Call on Marigold" }).tap();
+    const door = page.getByRole("dialog");
+    await door.getByRole("combobox").tap();
+    await page.getByRole("option", { name: /River Clay/ }).tap();
+    await door.getByRole("button", { name: "Give gift" }).tap();
+
+    await expect(door.getByText(/now an Acquaintance/)).toBeVisible();
+  });
+
   test("opens the journal and the stall without a keyboard", async ({
     page,
   }) => {
