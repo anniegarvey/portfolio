@@ -216,8 +216,12 @@ test.describe("Meadowmere", () => {
     await vale.waitFor({ state: "visible" });
     // What the player sees once they have scrolled to play, and viewport-only:
     // a full-page shot stretches the viewport, which moves the sticky prompt.
-    await vale.evaluate((el) => {
-      el.scrollIntoView({ block: "center" });
+    // Scrolled to the very bottom rather than to the map — clamping to the
+    // page's own limit is the one scroll position that doesn't move when a
+    // font metric shifts the page's height by a few pixels.
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      window.scrollTo(0, document.documentElement.scrollHeight);
     });
 
     await expect(page).toHaveScreenshot("meadowmere-phone.png", {

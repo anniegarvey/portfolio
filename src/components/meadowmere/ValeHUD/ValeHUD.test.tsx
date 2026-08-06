@@ -132,7 +132,7 @@ describe("the seed pouch", () => {
     mock({ state: makeMeadowmereState({ seeds: { parsnip: 2 } }) });
     renderHUD("parsnip");
     expect(
-      screen.getByText("Now tap a bare plot to sow Parsnip."),
+      screen.getByText("Now tap or click a bare plot to sow Parsnip."),
     ).toBeInTheDocument();
   });
 
@@ -140,7 +140,18 @@ describe("the seed pouch", () => {
     mock({ state: makeMeadowmereState({ seeds: { parsnip: 2 } }) });
     renderHUD();
     expect(
-      screen.getByText("Pick a seed, then tap a bare plot to sow it."),
+      screen.getByText("Pick a seed, then tap or click a bare plot to sow it."),
+    ).toBeInTheDocument();
+  });
+
+  // Sowing the last packet leaves that seed in hand with nothing behind it,
+  // and its chip goes disabled — so the hint has to name the run-out rather
+  // than keep telling the player to sow a seed they haven't got.
+  it("names the run-out when the seed in hand is spent", () => {
+    mock({ state: makeMeadowmereState({ seeds: { parsnip: 0 } }) });
+    renderHUD("parsnip");
+    expect(
+      screen.getByText("No Parsnip seed left — buy more at the stall."),
     ).toBeInTheDocument();
   });
 });

@@ -52,7 +52,7 @@ describe("ValeScene", () => {
     expect(screen.getAllByRole("button")).toHaveLength(6 + 3 + 3 + 1);
     expect(
       screen.getByRole("button", {
-        name: "Plot 1 — pick a seed in hand to sow",
+        name: "Plot 1 — bare soil, needs a seed in hand",
       }),
     ).toBeInTheDocument();
     expect(

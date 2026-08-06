@@ -23,6 +23,22 @@ export interface ValeHUDProps {
   onSelectCrop: (cropId: CropId | null) => void;
 }
 
+/**
+ * The next step of sowing, in the state the pouch is currently in. Sowing the
+ * last packet leaves that seed still in hand with nothing behind it, and the
+ * chip goes disabled — so the run-out has to be named here rather than left
+ * to a hint telling the player to sow a seed they haven't got.
+ */
+function sowingHint(selectedCropId: CropId | null, count: number): string {
+  if (selectedCropId === null) {
+    return "Pick a seed, then tap or click a bare plot to sow it.";
+  }
+  const { name } = CROPS[selectedCropId];
+  return count === 0
+    ? `No ${name} seed left — buy more at the stall.`
+    : `Now tap or click a bare plot to sow ${name}.`;
+}
+
 export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
   const { state } = useMeadowmere();
   const { points } = usePoints();
@@ -41,6 +57,8 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
   const readyQuests = visibleQuests(state).filter(
     (quest) => questStatus(state, quest.id) === "ready",
   ).length;
+  const seedsInHand =
+    selectedCropId === null ? 0 : seedCount(state, selectedCropId);
 
   return (
     <Bar>
@@ -92,11 +110,7 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
             })}
             {/* Sowing is two steps and only the second one happens on the map,
                 so the first says out loud what it is for. */}
-            <Hint>
-              {selectedCropId === null
-                ? "Pick a seed, then tap a bare plot to sow it."
-                : `Now tap a bare plot to sow ${CROPS[selectedCropId].name}.`}
-            </Hint>
+            <Hint>{sowingHint(selectedCropId, seedsInHand)}</Hint>
           </>
         )}
       </Section>
@@ -204,8 +218,12 @@ const QuestsButton = styled.button`
   background: light-dark(var(--color-grey-50), var(--color-grey-800));
   color: light-dark(var(--color-grey-800), var(--color-grey-200));
 
-  &:hover {
-    border-color: light-dark(var(--color-grey-500), var(--color-grey-400));
+  /* Guarded, or the highlight sticks after a tap — there is no pointer to move
+     away and clear it. */
+  @media (hover: hover) {
+    &:hover {
+      border-color: light-dark(var(--color-grey-500), var(--color-grey-400));
+    }
   }
 
   &:focus-visible {
@@ -239,8 +257,10 @@ const SeedChip = styled.button`
     background: light-dark(var(--color-orange-50), var(--color-grey-700));
   }
 
-  &:hover:not(:disabled) {
-    border-color: light-dark(var(--color-grey-500), var(--color-grey-400));
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: light-dark(var(--color-grey-500), var(--color-grey-400));
+    }
   }
 
   &:disabled {

@@ -90,11 +90,13 @@ export function ValeWorld() {
     path: Tile[];
     facing: Facing;
     /**
-     * What the walk was ordered for. Shown while it plays back, so the prompt
-     * says what the player asked for rather than flickering through every tile
-     * the farmer crosses to get there.
+     * Where the walk is headed. The prompt reads this rather than the tiles
+     * being crossed, so it says what the player asked for instead of
+     * flickering through open grass on the way. The feature rather than its
+     * interaction, so it is re-read against state the action has already
+     * changed — the same reason the scene hands back features.
      */
-    interaction: Interaction;
+    feature: Feature;
   } | null>(null);
   const [selectedCropId, setSelectedCropId] = useState<CropId | null>(null);
   const [visiting, setVisiting] = useState<NeighbourId | null>(null);
@@ -129,10 +131,13 @@ export function ValeWorld() {
     const view = scrollRef.current;
     if (view === null) return;
     const furthest = view.scrollWidth - view.clientWidth;
-    setMore({
-      west: view.scrollLeft > 1,
-      east: view.scrollLeft < furthest - 1,
-    });
+    const west = view.scrollLeft > 1;
+    const east = view.scrollLeft < furthest - 1;
+    // A swipe fires this every frame while the answer changes twice a swipe at
+    // most, so hand back the same object rather than re-rendering for nothing.
+    setMore((prev) =>
+      prev.west === west && prev.east === east ? prev : { west, east },
+    );
   }, []);
 
   // Below about 640px the map has to scroll sideways to keep its tiles big
@@ -152,9 +157,18 @@ export function ValeWorld() {
     };
     centreOnFarmer();
     // Rotating a phone changes how much of the map fits, which would otherwise
-    // leave the farmer off to one side until their next step.
-    window.addEventListener("resize", centreOnFarmer);
-    return () => window.removeEventListener("resize", centreOnFarmer);
+    // leave the farmer off to one side until their next step. Width only: a
+    // phone fires resize when its URL bar slides away mid-scroll, and
+    // re-centring on that would yank the map back while the player is reading
+    // the far side of the valley.
+    let width = window.innerWidth;
+    const onResize = () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      centreOnFarmer();
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [pose.x, syncEdges]);
 
   // Results that flow through the game context get announced here; sowing and
@@ -166,10 +180,9 @@ export function ValeWorld() {
   const performInteraction = useCallback(
     (interaction: Interaction) => {
       const { action } = interaction;
-      if (action === null) {
-        announce(interaction.label);
-        return;
-      }
+      // Nothing to do here. Whether that is worth saying out loud depends on
+      // whether the prompt is about to say it anyway, so the callers decide.
+      if (action === null) return;
       switch (action.type) {
         case "plant":
           plantSeed(action.plotId, action.cropId);
@@ -208,8 +221,7 @@ export function ValeWorld() {
       const route = routeToFeature(state, from, feature);
       // Re-derived here rather than taken from the scene, so the world stays
       // the only authority on what activating something actually does.
-      const interaction = interactionFor(state, feature, selectedCropId, today);
-      performInteraction(interaction);
+      performInteraction(interactionFor(state, feature, selectedCropId, today));
       if (route === null) return;
 
       const arrival = route.path.at(-1) ?? from;
@@ -222,7 +234,7 @@ export function ValeWorld() {
         setWalk(null);
         return;
       }
-      setWalk({ ...route, interaction });
+      setWalk({ ...route, feature });
     },
     [state, selectedCropId, today, performInteraction],
   );
@@ -244,12 +256,31 @@ export function ValeWorld() {
     return () => clearTimeout(timer);
   }, [walk]);
 
+  /** The action key, on whatever the farmer is stood looking at. */
+  const actOnWhatIsAhead = useCallback(() => {
+    const ahead = tileInFront(pose);
+    const feature = featureAt(state, ahead.x, ahead.y);
+    if (feature === null) {
+      announce("Nothing here.");
+      return;
+    }
+    const interaction = interactionFor(state, feature, selectedCropId, today);
+    // The prompt already reads this, and pressing the action key against it
+    // changes nothing on screen — so it has to be said rather than shown.
+    if (interaction.action === null) announce(interaction.label);
+    performInteraction(interaction);
+  }, [state, pose, selectedCropId, today, performInteraction, announce]);
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       const facing = KEY_FACING[event.key];
       if (facing !== undefined) {
         event.preventDefault();
         setWalk(null); // Taking the reins cancels any walk in progress.
+        // A hotspot keeps focus while the farmer walks away from it, and the
+        // prompt would go on describing a tile the action key no longer
+        // reaches. Steering by hand puts the prompt back on what is ahead.
+        setFocused(null);
         setPose((prev) => stepFarmer(state, prev, facing));
         return;
       }
@@ -263,15 +294,9 @@ export function ValeWorld() {
         if (event.target !== event.currentTarget) return;
         event.preventDefault();
       }
-      const ahead = tileInFront(pose);
-      const feature = featureAt(state, ahead.x, ahead.y);
-      if (feature === null) {
-        announce("Nothing here.");
-        return;
-      }
-      performInteraction(interactionFor(state, feature, selectedCropId, today));
+      actOnWhatIsAhead();
     },
-    [state, pose, selectedCropId, today, performInteraction, announce],
+    [state, actOnWhatIsAhead],
   );
 
   const aheadFeature = (() => {
@@ -283,9 +308,12 @@ export function ValeWorld() {
       ? null
       : interactionFor(state, feature, selectedCropId, today);
   // Focus wins over what the farmer faces; a walk in progress wins over the
-  // tiles being crossed to get there.
+  // tiles being crossed to get there. All three read current state, so they
+  // never disagree about the same tile.
   const prompt =
-    promptFor(focused) ?? walk?.interaction ?? promptFor(aheadFeature);
+    promptFor(focused) ??
+    promptFor(walk?.feature ?? null) ??
+    promptFor(aheadFeature);
 
   return (
     <Layout>
@@ -295,9 +323,9 @@ export function ValeWorld() {
       />
 
       <Instructions id={instructionsId}>
-        Tap any place on the map to walk there and use it. Swipe the map
-        sideways — the valley is wider than the screen. With a keyboard: arrow
-        keys or W, A, S and D to walk, E to use whatever the farmer faces.
+        Tap or click any place on the map to walk there and use it. Swipe the
+        map sideways — the valley is wider than the screen. With a keyboard:
+        arrow keys or W, A, S and D to walk, E to use whatever the farmer faces.
       </Instructions>
 
       {/* The prompt is laid over the map rather than left under it: on a phone

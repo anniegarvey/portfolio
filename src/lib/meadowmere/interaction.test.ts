@@ -18,7 +18,7 @@ describe("interactionFor", () => {
       const state = makeMeadowmereState({ plots: [makePlot()] });
       const result = interactionFor(state, PLOT_0, null, TODAY);
       expect(result.action).toBeNull();
-      expect(result.label).toBe("Plot 1 — pick a seed in hand to sow");
+      expect(result.label).toBe("Plot 1 — bare soil, needs a seed in hand");
     });
 
     it("offers to sow when a seed is chosen and in the pouch", () => {

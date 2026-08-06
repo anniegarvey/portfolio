@@ -290,12 +290,18 @@ const Hotspot = styled.button`
   color: transparent;
 
   /* Guarded, or the highlight sticks to the last tile tapped on a touch screen
-     — there is no pointer to move away and clear it. */
+     — there is no pointer to move away and clear it. The active state below
+     covers the tap itself, the only frame a touch screen has to confirm a hit. */
   @media (hover: hover) {
     &:hover {
       border-color: light-dark(rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.5));
       background: rgb(255 255 255 / 0.12);
     }
+  }
+
+  &:active {
+    border-color: light-dark(rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.5));
+    background: rgb(255 255 255 / 0.2);
   }
 
   &:focus-visible {

@@ -24,7 +24,9 @@ test.describe("Meadowmere", () => {
     await expect(page.getByRole("application", { name: map })).toBeVisible();
 
     await expect(
-      page.getByRole("button", { name: "Plot 1 — pick a seed in hand to sow" }),
+      page.getByRole("button", {
+        name: "Plot 1 — bare soil, needs a seed in hand",
+      }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: /^Forage The Hedgerow/ }),
@@ -92,7 +94,9 @@ test.describe("Meadowmere", () => {
     // Base yield 1 plus one per watered day.
     await expect(page.getByText("Parsnip ×3")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Plot 1 — pick a seed in hand to sow" }),
+      page.getByRole("button", {
+        name: "Plot 1 — bare soil, needs a seed in hand",
+      }),
     ).toBeVisible();
   });
 
@@ -220,7 +224,7 @@ test.describe("Meadowmere", () => {
     await goToMeadowmereWithSeed(page);
 
     const box = await page
-      .getByRole("button", { name: "Plot 1 — pick a seed in hand to sow" })
+      .getByRole("button", { name: "Plot 1 — bare soil, needs a seed in hand" })
       .boundingBox();
     expect(box?.width ?? 0).toBeGreaterThanOrEqual(24);
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(24);

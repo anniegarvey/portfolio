@@ -119,7 +119,9 @@ describe("walking", () => {
     // the farmer only turns to face it.
     await userEvent.keyboard("{ArrowDown}{ArrowRight}");
 
-    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
+    expect(prompt()).toHaveTextContent(
+      "Plot 1 — bare soil, needs a seed in hand",
+    );
   });
 
   it("accepts W A S D as well as the arrow keys", async () => {
@@ -129,7 +131,9 @@ describe("walking", () => {
 
     await userEvent.keyboard("sd");
 
-    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
+    expect(prompt()).toHaveTextContent(
+      "Plot 1 — bare soil, needs a seed in hand",
+    );
   });
 
   it("keeps the farmer in view when the map is too wide to fit", async () => {
@@ -304,7 +308,9 @@ describe("acting on what the farmer faces", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowRight}e");
 
     expect(plantSeed).not.toHaveBeenCalled();
-    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
+    expect(prompt()).toHaveTextContent(
+      "Plot 1 — bare soil, needs a seed in hand",
+    );
   });
 });
 
@@ -382,11 +388,13 @@ describe("clicking a place on the map", () => {
     await userEvent.keyboard("{ArrowDown}");
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Plot 1 — pick a seed in hand to sow",
+        name: "Plot 1 — bare soil, needs a seed in hand",
       }),
     );
 
-    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
+    expect(prompt()).toHaveTextContent(
+      "Plot 1 — bare soil, needs a seed in hand",
+    );
   });
 
   it("moves the prompt on once the tile it is focused on has changed", () => {
@@ -398,10 +406,14 @@ describe("clicking a place on the map", () => {
     // just sowed a plot would be told to sow it again.
     act(() => {
       screen
-        .getByRole("button", { name: "Plot 1 — pick a seed in hand to sow" })
+        .getByRole("button", {
+          name: "Plot 1 — bare soil, needs a seed in hand",
+        })
         .focus();
     });
-    expect(prompt()).toHaveTextContent("Plot 1 — pick a seed in hand to sow");
+    expect(prompt()).toHaveTextContent(
+      "Plot 1 — bare soil, needs a seed in hand",
+    );
 
     mock({
       state: farmState({
@@ -416,6 +428,22 @@ describe("clicking a place on the map", () => {
     rerender(<ValeWorld />);
 
     expect(prompt()).toHaveTextContent("Water Parsnip in Plot 1");
+  });
+
+  it("puts the prompt back on what is ahead when the player steers by hand", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    // A hotspot keeps focus while the farmer walks away from it, so without
+    // letting go the prompt would describe a tile the action key can't reach.
+    act(() => {
+      screen.getByRole("button", { name: "Call on Nessa" }).focus();
+    });
+    expect(prompt()).toHaveTextContent("Call on Nessa");
+
+    fireEvent.keyDown(stage(), { key: "ArrowDown" });
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
   });
 
   it("closes the neighbour's door again", async () => {
@@ -480,7 +508,7 @@ describe("clicking a place on the map", () => {
     // Plot 6 is right across the farm, so the walk is several tiles long.
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Plot 6 — pick a seed in hand to sow",
+        name: "Plot 6 — bare soil, needs a seed in hand",
       }),
     );
     fireEvent.keyDown(stage(), { key: "ArrowDown" });
@@ -570,7 +598,9 @@ describe("controls", () => {
     mock();
     render(<ValeWorld />);
 
-    expect(screen.getByText(/^Tap any place on the map/)).toBeVisible();
+    expect(
+      screen.getByText(/^Tap or click any place on the map/),
+    ).toBeVisible();
     expect(stage()).toHaveAccessibleDescription(/arrow keys or W, A, S and D/);
   });
 
@@ -586,7 +616,7 @@ describe("controls", () => {
     render(<ValeWorld />);
 
     expect(
-      screen.getByText("Pick a seed, then tap a bare plot to sow it."),
+      screen.getByText("Pick a seed, then tap or click a bare plot to sow it."),
     ).toBeVisible();
   });
 

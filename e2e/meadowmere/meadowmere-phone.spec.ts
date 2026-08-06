@@ -27,7 +27,7 @@ test.describe("Meadowmere on a phone", () => {
     await goToMeadowmereWithSeed(page);
 
     const plot = page.getByRole("button", {
-      name: "Plot 1 — pick a seed in hand to sow",
+      name: "Plot 1 — bare soil, needs a seed in hand",
     });
     await plot.scrollIntoViewIfNeeded();
     await plot.tap();
@@ -36,7 +36,7 @@ test.describe("Meadowmere on a phone", () => {
     // taller than the screen, so it never reached the player.
     await expect(page.getByRole("status")).toBeInViewport();
     await expect(page.getByRole("status")).toHaveText(
-      "Plot 1 — pick a seed in hand to sow",
+      "Plot 1 — bare soil, needs a seed in hand",
     );
   });
 
@@ -103,9 +103,11 @@ test.describe("Meadowmere on a phone", () => {
     await goToMeadowmereWithSeed(page);
 
     await expect(
-      page.getByText("Pick a seed, then tap a bare plot to sow it."),
+      page.getByText("Pick a seed, then tap or click a bare plot to sow it."),
     ).toBeVisible();
-    await expect(page.getByText(/^Tap any place on the map/)).toBeVisible();
+    await expect(
+      page.getByText(/^Tap or click any place on the map/),
+    ).toBeVisible();
   });
 
   test("has no automatically detectable accessibility issues", async ({
