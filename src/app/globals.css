@@ -215,6 +215,15 @@ html[data-theme="light"] {
 html,
 body {
   max-width: 100vw;
+}
+
+/*
+ * Only on html. The same rule on body makes body its own scroll container,
+ * which silently stops `position: sticky` working anywhere on the page —
+ * html's overflow propagates to the viewport, so sideways overflow is still
+ * clipped without it.
+ */
+html {
   overflow-x: hidden;
 }
 

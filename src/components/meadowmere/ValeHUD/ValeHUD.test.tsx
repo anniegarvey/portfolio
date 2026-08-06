@@ -125,6 +125,35 @@ describe("the seed pouch", () => {
     renderHUD();
     expect(screen.getByRole("button", { name: /Parsnip/ })).toBeDisabled();
   });
+
+  // Sowing is two steps and only the second one happens on the map, so the
+  // pouch has to say what taking a seed in hand is for.
+  it("says what to do with a seed once one is in hand", () => {
+    mock({ state: makeMeadowmereState({ seeds: { parsnip: 2 } }) });
+    renderHUD("parsnip");
+    expect(
+      screen.getByText("Now tap or click a bare plot to sow Parsnip."),
+    ).toBeInTheDocument();
+  });
+
+  it("says to take a seed in hand first when none is chosen", () => {
+    mock({ state: makeMeadowmereState({ seeds: { parsnip: 2 } }) });
+    renderHUD();
+    expect(
+      screen.getByText("Pick a seed, then tap or click a bare plot to sow it."),
+    ).toBeInTheDocument();
+  });
+
+  // Sowing the last packet leaves that seed in hand with nothing behind it,
+  // and its chip goes disabled — so the hint has to name the run-out rather
+  // than keep telling the player to sow a seed they haven't got.
+  it("names the run-out when the seed in hand is spent", () => {
+    mock({ state: makeMeadowmereState({ seeds: { parsnip: 0 } }) });
+    renderHUD("parsnip");
+    expect(
+      screen.getByText("No Parsnip seed left — buy more at the stall."),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("the quest journal", () => {

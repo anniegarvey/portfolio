@@ -52,7 +52,7 @@ describe("ValeScene", () => {
     expect(screen.getAllByRole("button")).toHaveLength(6 + 3 + 3 + 1);
     expect(
       screen.getByRole("button", {
-        name: "Plot 1 — bare soil, no seed chosen",
+        name: "Plot 1 — bare soil, needs a seed in hand",
       }),
     ).toBeInTheDocument();
     expect(
@@ -80,16 +80,14 @@ describe("ValeScene", () => {
     );
   });
 
-  it("reports the interaction the keyboard lands on, and when it leaves", () => {
+  it("reports the feature focus lands on, and when it leaves", () => {
     const { onFocusFeature } = renderScene(stateWith(6));
     const bram = screen.getByRole("button", { name: "Call on Bram" });
 
-    // A hotspot's label is invisible, so focusing one has to say what it does.
+    // A hotspot's label is invisible, so focusing one has to say what is there.
     bram.focus();
     expect(onFocusFeature).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: { type: "visit", neighbourId: "bram" },
-      }),
+      expect.objectContaining({ kind: "cottage", neighbourId: "bram" }),
     );
 
     bram.blur();

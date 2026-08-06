@@ -41,7 +41,14 @@ function plotInteraction(
 
   if (plot.planting === null) {
     if (selectedCropId === null) {
-      return { action: null, label: `${name} — bare soil, no seed chosen` };
+      // Names the way out as well as the state, because this label is also the
+      // hotspot's accessible name: "needs a seed in hand" still reads as a name
+      // for the tile, while pointing at the pouch it has to come from. Sowing
+      // is the one step of Meadowmere a new player cannot guess.
+      return {
+        action: null,
+        label: `${name} — bare soil, needs a seed in hand`,
+      };
     }
     const crop = CROPS[selectedCropId];
     if (!canPlant(state, plot.id, selectedCropId)) {

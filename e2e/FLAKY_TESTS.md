@@ -82,3 +82,18 @@ Covered by `does not let a stale mount load revert a reset that landed first` in
 | Test | Failures |
 |------|----------|
 | `e2e/glade/glade.spec.ts` > "resetting the glade wipes progress back to a fresh start" | 4 |
+
+---
+
+## Parallel load race: Meadowmere clicks swallowed before hydration
+
+**Symptom:** `getByRole("dialog")` never appears after clicking a map hotspot — the error context shows the button `[active]` and the prompt naming it, but no dialog. Passes in 2s in isolation; failed 3/3 under the full `e2e/meadowmere` run once the phone spec added six more tests to the same parallel batch.
+
+**Root cause (identified, fixed):** `MeadowmereProvider` server-renders `EMPTY_STATE` and fills the real save in on mount. `valeFeatures` draws the stall, the cottages and the sites from constants, so those hotspots exist in the SSR markup — a real `<button>` with no React handler behind it until hydration. A click dispatched into that window is silently swallowed, which is why only the tests that go straight for the stall or a door failed, and never the ones that reach for a plot first.
+
+Fixed in `e2e/utils/seed-meadowmere.ts`: `goToMeadowmereWithSeed` now waits for a Plot 1 button after the reload. Plots come from the loaded save and cannot render before hydration, so waiting for one is waiting for the map to be live. 3/3 clean runs at 5 workers afterwards.
+
+| Test | Failures |
+|------|----------|
+| `e2e/meadowmere/meadowmere.spec.ts` > "seeds are bought with points at the stall" | 3 |
+| `e2e/meadowmere/meadowmere.spec.ts` > "a liked gift moves a neighbour up a friendship tier" | 1 |

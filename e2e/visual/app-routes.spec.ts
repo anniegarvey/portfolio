@@ -192,4 +192,40 @@ test.describe("Meadowmere", () => {
       });
     });
   }
+
+  // The Vale is the one page whose layout changes shape on a phone: the map
+  // scrolls sideways behind an edge cue, and the prompt moves onto the map so
+  // it survives a viewport the map is taller than.
+  test("phone", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
+    await page.evaluate(
+      ({ stateJson, key }) => {
+        const state = JSON.parse(stateJson);
+        const now = new Date();
+        state.lastAdvanceDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        localStorage.setItem(key, JSON.stringify(state));
+        localStorage.setItem("theme", "light");
+      },
+      { stateJson: MEADOWMERE_STATE, key: MEADOWMERE_KEY },
+    );
+    await page.reload();
+    const vale = page.getByRole("application", {
+      name: "The Vale — Meadowmere's map",
+    });
+    await vale.waitFor({ state: "visible" });
+    // What the player sees once they have scrolled to play, and viewport-only:
+    // a full-page shot stretches the viewport, which moves the sticky prompt.
+    // Scrolled to the very bottom rather than to the map — clamping to the
+    // page's own limit is the one scroll position that doesn't move when a
+    // font metric shifts the page's height by a few pixels.
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+
+    await expect(page).toHaveScreenshot("meadowmere-phone.png", {
+      mask: getDevToolsMask(page),
+    });
+  });
 });
