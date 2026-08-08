@@ -670,6 +670,82 @@ describe("clicking a place on the map", () => {
   });
 });
 
+describe("what the valley says back", () => {
+  /** A farm with the day turned, so the cat is out. */
+  function catState() {
+    return farmState({ lastAdvanceDate: "2026-06-20" });
+  }
+
+  it("lets the farmer pet the cat", async () => {
+    mock({ state: catState() });
+    render(<ValeWorld />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Pet the cat" }));
+
+    // Shown, not only announced: on a phone the live region never reaches the
+    // screen, so a purr nobody can see is a tap that did nothing.
+    expect(prompt()).toHaveTextContent(/cat|Purring|Headbutts|rumble/);
+  });
+
+  it("has something new to say each time the cat is petted", async () => {
+    mock({ state: catState() });
+    render(<ValeWorld />);
+    const cat = screen.getByRole("button", { name: "Pet the cat" });
+
+    await userEvent.click(cat);
+    const first = prompt()?.textContent;
+    await userEvent.click(cat);
+
+    expect(prompt()?.textContent).not.toBe(first);
+  });
+
+  it("answers for the river when the farmer is sent into it", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Open water, not (0,6): the riverbank site stands there and its own button
+    // has already said what it is.
+    fireEvent.click(track(), pointAt(0, 3));
+
+    expect(prompt()).toHaveTextContent("The river runs quick");
+  });
+
+  it("answers for the farmhouse door, which is the one you live behind", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(2, 1));
+
+    expect(prompt()).toHaveTextContent("Home. But the day is out here.");
+  });
+
+  it("stops talking as soon as the player does something else", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(0, 3));
+    expect(prompt()).toHaveTextContent("The river runs quick");
+
+    stage().focus();
+    await userEvent.keyboard("{ArrowDown}");
+
+    // A remark answers the last thing the player did. Once they have moved on it
+    // would be describing a moment that has passed.
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("leaves a plot to its own button rather than remarking on the soil", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Plot 1 stands on grass, which has nothing to say — and the plot's own
+    // button has already said what it is.
+    fireEvent.click(track(), pointAt(3, 3));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+});
+
 describe("announcements", () => {
   it("speaks a refusal, so a second try at the same plot is not silent", () => {
     mock();

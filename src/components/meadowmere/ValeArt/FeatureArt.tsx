@@ -12,6 +12,8 @@ const SOIL_DARK = "var(--vale-soil-dark)";
 const LEAF = "var(--vale-leaf)";
 const LEAF_DARK = "var(--vale-leaf-dark)";
 const STEM = "var(--vale-stem)";
+const CAT = "var(--vale-cat)";
+const CAT_EYE = "var(--vale-cat-eye)";
 
 /** Ripe colours per crop, so a full bed reads at a glance. */
 const CROP_COLOURS: Record<CropId, { main: string; accent: string }> = {
@@ -449,6 +451,48 @@ export function StallArt() {
       <ellipse cx="18" cy="34" fill="#c4ab7e" rx="3.4" ry="3" />
       <circle cx="9" cy="31" fill="#8b6b4a" r="1.2" />
       <circle cx="25" cy="33" fill="#7fae5c" r="3" />
+    </g>
+  );
+}
+
+// ─── The cat ──────────────────────────────────────────────────────────────────
+
+/**
+ * The barn cat, sitting wherever it has decided to sit today. Kept small: it
+ * perches on the hedge and the rocks, and anything drawn much taller would hang
+ * over the grass the farmer walks on.
+ */
+export function CatArt() {
+  return (
+    <g transform="translate(0, -4)">
+      {/* Tail first, so it curls up behind the body. */}
+      <path
+        d="M21 27 q7 2 5 -6"
+        fill="none"
+        stroke={CAT}
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <ellipse cx="15" cy="23" fill={CAT} rx="6.5" ry="7" />
+      {/* Ears before the head, so the head's edge tidies up their base. */}
+      <path d="M10 11 L10.5 5.5 L14 9.5 Z" fill={CAT} />
+      <path d="M20 11 L19.5 5.5 L16 9.5 Z" fill={CAT} />
+      <circle cx="15" cy="13" fill={CAT} r="5.6" />
+      <path
+        d="M11.5 20 q3.5 2.5 7 0"
+        fill="none"
+        stroke="var(--vale-cat-bib)"
+        strokeLinecap="round"
+        strokeWidth="2.4"
+      />
+      <circle cx="13" cy="13" fill={CAT_EYE} r="1.1" />
+      <circle cx="17" cy="13" fill={CAT_EYE} r="1.1" />
+      <path
+        d="M14.6 15.4 h1.8"
+        stroke={CAT_EYE}
+        strokeLinecap="round"
+        strokeWidth="1"
+      />
     </g>
   );
 }

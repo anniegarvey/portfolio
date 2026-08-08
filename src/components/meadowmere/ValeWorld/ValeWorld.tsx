@@ -35,6 +35,7 @@ import {
   FARMER_START,
   featureAt,
   isWalkable,
+  terrainRemark,
   VALE_HEIGHT,
   VALE_WIDTH,
 } from "@/lib/meadowmere/valeMap";
@@ -89,6 +90,19 @@ const KEY_FACING: Record<string, Facing> = {
 
 const ACTION_KEYS = new Set([" ", "Enter", "e", "E"]);
 
+/**
+ * What the cat makes of being petted, in turn. Cycling rather than random so a
+ * second go always says something new — the whole reward here is finding out
+ * there is more than one.
+ */
+const PURRS = [
+  "The cat submits to being petted. Briefly.",
+  "A rumble starts up somewhere inside, like a tractor two fields away.",
+  "The cat rolls over, thinks better of it, and sits back up.",
+  "Headbutts your hand, then pretends that never happened.",
+  "Purring. Loud, unhurried, and entirely unearned.",
+];
+
 /** What just happened, phrased for the live region. */
 function describeNotice(notice: Notice): string {
   switch (notice.kind) {
@@ -133,6 +147,14 @@ export function ValeWorld() {
   const [shopOpen, setShopOpen] = useState(false);
   /** The feature focus has landed on, which overrides what the farmer faces. */
   const [focused, setFocused] = useState<Feature | null>(null);
+  /**
+   * Something the valley just said back — a purr, or why the farmer won't wade
+   * into the river. It belongs to no feature, so unlike every other line in the
+   * prompt it can't be re-derived and has to be held until the player moves on.
+   */
+  const [aside, setAside] = useState<string | null>(null);
+  /** How many times the cat has been petted, which is how it picks its reply. */
+  const [pets, setPets] = useState(0);
   /**
    * A live region only fires when its text actually changes, so watering two
    * plots in a row would announce once. The tick gives each result its own
@@ -223,6 +245,8 @@ export function ValeWorld() {
   const performInteraction = useCallback(
     (interaction: Interaction) => {
       const { action } = interaction;
+      // Whatever the valley last said back, this replaces it.
+      setAside(null);
       // Nothing to do here, and the refusal goes to the live region even though
       // the prompt is showing the same words. The prompt only speaks when its
       // text changes, so on the second try at the same plot — the natural thing
@@ -252,9 +276,18 @@ export function ValeWorld() {
         case "shop":
           setShopOpen(true);
           break;
+        case "pet": {
+          // Shown as well as announced: on a phone the live region is the only
+          // thing that speaks and none of it reaches the screen.
+          const purr = PURRS[pets % PURRS.length];
+          setPets((count) => count + 1);
+          setAside(purr);
+          announce(purr);
+          break;
+        }
       }
     },
-    [plantSeed, waterPlot, harvestPlot, forage, announce],
+    [plantSeed, waterPlot, harvestPlot, forage, announce, pets],
   );
 
   /**
@@ -296,17 +329,28 @@ export function ValeWorld() {
    */
   const walkToTile = useCallback(
     (tile: Tile) => {
-      if (!isWalkable(state, tile.x, tile.y)) return;
+      if (!isWalkable(state, tile.x, tile.y)) {
+        // Nothing standing here to carry a button, so this is the only chance
+        // the valley gets to answer for itself. Features stay quiet: their own
+        // buttons said what they were before the tap even landed.
+        const remark = terrainRemark(tile.x, tile.y);
+        if (remark !== null && featureAt(state, tile.x, tile.y) === null) {
+          setAside(remark);
+          announce(remark);
+        }
+        return;
+      }
       const from = poseRef.current;
       const path = findPath(state, from, tile);
       if (path === null || path.length === 0) return;
+      setAside(null);
       // A hotspot keeps focus while the farmer walks away from it, so let go of
       // it for the same reason steering by hand does.
       setFocused(null);
       const penultimate = path.at(-2) ?? from;
       travel({ path, facing: facingTowards(penultimate, tile) }, null);
     },
-    [state, travel],
+    [state, travel, announce],
   );
 
   /** Which tile a pointer at these coordinates is over, or null if off the map. */
@@ -374,6 +418,7 @@ export function ValeWorld() {
         // prompt would go on describing a tile the action key no longer
         // reaches. Steering by hand puts the prompt back on what is ahead.
         setFocused(null);
+        setAside(null);
         setPose((prev) => stepFarmer(state, prev, facing));
         return;
       }
@@ -408,6 +453,12 @@ export function ValeWorld() {
   const prompt =
     promptFor(focused) ??
     (walk === null ? promptFor(aheadFeature) : promptFor(walk.feature));
+
+  // What the pill says: whatever the valley just remarked, else what can be done
+  // where the farmer is, else how to get started. An aside is a reply to the
+  // last thing the player did, so while one is up it speaks alone.
+  const pillLabel = aside ?? prompt?.label ?? "Walk up to something to use it.";
+  const pillDetail = aside === null ? prompt?.detail : undefined;
 
   return (
     <Layout>
@@ -475,10 +526,10 @@ export function ValeWorld() {
             out what it offers, so a screen reader has to hear it too. */}
         <PromptLayer>
           <Prompt role="status">
-            {prompt === null ? "Walk up to something to use it." : prompt.label}
+            {pillLabel}
             {/* Inside the same pill rather than beside it, so the whole remark
                 is one thing to read and one thing to announce. */}
-            {prompt?.detail !== undefined && <Detail>{prompt.detail}</Detail>}
+            {pillDetail !== undefined && <Detail>{pillDetail}</Detail>}
           </Prompt>
         </PromptLayer>
       </Frame>

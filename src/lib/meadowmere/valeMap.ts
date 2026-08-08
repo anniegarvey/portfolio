@@ -88,7 +88,8 @@ export type Feature =
   | { kind: "plot"; x: number; y: number; index: number }
   | { kind: "site"; x: number; y: number; siteId: SiteId }
   | { kind: "cottage"; x: number; y: number; neighbourId: NeighbourId }
-  | { kind: "stall"; x: number; y: number };
+  | { kind: "stall"; x: number; y: number }
+  | { kind: "cat"; x: number; y: number };
 
 /**
  * Where each plot sits, in the order plots are stored. Four rows of three with
@@ -130,6 +131,36 @@ const COTTAGE_TILES: Record<NeighbourId, Tile> = {
 
 const STALL_TILE: Tile = { x: 6, y: 2 };
 
+/**
+ * Where the cat might settle. Every one of these is hedge or rock — ground the
+ * farmer could never have stood on anyway — so a visitor that moves every
+ * morning can never become a wall across the only way round to a plot. Cats sit
+ * on walls; this one has the run of them.
+ */
+const CAT_PERCHES: readonly Tile[] = [
+  { x: 7, y: 0 },
+  { x: 11, y: 0 },
+  { x: 13, y: 1 },
+  { x: 15, y: 3 },
+  { x: 15, y: 8 },
+  { x: 3, y: 11 },
+  { x: 10, y: 11 },
+];
+
+/**
+ * Which perch the cat took when the day turned. Derived from the date the day
+ * last advanced rather than from today, so it stays a pure function of state:
+ * the scene re-derives every feature on every render and the cat has to land on
+ * the same tile each time.
+ */
+function catPerch(dateStamp: string): Tile {
+  let hash = 0;
+  for (const char of dateStamp) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 65521;
+  }
+  return CAT_PERCHES[hash % CAT_PERCHES.length];
+}
+
 /** Where the farmer starts: on the grass just outside the farmhouse door. */
 export const FARMER_START: Tile = { x: 2, y: 2 };
 
@@ -152,7 +183,19 @@ export function valeFeatures(state: MeadowmereState): Feature[] {
     neighbourId,
     ...COTTAGE_TILES[neighbourId],
   }));
-  return [...plots, ...sites, ...cottages, { kind: "stall", ...STALL_TILE }];
+  // The cat needs a day to have turned before it has anywhere to be, which is
+  // the first thing the provider does on mount.
+  const cat: Feature[] =
+    state.lastAdvanceDate === undefined
+      ? []
+      : [{ kind: "cat", ...catPerch(state.lastAdvanceDate) }];
+  return [
+    ...plots,
+    ...sites,
+    ...cottages,
+    ...cat,
+    { kind: "stall", ...STALL_TILE },
+  ];
 }
 
 export function featureAt(
@@ -169,6 +212,25 @@ export function featureAt(
  */
 export function fallowPlotTiles(state: MeadowmereState): Tile[] {
   return PLOT_TILES.slice(state.plots.length, MAX_PLOTS);
+}
+
+// ─── Remarks ──────────────────────────────────────────────────────────────────
+
+/**
+ * What the valley says back when the farmer is sent somewhere they can't go.
+ * Only the scenery is in here: plots, cottages and the rest carry their own
+ * buttons and already speak for themselves.
+ */
+const TERRAIN_REMARKS: Partial<Record<TerrainId, string>> = {
+  water: "The river runs quick, and colder than it looks. Best not.",
+  hedge: "The hedge is older than the farm and twice as stubborn.",
+  rock: "Somebody hauled these stones here. Not recently.",
+  farmhouse: "Home. But the day is out here.",
+};
+
+/** A remark about this tile, or null when there is nothing to say about it. */
+export function terrainRemark(x: number, y: number): string | null {
+  return TERRAIN_REMARKS[terrainAt(x, y)] ?? null;
 }
 
 // ─── Walkability ──────────────────────────────────────────────────────────────

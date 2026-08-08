@@ -15,7 +15,8 @@ export type InteractionAction =
   | { type: "harvest"; plotId: string }
   | { type: "forage"; siteId: SiteId }
   | { type: "visit"; neighbourId: NeighbourId }
-  | { type: "shop" };
+  | { type: "shop" }
+  | { type: "pet" };
 
 export interface Interaction {
   /**
@@ -143,5 +144,7 @@ export function interactionFor(
       };
     case "stall":
       return { action: { type: "shop" }, label: "Browse the seed stall" };
+    case "cat":
+      return { action: { type: "pet" }, label: "Pet the cat" };
   }
 }

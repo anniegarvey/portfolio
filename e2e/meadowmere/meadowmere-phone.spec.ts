@@ -1,4 +1,4 @@
-import { devices } from "@playwright/test";
+import { devices, type Page } from "@playwright/test";
 import {
   expect,
   test,
@@ -20,7 +20,73 @@ test.use({ ...devices["Pixel 5"] });
 
 const map = "The Vale — Meadowmere's map";
 
+/**
+ * Taps a tile of the Vale by its grid position with a real finger, wherever the
+ * map happens to be scrolled to. The tiles of open ground carry no button — the
+ * map works out which tile a tap landed on from its own box — so these taps
+ * cannot go through a locator.
+ */
+async function tapTile(page: Page, x: number, y: number) {
+  const view = page.getByRole("application", { name: map });
+  await view.scrollIntoViewIfNeeded();
+  const point = await view.evaluate(
+    (el, tile) => {
+      const box = (el.firstElementChild as HTMLElement).getBoundingClientRect();
+      return {
+        x: box.left + ((tile.x + 0.5) * box.width) / 16,
+        y: box.top + ((tile.y + 0.5) * box.height) / 12,
+      };
+    },
+    { x, y },
+  );
+  await page.touchscreen.tap(point.x, point.y);
+}
+
 test.describe("Meadowmere on a phone", () => {
+  /**
+   * The headline of walking on a phone. Only the nineteen features carried a
+   * button, so every journey was a jump from one feature to the next and there
+   * was no way to simply stroll. (5,2) is bare path beside the seed stall, so
+   * arriving there leaves the farmer facing it — which is the proof they walked.
+   */
+  test("walks to a patch of open ground the player taps", async ({ page }) => {
+    await goToMeadowmereWithSeed(page);
+
+    await tapTile(page, 5, 2);
+
+    await expect(page.getByRole("status")).toContainText(
+      "Browse the seed stall",
+    );
+    await expect(page.getByRole("status")).toBeInViewport();
+  });
+
+  test("has the valley answer for itself when a tap can't land", async ({
+    page,
+  }) => {
+    await goToMeadowmereWithSeed(page);
+
+    // The river, which the farmer is never going to wade into. A tap here used
+    // to do nothing whatsoever — the tile has no button to say otherwise.
+    await tapTile(page, 0, 3);
+
+    await expect(page.getByRole("status")).toContainText(
+      "The river runs quick",
+    );
+    await expect(page.getByRole("status")).toBeInViewport();
+  });
+
+  test("finds a cat somewhere in the valley and pets it", async ({ page }) => {
+    await goToMeadowmereWithSeed(page);
+
+    // Where the cat is sitting depends on the day, so it is found by name.
+    const cat = page.getByRole("button", { name: "Pet the cat" });
+    await cat.scrollIntoViewIfNeeded();
+    await cat.tap();
+
+    await expect(page.getByRole("status")).toContainText(/cat|Purring|rumble/);
+    await expect(page.getByRole("status")).toBeInViewport();
+  });
+
   test("says why a tap did nothing, where the player can actually see it", async ({
     page,
   }) => {
