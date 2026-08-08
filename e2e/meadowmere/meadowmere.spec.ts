@@ -51,6 +51,38 @@ test.describe("Meadowmere", () => {
     ).toBeVisible();
   });
 
+  test("says who opens a shut site, and what an open one turns up", async ({
+    page,
+  }) => {
+    await goToMeadowmereWithSeed(page);
+
+    // Walking up to a wild place is how you find out what it is for. Both of
+    // these live in the catalog and neither used to reach the player: a locked
+    // site was a dead end, and a trip produced an item out of nowhere.
+    await page
+      .getByRole("button", { name: "Stonewood — you don’t know the way yet" })
+      .click();
+    await expect(page.getByRole("status")).toContainText(
+      "Marigold will show you the way.",
+    );
+
+    await page.getByRole("button", { name: /^Forage The Hedgerow/ }).click();
+    await expect(page.getByRole("status")).toContainText(
+      "Acorn, Bramble Berry or Feather — gifts, and what quests ask for.",
+    );
+  });
+
+  test("explains foraging above the map, not only how many trips are left", async ({
+    page,
+  }) => {
+    await goToMeadowmereWithSeed(page);
+
+    await expect(
+      page.getByText(/Materials are what neighbours want as gifts/),
+    ).toBeVisible();
+    await expect(page.getByText(/Trips refill each morning/)).toBeVisible();
+  });
+
   test("sowing a seed spends a packet and starts the crop growing", async ({
     page,
   }) => {

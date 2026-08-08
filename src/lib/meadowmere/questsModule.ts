@@ -9,7 +9,13 @@ import {
 } from "./catalog";
 import { addItems, addSeeds, hasItems, itemCount } from "./inventory";
 import { addFriendship, friendshipOf } from "./neighboursModule";
-import type { ItemId, MeadowmereState, QuestId } from "./schema";
+import type {
+  ItemId,
+  MeadowmereState,
+  NeighbourId,
+  QuestId,
+  SiteId,
+} from "./schema";
 import { makeEmptyPlots } from "./storage";
 
 /**
@@ -26,6 +32,19 @@ function meetsFriendship(
   return (conditions ?? []).every(
     ({ neighbourId, level }) => friendshipOf(state, neighbourId) >= level,
   );
+}
+
+/**
+ * Whose quest opens this site up, or null if nothing does. A locked site is
+ * otherwise a dead end — the player can see it from the first day and has no way
+ * of knowing that the route through is a neighbour rather than a purchase or a
+ * level. Derived from the reward table, so it cannot fall out of step with it.
+ */
+export function siteUnlockGiver(siteId: SiteId): NeighbourId | null {
+  const quest = ALL_QUEST_IDS.map((id) => QUESTS[id]).find(
+    (candidate) => candidate.reward.unlockSiteId === siteId,
+  );
+  return quest?.giverId ?? null;
 }
 
 /** True when the quest's prerequisites are done and it should show on the board. */

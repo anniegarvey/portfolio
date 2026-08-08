@@ -11,6 +11,7 @@ import {
   type MeadowmereContextType,
   useMeadowmere,
 } from "@/lib/meadowmere/context";
+import { STEP_MS } from "@/lib/meadowmere/movement";
 import type { MeadowmereState } from "@/lib/meadowmere/schema";
 import {
   makeMeadowmereContext,
@@ -68,8 +69,11 @@ const prompt = () => stage().parentElement?.querySelector("p:last-of-type");
  */
 const liveRegion = () => document.querySelector('span[aria-live="polite"]');
 
+/** Comfortably past one step of a walk, so a settle always advances one tile. */
+const A_STEP = STEP_MS + 30;
+
 /**
- * jsdom has no matchMedia, so the world would play back every walk on a 90ms
+ * jsdom has no matchMedia, so the world would play back every walk on a step
  * timer — which fires after most of these tests have finished, outside act().
  * Reduced motion is the default here: the farmer is put where they are going
  * and no timer is involved. The two tests that are about the walk itself turn
@@ -82,6 +86,36 @@ function setReducedMotion(reduce: boolean) {
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   }));
+}
+
+/**
+ * Where on the map a tap at this tile lands. jsdom does no layout, so the map
+ * is stood up at 640×480 — sixteen 40px tiles by twelve — and the returned
+ * point is handed to fireEvent.
+ */
+function pointAt(x: number, y: number) {
+  const track = stage().firstElementChild as HTMLElement;
+  track.getBoundingClientRect = () =>
+    ({ left: 0, top: 0, width: 640, height: 480 }) as DOMRect;
+  return { clientX: x * 40 + 20, clientY: y * 40 + 20 };
+}
+
+/** The map itself, which is what a tap on open ground lands on. */
+const track = () => stage().firstElementChild as HTMLElement;
+
+/**
+ * A 640px map in a 320px window — eight of the sixteen tiles on screen, which is
+ * roughly a phone. jsdom does no layout, so the scroll box has to be stood up.
+ */
+function narrowWindow() {
+  const view = stage();
+  for (const [prop, value] of [
+    ["scrollWidth", 640],
+    ["clientWidth", 320],
+  ] as const) {
+    Object.defineProperty(view, prop, { configurable: true, value });
+  }
+  return view;
 }
 
 /** Waits inside act(), so walk timers land as React updates, not stray ones. */
@@ -97,7 +131,7 @@ async function settle(ms: number) {
  * call per tile rather than a single wait long enough for all of them.
  */
 async function playBackWalk(tiles: number) {
-  for (let i = 0; i <= tiles; i += 1) await settle(120);
+  for (let i = 0; i <= tiles; i += 1) await settle(A_STEP);
 }
 
 beforeEach(() => {
@@ -145,16 +179,7 @@ describe("walking", () => {
   it("keeps the farmer in view when the map is too wide to fit", async () => {
     mock();
     render(<ValeWorld />);
-    const view = stage();
-    // jsdom does no layout, so stand in for a 640px map in a 320px window.
-    Object.defineProperty(view, "scrollWidth", {
-      configurable: true,
-      value: 640,
-    });
-    Object.defineProperty(view, "clientWidth", {
-      configurable: true,
-      value: 320,
-    });
+    const view = narrowWindow();
     view.focus();
 
     // Down to the walkway, then east along it well past the halfway mark.
@@ -164,6 +189,28 @@ describe("walking", () => {
       ),
     );
 
+    expect(view.scrollLeft).toBeGreaterThan(0);
+  });
+
+  /**
+   * The fix for walking on a phone reading as teleporting: the view used to
+   * centre on the farmer every step, so the farmer stayed pinned mid-screen
+   * while the whole valley was dragged forty pixels sideways under them.
+   */
+  it("holds the map still while the farmer walks inside the margin", async () => {
+    mock();
+    render(<ValeWorld />);
+    const view = narrowWindow();
+    view.focus();
+
+    // Eight of the sixteen tiles are on screen and the farmer starts at x=2, so
+    // with a two-tile margin there are three tiles to walk before the view has
+    // any reason to follow.
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+    expect(view.scrollLeft).toBe(0);
+
+    await userEvent.keyboard("{ArrowRight}");
     expect(view.scrollLeft).toBeGreaterThan(0);
   });
 
@@ -182,6 +229,115 @@ describe("walking", () => {
 
     // Still on the map with nothing in front but open ground.
     expect(screen.getByText("Walk up to something to use it.")).toBeVisible();
+  });
+});
+
+describe("tapping open ground", () => {
+  /**
+   * The whole point of this on a phone: there is no arrow key, so without it the
+   * only way to move is to send the farmer at one of the features and every
+   * journey is a jump between them. (5,2) is bare path beside the seed stall, so
+   * arriving there leaves the farmer facing it — which is the proof they walked.
+   */
+  it("walks the farmer to a patch of grass nobody is standing on", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(5, 2));
+
+    expect(prompt()).toHaveTextContent("Browse the seed stall");
+  });
+
+  it("leaves the farmer facing the way they were walking", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(5, 2));
+    stage().focus();
+    await userEvent.keyboard("e");
+
+    // The action key only reaches the stall if the walk both moved the farmer
+    // and turned them the way they were going.
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("ignores a swipe, which is how a phone reaches the far side", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Down on the stall's tile, up three tiles west of it: a swipe across the
+    // valley, not a request to walk to where the finger happened to stop.
+    fireEvent.pointerDown(track(), pointAt(8, 2));
+    fireEvent.click(track(), pointAt(5, 2));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("takes a tap that stayed put, pointer down and all", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.pointerDown(track(), pointAt(5, 2));
+    fireEvent.click(track(), pointAt(5, 2));
+
+    expect(prompt()).toHaveTextContent("Browse the seed stall");
+  });
+
+  it("stays put when the tap lands on the river", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(0, 6));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("stays put when the tap lands where the farmer already is", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(2, 2));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("says nothing about the tiles it crosses on the way", async () => {
+    setReducedMotion(false);
+    mock();
+    render(<ValeWorld />);
+
+    // (2,3) is beside Plot 1, and the route east along row 2 passes over the
+    // tiles above three more plots. A prompt that read out what the farmer
+    // happened to face would flicker through all of them.
+    fireEvent.click(track(), pointAt(5, 2));
+    await settle(A_STEP);
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+    await playBackWalk(3);
+  });
+
+  it("picks the prompt back up on arrival, once the walk has played out", async () => {
+    setReducedMotion(false);
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(5, 2));
+    await playBackWalk(3);
+
+    // Silent while crossing, and then the farmer is stood in front of the stall
+    // and the prompt has something to say again.
+    expect(prompt()).toHaveTextContent("Browse the seed stall");
+  });
+
+  it("does nothing before the map has been laid out", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // No layout means no box to measure, which is jsdom on every render and a
+    // real browser for the first frame of one.
+    fireEvent.click(track(), { clientX: 200, clientY: 80 });
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
   });
 });
 
@@ -364,7 +520,7 @@ describe("clicking a place on the map", () => {
 
     // One tile in, on open grass with nothing ahead — and still saying what the
     // player asked for rather than "Walk up to something to use it."
-    await settle(120);
+    await settle(A_STEP);
     expect(prompt()).toHaveTextContent("Forage The Hedgerow");
     // Let the walk wind itself up rather than leaving timers to fire loose.
     await playBackWalk(3);
@@ -510,7 +666,7 @@ describe("clicking a place on the map", () => {
     render(<ValeWorld />);
 
     // Dispatched synchronously so the reins are taken back before the walk's
-    // first 90ms step, with no await in between for a timer to slip through.
+    // first step, with no await in between for a timer to slip through.
     // Plot 6 is right across the farm, so the walk is several tiles long.
     fireEvent.click(
       screen.getByRole("button", {
@@ -521,9 +677,134 @@ describe("clicking a place on the map", () => {
     fireEvent.keyDown(stage(), { key: "ArrowRight" });
 
     // Long enough that the abandoned walk would have arrived had it continued.
-    await settle(800);
+    await settle(A_STEP * 4);
 
     expect(prompt()).not.toHaveTextContent("Plot 6");
+  });
+});
+
+describe("what the valley says back", () => {
+  /** A farm with the day turned, so the cat is out. */
+  function catState() {
+    return farmState({ lastAdvanceDate: "2026-06-20" });
+  }
+
+  it("lets the farmer pet the cat", async () => {
+    mock({ state: catState() });
+    render(<ValeWorld />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Pet the cat" }));
+
+    // Shown, not only announced: on a phone the live region never reaches the
+    // screen, so a purr nobody can see is a tap that did nothing.
+    expect(prompt()).toHaveTextContent(/cat|Purring|Headbutts|rumble/);
+  });
+
+  it("has something new to say each time the cat is petted", async () => {
+    mock({ state: catState() });
+    render(<ValeWorld />);
+    const cat = screen.getByRole("button", { name: "Pet the cat" });
+
+    await userEvent.click(cat);
+    const first = prompt()?.textContent;
+    await userEvent.click(cat);
+
+    expect(prompt()?.textContent).not.toBe(first);
+  });
+
+  it("has something new to say for a double-tap, not just a slow second go", () => {
+    mock({ state: catState() });
+    render(<ValeWorld />);
+    const cat = screen.getByRole("button", { name: "Pet the cat" });
+
+    // Both taps inside one React batch, which is what a fast double-tap on a
+    // phone actually produces — and exactly what a cat invites.
+    fireEvent.click(cat);
+    const first = prompt()?.textContent;
+    fireEvent.click(cat);
+
+    expect(prompt()?.textContent).not.toBe(first);
+  });
+
+  it("answers for the river when the farmer is sent into it", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Open water, not (0,6): the riverbank site stands there and its own button
+    // has already said what it is.
+    fireEvent.click(track(), pointAt(0, 3));
+
+    expect(prompt()).toHaveTextContent("The river runs quick");
+  });
+
+  it("answers for the farmhouse door, which is the one you live behind", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(2, 1));
+
+    expect(prompt()).toHaveTextContent("Home. But the day is out here.");
+  });
+
+  it("stops talking as soon as the player does something else", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(0, 3));
+    expect(prompt()).toHaveTextContent("The river runs quick");
+
+    stage().focus();
+    await userEvent.keyboard("{ArrowDown}");
+
+    // A remark answers the last thing the player did. Once they have moved on it
+    // would be describing a moment that has passed.
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("answers the action key too, not only a finger", async () => {
+    mock();
+    render(<ValeWorld />);
+    stage().focus();
+
+    // Down to (2,3) then west, which turns the farmer to face the river without
+    // moving them onto it. A keyboard player has to be able to find these too.
+    await userEvent.keyboard("{ArrowDown}{ArrowLeft}{ArrowLeft}e");
+
+    expect(prompt()).toHaveTextContent("The river runs quick");
+  });
+
+  it("still says plainly when there is nothing there at all", async () => {
+    mock();
+    render(<ValeWorld />);
+    stage().focus();
+
+    // Facing open grass, which the valley has no opinion about.
+    await userEvent.keyboard("e");
+
+    expect(liveRegion()).toHaveTextContent("Nothing here.");
+  });
+
+  it("keeps quiet about the frame around the map", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Above the top row of tiles: part of what a tap can land on, but off the
+    // grid — where every tile would otherwise read as hedge.
+    pointAt(0, 0);
+    fireEvent.click(track(), { clientX: 320, clientY: -6 });
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("leaves a plot to its own button rather than remarking on the soil", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Plot 1 stands on grass, which has nothing to say — and the plot's own
+    // button has already said what it is.
+    fireEvent.click(track(), pointAt(3, 3));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
   });
 });
 

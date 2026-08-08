@@ -156,7 +156,7 @@ The player character. Has a position and a **Facing**.
 Which of the four directions the farmer is looking. The tile in front is where every interaction happens.
 
 **Feature**
-Something standing on a tile that the farmer can act on: a **Plot**, a **Site**, a **Cottage**, or the **Seed stall**. Every feature blocks movement, so the rule is the same for all of them — stand beside it, face it, act on it.
+Something standing on a tile that the farmer can act on: a **Plot**, a **Site**, a **Cottage**, the **Seed stall**, or the **Barn cat**. Every feature blocks movement, so the rule is the same for all of them — stand beside it, face it, act on it.
 
 **Cottage**
 Where a **Neighbour** lives. Calling on one is how gifts are given and quests handed in.
@@ -164,8 +164,17 @@ Where a **Neighbour** lives. Calling on one is how gifts are given and quests ha
 **Seed stall**
 Where seed packets are bought with points. The only thing points are spent on in Meadowmere (see ADR 0007).
 
+**Barn cat**
+A cat that takes a different perch each day, there to be found and petted. Its perch is derived from the date of the last **Daily Meadowmere advance**, and only ever falls on hedge or rock — ground the farmer could never stand on — so a feature that moves every morning can never wall off a loop.
+
 **Interaction**
-The action available on a feature given current state, plus the wording for it ("Water Parsnip in Plot 4"). Derived, never stored, so the prompt under the map and the feature's button can never disagree.
+The action available on a feature given current state, plus the wording for it ("Water Parsnip in Plot 4"). Derived, never stored, so the prompt under the map and the feature's button can never disagree. Carries an optional **Detail**.
+
+**Detail**
+The second, quieter line of an **Interaction**: what a **Site** yields, or whose quest opens a shut one. Shown in the prompt and deliberately left out of the feature button's accessible name, which is recited on every pass over the map.
+
+**Remark**
+What the valley says back when the farmer is sent somewhere they can't go — the river, the hedge, the rocks, their own front door — or when the **Barn cat** is petted. Belongs to no feature, so unlike a **Detail** it is held in the world until the player does something else.
 
 ### The loops
 

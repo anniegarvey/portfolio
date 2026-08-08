@@ -12,6 +12,9 @@ const SOIL_DARK = "var(--vale-soil-dark)";
 const LEAF = "var(--vale-leaf)";
 const LEAF_DARK = "var(--vale-leaf-dark)";
 const STEM = "var(--vale-stem)";
+const CAT = "var(--vale-cat)";
+const CAT_EYE = "var(--vale-cat-eye)";
+const CAT_RIM = "var(--vale-cat-rim)";
 
 /** Ripe colours per crop, so a full bed reads at a glance. */
 const CROP_COLOURS: Record<CropId, { main: string; accent: string }> = {
@@ -449,6 +452,55 @@ export function StallArt() {
       <ellipse cx="18" cy="34" fill="#c4ab7e" rx="3.4" ry="3" />
       <circle cx="9" cy="31" fill="#8b6b4a" r="1.2" />
       <circle cx="25" cy="33" fill="#7fae5c" r="3" />
+    </g>
+  );
+}
+
+// ─── The cat ──────────────────────────────────────────────────────────────────
+
+/**
+ * The barn cat, sitting wherever it has decided to sit today. Kept small: it
+ * perches on the hedge and the rocks, and anything drawn much taller would hang
+ * over the grass the farmer walks on.
+ *
+ * Every silhouette shape carries a pale rim. Ginger on green is a strong hue
+ * contrast but a weak one in luminance — under 2:1 against the hedge in either
+ * theme — and the whole point of the cat is being spotted, including by someone
+ * who can't tell the two hues apart. The rim clears 4:1 against every perch.
+ */
+const TAIL = "M21 27 q7 2 5 -6";
+
+export function CatArt() {
+  return (
+    <g
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      transform="translate(0, -4)"
+    >
+      {/* The tail is a line, so its rim is a wider pale line drawn beneath it.
+          Both come first, so the tail curls up behind the body. */}
+      <path d={TAIL} fill="none" stroke={CAT_RIM} strokeWidth="5.4" />
+      <path d={TAIL} fill="none" stroke={CAT} strokeWidth="3" />
+      {/* The silhouette, every shape rimmed. Ears before the head, so the
+          head's edge tidies up their base. */}
+      <g fill={CAT} stroke={CAT_RIM} strokeWidth="1.2">
+        <ellipse cx="15" cy="23" rx="6.5" ry="7" />
+        <path d="M10 11 L10.5 5.5 L14 9.5 Z" />
+        <path d="M20 11 L19.5 5.5 L16 9.5 Z" />
+        <circle cx="15" cy="13" r="5.6" />
+      </g>
+      {/* Markings, which sit inside the silhouette and need no rim of their own. */}
+      <g stroke="none">
+        <path
+          d="M11.5 20 q3.5 2.5 7 0"
+          fill="none"
+          stroke={CAT_RIM}
+          strokeWidth="2.4"
+        />
+        <circle cx="13" cy="13" fill={CAT_EYE} r="1.1" />
+        <circle cx="17" cy="13" fill={CAT_EYE} r="1.1" />
+        <path d="M14.6 15.4 h1.8" stroke={CAT_EYE} strokeWidth="1" />
+      </g>
     </g>
   );
 }

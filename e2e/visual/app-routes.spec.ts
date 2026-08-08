@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import {
   DEFAULT_CAPACITY,
   mockOneOffActivity,
@@ -39,16 +39,24 @@ const GLADE_KEY = "glade-game-state";
 
 // A farm mid-run: crops at three different stages, a stocked larder, and the
 // riverbank opened, so the snapshot covers most of what the Vale can draw.
+interface MeadowmerePlotSeed {
+  cropId: string;
+  plantedDaysAgo: number;
+  wateredToday?: boolean;
+}
+
+const MEADOWMERE_PLOTS: (MeadowmerePlotSeed | null)[] = [
+  { cropId: "parsnip", plantedDaysAgo: 2 },
+  { cropId: "cornflower", plantedDaysAgo: 1, wateredToday: true },
+  { cropId: "strawberry", plantedDaysAgo: 0 },
+  null,
+  { cropId: "pumpkin", plantedDaysAgo: 5 },
+  null,
+];
+
 const MEADOWMERE_STATE = JSON.stringify(
   makeMeadowmereGameState({
-    plots: [
-      { cropId: "parsnip", plantedDaysAgo: 2 },
-      { cropId: "cornflower", plantedDaysAgo: 1, wateredToday: true },
-      { cropId: "strawberry", plantedDaysAgo: 0 },
-      null,
-      { cropId: "pumpkin", plantedDaysAgo: 5 },
-      null,
-    ],
+    plots: MEADOWMERE_PLOTS,
     seeds: { parsnip: 3, cornflower: 1 },
     inventory: { acorn: 2, "river-clay": 1 },
     unlockedCropIds: ["parsnip", "cornflower", "strawberry", "pumpkin"],
@@ -57,6 +65,55 @@ const MEADOWMERE_STATE = JSON.stringify(
   }),
 );
 const MEADOWMERE_KEY = "meadowmere-game-state";
+
+/**
+ * The Vale draws one thing that depends on the calendar rather than on the save:
+ * the barn cat takes a new perch each morning, chosen from the date the day last
+ * advanced. So the clock is pinned before the page renders, or this snapshot
+ * would only match on about one day in seven.
+ */
+const MEADOWMERE_PINNED_DAY = new Date("2026-06-20T10:00:00");
+
+/**
+ * Pins the clock, seeds the farm and loads the Vale. Planting dates are redone
+ * against the pinned day: they are seeded relative to the real today, which is
+ * months away from it, and a crop planted in the future has no growth stage.
+ */
+async function goToValeAtPinnedTime(page: Page, theme: "light" | "dark") {
+  await page.clock.setFixedTime(MEADOWMERE_PINNED_DAY);
+  await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
+  await page.evaluate(
+    ({ stateJson, key, plots, themeValue }) => {
+      const stamp = (date: Date) =>
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const state = JSON.parse(stateJson);
+      // Stamped with the pinned today, so the daily advance doesn't fire and pop
+      // a digest over the page — and so the cat's perch is the same every run.
+      state.lastAdvanceDate = stamp(new Date());
+      for (const [index, seed] of plots.entries()) {
+        if (seed === null || state.plots[index].planting === null) continue;
+        const planted = new Date();
+        planted.setDate(planted.getDate() - seed.plantedDaysAgo);
+        state.plots[index].planting.plantedDate = stamp(planted);
+        if (state.plots[index].planting.lastWateredDate !== undefined) {
+          state.plots[index].planting.lastWateredDate = stamp(new Date());
+        }
+      }
+      localStorage.setItem(key, JSON.stringify(state));
+      localStorage.setItem("theme", themeValue);
+    },
+    {
+      stateJson: MEADOWMERE_STATE,
+      key: MEADOWMERE_KEY,
+      plots: MEADOWMERE_PLOTS,
+      themeValue: theme,
+    },
+  );
+  await page.reload();
+  await page
+    .getByRole("application", { name: "The Vale — Meadowmere's map" })
+    .waitFor({ state: "visible" });
+}
 
 // ─── Energy Planner ────────────────────────────────────────────────────────────
 
@@ -164,28 +221,7 @@ test.describe("Glade", () => {
 test.describe("Meadowmere", () => {
   for (const theme of ["light", "dark"] as const) {
     test(`${theme} theme`, async ({ page }) => {
-      await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
-      await page.evaluate(
-        ({ stateJson, key, themeKey, themeValue }) => {
-          const state = JSON.parse(stateJson);
-          // Stamp today so the daily advance doesn't fire and pop a digest
-          // over the page.
-          const now = new Date();
-          state.lastAdvanceDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-          localStorage.setItem(key, JSON.stringify(state));
-          localStorage.setItem(themeKey, themeValue);
-        },
-        {
-          stateJson: MEADOWMERE_STATE,
-          key: MEADOWMERE_KEY,
-          themeKey: "theme",
-          themeValue: theme,
-        },
-      );
-      await page.reload();
-      await page
-        .getByRole("application", { name: "The Vale — Meadowmere's map" })
-        .waitFor({ state: "visible" });
+      await goToValeAtPinnedTime(page, theme);
       await expect(page).toHaveScreenshot(`meadowmere-${theme}.png`, {
         fullPage: true,
         mask: getDevToolsMask(page),
@@ -198,22 +234,7 @@ test.describe("Meadowmere", () => {
   // it survives a viewport the map is taller than.
   test("phone", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
-    await page.evaluate(
-      ({ stateJson, key }) => {
-        const state = JSON.parse(stateJson);
-        const now = new Date();
-        state.lastAdvanceDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-        localStorage.setItem(key, JSON.stringify(state));
-        localStorage.setItem("theme", "light");
-      },
-      { stateJson: MEADOWMERE_STATE, key: MEADOWMERE_KEY },
-    );
-    await page.reload();
-    const vale = page.getByRole("application", {
-      name: "The Vale — Meadowmere's map",
-    });
-    await vale.waitFor({ state: "visible" });
+    await goToValeAtPinnedTime(page, "light");
     // What the player sees once they have scrolled to play, and viewport-only:
     // a full-page shot stretches the viewport, which moves the sticky prompt.
     // Scrolled to the very bottom rather than to the map — clamping to the

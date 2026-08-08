@@ -6,7 +6,9 @@ The game logic was unaffected: farming, foraging, neighbours, quests and the dai
 
 ## One map, and one rule for using it
 
-The Vale is a 16 × 12 grid with a terrain layer and a set of features standing on it. Every feature — plot, wild site, cottage, seed stall — blocks movement, so there is a single rule everywhere: stand beside it, face it, act on it. Letting the farmer walk over plots would have meant a second rule for tile-you-stand-on versus tile-you-face, for no gain.
+The Vale is a 16 × 12 grid with a terrain layer and a set of features standing on it. Every feature — plot, wild site, cottage, seed stall, barn cat — blocks movement, so there is a single rule everywhere: stand beside it, face it, act on it. Letting the farmer walk over plots would have meant a second rule for tile-you-stand-on versus tile-you-face, for no gain.
+
+That every feature blocks movement is what constrains where a feature may be *placed*. The barn cat takes a new perch each day, and a moving feature on walkable ground would be a wall that moves too — able to shut off the only way round to a plot or a cottage door. So its perches are all hedge or rock: ground the farmer could never have stood on, where adding a feature changes walkability not at all. Anything else that comes and goes belongs under the same rule.
 
 Movement is grid stepping, not free roam. `(state, pose, direction) → pose` is a pure function that unit tests can drive; a pixel-position game loop would have put the same behaviour behind requestAnimationFrame and out of reach of tests. As in Stardew, a direction both turns and moves — walking into a plot turns to face it, ready to work.
 

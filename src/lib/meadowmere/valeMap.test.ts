@@ -8,19 +8,44 @@ import {
   isInBounds,
   isWalkable,
   TILE_SIZE,
+  type Tile,
   terrainAt,
+  terrainRemark,
   VALE_HEIGHT,
   VALE_WIDTH,
   valeFeatures,
 } from "./valeMap";
 
-const stateWithPlots = (count: number) =>
+const stateWithPlots = (count: number, lastAdvanceDate = "2026-06-20") =>
   makeMeadowmereState({
     plots: Array.from({ length: count }, (_, i) => ({
       id: `plot-${i}`,
       planting: null,
     })),
+    // Set, so the cat is standing in the Vale for every invariant below — an
+    // unset date is a game that hasn't opened yet, which the provider fixes on
+    // mount before anything is drawn.
+    lastAdvanceDate,
   });
+
+/**
+ * Every tile the cat is ever placed on, found by turning the date over a year
+ * and a bit. The perch list is private, so the rotation is exercised through the
+ * only door it has: what the day it was last advanced on puts on the map.
+ */
+function everyCatTile(): Tile[] {
+  const found = new Map<string, Tile>();
+  for (let day = 0; day < 400; day += 1) {
+    const date = new Date(Date.UTC(2026, 0, 1 + day))
+      .toISOString()
+      .slice(0, 10);
+    const cat = valeFeatures(stateWithPlots(MAX_PLOTS, date)).find(
+      (feature) => feature.kind === "cat",
+    );
+    if (cat !== undefined) found.set(`${cat.x},${cat.y}`, cat);
+  }
+  return [...found.values()];
+}
 
 describe("valeMap", () => {
   describe("grid", () => {
@@ -204,6 +229,84 @@ describe("valeMap", () => {
           features.find((f) => f.x === cottage.x && f.y === cottage.y - 1),
         ).toBeUndefined();
       }
+    });
+  });
+
+  describe("the cat", () => {
+    it("is not out yet on a game that has never had a day turn", () => {
+      const fresh = makeMeadowmereState({ lastAdvanceDate: undefined });
+      expect(valeFeatures(fresh).find((f) => f.kind === "cat")).toBeUndefined();
+    });
+
+    it("settles somewhere new as the days turn", () => {
+      // The whole surprise is that it moves; one fixed spot would be scenery.
+      // Over a year the rotation reaches every perch it has, spread evenly — a
+      // lower bound rather than an exact count, so a perch can be added or
+      // dropped without rewriting the test.
+      expect(everyCatTile().length).toBeGreaterThanOrEqual(5);
+    });
+
+    it("puts the cat in the same place every time for a given day", () => {
+      // The scene re-derives every feature on every render, so a cat that moved
+      // between renders would flicker across the valley.
+      const catTile = () =>
+        valeFeatures(stateWithPlots(MAX_PLOTS)).find((f) => f.kind === "cat");
+      expect(catTile()).toEqual(catTile());
+    });
+
+    /**
+     * The one that matters. A cat is a feature, and features block movement — so
+     * a cat on walkable ground would be a wall that moves every morning, able to
+     * shut off the only way round to a plot or a cottage door.
+     */
+    it("only ever sits where the farmer could never have stood anyway", () => {
+      const withoutCat = stateWithPlots(MAX_PLOTS, undefined);
+      for (const cat of everyCatTile()) {
+        expect(
+          isWalkable(withoutCat, cat.x, cat.y),
+          `the cat at ${cat.x},${cat.y} is standing on open ground`,
+        ).toBe(false);
+      }
+    });
+
+    it("always leaves somewhere to stand and reach it from", () => {
+      for (const cat of everyCatTile()) {
+        const state = stateWithPlots(MAX_PLOTS);
+        const beside = [
+          [cat.x, cat.y - 1],
+          [cat.x, cat.y + 1],
+          [cat.x - 1, cat.y],
+          [cat.x + 1, cat.y],
+        ].some(([x, y]) => isWalkable(state, x, y));
+        expect(beside, `the cat at ${cat.x},${cat.y} can't be reached`).toBe(
+          true,
+        );
+      }
+    });
+
+    it("never perches on top of something else", () => {
+      for (const cat of everyCatTile()) {
+        const others = valeFeatures(stateWithPlots(MAX_PLOTS)).filter(
+          (f) => f.kind !== "cat" && f.x === cat.x && f.y === cat.y,
+        );
+        expect(others, `something else stands at ${cat.x},${cat.y}`).toEqual(
+          [],
+        );
+      }
+    });
+  });
+
+  describe("terrainRemark", () => {
+    it("answers for the scenery that stops the farmer", () => {
+      expect(terrainRemark(0, 6)).toContain("river");
+      expect(terrainRemark(0, 0)).toContain("hedge");
+      expect(terrainRemark(13, 1)).toContain("stones");
+      expect(terrainRemark(2, 1)).toContain("Home");
+    });
+
+    it("has nothing to say about ground the farmer can simply walk onto", () => {
+      expect(terrainRemark(8, 6)).toBeNull();
+      expect(terrainRemark(1, 1)).toBeNull();
     });
   });
 

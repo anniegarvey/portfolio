@@ -9,6 +9,7 @@ const TODAY = "2026-06-20";
 const PLOT_0: Feature = { kind: "plot", x: 3, y: 3, index: 0 };
 const HEDGEROW: Feature = { kind: "site", x: 5, y: 0, siteId: "hedgerow" };
 const RIVERBANK: Feature = { kind: "site", x: 0, y: 6, siteId: "riverbank" };
+const STONEWOOD: Feature = { kind: "site", x: 14, y: 1, siteId: "stonewood" };
 const COTTAGE: Feature = { kind: "cottage", x: 12, y: 2, neighbourId: "nessa" };
 const STALL: Feature = { kind: "stall", x: 6, y: 2 };
 
@@ -124,11 +125,30 @@ describe("interactionFor", () => {
       );
     });
 
+    it("says what a trip here can turn up, which the map cannot show", () => {
+      const state = makeMeadowmereState({ foragesToday: 0 });
+      // The catalog has always known the pool; until now nothing said it out
+      // loud, so a trip produced an item the player had never heard of.
+      expect(interactionFor(state, HEDGEROW, null, TODAY).detail).toBe(
+        "Acorn, Bramble Berry or Feather — gifts, and what quests ask for.",
+      );
+    });
+
+    it("keeps the pool out of the button's name, which stays short", () => {
+      const state = makeMeadowmereState({ foragesToday: 0 });
+      // The label is recited on every pass over nineteen tiles; the detail is
+      // worth hearing once, when the farmer walks up.
+      expect(interactionFor(state, HEDGEROW, null, TODAY).label).not.toContain(
+        "Acorn",
+      );
+    });
+
     it("explains when the day's trips are spent", () => {
       const state = makeMeadowmereState({ foragesToday: FORAGES_PER_DAY });
       const result = interactionFor(state, HEDGEROW, null, TODAY);
       expect(result.action).toBeNull();
       expect(result.label).toBe("The Hedgerow — no forage trips left today");
+      expect(result.detail).toBe("Your trips come back tomorrow morning.");
     });
 
     it("shows a locked site as a place you can see but not use", () => {
@@ -136,6 +156,18 @@ describe("interactionFor", () => {
       const result = interactionFor(state, RIVERBANK, null, TODAY);
       expect(result.action).toBeNull();
       expect(result.label).toBe("The Riverbank — you don’t know the way yet");
+    });
+
+    it("names who opens a locked site, so it isn't a dead end", () => {
+      const state = makeMeadowmereState({ unlockedSiteIds: ["hedgerow"] });
+      // Both locked sites are opened by a quest, and nothing on the map says
+      // that the route through is a neighbour rather than a purchase.
+      expect(interactionFor(state, RIVERBANK, null, TODAY).detail).toBe(
+        "Bram will show you the way.",
+      );
+      expect(interactionFor(state, STONEWOOD, null, TODAY).detail).toBe(
+        "Marigold will show you the way.",
+      );
     });
 
     it("opens the site up once a quest unlocks it", () => {

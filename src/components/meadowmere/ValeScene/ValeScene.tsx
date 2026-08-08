@@ -3,6 +3,7 @@
 import { styled } from "next-yak";
 import { FarmerSVG } from "@/components/meadowmere/ValeArt/FarmerSVG";
 import {
+  CatArt,
   CottageArt,
   PlotArt,
   SiteArt,
@@ -12,6 +13,7 @@ import { TerrainLayer } from "@/components/meadowmere/ValeArt/TerrainLayer";
 import { growthStageOf } from "@/lib/meadowmere/farmingModule";
 import { interactionFor } from "@/lib/meadowmere/interaction";
 import type { FarmerPose } from "@/lib/meadowmere/movement";
+import { STEP_MS } from "@/lib/meadowmere/movement";
 import type { CropId, MeadowmereState } from "@/lib/meadowmere/schema";
 import type { Feature } from "@/lib/meadowmere/valeMap";
 import {
@@ -77,6 +79,8 @@ function FeatureBody({
       return <CottageArt neighbourId={feature.neighbourId} />;
     case "stall":
       return <StallArt />;
+    case "cat":
+      return <CatArt />;
   }
 }
 
@@ -148,11 +152,13 @@ export function ValeScene({
           Drawn last, so the farmer is never hidden by scenery. Positioned with
           a CSS transform rather than the transform attribute so a step can be
           eased; the node keeps its place in the tree, so the transition
-          survives every move.
+          survives every move. The duration is set here rather than in the
+          template so it cannot drift from the timer the world steps on.
         */}
         <Farmer
           style={{
             transform: `translate(${pose.x * TILE_SIZE}px, ${pose.y * TILE_SIZE - 6}px)`,
+            transitionDuration: `${STEP_MS}ms`,
           }}
         >
           <FarmerSVG facing={pose.facing} walking={walking} />
@@ -229,6 +235,13 @@ const Stage = styled.div`
   --vale-marigold-roof: light-dark(#7a6a9c, #4c4265);
   --vale-marigold-roof-lit: light-dark(#8f7fb0, #5d5178);
 
+  /* The cat keeps one set of colours in both themes, like the farmer. Ginger
+     rather than anything darker: the cat only ever sits on the hedge or the
+     rocks, and the whole point of the cat is being spotted there. */
+  --vale-cat: #c8763c;
+  --vale-cat-rim: #f7f0e2;
+  --vale-cat-eye: #3a3128;
+
   --vale-stall-post: light-dark(#7a5a3a, #4e3a25);
   --vale-stall-counter: light-dark(#a9814f, #6b5233);
   --vale-stall-awning: light-dark(#c2703f, #7d4728);
@@ -250,13 +263,16 @@ const Stage = styled.div`
 
 /**
  * Eased rather than snapped, so an auto-walk reads as walking. The world drives
- * this one tile at a time; the game state has already moved on.
+ * this one tile at a time and supplies the duration; the game state has already
+ * moved on. Linear, because a step eased at both ends inside a run of steps
+ * makes a steady walk stutter.
  */
 const Farmer = styled.g`
-  transition: transform 90ms linear;
+  transition-property: transform;
+  transition-timing-function: linear;
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    transition-property: none;
   }
 `;
 

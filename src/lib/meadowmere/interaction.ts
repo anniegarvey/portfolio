@@ -1,6 +1,7 @@
-import { CROPS, NEIGHBOURS, SITES } from "./catalog";
+import { CROPS, ITEMS, NEIGHBOURS, SITES } from "./catalog";
 import { canPlant, canWater, isRipe } from "./farmingModule";
 import { canForage, foragesLeft } from "./foragingModule";
+import { siteUnlockGiver } from "./questsModule";
 import type { CropId, MeadowmereState, NeighbourId, SiteId } from "./schema";
 import type { Feature } from "./valeMap";
 
@@ -14,7 +15,8 @@ export type InteractionAction =
   | { type: "harvest"; plotId: string }
   | { type: "forage"; siteId: SiteId }
   | { type: "visit"; neighbourId: NeighbourId }
-  | { type: "shop" };
+  | { type: "shop" }
+  | { type: "pet" };
 
 export interface Interaction {
   /**
@@ -28,6 +30,13 @@ export interface Interaction {
    * the feature's button, so it must stand alone.
    */
   label: string;
+  /**
+   * What the label hasn't room to teach: what a place yields, or how a shut one
+   * opens. Shown under the prompt when the farmer walks up to something and left
+   * out of the button's name, which is recited on every pass over the map and
+   * has to stay short.
+   */
+  detail?: string;
 }
 
 function plotInteraction(
@@ -76,21 +85,44 @@ function plotInteraction(
   return { action: null, label: `${name} — ${crop.name}, watered today` };
 }
 
+/**
+ * "Acorn, Bramble Berry or Feather" — what a trip here can turn up. Every site
+ * happens to pool three materials today; the formatter rather than a hand-rolled
+ * join so a site of one or two reads properly if the catalog ever grows one.
+ */
+const OR_LIST = new Intl.ListFormat("en-GB", { type: "disjunction" });
+
+function listMaterials(siteId: SiteId): string {
+  return OR_LIST.format(SITES[siteId].materials.map((id) => ITEMS[id].name));
+}
+
 function siteInteraction(state: MeadowmereState, siteId: SiteId): Interaction {
   const { name } = SITES[siteId];
   if (!state.unlockedSiteIds.includes(siteId)) {
-    return { action: null, label: `${name} — you don’t know the way yet` };
+    const giver = siteUnlockGiver(siteId);
+    return {
+      action: null,
+      label: `${name} — you don’t know the way yet`,
+      // Without this a locked site is a dead end: it is on the map from the
+      // first day and nothing says the route through is a neighbour.
+      detail:
+        giver === null
+          ? undefined
+          : `${NEIGHBOURS[giver].name} will show you the way.`,
+    };
   }
   if (!canForage(state, siteId)) {
     return {
       action: null,
       label: `${name} — no forage trips left today`,
+      detail: "Your trips come back tomorrow morning.",
     };
   }
   const left = foragesLeft(state);
   return {
     action: { type: "forage", siteId },
     label: `Forage ${name} (${left} ${left === 1 ? "trip" : "trips"} left)`,
+    detail: `${listMaterials(siteId)} — gifts, and what quests ask for.`,
   };
 }
 
@@ -117,5 +149,7 @@ export function interactionFor(
       };
     case "stall":
       return { action: { type: "shop" }, label: "Browse the seed stall" };
+    case "cat":
+      return { action: { type: "pet" }, label: "Pet the cat" };
   }
 }
