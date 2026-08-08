@@ -1,15 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PLOTS, QUESTS } from "./catalog";
+import { ALL_QUEST_IDS, MAX_PLOTS, QUESTS } from "./catalog";
 import {
   claimQuest,
   isQuestUnlocked,
   meetsRequirement,
   questProgress,
   questStatus,
+  siteUnlockGiver,
   visibleQuests,
 } from "./questsModule";
 import { makeEmptyPlots } from "./storage";
 import { makeMeadowmereState } from "./testFixtures";
+
+describe("siteUnlockGiver", () => {
+  it("names the neighbour whose quest opens each shut site", () => {
+    expect(siteUnlockGiver("riverbank")).toBe("bram");
+    expect(siteUnlockGiver("stonewood")).toBe("marigold");
+  });
+
+  it("has nobody to name for the site that is open from the start", () => {
+    expect(siteUnlockGiver("hedgerow")).toBeNull();
+  });
+
+  it("agrees with the reward table it is derived from", () => {
+    // The pairing is read off the rewards rather than restated, so a quest that
+    // changes hands cannot leave the map pointing at the wrong door.
+    for (const quest of ALL_QUEST_IDS.map((id) => QUESTS[id])) {
+      const site = quest.reward.unlockSiteId;
+      if (site !== undefined) expect(siteUnlockGiver(site)).toBe(quest.giverId);
+    }
+  });
+});
 
 describe("isQuestUnlocked", () => {
   it("unlocks a quest with no prerequisites", () => {

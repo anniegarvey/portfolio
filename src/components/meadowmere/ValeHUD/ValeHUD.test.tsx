@@ -45,6 +45,21 @@ describe("what the farmer is carrying", () => {
     expect(screen.getByText("1 forage trips left")).toBeInTheDocument();
   });
 
+  it("says what a forage trip is for, not only how many are left", () => {
+    mock({ state: makeMeadowmereState({ foragesToday: 2 }) });
+    renderHUD();
+
+    // A counter alone leaves foraging the one loop with no visible cause and
+    // effect: you spend a trip and something you've never heard of turns up.
+    expect(
+      screen.getByText(/Materials are what neighbours want/),
+    ).toBeVisible();
+    expect(screen.getByText(/Trips refill each morning/)).toBeVisible();
+    expect(
+      screen.getByText(/more places open up as quests are handed in/),
+    ).toBeVisible();
+  });
+
   it("says the larder is empty rather than showing nothing", () => {
     mock();
     renderHUD();

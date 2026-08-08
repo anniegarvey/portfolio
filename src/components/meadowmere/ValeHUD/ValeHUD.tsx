@@ -24,6 +24,15 @@ export interface ValeHUDProps {
 }
 
 /**
+ * What a forage trip is and what it buys you. Fixed wording, because it is the
+ * loop rather than the state that needs explaining.
+ */
+const FORAGING_HINT =
+  "Walk up to a wild place and use it to spend a trip and bring a material " +
+  "home. Materials are what neighbours want as gifts and what quests ask for. " +
+  "Trips refill each morning, and more places open up as quests are handed in.";
+
+/**
  * The next step of sowing, in the state the pouch is currently in. Sowing the
  * last packet leaves that seed still in hand with nothing behind it, and the
  * chip goes disabled — so the run-out has to be named here rather than left
@@ -78,6 +87,11 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
             <ReadyPip>{readyQuests} ready to hand in</ReadyPip>
           )}
         </QuestsButton>
+        {/* A trip counter says how many are left but nothing about what they are
+            for. Foraging is the one loop with no visible cause and effect — you
+            spend a trip and an item you have never heard of appears in the
+            larder — so what it earns and when it comes back are said out loud. */}
+        <Hint>{FORAGING_HINT}</Hint>
       </Group>
 
       <Section aria-labelledby={pouchId}>

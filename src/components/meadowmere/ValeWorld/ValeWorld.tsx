@@ -476,6 +476,9 @@ export function ValeWorld() {
         <PromptLayer>
           <Prompt role="status">
             {prompt === null ? "Walk up to something to use it." : prompt.label}
+            {/* Inside the same pill rather than beside it, so the whole remark
+                is one thing to read and one thing to announce. */}
+            {prompt?.detail !== undefined && <Detail>{prompt.detail}</Detail>}
           </Prompt>
         </PromptLayer>
       </Frame>
@@ -622,6 +625,23 @@ const Prompt = styled.p`
 
   @media ${QUERIES.PHABLET_UP} {
     font-size: 0.95rem;
+  }
+`;
+
+/**
+ * The line under the prompt that teaches rather than instructs — what a wild
+ * place yields, how a shut one opens. Quieter than the instruction above it, and
+ * deliberately not part of the feature button's name: that name is recited on
+ * every pass over nineteen tiles, and this is worth hearing once.
+ */
+const Detail = styled.span`
+  display: block;
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+
+  @media ${QUERIES.PHABLET_UP} {
+    font-size: 0.85rem;
   }
 `;
 
