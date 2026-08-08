@@ -57,7 +57,23 @@
       "Bash(pnpm exec playwright test *)",
       "Bash(npx playwright test *)",
       "Bash(pnpm stryker run *)",
-      "Bash(pnpm exec stryker run *)"
+      "Bash(pnpm exec stryker run *)",
+      "Bash(rtk grep *)",
+      "Bash(pnpm lint:theme *)",
+      "Bash(pnpm lint:theme)",
+      "Bash(rtk proxy grep *)",
+      "Bash(ss *)",
+      "Bash(rtk ls *)",
+      "Bash(git check-ignore *)",
+      "Bash(pnpm measure-bonsai-paint *)",
+      "Bash(rtk proxy git diff *)",
+      "Bash(git -C * diff *)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_find",
+      "mcp__code-review-graph__semantic_search_nodes_tool"
     ]
   },
   "sandbox": {
