@@ -84,6 +84,21 @@ function setReducedMotion(reduce: boolean) {
   }));
 }
 
+/**
+ * Where on the map a tap at this tile lands. jsdom does no layout, so the map
+ * is stood up at 640×480 — sixteen 40px tiles by twelve — and the returned
+ * point is handed to fireEvent.
+ */
+function pointAt(x: number, y: number) {
+  const track = stage().firstElementChild as HTMLElement;
+  track.getBoundingClientRect = () =>
+    ({ left: 0, top: 0, width: 640, height: 480 }) as DOMRect;
+  return { clientX: x * 40 + 20, clientY: y * 40 + 20 };
+}
+
+/** The map itself, which is what a tap on open ground lands on. */
+const track = () => stage().firstElementChild as HTMLElement;
+
 /** Waits inside act(), so walk timers land as React updates, not stray ones. */
 async function settle(ms: number) {
   await act(async () => {
@@ -182,6 +197,102 @@ describe("walking", () => {
 
     // Still on the map with nothing in front but open ground.
     expect(screen.getByText("Walk up to something to use it.")).toBeVisible();
+  });
+});
+
+describe("tapping open ground", () => {
+  /**
+   * The whole point of this on a phone: there is no arrow key, so without it the
+   * only way to move is to send the farmer at one of the features and every
+   * journey is a jump between them. (5,2) is bare path beside the seed stall, so
+   * arriving there leaves the farmer facing it — which is the proof they walked.
+   */
+  it("walks the farmer to a patch of grass nobody is standing on", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(5, 2));
+
+    expect(prompt()).toHaveTextContent("Browse the seed stall");
+  });
+
+  it("leaves the farmer facing the way they were walking", async () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(5, 2));
+    stage().focus();
+    await userEvent.keyboard("e");
+
+    // The action key only reaches the stall if the walk both moved the farmer
+    // and turned them the way they were going.
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("ignores a swipe, which is how a phone reaches the far side", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Down on the stall's tile, up three tiles west of it: a swipe across the
+    // valley, not a request to walk to where the finger happened to stop.
+    fireEvent.pointerDown(track(), pointAt(8, 2));
+    fireEvent.click(track(), pointAt(5, 2));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("takes a tap that stayed put, pointer down and all", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.pointerDown(track(), pointAt(5, 2));
+    fireEvent.click(track(), pointAt(5, 2));
+
+    expect(prompt()).toHaveTextContent("Browse the seed stall");
+  });
+
+  it("stays put when the tap lands on the river", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(0, 6));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("stays put when the tap lands where the farmer already is", () => {
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(2, 2));
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("says nothing about the tiles it crosses on the way", async () => {
+    setReducedMotion(false);
+    mock();
+    render(<ValeWorld />);
+
+    // (2,3) is beside Plot 1, and the route east along row 2 passes over the
+    // tiles above three more plots. A prompt that read out what the farmer
+    // happened to face would flicker through all of them.
+    fireEvent.click(track(), pointAt(5, 2));
+    await settle(120);
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+    await playBackWalk(3);
+  });
+
+  it("does nothing before the map has been laid out", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // No layout means no box to measure, which is jsdom on every render and a
+    // real browser for the first frame of one.
+    fireEvent.click(track(), { clientX: 200, clientY: 80 });
+
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
   });
 });
 

@@ -20,16 +20,23 @@ import type { Notice } from "@/lib/meadowmere/context";
 import { useMeadowmere } from "@/lib/meadowmere/context";
 import type { Interaction } from "@/lib/meadowmere/interaction";
 import { interactionFor } from "@/lib/meadowmere/interaction";
-import type { Facing, FarmerPose } from "@/lib/meadowmere/movement";
+import type { Facing, FarmerPose, Route } from "@/lib/meadowmere/movement";
 import {
   facingTowards,
+  findPath,
   routeToFeature,
   stepFarmer,
   tileInFront,
 } from "@/lib/meadowmere/movement";
 import type { CropId, NeighbourId } from "@/lib/meadowmere/schema";
 import type { Feature, Tile } from "@/lib/meadowmere/valeMap";
-import { FARMER_START, featureAt, VALE_WIDTH } from "@/lib/meadowmere/valeMap";
+import {
+  FARMER_START,
+  featureAt,
+  isWalkable,
+  VALE_HEIGHT,
+  VALE_WIDTH,
+} from "@/lib/meadowmere/valeMap";
 
 /**
  * The playable world: a farmer you walk around the Vale, and the one action
@@ -42,6 +49,20 @@ import { FARMER_START, featureAt, VALE_WIDTH } from "@/lib/meadowmere/valeMap";
 
 /** Milliseconds per tile of an auto-walk. Brisk enough to cross the map fast. */
 const STEP_MS = 90;
+
+/**
+ * How far a pointer may travel between going down and coming up and still count
+ * as a tap on a tile. Swiping the map sideways is how a phone reaches the far
+ * side of the valley, and a swipe must never be mistaken for "walk here".
+ */
+const TAP_SLOP_PX = 10;
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 const KEY_FACING: Record<string, Facing> = {
   ArrowUp: "up",
@@ -90,13 +111,14 @@ export function ValeWorld() {
     path: Tile[];
     facing: Facing;
     /**
-     * Where the walk is headed. The prompt reads this rather than the tiles
-     * being crossed, so it says what the player asked for instead of
-     * flickering through open grass on the way. The feature rather than its
-     * interaction, so it is re-read against state the action has already
-     * changed — the same reason the scene hands back features.
+     * Where the walk is headed, or null when the player asked for a patch of
+     * open ground. The prompt reads this rather than the tiles being crossed,
+     * so it says what the player asked for instead of flickering through the
+     * grass on the way. The feature rather than its interaction, so it is
+     * re-read against state the action has already changed — the same reason
+     * the scene hands back features.
      */
-    feature: Feature;
+    feature: Feature | null;
   } | null>(null);
   const [selectedCropId, setSelectedCropId] = useState<CropId | null>(null);
   const [visiting, setVisiting] = useState<NeighbourId | null>(null);
@@ -114,6 +136,10 @@ export function ValeWorld() {
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  /** The map itself, whose box turns a tap into a tile. */
+  const trackRef = useRef<HTMLDivElement>(null);
+  /** Where a pointer went down, so a swipe can be told from a tap. */
+  const pointerStart = useRef<Tile | null>(null);
   // Read inside activateFeature so a walk — which changes the pose every 90ms
   // — doesn't hand all nineteen hotspots a new callback on every step.
   const poseRef = useRef(pose);
@@ -215,6 +241,20 @@ export function ValeWorld() {
   );
 
   /**
+   * Sends the farmer along a route. Anyone who would rather not watch a walk —
+   * and anyone already stood in the right place — is simply put at the far end.
+   */
+  const travel = useCallback((route: Route, feature: Feature | null) => {
+    const arrival = route.path.at(-1) ?? poseRef.current;
+    if (route.path.length === 0 || prefersReducedMotion()) {
+      setPose({ ...arrival, facing: route.facing });
+      setWalk(null);
+      return;
+    }
+    setWalk({ ...route, feature });
+  }, []);
+
+  /**
    * Clicking or tabbing to a feature walks the farmer over and uses it. The
    * action is resolved straight away and the walk is only shown afterwards —
    * so an interrupted walk can never swallow what the player asked for, and
@@ -222,26 +262,61 @@ export function ValeWorld() {
    */
   const activateFeature = useCallback(
     (feature: Feature) => {
-      const from = poseRef.current;
-      const route = routeToFeature(state, from, feature);
+      const route = routeToFeature(state, poseRef.current, feature);
       // Re-derived here rather than taken from the scene, so the world stays
       // the only authority on what activating something actually does.
       performInteraction(interactionFor(state, feature, selectedCropId, today));
-      if (route === null) return;
-
-      const arrival = route.path.at(-1) ?? from;
-      const reduced =
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      if (reduced || route.path.length === 0) {
-        setPose({ ...arrival, facing: route.facing });
-        setWalk(null);
-        return;
-      }
-      setWalk({ ...route, feature });
+      if (route !== null) travel(route, feature);
     },
-    [state, selectedCropId, today, performInteraction],
+    [state, selectedCropId, today, performInteraction, travel],
+  );
+
+  /**
+   * Walking to a patch of open ground, which is a thing a player wants to do in
+   * its own right: on a phone there is no arrow key, so without this the only
+   * way to move is to send the farmer at one of the nineteen features and every
+   * journey is a jump between them.
+   */
+  const walkToTile = useCallback(
+    (tile: Tile) => {
+      if (!isWalkable(state, tile.x, tile.y)) return;
+      const from = poseRef.current;
+      const path = findPath(state, from, tile);
+      if (path === null || path.length === 0) return;
+      // A hotspot keeps focus while the farmer walks away from it, so let go of
+      // it for the same reason steering by hand does.
+      setFocused(null);
+      const penultimate = path.at(-2) ?? from;
+      travel({ path, facing: facingTowards(penultimate, tile) }, null);
+    },
+    [state, travel],
+  );
+
+  /** Which tile a pointer at these coordinates is over, or null if off the map. */
+  const tileUnderPointer = useCallback((clientX: number, clientY: number) => {
+    const box = trackRef.current?.getBoundingClientRect();
+    if (box === undefined || box.width === 0 || box.height === 0) return null;
+    const tile = {
+      x: Math.floor(((clientX - box.left) / box.width) * VALE_WIDTH),
+      y: Math.floor(((clientY - box.top) / box.height) * VALE_HEIGHT),
+    };
+    return tile;
+  }, []);
+
+  const handleMapClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      // Every feature carries its own button, which handles its own taps.
+      if ((event.target as Element).closest("button") !== null) return;
+      const start = pointerStart.current;
+      const travelled =
+        start === null
+          ? 0
+          : Math.hypot(event.clientX - start.x, event.clientY - start.y);
+      if (travelled > TAP_SLOP_PX) return;
+      const tile = tileUnderPointer(event.clientX, event.clientY);
+      if (tile !== null) walkToTile(tile);
+    },
+    [tileUnderPointer, walkToTile],
   );
 
   // Plays back an auto-walk a tile at a time. Game state is already settled by
@@ -309,12 +384,13 @@ export function ValeWorld() {
       ? null
       : interactionFor(state, feature, selectedCropId, today);
   // Focus wins over what the farmer faces; a walk in progress wins over the
-  // tiles being crossed to get there. All three read current state, so they
-  // never disagree about the same tile.
+  // tiles being crossed to get there — including a walk to open ground, which
+  // has no destination to name and so says nothing rather than reading out
+  // every plot the farmer passes. All of them read current state, so they never
+  // disagree about the same tile.
   const prompt =
     promptFor(focused) ??
-    promptFor(walk?.feature ?? null) ??
-    promptFor(aheadFeature);
+    (walk === null ? promptFor(aheadFeature) : promptFor(walk.feature));
 
   return (
     <Layout>
@@ -342,13 +418,17 @@ export function ValeWorld() {
         <Stage
           aria-describedby={instructionsId}
           aria-label="The Vale — Meadowmere's map"
+          onClick={handleMapClick}
           onKeyDown={handleKeyDown}
+          onPointerDown={(event) => {
+            pointerStart.current = { x: event.clientX, y: event.clientY };
+          }}
           onScroll={syncEdges}
           ref={scrollRef}
           role="application"
           tabIndex={0}
         >
-          <Track>
+          <Track ref={trackRef}>
             <ValeScene
               onActivateFeature={activateFeature}
               onFocusFeature={setFocused}
