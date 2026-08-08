@@ -11,6 +11,7 @@ import {
   type MeadowmereContextType,
   useMeadowmere,
 } from "@/lib/meadowmere/context";
+import { STEP_MS } from "@/lib/meadowmere/movement";
 import type { MeadowmereState } from "@/lib/meadowmere/schema";
 import {
   makeMeadowmereContext,
@@ -68,8 +69,11 @@ const prompt = () => stage().parentElement?.querySelector("p:last-of-type");
  */
 const liveRegion = () => document.querySelector('span[aria-live="polite"]');
 
+/** Comfortably past one step of a walk, so a settle always advances one tile. */
+const A_STEP = STEP_MS + 30;
+
 /**
- * jsdom has no matchMedia, so the world would play back every walk on a 90ms
+ * jsdom has no matchMedia, so the world would play back every walk on a step
  * timer — which fires after most of these tests have finished, outside act().
  * Reduced motion is the default here: the farmer is put where they are going
  * and no timer is involved. The two tests that are about the walk itself turn
@@ -99,6 +103,21 @@ function pointAt(x: number, y: number) {
 /** The map itself, which is what a tap on open ground lands on. */
 const track = () => stage().firstElementChild as HTMLElement;
 
+/**
+ * A 640px map in a 320px window — eight of the sixteen tiles on screen, which is
+ * roughly a phone. jsdom does no layout, so the scroll box has to be stood up.
+ */
+function narrowWindow() {
+  const view = stage();
+  for (const [prop, value] of [
+    ["scrollWidth", 640],
+    ["clientWidth", 320],
+  ] as const) {
+    Object.defineProperty(view, prop, { configurable: true, value });
+  }
+  return view;
+}
+
 /** Waits inside act(), so walk timers land as React updates, not stray ones. */
 async function settle(ms: number) {
   await act(async () => {
@@ -112,7 +131,7 @@ async function settle(ms: number) {
  * call per tile rather than a single wait long enough for all of them.
  */
 async function playBackWalk(tiles: number) {
-  for (let i = 0; i <= tiles; i += 1) await settle(120);
+  for (let i = 0; i <= tiles; i += 1) await settle(A_STEP);
 }
 
 beforeEach(() => {
@@ -160,16 +179,7 @@ describe("walking", () => {
   it("keeps the farmer in view when the map is too wide to fit", async () => {
     mock();
     render(<ValeWorld />);
-    const view = stage();
-    // jsdom does no layout, so stand in for a 640px map in a 320px window.
-    Object.defineProperty(view, "scrollWidth", {
-      configurable: true,
-      value: 640,
-    });
-    Object.defineProperty(view, "clientWidth", {
-      configurable: true,
-      value: 320,
-    });
+    const view = narrowWindow();
     view.focus();
 
     // Down to the walkway, then east along it well past the halfway mark.
@@ -179,6 +189,28 @@ describe("walking", () => {
       ),
     );
 
+    expect(view.scrollLeft).toBeGreaterThan(0);
+  });
+
+  /**
+   * The fix for walking on a phone reading as teleporting: the view used to
+   * centre on the farmer every step, so the farmer stayed pinned mid-screen
+   * while the whole valley was dragged forty pixels sideways under them.
+   */
+  it("holds the map still while the farmer walks inside the margin", async () => {
+    mock();
+    render(<ValeWorld />);
+    const view = narrowWindow();
+    view.focus();
+
+    // Eight of the sixteen tiles are on screen and the farmer starts at x=2, so
+    // with a two-tile margin there are three tiles to walk before the view has
+    // any reason to follow.
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+    expect(view.scrollLeft).toBe(0);
+
+    await userEvent.keyboard("{ArrowRight}");
     expect(view.scrollLeft).toBeGreaterThan(0);
   });
 
@@ -278,7 +310,7 @@ describe("tapping open ground", () => {
     // tiles above three more plots. A prompt that read out what the farmer
     // happened to face would flicker through all of them.
     fireEvent.click(track(), pointAt(5, 2));
-    await settle(120);
+    await settle(A_STEP);
 
     expect(prompt()).toHaveTextContent("Walk up to something to use it.");
     await playBackWalk(3);
@@ -475,7 +507,7 @@ describe("clicking a place on the map", () => {
 
     // One tile in, on open grass with nothing ahead — and still saying what the
     // player asked for rather than "Walk up to something to use it."
-    await settle(120);
+    await settle(A_STEP);
     expect(prompt()).toHaveTextContent("Forage The Hedgerow");
     // Let the walk wind itself up rather than leaving timers to fire loose.
     await playBackWalk(3);
@@ -621,7 +653,7 @@ describe("clicking a place on the map", () => {
     render(<ValeWorld />);
 
     // Dispatched synchronously so the reins are taken back before the walk's
-    // first 90ms step, with no await in between for a timer to slip through.
+    // first step, with no await in between for a timer to slip through.
     // Plot 6 is right across the farm, so the walk is several tiles long.
     fireEvent.click(
       screen.getByRole("button", {
@@ -632,7 +664,7 @@ describe("clicking a place on the map", () => {
     fireEvent.keyDown(stage(), { key: "ArrowRight" });
 
     // Long enough that the abandoned walk would have arrived had it continued.
-    await settle(800);
+    await settle(A_STEP * 4);
 
     expect(prompt()).not.toHaveTextContent("Plot 6");
   });

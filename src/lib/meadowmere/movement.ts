@@ -1,6 +1,15 @@
 import type { MeadowmereState } from "./schema";
 import { type Feature, isWalkable, type Tile } from "./valeMap";
 
+/**
+ * Milliseconds the farmer spends crossing each tile of a walk. A walking pace,
+ * not a sprint: on a phone the map scrolls to follow the farmer, so a walk fast
+ * enough to cross the valley in a second reads as the valley being yanked about
+ * rather than as anyone going anywhere. Shared with the scene, whose farmer
+ * eases between tiles over exactly this long.
+ */
+export const STEP_MS = 180;
+
 /** The four directions the farmer can face and walk. */
 export type Facing = "up" | "down" | "left" | "right";
 

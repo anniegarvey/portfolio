@@ -25,6 +25,7 @@ import {
   facingTowards,
   findPath,
   routeToFeature,
+  STEP_MS,
   stepFarmer,
   tileInFront,
 } from "@/lib/meadowmere/movement";
@@ -47,8 +48,15 @@ import {
  * standing in front of the thing it belongs to rather than by opening a tab.
  */
 
-/** Milliseconds per tile of an auto-walk. Brisk enough to cross the map fast. */
-const STEP_MS = 90;
+/**
+ * How close to the edge of the visible map the farmer may get before the view
+ * follows them. Below about 640px only part of the valley is on screen, and
+ * without a margin the farmer stays pinned in the middle while the whole valley
+ * is dragged sideways under them — which is what made walking on a phone read
+ * as teleporting. Inside the margin the map holds still and the farmer is the
+ * thing that moves.
+ */
+const EDGE_TILES = 2;
 
 /**
  * How far a pointer may travel between going down and coming up and still count
@@ -167,31 +175,40 @@ export function ValeWorld() {
   }, []);
 
   // Below about 640px the map has to scroll sideways to keep its tiles big
-  // enough to tap, so the view follows the farmer. Only the map's own
-  // scrollLeft is touched — scrollIntoView would drag the whole page with it.
+  // enough to tap, so the view follows the farmer — but only once they reach
+  // the margin, so most steps move the farmer rather than the valley. Only the
+  // map's own scrollLeft is touched, and the map eases it (see Stage), so a walk
+  // along the edge pans instead of jumping. scrollIntoView would drag the whole
+  // page with it.
   useEffect(() => {
     const view = scrollRef.current;
     if (view === null) return;
-    const centreOnFarmer = () => {
+    const followFarmer = () => {
+      // No layout yet — jsdom always, and a real browser for its first frame.
+      if (view.clientWidth === 0) return;
       const tileWidth = view.scrollWidth / VALE_WIDTH;
-      const centred = (pose.x + 0.5) * tileWidth - view.clientWidth / 2;
-      view.scrollLeft = Math.max(
-        0,
-        Math.min(centred, view.scrollWidth - view.clientWidth),
-      );
+      const margin = EDGE_TILES * tileWidth;
+      const west = pose.x * tileWidth - margin;
+      const east = (pose.x + 1) * tileWidth + margin;
+      const furthest = view.scrollWidth - view.clientWidth;
+      const wanted =
+        west < view.scrollLeft
+          ? west
+          : Math.max(view.scrollLeft, east - view.clientWidth);
+      view.scrollLeft = Math.max(0, Math.min(wanted, furthest));
       syncEdges();
     };
-    centreOnFarmer();
+    followFarmer();
     // Rotating a phone changes how much of the map fits, which would otherwise
     // leave the farmer off to one side until their next step. Width only: a
-    // phone fires resize when its URL bar slides away mid-scroll, and
-    // re-centring on that would yank the map back while the player is reading
-    // the far side of the valley.
+    // phone fires resize when its URL bar slides away mid-scroll, and following
+    // on that would yank the map back while the player is reading the far side
+    // of the valley.
     let width = window.innerWidth;
     const onResize = () => {
       if (window.innerWidth === width) return;
       width = window.innerWidth;
-      centreOnFarmer();
+      followFarmer();
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -494,6 +511,13 @@ const Stage = styled.div`
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
+  /* Applies to the view following the farmer, not to the player's own swipe:
+     a pan the map eases reads as a camera, an instant one as a cut. */
+  scroll-behavior: smooth;
+
+  @media (prefers-reduced-motion: reduce) {
+    scroll-behavior: auto;
+  }
   border: 3px solid light-dark(var(--color-grey-300), var(--color-grey-700));
   background: light-dark(#93c26d, #46653f);
 

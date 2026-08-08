@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { MAX_PLOTS } from "@/lib/meadowmere/catalog";
 import type { FarmerPose } from "@/lib/meadowmere/movement";
+import { STEP_MS } from "@/lib/meadowmere/movement";
 import type { MeadowmereState } from "@/lib/meadowmere/schema";
 import {
   makeMeadowmereState,
@@ -61,6 +62,16 @@ describe("ValeScene", () => {
     expect(
       screen.getByRole("button", { name: "Browse the seed stall" }),
     ).toBeInTheDocument();
+  });
+
+  it("eases the farmer across a tile in exactly one step of the world's clock", () => {
+    const { container } = renderScene(stateWith(6));
+
+    // The world steps the pose on a STEP_MS timer and the scene eases between
+    // those poses. A drift either way and the farmer either arrives before the
+    // next step or is still sliding when it comes.
+    const farmer = container.querySelector("g[style*='translate']");
+    expect(farmer).toHaveStyle({ transitionDuration: `${STEP_MS}ms` });
   });
 
   it("adds buttons as quests hand over more land", () => {

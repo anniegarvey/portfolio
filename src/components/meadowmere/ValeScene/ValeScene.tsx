@@ -12,6 +12,7 @@ import { TerrainLayer } from "@/components/meadowmere/ValeArt/TerrainLayer";
 import { growthStageOf } from "@/lib/meadowmere/farmingModule";
 import { interactionFor } from "@/lib/meadowmere/interaction";
 import type { FarmerPose } from "@/lib/meadowmere/movement";
+import { STEP_MS } from "@/lib/meadowmere/movement";
 import type { CropId, MeadowmereState } from "@/lib/meadowmere/schema";
 import type { Feature } from "@/lib/meadowmere/valeMap";
 import {
@@ -148,11 +149,13 @@ export function ValeScene({
           Drawn last, so the farmer is never hidden by scenery. Positioned with
           a CSS transform rather than the transform attribute so a step can be
           eased; the node keeps its place in the tree, so the transition
-          survives every move.
+          survives every move. The duration is set here rather than in the
+          template so it cannot drift from the timer the world steps on.
         */}
         <Farmer
           style={{
             transform: `translate(${pose.x * TILE_SIZE}px, ${pose.y * TILE_SIZE - 6}px)`,
+            transitionDuration: `${STEP_MS}ms`,
           }}
         >
           <FarmerSVG facing={pose.facing} walking={walking} />
@@ -250,13 +253,16 @@ const Stage = styled.div`
 
 /**
  * Eased rather than snapped, so an auto-walk reads as walking. The world drives
- * this one tile at a time; the game state has already moved on.
+ * this one tile at a time and supplies the duration; the game state has already
+ * moved on. Linear, because a step eased at both ends inside a run of steps
+ * makes a steady walk stutter.
  */
 const Farmer = styled.g`
-  transition: transform 90ms linear;
+  transition-property: transform;
+  transition-timing-function: linear;
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    transition-property: none;
   }
 `;
 
