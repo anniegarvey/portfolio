@@ -97,3 +97,15 @@ Fixed in `e2e/utils/seed-meadowmere.ts`: `goToMeadowmereWithSeed` now waits for 
 |------|----------|
 | `e2e/meadowmere/meadowmere.spec.ts` > "seeds are bought with points at the stall" | 3 |
 | `e2e/meadowmere/meadowmere.spec.ts` > "a liked gift moves a neighbour up a friendship tier" | 1 |
+
+---
+
+## Parallel load starvation: TreeSVG unit test hits the 5s timeout
+
+**Symptom:** `Test timed out in 5000ms` on the whole `it` block, before any assertion. The same test passes in 400ms in isolation, and the file's other 33 tests pass alongside it. Only seen under `pnpm validate`, which runs vitest and Playwright concurrently — the same contention class as the entries above, but starving a unit test rather than racing a browser.
+
+**Root cause (suspected):** Not a race in the component. `mapleAt50` renders a full maple with every branch as an interactive button, which is the heaviest render in the bonsai suite; `vitest.config.ts` sets a flat `testTimeout: 5000`, so under a saturated box the render alone can exceed it. Nothing was investigated beyond confirming it passes in isolation — noting it here rather than raising the global timeout, since a timeout that absorbs full contention would stop catching real hangs.
+
+| Test | Failures |
+|------|----------|
+| `src/components/bonsai/TreeSVG/TreeSVG.test.tsx` > "renders interactive branch buttons when activeTool is pruning-shears" | 1 |

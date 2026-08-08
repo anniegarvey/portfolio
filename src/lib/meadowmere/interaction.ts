@@ -85,10 +85,15 @@ function plotInteraction(
   return { action: null, label: `${name} — ${crop.name}, watered today` };
 }
 
-/** "Acorn, Bramble Berry or Feather" — what a trip here can turn up. */
+/**
+ * "Acorn, Bramble Berry or Feather" — what a trip here can turn up. Every site
+ * happens to pool three materials today; the formatter rather than a hand-rolled
+ * join so a site of one or two reads properly if the catalog ever grows one.
+ */
+const OR_LIST = new Intl.ListFormat("en-GB", { type: "disjunction" });
+
 function listMaterials(siteId: SiteId): string {
-  const names = SITES[siteId].materials.map((id) => ITEMS[id].name);
-  return `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+  return OR_LIST.format(SITES[siteId].materials.map((id) => ITEMS[id].name));
 }
 
 function siteInteraction(state: MeadowmereState, siteId: SiteId): Interaction {

@@ -239,7 +239,7 @@ const Stage = styled.div`
      rather than anything darker: the cat only ever sits on the hedge or the
      rocks, and the whole point of the cat is being spotted there. */
   --vale-cat: #c8763c;
-  --vale-cat-bib: #f0e6d2;
+  --vale-cat-rim: #f7f0e2;
   --vale-cat-eye: #3a3128;
 
   --vale-stall-post: light-dark(#7a5a3a, #4e3a25);

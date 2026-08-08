@@ -34,6 +34,7 @@ import type { Feature, Tile } from "@/lib/meadowmere/valeMap";
 import {
   FARMER_START,
   featureAt,
+  isInBounds,
   isWalkable,
   terrainRemark,
   VALE_HEIGHT,
@@ -153,8 +154,13 @@ export function ValeWorld() {
    * prompt it can't be re-derived and has to be held until the player moves on.
    */
   const [aside, setAside] = useState<string | null>(null);
-  /** How many times the cat has been petted, which is how it picks its reply. */
-  const [pets, setPets] = useState(0);
+  /**
+   * How many times the cat has been petted, which is how it picks its reply. A
+   * ref rather than state: two taps inside one React batch — a fast double-tap,
+   * exactly what a cat invites — would both read the same rendered count and get
+   * the same reply, which is the one thing the cycle is for.
+   */
+  const pets = useRef(0);
   /**
    * A live region only fires when its text actually changes, so watering two
    * plots in a row would announce once. The tick gives each result its own
@@ -170,8 +176,8 @@ export function ValeWorld() {
   const trackRef = useRef<HTMLDivElement>(null);
   /** Where a pointer went down, so a swipe can be told from a tap. */
   const pointerStart = useRef<Tile | null>(null);
-  // Read inside activateFeature so a walk — which changes the pose every 90ms
-  // — doesn't hand all nineteen hotspots a new callback on every step.
+  // Read inside activateFeature so a walk — which changes the pose once a step
+  // — doesn't hand all nineteen hotspots a new callback on every one.
   const poseRef = useRef(pose);
   poseRef.current = pose;
   const today = getTodayDateString();
@@ -277,17 +283,17 @@ export function ValeWorld() {
           setShopOpen(true);
           break;
         case "pet": {
-          // Shown as well as announced: on a phone the live region is the only
-          // thing that speaks and none of it reaches the screen.
-          const purr = PURRS[pets % PURRS.length];
-          setPets((count) => count + 1);
+          // Only the prompt, which is a status region and so speaks as well as
+          // shows. Every purr differs from the last, so it always changes and
+          // always announces — nothing to fall back to the live region for.
+          const purr = PURRS[pets.current % PURRS.length];
+          pets.current += 1;
           setAside(purr);
-          announce(purr);
           break;
         }
       }
     },
-    [plantSeed, waterPlot, harvestPlot, forage, announce, pets],
+    [plantSeed, waterPlot, harvestPlot, forage, announce],
   );
 
   /**
@@ -322,6 +328,25 @@ export function ValeWorld() {
   );
 
   /**
+   * Has the valley answer for a tile the farmer can't get onto — the river, the
+   * hedge, the rocks, their own front door — and says whether there was anything
+   * to say. Shown in the prompt rather than only announced, since on a phone the
+   * live region never reaches the screen; and only shown there, because the
+   * prompt is a status region and setting it speaks already. Features keep quiet:
+   * their own buttons said what they were before the tap even landed.
+   */
+  const remarkOn = useCallback(
+    (tile: Tile): boolean => {
+      if (featureAt(state, tile.x, tile.y) !== null) return false;
+      const remark = terrainRemark(tile.x, tile.y);
+      if (remark === null) return false;
+      setAside(remark);
+      return true;
+    },
+    [state],
+  );
+
+  /**
    * Walking to a patch of open ground, which is a thing a player wants to do in
    * its own right: on a phone there is no arrow key, so without this the only
    * way to move is to send the farmer at one of the nineteen features and every
@@ -330,14 +355,7 @@ export function ValeWorld() {
   const walkToTile = useCallback(
     (tile: Tile) => {
       if (!isWalkable(state, tile.x, tile.y)) {
-        // Nothing standing here to carry a button, so this is the only chance
-        // the valley gets to answer for itself. Features stay quiet: their own
-        // buttons said what they were before the tap even landed.
-        const remark = terrainRemark(tile.x, tile.y);
-        if (remark !== null && featureAt(state, tile.x, tile.y) === null) {
-          setAside(remark);
-          announce(remark);
-        }
+        remarkOn(tile);
         return;
       }
       const from = poseRef.current;
@@ -350,7 +368,7 @@ export function ValeWorld() {
       const penultimate = path.at(-2) ?? from;
       travel({ path, facing: facingTowards(penultimate, tile) }, null);
     },
-    [state, travel, announce],
+    [state, travel, remarkOn],
   );
 
   /** Which tile a pointer at these coordinates is over, or null if off the map. */
@@ -361,7 +379,10 @@ export function ValeWorld() {
       x: Math.floor(((clientX - box.left) / box.width) * VALE_WIDTH),
       y: Math.floor(((clientY - box.top) / box.height) * VALE_HEIGHT),
     };
-    return tile;
+    // The map's frame is part of what a tap can land on but sits outside the
+    // tiles, and off the grid every tile reads as hedge — so without this, a tap
+    // on the border round the map gets an answer about the hedge.
+    return isInBounds(tile.x, tile.y) ? tile : null;
   }, []);
 
   const handleMapClick = useCallback(
@@ -402,11 +423,24 @@ export function ValeWorld() {
     const ahead = tileInFront(pose);
     const feature = featureAt(state, ahead.x, ahead.y);
     if (feature === null) {
-      announce("Nothing here.");
+      // The action key has to reach the same remarks a tap does, or the scenery
+      // only ever answers people playing with a finger.
+      if (!remarkOn(ahead)) {
+        setAside(null);
+        announce("Nothing here.");
+      }
       return;
     }
     performInteraction(interactionFor(state, feature, selectedCropId, today));
-  }, [state, pose, selectedCropId, today, performInteraction, announce]);
+  }, [
+    state,
+    pose,
+    selectedCropId,
+    today,
+    performInteraction,
+    announce,
+    remarkOn,
+  ]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -565,6 +599,12 @@ const Stage = styled.div`
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
+  /* Open ground is tapped on the map itself rather than on a button, so the map
+     needs what the hotspots already have: no double-tap-to-zoom delay on the
+     game's main control, and no grey flash over the whole valley on every tap.
+     Panning and pinch zoom are untouched. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   /* Applies to the view following the farmer, not to the player's own swipe:
      a pan the map eases reads as a camera, an instant one as a cut. */
   scroll-behavior: smooth;

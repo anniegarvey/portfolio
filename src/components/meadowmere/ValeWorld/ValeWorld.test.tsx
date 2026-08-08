@@ -316,6 +316,19 @@ describe("tapping open ground", () => {
     await playBackWalk(3);
   });
 
+  it("picks the prompt back up on arrival, once the walk has played out", async () => {
+    setReducedMotion(false);
+    mock();
+    render(<ValeWorld />);
+
+    fireEvent.click(track(), pointAt(5, 2));
+    await playBackWalk(3);
+
+    // Silent while crossing, and then the farmer is stood in front of the stall
+    // and the prompt has something to say again.
+    expect(prompt()).toHaveTextContent("Browse the seed stall");
+  });
+
   it("does nothing before the map has been laid out", () => {
     mock();
     render(<ValeWorld />);
@@ -699,6 +712,20 @@ describe("what the valley says back", () => {
     expect(prompt()?.textContent).not.toBe(first);
   });
 
+  it("has something new to say for a double-tap, not just a slow second go", () => {
+    mock({ state: catState() });
+    render(<ValeWorld />);
+    const cat = screen.getByRole("button", { name: "Pet the cat" });
+
+    // Both taps inside one React batch, which is what a fast double-tap on a
+    // phone actually produces — and exactly what a cat invites.
+    fireEvent.click(cat);
+    const first = prompt()?.textContent;
+    fireEvent.click(cat);
+
+    expect(prompt()?.textContent).not.toBe(first);
+  });
+
   it("answers for the river when the farmer is sent into it", () => {
     mock();
     render(<ValeWorld />);
@@ -731,6 +758,41 @@ describe("what the valley says back", () => {
 
     // A remark answers the last thing the player did. Once they have moved on it
     // would be describing a moment that has passed.
+    expect(prompt()).toHaveTextContent("Walk up to something to use it.");
+  });
+
+  it("answers the action key too, not only a finger", async () => {
+    mock();
+    render(<ValeWorld />);
+    stage().focus();
+
+    // Down to (2,3) then west, which turns the farmer to face the river without
+    // moving them onto it. A keyboard player has to be able to find these too.
+    await userEvent.keyboard("{ArrowDown}{ArrowLeft}{ArrowLeft}e");
+
+    expect(prompt()).toHaveTextContent("The river runs quick");
+  });
+
+  it("still says plainly when there is nothing there at all", async () => {
+    mock();
+    render(<ValeWorld />);
+    stage().focus();
+
+    // Facing open grass, which the valley has no opinion about.
+    await userEvent.keyboard("e");
+
+    expect(liveRegion()).toHaveTextContent("Nothing here.");
+  });
+
+  it("keeps quiet about the frame around the map", () => {
+    mock();
+    render(<ValeWorld />);
+
+    // Above the top row of tiles: part of what a tap can land on, but off the
+    // grid — where every tile would otherwise read as hedge.
+    pointAt(0, 0);
+    fireEvent.click(track(), { clientX: 320, clientY: -6 });
+
     expect(prompt()).toHaveTextContent("Walk up to something to use it.");
   });
 
