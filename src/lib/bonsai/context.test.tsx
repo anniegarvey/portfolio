@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePoints } from "@/lib/points/context";
 import { LAST_ACTIVE_DATE_KEY } from "@/lib/points/keys";
 import { BonsaiProvider, useBonsai } from "./context";
+import { GROWTH_CELEBRATION_MS } from "./growthEvents";
 import { createInitialState } from "./storage";
 import { BRANCH_GROW_DURATION } from "./treeGenerator";
 
@@ -71,6 +72,15 @@ function BonsaiDebug() {
       {/* Second tree — for multi-tree tests */}
       <span data-testid="day-1">{tree1?.activeDaysCount ?? "none"}</span>
       <span data-testid="placing">{ctx.placingSpeciesId ?? "none"}</span>
+      {/* Growth flourish signal — tree ids are generated, so the count and the
+          first event's shape stand in for identity. */}
+      <span data-testid="growth-count">{ctx.growthEvents.length}</span>
+      <span data-testid="growth-days">
+        {ctx.growthEvents[0]?.daysGained ?? "none"}
+      </span>
+      <span data-testid="growth-stage">
+        {ctx.growthEvents[0]?.newStage ?? "none"}
+      </span>
       <button onClick={ctx.advanceDay} type="button">
         Advance
       </button>
@@ -1229,5 +1239,138 @@ describe("BonsaiProvider — availablePotCount", () => {
     });
     // No available pot → tree count stays at 1
     expect(screen.getByTestId("tree-count")).toHaveTextContent("1");
+  });
+});
+
+// ─── Growth events ────────────────────────────────────────────────────────────
+
+describe("BonsaiProvider — growth events", () => {
+  // waterTree is a no-op without a watering can, so any test that waters
+  // before advancing needs one in the saved inventory.
+  function seedWateringCan() {
+    const base = createInitialState();
+    seedLocalStorage({
+      inventory: { ...base.inventory, ownedToolIds: ["watering-can"] },
+    });
+  }
+
+  beforeEach(() => {
+    setupMockPoints();
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(BONSAI_KEY);
+    localStorage.removeItem(LAST_ACTIVE_DATE_KEY);
+  });
+
+  // The path real players take: growth lands while the page is loading, not
+  // from the demo-only Advance day control.
+  it("raises an event for the growth applied on load", async () => {
+    localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+    const base = createInitialState();
+    seedLocalStorage({
+      ...base,
+      trees: [{ ...base.trees[0], activeDaysCount: 9, lastWateredDay: 9 }],
+    });
+
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("growth-count")).toHaveTextContent("1"),
+    );
+    expect(screen.getByTestId("growth-days")).toHaveTextContent("1");
+    // Day 9 → 10 crosses into Sapling.
+    expect(screen.getByTestId("growth-stage")).toHaveTextContent("Sapling");
+  });
+
+  it("raises no event when nothing grew on load", async () => {
+    localStorage.setItem(LAST_ACTIVE_DATE_KEY, TODAY);
+    // The tree was never watered, so the daily check leaves it alone.
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+    expect(screen.getByTestId("growth-count")).toHaveTextContent("0");
+  });
+
+  it("raises an event when advanceDay grows a watered tree", async () => {
+    seedWateringCan();
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+
+    await act(async () => {
+      screen.getByText("Water").click();
+    });
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+
+    expect(screen.getByTestId("growth-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("growth-days")).toHaveTextContent("1");
+    expect(screen.getByTestId("growth-stage")).toHaveTextContent("none");
+  });
+
+  it("raises no event when advanceDay grows nothing", async () => {
+    render(
+      <BonsaiProvider>
+        <BonsaiDebug />
+      </BonsaiProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("day")).toHaveTextContent("0"),
+    );
+
+    await act(async () => {
+      screen.getByText("Advance").click();
+    });
+
+    expect(screen.getByTestId("growth-count")).toHaveTextContent("0");
+  });
+
+  it("drops the event once the flourish has had time to play", async () => {
+    seedWateringCan();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(
+        <BonsaiProvider>
+          <BonsaiDebug />
+        </BonsaiProvider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("day")).toHaveTextContent("0"),
+      );
+
+      await act(async () => {
+        screen.getByText("Water").click();
+      });
+      await act(async () => {
+        screen.getByText("Advance").click();
+      });
+      expect(screen.getByTestId("growth-count")).toHaveTextContent("1");
+
+      await act(async () => {
+        vi.advanceTimersByTime(GROWTH_CELEBRATION_MS);
+      });
+      expect(screen.getByTestId("growth-count")).toHaveTextContent("0");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

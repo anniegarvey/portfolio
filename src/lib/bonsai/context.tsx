@@ -14,6 +14,11 @@ import { LAST_ACTIVE_DATE_KEY } from "@/lib/points/keys";
 import { SHOP_CATALOG } from "./catalog";
 import { growWateredTrees } from "./growthEngine";
 import {
+  diffGrowth,
+  GROWTH_CELEBRATION_MS,
+  type GrowthEvent,
+} from "./growthEvents";
+import {
   applyFertiliser,
   computeAvailablePotCount,
   equipBackground,
@@ -67,6 +72,11 @@ export interface BonsaiContextType {
   waterTree: (treeId: string) => void;
   advanceDay: () => void;
   /**
+   * Trees that gained days in the growth that just ran, cleared once the
+   * flourish has had time to play. Empty on every render in between.
+   */
+  growthEvents: GrowthEvent[];
+  /**
    * When true, the manual "advance day" affordances (button + D shortcut) are
    * shown. This is a demo/testing aid — real growth happens automatically once
    * per calendar day — so it is gated behind the `?demo=1` URL parameter that
@@ -114,6 +124,7 @@ export function BonsaiProvider({
   const [placingSpeciesId, setPlacingSpeciesId] = useState<SpeciesId | null>(
     null,
   );
+  const [growthEvents, setGrowthEvents] = useState<GrowthEvent[]>([]);
 
   // Persist every state change
   const setState = useCallback(
@@ -135,24 +146,34 @@ export function BonsaiProvider({
     const lastActiveDateEP = localStorage.getItem(LAST_ACTIVE_DATE_KEY);
     const todayStr = getTodayDateString();
 
-    setState((_prev) => {
-      let next = cleanRegrownBranches(loaded ?? createInitialState());
+    const restored = cleanRegrownBranches(loaded ?? createInitialState());
 
-      // Apply daily growth if energy planner was used today and we haven't
-      // grown yet today. All trees that were watered grow independently.
-      if (
-        lastActiveDateEP === todayStr &&
-        next.lastGrowthCheckDate !== todayStr
-      ) {
-        next = growWateredTrees(next, todayStr);
-      }
+    // Apply daily growth if energy planner was used today and we haven't
+    // grown yet today. All trees that were watered grow independently.
+    const grows =
+      lastActiveDateEP === todayStr &&
+      restored.lastGrowthCheckDate !== todayStr;
+    const next = grows ? growWateredTrees(restored, todayStr) : restored;
 
-      return next;
-    });
+    setState(() => next);
+    // Diffed out here rather than inside the updater: this path rebuilds from
+    // storage rather than from `prev`, so a prev/next diff would compare the
+    // empty placeholder against the whole saved garden and read every tree as
+    // grown. Most growth arrives this way — advancing by hand is demo-only.
+    if (grows) setGrowthEvents(diffGrowth(restored, next));
     // Batched with the setState above, so the loaded game and the "ready" flag
     // land in the same commit — consumers never see the empty state unmasked.
     setIsLoading(false);
   }, [setState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The flourish is one-shot. Dropping it on a timer rather than when its
+  // animation ends means a tending modal opened later never replays a growth
+  // the player already watched in the garden.
+  useEffect(() => {
+    if (growthEvents.length === 0) return;
+    const timer = setTimeout(() => setGrowthEvents([]), GROWTH_CELEBRATION_MS);
+    return () => clearTimeout(timer);
+  }, [growthEvents]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
@@ -255,8 +276,13 @@ export function BonsaiProvider({
 
   const advanceDay = useCallback(() => {
     const todayStr = getTodayDateString();
-    setState((prev) => growWateredTrees(prev, todayStr));
-  }, [setState]);
+    // Grown from the state in scope rather than inside the updater, so the
+    // diff sees the same before/after pair React commits — updaters run twice
+    // in development and are the wrong place to raise an event from.
+    const next = growWateredTrees(state, todayStr);
+    setState(() => next);
+    setGrowthEvents(diffGrowth(state, next));
+  }, [state, setState]);
 
   const availablePotCount = useCallback(
     (excludeTreeId?: string) => computeAvailablePotCount(state, excludeTreeId),
@@ -281,6 +307,7 @@ export function BonsaiProvider({
         pruneBranch: handlePruneBranch,
         waterTree: handleWaterTree,
         advanceDay,
+        growthEvents,
         demoMode,
         availablePotCount,
         equipBackground: handleEquipBackground,
