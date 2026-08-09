@@ -88,7 +88,10 @@ const Floater = styled.span`
   left: 50%;
   bottom: 8%;
   transform: translate(-50%, 0);
-  white-space: nowrap;
+  /* "Ancient Tree" is wider than a 90px garden tree, and the garden clips at
+     its own edges — so the longest label wraps rather than losing its end. */
+  max-width: 130%;
+  text-align: center;
   font-weight: 700;
   font-size: 0.75rem;
   padding: 1px 7px;
@@ -104,6 +107,7 @@ const Floater = styled.span`
   [data-variant="full"] & {
     font-size: 1rem;
     padding: 2px 12px;
+    white-space: nowrap;
   }
 
   /* The text is information, not decoration, so it stays — it just stops

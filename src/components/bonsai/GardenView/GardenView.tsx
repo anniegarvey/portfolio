@@ -307,11 +307,18 @@ function useJustPlanted(trees: BonsaiTree[], isLoading: boolean) {
     known.current = ids;
     if (before === null) return; // the saved garden, not an arrival
     const fresh = [...ids].find((id) => !before.has(id));
-    if (fresh === undefined) return;
-    setJustPlanted(fresh);
+    if (fresh !== undefined) setJustPlanted(fresh);
+  }, [trees, isLoading]);
+
+  // Its own effect, keyed on the arrival rather than on the tree list. Sharing
+  // the effect above would let any unrelated change within the window — a
+  // watering, a drag, which both hand back a new trees array — cancel the
+  // timer on the way past and leave the arrival flagged for good.
+  useEffect(() => {
+    if (justPlanted === null) return;
     const timer = setTimeout(() => setJustPlanted(null), ARRIVAL_MS);
     return () => clearTimeout(timer);
-  }, [trees, isLoading]);
+  }, [justPlanted]);
 
   return justPlanted;
 }

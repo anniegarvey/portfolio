@@ -6,6 +6,7 @@ import {
   use,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { getTodayDateString } from "@/lib/date";
@@ -125,6 +126,8 @@ export function BonsaiProvider({
     null,
   );
   const [growthEvents, setGrowthEvents] = useState<GrowthEvent[]>([]);
+  /** The last state React committed, for the growth diff below. */
+  const committedRef = useRef<BonsaiGameState | null>(null);
 
   // Persist every state change
   const setState = useCallback(
@@ -156,15 +159,27 @@ export function BonsaiProvider({
     const next = grows ? growWateredTrees(restored, todayStr) : restored;
 
     setState(() => next);
-    // Diffed out here rather than inside the updater: this path rebuilds from
-    // storage rather than from `prev`, so a prev/next diff would compare the
-    // empty placeholder against the whole saved garden and read every tree as
+    // Diffed here rather than left to the committed-state watcher below: this
+    // path rebuilds from storage, so that watcher sees the empty placeholder as
+    // the "before" and every restored tree reads as newly planted rather than
     // grown. Most growth arrives this way — advancing by hand is demo-only.
     if (grows) setGrowthEvents(diffGrowth(restored, next));
     // Batched with the setState above, so the loaded game and the "ready" flag
     // land in the same commit — consumers never see the empty state unmasked.
     setIsLoading(false);
   }, [setState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Every other growth is read off the committed state. Comparing what React
+  // actually rendered — rather than what a handler's closure believed the
+  // state to be — means the action that causes growth stays a plain functional
+  // update, and cannot lose a change queued behind it.
+  useEffect(() => {
+    const before = committedRef.current;
+    committedRef.current = state;
+    if (before === null) return;
+    const events = diffGrowth(before, state);
+    if (events.length > 0) setGrowthEvents(events);
+  }, [state]);
 
   // The flourish is one-shot. Dropping it on a timer rather than when its
   // animation ends means a tending modal opened later never replays a growth
@@ -274,15 +289,13 @@ export function BonsaiProvider({
     [setState],
   );
 
+  // A plain functional update: the flourish comes from the committed-state
+  // watcher, so this does not need `state` in scope and cannot clobber an
+  // update queued behind it (a drag's last position, say).
   const advanceDay = useCallback(() => {
     const todayStr = getTodayDateString();
-    // Grown from the state in scope rather than inside the updater, so the
-    // diff sees the same before/after pair React commits — updaters run twice
-    // in development and are the wrong place to raise an event from.
-    const next = growWateredTrees(state, todayStr);
-    setState(() => next);
-    setGrowthEvents(diffGrowth(state, next));
-  }, [state, setState]);
+    setState((prev) => growWateredTrees(prev, todayStr));
+  }, [setState]);
 
   const availablePotCount = useCallback(
     (excludeTreeId?: string) => computeAvailablePotCount(state, excludeTreeId),

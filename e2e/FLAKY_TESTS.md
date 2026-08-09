@@ -100,12 +100,31 @@ Fixed in `e2e/utils/seed-meadowmere.ts`: `goToMeadowmereWithSeed` now waits for 
 
 ---
 
-## Parallel load starvation: TreeSVG unit test hits the 5s timeout
+## Parallel load starvation: heavy bonsai SVG unit tests hit the 5s timeout
 
-**Symptom:** `Test timed out in 5000ms` on the whole `it` block, before any assertion. The same test passes in 400ms in isolation, and the file's other 33 tests pass alongside it. Only seen under `pnpm validate`, which runs vitest and Playwright concurrently — the same contention class as the entries above, but starving a unit test rather than racing a browser.
+**Symptom:** `Test timed out in 5000ms` on the whole `it` block, before any assertion. The same tests pass in 400ms (TreeSVG) and 2.7s for the whole file (BonsaiTimelapse) in isolation. Only seen under `pnpm validate`, which runs vitest and Playwright concurrently — the same contention class as the entries above, but starving a unit test rather than racing a browser. Under validate the two files report 27–30s of wall time against 2.7–4.2s standalone, a 7–10× stretch.
 
-**Root cause (suspected):** Not a race in the component. `mapleAt50` renders a full maple with every branch as an interactive button, which is the heaviest render in the bonsai suite; `vitest.config.ts` sets a flat `testTimeout: 5000`, so under a saturated box the render alone can exceed it. Nothing was investigated beyond confirming it passes in isolation — noting it here rather than raising the global timeout, since a timeout that absorbs full contention would stop catching real hangs.
+**Root cause (suspected):** Not a race in the components. These render full grown trees — `mapleAt50` gives every branch an interactive button, and the timelapse renders six frames per species — which are the heaviest renders in the suite; `vitest.config.ts` sets a flat `testTimeout: 5000`, so under a saturated box the render alone can exceed it. Noted here rather than raising the global timeout, since a timeout that absorbs full contention would stop catching real hangs.
+
+**Confirmed pre-existing:** measured on `494c9e8` (before the bonsai motion branch) with `git checkout 494c9e8 -- src e2e`; `pnpm validate` failed there too, on `BonsaiTimelapse > "renders without throwing for species: wisteria"`. The motion branch adds two wrapper `<g>` elements per tree, worth ~4% on the timelapse file (2641ms → 2752ms standalone) — enough to shift which of these tests loses the race, not enough to cause it.
 
 | Test | Failures |
 |------|----------|
-| `src/components/bonsai/TreeSVG/TreeSVG.test.tsx` > "renders interactive branch buttons when activeTool is pruning-shears" | 1 |
+| `src/components/bonsai/TreeSVG/TreeSVG.test.tsx` > "renders interactive branch buttons when activeTool is pruning-shears" | 3 |
+| `src/components/bonsai/TreeSVG/TreeSVG.test.tsx` > "pressing Enter on a branch calls pruneBranch" | 2 |
+| `src/components/bonsai/BonsaiTimelapse/BonsaiTimelapse.test.tsx` > "renders without throwing for species: wisteria" | 2 |
+| `src/components/bonsai/BonsaiTimelapse/BonsaiTimelapse.test.tsx` > "renders 6 SVG frames for maple" | 1 |
+
+---
+
+## Parallel load: full-suite-only e2e failures that pass in isolation
+
+**Symptom:** Three unrelated tests each failed once across four full `pnpm playwright test` runs and passed immediately when re-run alone. No shared assertion between them; what they share is being measurement-sensitive — two compare rendered pixel or layout geometry, and one asserts the *absence* of a style, so a slow paint reads as a failure.
+
+**Root cause (suspected):** Dev-server contention at full worker count, the same class as the entries above. `e2e/visual/app-routes.spec.ts` already carries a comment acknowledging this and runs its file serially; the failures below are the ones outside that protection. Not investigated further — recorded so the pattern is visible if the rate climbs.
+
+| Test | Failures |
+|------|----------|
+| `e2e/bonsai/bonsai.spec.ts` > "loading skeleton reserves the space the loaded page uses" | 1 |
+| `e2e/navigation/active-nav-link.spec.ts` > "no nav link shows the active style away from its route" | 1 |
+| `e2e/visual/app-routes.spec.ts` > "Meadowmere > phone" | 1 |

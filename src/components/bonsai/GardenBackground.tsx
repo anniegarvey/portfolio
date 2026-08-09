@@ -16,9 +16,11 @@ interface GardenBackgroundProps {
 // slow and small: this garden belongs to people who arrive tired, and a scene
 // that jitters costs them attention it is supposed to be giving back.
 //
-// Everything animates a transform or an opacity on an element that already
-// exists, so the background repaints on the compositor and never re-rasters the
-// trees in front of it — they hold their own layers (see `MiniTreeContainer`).
+// Everything animates a transform or an opacity, and nothing that drives
+// layout. Whether a browser composites a transform on an SVG child or repaints
+// it varies, so the cost is bounded instead of assumed away: the busiest scene
+// (night) runs 25 groups, and the trees in front hold their own layers (see
+// `MiniTreeContainer`), so a background repaint never re-rasters them.
 
 /**
  * A slow shift back and forth rather than a crossing. Clouds and mist that
@@ -822,8 +824,9 @@ function MistyMountainScene() {
         y={158}
       />
 
-      {/* Veils that pass in front of the peaks. Wider than the scene, so the
-          ends never slide into view as they shift. */}
+      {/* Veils that pass in front of the peaks. Each is 380 units across a
+          400-unit scene, so its ends sit outside the frame — or close enough
+          that the fade at the ellipse's edge covers the rest. */}
       {MOUNTAIN_VEILS.map((veil) => (
         <Adrift
           key={`veil-${veil.cy}`}

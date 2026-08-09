@@ -125,9 +125,11 @@ function WaterableSVGContainer({
       tabIndex={isWatering ? 0 : undefined}
     >
       <GardenBackground backgroundId={bgId} tendPos={pos} />
-      {/* Held still while the shears are out: the branch hit targets are a few
-          pixels wide, and a target that drifts under the cursor is a tax on
-          exactly the people this app is for. */}
+      {/* The breeze stops while the shears are out: the branch hit targets are
+          a few pixels wide, and a target that drifts under the cursor is a tax
+          on exactly the people this app is for. The growth surge and the
+          watered lift still move them, but each is one short pass rather than
+          a loop, and both need the shears and a growth in the same moment. */}
       <TreeSVGLayer data-still={activeTool === "pruning-shears" || undefined}>
         <GrowthFlourish event={growth} variant="full">
           <TreeSVG
