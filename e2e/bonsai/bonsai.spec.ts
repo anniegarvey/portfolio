@@ -593,29 +593,9 @@ test.describe("Bonsai Garden", () => {
 
   // ─── Motion ────────────────────────────────────────────────────────────────
 
-  // The garden animates in several places at once: a breeze on every tree, a
-  // per-scene ambient loop, and whatever flourish the last action left running.
-  // All of it is decorative, so all of it has to stop. Regression guard for the
-  // shape of bug the glade hit — a blanket `animation: none` inside a media
-  // query loses to any `[data-*]`-scoped rule above it, so each one needs its
-  // own equally specific override.
-  test("stops every garden animation when the reader asks for reduced motion", async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await goToBonsaiWithSeed(page, {
-      activeDaysCount: 9,
-      lastWateredDay: 9,
-      plannerActiveToday: true,
-      // The busiest scene: twelve leaves that otherwise fall continuously.
-      equippedBackgroundId: "autumn-forest",
-    });
-
-    await expect(
-      page.getByRole("img", { name: /bonsai tree/i }).first(),
-    ).toBeVisible();
-
-    const running = await page
+  /** Every element under the page that currently declares an animation. */
+  const animating = (page: Page) =>
+    page
       .getByRole("main")
       .evaluate((el) =>
         [...el.querySelectorAll("*")]
@@ -625,11 +605,41 @@ test.describe("Bonsai Garden", () => {
               `${node.tagName.toLowerCase()}:${getComputedStyle(node).animationName}`,
           ),
       );
-    expect(running).toEqual([]);
-  });
 
-  // The mirror of the test above: without it, deleting every animation in the
-  // garden would still pass the reduced-motion assertion.
+  // The garden animates in several places at once: a breeze on every tree, a
+  // per-scene ambient loop, and whatever flourish the last action left running.
+  // All of it is decorative, so all of it has to stop. Regression guard for the
+  // shape of bug the glade hit — a blanket `animation: none` inside a media
+  // query loses to any `[data-*]`-scoped rule above it, so each one needs its
+  // own equally specific override.
+  //
+  // Both scenes, because they animate through different components: autumn
+  // runs twelve falling leaves, and night runs twenty-five glimmering stars
+  // and lantern halos, which no other scene uses.
+  for (const scene of ["autumn-forest", "night-garden"] as const) {
+    test(`stops every ${scene} animation when the reader asks for reduced motion`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await goToBonsaiWithSeed(page, {
+        activeDaysCount: 9,
+        lastWateredDay: 9,
+        plannerActiveToday: true,
+        equippedBackgroundId: scene,
+      });
+
+      await expect(
+        page.getByRole("img", { name: /bonsai tree/i }).first(),
+      ).toBeVisible();
+
+      expect(await animating(page)).toEqual([]);
+    });
+  }
+
+  // The mirror of the tests above: without it, deleting every animation in the
+  // garden would still satisfy them. Deliberately not a count — the number
+  // moves whenever a scene gains an element, and a stale expectation failing
+  // reads as a bug in the garden rather than in the test.
   test("the garden is animating when motion is allowed", async ({ page }) => {
     await goToBonsaiWithSeed(page, {
       activeDaysCount: 40,
@@ -640,16 +650,7 @@ test.describe("Bonsai Garden", () => {
       page.getByRole("img", { name: /bonsai tree/i }).first(),
     ).toBeVisible();
 
-    const running = await page
-      .getByRole("main")
-      .evaluate(
-        (el) =>
-          [...el.querySelectorAll("*")].filter(
-            (node) => getComputedStyle(node).animationName !== "none",
-          ).length,
-      );
-    // Twelve falling leaves and one tree leaning on the breeze.
-    expect(running).toBe(13);
+    expect((await animating(page)).length).toBeGreaterThan(0);
   });
 
   // Real growth arrives while the page is loading — the day-advance control is

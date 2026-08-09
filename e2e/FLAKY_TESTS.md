@@ -117,6 +117,20 @@ Fixed in `e2e/utils/seed-meadowmere.ts`: `goToMeadowmereWithSeed` now waits for 
 
 ---
 
+## Predicted risk (not yet observed): the growth flourish assertions are time-boxed
+
+**Symptom to expect:** `getByText("Sapling", { exact: true })` or the live-region text fails to appear, with no other sign of a problem — the day count assertion above it passes.
+
+**Why:** the flourish is deliberately transient. `BonsaiProvider` clears `growthEvents` `GROWTH_CELEBRATION_MS` (2400ms) after the growth lands, so both assertions target content that deletes itself. The window opens when the day-10 tree renders, which is what the assertion immediately before them waits for, so the budget is the full 2.4s and not a race with hydration — but it is the only time-boxed assertion in the bonsai suite, and this file records three separate load-contention flakes from one session.
+
+**No clean hardening exists.** Nothing durable proves the flourish fired; that is the point of it. If this starts failing, either lengthen the celebration window (a product change) or drop to asserting only the growth itself and cover the flourish in the unit tests, which already do.
+
+| Test | Failures |
+|------|----------|
+| `e2e/bonsai/bonsai.spec.ts` > "celebrates the growth applied on load, without any demo control" | 0 |
+
+---
+
 ## Parallel load: full-suite-only e2e failures that pass in isolation
 
 **Symptom:** Three unrelated tests each failed once across four full `pnpm playwright test` runs and passed immediately when re-run alone. No shared assertion between them; what they share is being measurement-sensitive — two compare rendered pixel or layout geometry, and one asserts the *absence* of a style, so a slow paint reads as a failure.
