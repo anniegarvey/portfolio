@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { useBonsai } from "@/lib/bonsai/context";
+import type { GrowthEvent } from "@/lib/bonsai/growthEvents";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { TreeView } from "./TreeView";
 
@@ -28,6 +29,7 @@ interface MockInventory {
   ownedPotIds?: string[];
   ownedStandIds?: string[];
   ownedFertiliserIds?: string[];
+  growthEvents?: GrowthEvent[];
 }
 
 function mockBonsai(inventory: MockInventory = {}) {
@@ -47,9 +49,32 @@ function mockBonsai(inventory: MockInventory = {}) {
     equipStand: vi.fn(),
     unequipStand: vi.fn(),
     applyFertiliser: vi.fn(),
-    growthEvents: [],
+    growthEvents: inventory.growthEvents ?? [],
   } as unknown as ReturnType<typeof useBonsai>);
 }
+
+describe("TreeView — growth flourish", () => {
+  it("celebrates a growth that belongs to this tree", () => {
+    mockBonsai({
+      growthEvents: [
+        { treeId: pine.id, daysGained: 2, newStage: "Sapling" },
+        { treeId: "some-other-tree", daysGained: 1, newStage: null },
+      ],
+    });
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    expect(screen.getByText("Now a Sapling")).toBeInTheDocument();
+  });
+
+  it("ignores a growth that belongs to a different tree", () => {
+    mockBonsai({
+      growthEvents: [
+        { treeId: "some-other-tree", daysGained: 1, newStage: null },
+      ],
+    });
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    expect(screen.queryByText("+1 day")).not.toBeInTheDocument();
+  });
+});
 
 describe("TreeView — initial tool selection", () => {
   it("does not activate watering when no tools are owned", () => {

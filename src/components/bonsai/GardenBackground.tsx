@@ -1,10 +1,81 @@
 "use client";
 
+import { keyframes, styled } from "next-yak";
+import type React from "react";
 import type { BackgroundId } from "@/lib/bonsai/schema";
 
 interface GardenBackgroundProps {
   backgroundId: BackgroundId;
   tendPos?: { x: number; y: number };
+}
+
+// ── Ambience ──────────────────────────────────────────────────────────────────
+//
+// Every scene here was painted once and then stood perfectly still, which read
+// as a picture of a garden rather than a garden. What moves now is deliberately
+// slow and small: this garden belongs to people who arrive tired, and a scene
+// that jitters costs them attention it is supposed to be giving back.
+//
+// Everything animates a transform or an opacity on an element that already
+// exists, so the background repaints on the compositor and never re-rasters the
+// trees in front of it — they hold their own layers (see `MiniTreeContainer`).
+
+/**
+ * A slow shift back and forth rather than a crossing. Clouds and mist that
+ * traverse the whole scene have to be doubled up to loop seamlessly, and this
+ * reads calmer besides: the sky moves, but nothing arrives or departs.
+ */
+const sway = keyframes`
+  0%, 100% { transform: translateX(calc(var(--sway-range) * -1)); }
+  50%      { transform: translateX(var(--sway-range)); }
+`;
+
+const Adrift = styled.g`
+  animation: ${sway} var(--sway-period) var(--sway-offset) ease-in-out infinite;
+
+  /* Parks at its authored position, so the sky keeps its clouds. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+/** Falls, turns, and fades out near the ground before restarting. */
+const fall = keyframes`
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  10%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--fall-x), var(--fall-y)) rotate(var(--fall-spin)); }
+`;
+
+const Falling = styled.g`
+  /* fill-box so a leaf turns about itself rather than about the scene origin. */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ${fall} var(--fall-period) var(--fall-offset) linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+/** Light that breathes: lantern halos, and stars a long way off. */
+const glimmer = keyframes`
+  0%, 100% { opacity: var(--glimmer-low); }
+  50%      { opacity: 1; }
+`;
+
+const Glimmer = styled.g`
+  animation: ${glimmer} var(--glimmer-period) var(--glimmer-offset) ease-in-out
+    infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+/** Shorthand for the CSS custom properties these three read. */
+function vars(entries: Record<string, string>): React.CSSProperties {
+  return entries as React.CSSProperties;
 }
 
 function getTendViewBox(tx: number, ty: number): string {
@@ -26,6 +97,19 @@ function getTendViewBox(tx: number, ty: number): string {
 }
 
 // ── Garden ────────────────────────────────────────────────────────────────────
+
+/** One cloud's silhouette, scaled and placed per cloud. */
+const CLOUD_PUFFS = [
+  { dx: 0, dy: 0, rx: 26, ry: 10 },
+  { dx: 18, dy: -5, rx: 19, ry: 12 },
+  { dx: -19, dy: 2, rx: 15, ry: 8 },
+];
+
+const GARDEN_CLOUDS = [
+  { cx: 74, cy: 34, scale: 1, range: 22, period: 54, offset: -7 },
+  { cx: 214, cy: 20, scale: 0.72, range: 15, period: 71, offset: -33 },
+  { cx: 322, cy: 44, scale: 0.88, range: 26, period: 63, offset: -19 },
+];
 
 function GardenScene() {
   return (
@@ -50,6 +134,32 @@ function GardenScene() {
         width={400}
         y={115}
       />
+
+      {/* Clouds — behind the bushes, so they pass along the horizon rather
+          than over the garden itself. */}
+      {GARDEN_CLOUDS.map((cloud) => (
+        <Adrift
+          key={`cloud-${cloud.cx}`}
+          style={vars({
+            "--sway-range": `${cloud.range}px`,
+            "--sway-period": `${cloud.period}s`,
+            "--sway-offset": `${cloud.offset}s`,
+          })}
+        >
+          {CLOUD_PUFFS.map(({ dx, dy, rx, ry }) => (
+            <ellipse
+              cx={cloud.cx + dx * cloud.scale}
+              cy={cloud.cy + dy * cloud.scale}
+              key={`puff-${dx}-${dy}`}
+              rx={rx * cloud.scale}
+              ry={ry * cloud.scale}
+              style={{
+                fill: "light-dark(rgba(255,255,255,0.72), rgba(190,205,235,0.13))",
+              }}
+            />
+          ))}
+        </Adrift>
+      ))}
 
       {/* Left bush cluster */}
       <ellipse
@@ -357,6 +467,11 @@ function GardenScene() {
 
 const ZEN_RAKE_YS = Array.from({ length: 20 }, (_, i) => 8 + i * 9.5);
 
+const ZEN_PETALS = [
+  { cx: 96, cy: 12, dx: 34, spin: 220, tilt: 15, period: 26, offset: -4 },
+  { cx: 288, cy: 8, dx: -26, spin: -180, tilt: -40, period: 33, offset: -21 },
+];
+
 function ZenGardenScene() {
   return (
     <>
@@ -541,11 +656,58 @@ function ZenGardenScene() {
           stroke: "light-dark(rgba(140,120,70,0.3), rgba(130,110,65,0.48))",
         }}
       />
+
+      {/* Two petals, and nothing else. A raked sand garden is a place that
+          holds still on purpose; the movement here is what wandered in. */}
+      {ZEN_PETALS.map((petal) => (
+        <Falling
+          key={`petal-${petal.cx}`}
+          style={vars({
+            "--fall-x": `${petal.dx}px`,
+            "--fall-y": "150px",
+            "--fall-spin": `${petal.spin}deg`,
+            "--fall-period": `${petal.period}s`,
+            "--fall-offset": `${petal.offset}s`,
+          })}
+        >
+          <ellipse
+            cx={petal.cx}
+            cy={petal.cy}
+            rx={3.2}
+            ry={2}
+            style={{ fill: "light-dark(#e8bcc4, #6a4048)" }}
+            transform={`rotate(${petal.tilt}, ${petal.cx}, ${petal.cy})`}
+          />
+        </Falling>
+      ))}
     </>
   );
 }
 
 // ── Misty Mountain ────────────────────────────────────────────────────────────
+
+const MOUNTAIN_VEILS = [
+  {
+    cx: 130,
+    cy: 122,
+    ry: 13,
+    light: 0.5,
+    dark: 0.22,
+    range: 34,
+    period: 68,
+    offset: -11,
+  },
+  {
+    cx: 268,
+    cy: 96,
+    ry: 9,
+    light: 0.38,
+    dark: 0.16,
+    range: 26,
+    period: 87,
+    offset: -44,
+  },
+];
 
 function MistyMountainScene() {
   return (
@@ -660,6 +822,29 @@ function MistyMountainScene() {
         y={158}
       />
 
+      {/* Veils that pass in front of the peaks. Wider than the scene, so the
+          ends never slide into view as they shift. */}
+      {MOUNTAIN_VEILS.map((veil) => (
+        <Adrift
+          key={`veil-${veil.cy}`}
+          style={vars({
+            "--sway-range": `${veil.range}px`,
+            "--sway-period": `${veil.period}s`,
+            "--sway-offset": `${veil.offset}s`,
+          })}
+        >
+          <ellipse
+            cx={veil.cx}
+            cy={veil.cy}
+            rx={190}
+            ry={veil.ry}
+            style={{
+              fill: `light-dark(rgba(232,240,250,${veil.light}), rgba(96,118,164,${veil.dark}))`,
+            }}
+          />
+        </Adrift>
+      ))}
+
       {/* Pine silhouettes on lower slopes */}
       <polygon
         points="35,162 42,130 49,162"
@@ -732,17 +917,26 @@ function NightGardenScene() {
         y={160}
       />
 
-      {/* Stars */}
-      {STARS.map((s) => (
-        <circle
-          cx={s.cx}
-          cy={s.cy}
+      {/* Stars. Each keeps its own slow rhythm — a sky that pulses in unison
+          is a strobe, which is the last thing this garden should be. */}
+      {STARS.map((s, i) => (
+        <Glimmer
           key={`${s.cx}-${s.cy}`}
-          r={s.r}
-          style={{
-            fill: "light-dark(rgba(255,255,255,0.88), rgba(255,255,255,0.96))",
-          }}
-        />
+          style={vars({
+            "--glimmer-low": `${0.3 + (i % 4) * 0.09}`,
+            "--glimmer-period": `${4.2 + (i % 5) * 1.7}s`,
+            "--glimmer-offset": `${-(i % 7) * 1.1}s`,
+          })}
+        >
+          <circle
+            cx={s.cx}
+            cy={s.cy}
+            r={s.r}
+            style={{
+              fill: "light-dark(rgba(255,255,255,0.88), rgba(255,255,255,0.96))",
+            }}
+          />
+        </Glimmer>
       ))}
 
       {/* Moon — outer glow, mid glow, disk */}
@@ -798,16 +992,24 @@ function NightGardenScene() {
         x={104}
         y={161}
       />
-      {/* Glow halo */}
-      <ellipse
-        cx={108}
-        cy={155}
-        rx={11}
-        ry={8}
-        style={{
-          fill: "light-dark(rgba(255,190,50,0.18), rgba(255,165,30,0.28))",
-        }}
-      />
+      {/* Glow halo — a flame, so it breathes. */}
+      <Glimmer
+        style={vars({
+          "--glimmer-low": "0.55",
+          "--glimmer-period": "6.5s",
+          "--glimmer-offset": "0s",
+        })}
+      >
+        <ellipse
+          cx={108}
+          cy={155}
+          rx={11}
+          ry={8}
+          style={{
+            fill: "light-dark(rgba(255,190,50,0.18), rgba(255,165,30,0.28))",
+          }}
+        />
+      </Glimmer>
       {/* Lantern body */}
       <rect
         height={10}
@@ -893,16 +1095,25 @@ function NightGardenScene() {
         x={279}
         y={157}
       />
-      {/* Glow halo */}
-      <ellipse
-        cx={282}
-        cy={152}
-        rx={9}
-        ry={7}
-        style={{
-          fill: "light-dark(rgba(255,190,50,0.16), rgba(255,165,30,0.25))",
-        }}
-      />
+      {/* Glow halo — offset from the other lantern so they never breathe
+          together, which would read as the whole scene flickering. */}
+      <Glimmer
+        style={vars({
+          "--glimmer-low": "0.6",
+          "--glimmer-period": "8.2s",
+          "--glimmer-offset": "-3.4s",
+        })}
+      >
+        <ellipse
+          cx={282}
+          cy={152}
+          rx={9}
+          ry={7}
+          style={{
+            fill: "light-dark(rgba(255,190,50,0.16), rgba(255,165,30,0.25))",
+          }}
+        />
+      </Glimmer>
       {/* Lantern body */}
       <rect
         height={9}
@@ -1200,17 +1411,30 @@ function AutumnForestScene() {
         style={{ fill: "light-dark(#e88838, #aa4020)" }}
       />
 
-      {/* Falling leaves */}
-      {FALLING_LEAVES.map((leaf) => (
-        <ellipse
-          cx={leaf.cx}
-          cy={leaf.cy}
+      {/* Falling leaves, which until now were painted mid-air and left there.
+          Each drifts a different distance sideways on the way down and turns
+          at its own rate, so twelve leaves never look like one leaf twelve
+          times. */}
+      {FALLING_LEAVES.map((leaf, i) => (
+        <Falling
           key={`${leaf.cx}-${leaf.cy}`}
-          rx={leaf.rx}
-          ry={leaf.ry}
-          style={{ fill: "light-dark(#c84820, #9e2c10)" }}
-          transform={`rotate(${leaf.rotate}, ${leaf.cx}, ${leaf.cy})`}
-        />
+          style={vars({
+            "--fall-x": `${(i % 2 === 0 ? 1 : -1) * (14 + (i % 4) * 9)}px`,
+            "--fall-y": `${132 - leaf.cy}px`,
+            "--fall-spin": `${(i % 3 === 0 ? -1 : 1) * (160 + (i % 5) * 70)}deg`,
+            "--fall-period": `${11 + (i % 6) * 2.4}s`,
+            "--fall-offset": `${-(i * 2.7) % 17}s`,
+          })}
+        >
+          <ellipse
+            cx={leaf.cx}
+            cy={leaf.cy}
+            rx={leaf.rx}
+            ry={leaf.ry}
+            style={{ fill: "light-dark(#c84820, #9e2c10)" }}
+            transform={`rotate(${leaf.rotate}, ${leaf.cx}, ${leaf.cy})`}
+          />
+        </Falling>
       ))}
     </>
   );

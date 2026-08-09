@@ -1,7 +1,7 @@
 "use client";
 
 import { Coins, Droplets, Leaf, Lock, MousePointer2, Wind } from "lucide-react";
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import type React from "react";
 import {
   type PointerEvent as ReactPointerEvent,
@@ -27,7 +27,7 @@ import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
 import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
-import { clamp } from "@/lib/bonsai/treeGenerator.math";
+import { clamp, seededVal } from "@/lib/bonsai/treeGenerator.math";
 
 // Trees positioned near an edge get clamped so they stay fully visible.
 // The mini tree container is ~90px wide and the garden uses percentage coords,
@@ -209,13 +209,25 @@ function MiniTree({
           } as React.CSSProperties
         }
       >
-        {/* StaticTreeSVG, not TreeSVG: the garden never passes `activeTool`, so
-            TreeSVG's per-branch pruning hit targets are unreachable here — and
-            doubly so under MiniSVGWrapper's `pointer-events: none`. Pruning
-            happens in the tending modal. */}
-        <GrowthFlourish event={growth} variant="mini">
-          <StaticTreeSVG growing={growth !== null} tree={tree} />
-        </GrowthFlourish>
+        {/* Inside the wrapper rather than around the whole tree, so the canopy
+            leans on the breeze while the name tag and the button box you are
+            aiming at stay exactly where they were. */}
+        <Breeze
+          style={
+            {
+              "--sway-period": `${9 + seededVal(tree.id, 1) * 5}s`,
+              "--sway-offset": `${seededVal(tree.id, 2) * -14}s`,
+            } as React.CSSProperties
+          }
+        >
+          {/* StaticTreeSVG, not TreeSVG: the garden never passes `activeTool`, so
+              TreeSVG's per-branch pruning hit targets are unreachable here — and
+              doubly so under MiniSVGWrapper's `pointer-events: none`. Pruning
+              happens in the tending modal. */}
+          <GrowthFlourish event={growth} variant="mini">
+            <StaticTreeSVG growing={growth !== null} tree={tree} />
+          </GrowthFlourish>
+        </Breeze>
       </MiniSVGWrapper>
       <TreeNameTag>
         {config.emoji} {displayName}
@@ -588,6 +600,28 @@ const MiniTreeContainer = styled.div`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+/*
+ * A degree and a half, over nine to fourteen seconds, pivoting on the pot.
+ * Small enough that nobody watching a single tree would call it movement, and
+ * enough that a garden of them is never quite still. Each tree gets its own
+ * period and a negative delay that starts it mid-cycle, so they never fall
+ * into step and the garden does not pulse.
+ */
+const breeze = keyframes`
+  0%, 100% { transform: rotate(-0.75deg); }
+  50%      { transform: rotate(0.75deg); }
+`;
+
+const Breeze = styled.div`
+  transform-origin: 50% 92%;
+  animation: ${breeze} var(--sway-period) var(--sway-offset) ease-in-out
+    infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 

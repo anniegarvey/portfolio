@@ -125,7 +125,10 @@ function WaterableSVGContainer({
       tabIndex={isWatering ? 0 : undefined}
     >
       <GardenBackground backgroundId={bgId} tendPos={pos} />
-      <TreeSVGLayer>
+      {/* Held still while the shears are out: the branch hit targets are a few
+          pixels wide, and a target that drifts under the cursor is a tax on
+          exactly the people this app is for. */}
+      <TreeSVGLayer data-still={activeTool === "pruning-shears" || undefined}>
         <GrowthFlourish event={growth} variant="full">
           <TreeSVG
             activeTool={activeTool}
@@ -688,8 +691,27 @@ const SVGContainer = styled.div`
   border: 1px solid transparent;
 `;
 
+const breeze = keyframes`
+  0%, 100% { transform: rotate(-0.6deg); }
+  50%      { transform: rotate(0.6deg); }
+`;
+
 const TreeSVGLayer = styled.div`
   position: relative;
+  transform-origin: 50% 92%;
+  animation: ${breeze} 11s ease-in-out infinite;
+
+  &[data-still] {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+
+    &[data-still] {
+      animation: none;
+    }
+  }
 `;
 
 const WaterStatus = styled.div`
