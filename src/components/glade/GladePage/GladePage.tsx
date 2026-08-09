@@ -1,7 +1,7 @@
 "use client";
 
 import * as Tabs from "@radix-ui/react-tabs";
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { type ReactNode, useId } from "react";
 import { CollectionPanel } from "@/components/glade/CollectionPanel";
 import { DailyDigest } from "@/components/glade/DailyDigest";
@@ -77,18 +77,18 @@ export function GladePage() {
             <PageTab value="collection">Collection</PageTab>
           </PageTabsList>
 
-          <Tabs.Content value="skills">
+          <TabPanel value="skills">
             <SkillsPanel />
-          </Tabs.Content>
-          <Tabs.Content value="kitchen">
+          </TabPanel>
+          <TabPanel value="kitchen">
             <KitchenPanel />
-          </Tabs.Content>
-          <Tabs.Content value="pantry">
+          </TabPanel>
+          <TabPanel value="pantry">
             <PantryPanel />
-          </Tabs.Content>
-          <Tabs.Content value="collection">
+          </TabPanel>
+          <TabPanel value="collection">
             <CollectionPanel />
-          </Tabs.Content>
+          </TabPanel>
         </PageTabs>
 
         <ResetGlade />
@@ -165,7 +165,7 @@ const PageTab = styled(Tabs.Trigger)`
   cursor: pointer;
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
-  transition: color 150ms ease, border-color 150ms ease;
+  transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out);
 
   &[data-state="active"] {
     color: light-dark(var(--color-primary-600), var(--color-primary-400));
@@ -184,5 +184,21 @@ const PageTab = styled(Tabs.Trigger)`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+const panelIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+/* Radix mounts only the active panel, so this plays on every switch: enough
+   to tie the new content to the tab you pressed, short enough not to be
+   something you wait through. */
+const TabPanel = styled(Tabs.Content)`
+  animation: ${panelIn} 180ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
