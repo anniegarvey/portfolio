@@ -1,6 +1,6 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { useId } from "react";
 import { Button } from "@/components/Button";
 import { INGREDIENTS, SPECIES } from "@/lib/glade/catalog";
@@ -89,6 +89,13 @@ export function DailyDigest() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+const arrive = keyframes`
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+/* News of what happened overnight, so it arrives rather than being there
+   already — it renders once the day's advance has run, not on first paint. */
 const Panel = styled.section`
   display: flex;
   flex-direction: column;
@@ -99,6 +106,11 @@ const Panel = styled.section`
   background: light-dark(var(--color-grey-50), var(--color-grey-800));
   border: 1px solid
     light-dark(var(--color-primary-300), var(--color-primary-700));
+  animation: ${arrive} 320ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const Heading = styled.h2`

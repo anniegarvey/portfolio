@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type GladeContextType, useGlade } from "@/lib/glade/context";
@@ -140,6 +140,8 @@ describe("GladeScene", () => {
         fromRect: new DOMRect(0, 0, 10, 10),
         toX: 0,
         toY: 0,
+        scrollX: 0,
+        scrollY: 0,
         newResidentId: rabbit.id,
       },
     });
@@ -153,5 +155,72 @@ describe("GladeScene", () => {
       "data-entering",
       "true",
     );
+  });
+
+  it("settles the resident the flight just put down, in the same render that reveals it", () => {
+    const celebration = {
+      speciesId: "rabbit" as const,
+      creatureName: "Rabbit",
+      fromRect: new DOMRect(0, 0, 10, 10),
+      toX: 0,
+      toY: 0,
+      scrollX: 0,
+      scrollY: 0,
+      newResidentId: rabbit.id,
+    };
+    mockGlade({ celebration });
+    const { rerender } = render(<GladeScene />);
+
+    const rabbitButton = () =>
+      screen.getByRole("button", { name: "Rabbit — Forager" });
+    expect(rabbitButton().querySelector('[data-landing="true"]')).toBeNull();
+
+    // The flight ends: the celebration clears, and the resident it carried has
+    // to be revealed and settling together — a reveal without the settle, even
+    // for one paint, is the pop this animation exists to avoid.
+    mockGlade({ celebration: null });
+    rerender(<GladeScene />);
+
+    // biome-ignore lint/style/noNonNullAssertion: buttons always have a parent
+    expect(rabbitButton().parentElement!).not.toHaveAttribute("data-entering");
+    expect(
+      rabbitButton().querySelector('[data-landing="true"]'),
+    ).not.toBeNull();
+    // Only the arriving resident settles.
+    const foxButton = screen.getByRole("button", { name: "Rusty — Beacon" });
+    expect(foxButton.querySelector('[data-landing="true"]')).toBeNull();
+  });
+
+  it("keeps one resident's settle when another finishes its greet bounce", async () => {
+    const user = userEvent.setup();
+    const celebration = {
+      speciesId: "rabbit" as const,
+      creatureName: "Rabbit",
+      fromRect: new DOMRect(0, 0, 10, 10),
+      toX: 0,
+      toY: 0,
+      scrollX: 0,
+      scrollY: 0,
+      newResidentId: rabbit.id,
+    };
+    mockGlade({ celebration });
+    const { rerender } = render(<GladeScene />);
+    mockGlade({ celebration: null });
+    rerender(<GladeScene />);
+
+    // The rabbit is mid-settle. Greeting the fox starts its own bounce; when
+    // that bounce ends it must not clear an animation it does not own.
+    const foxButton = screen.getByRole("button", { name: "Rusty — Beacon" });
+    await user.click(foxButton);
+    const foxGreet = foxButton.querySelector('[data-greeting="true"]');
+    expect(foxGreet).not.toBeNull();
+    // biome-ignore lint/style/noNonNullAssertion: asserted above
+    fireEvent.animationEnd(foxGreet!);
+
+    const rabbitButton = screen.getByRole("button", {
+      name: "Rabbit — Forager",
+    });
+    expect(rabbitButton.querySelector('[data-landing="true"]')).not.toBeNull();
+    expect(foxButton.querySelector('[data-greeting="true"]')).toBeNull();
   });
 });

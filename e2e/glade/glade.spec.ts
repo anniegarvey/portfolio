@@ -209,6 +209,38 @@ test.describe("Creature Glade", () => {
     expect(violationFingerprints(accessibilityScanResults)).toEqual("[]");
   });
 
+  test("stops every scene animation when the reader asks for reduced motion", async ({
+    page,
+  }) => {
+    // The glade animates a lot: a per-species idle loop on each resident, a
+    // slow drift, drifting clouds, a shimmering pond, bobbing blooms and
+    // floating specks. All of it is decorative, so all of it has to stop.
+    // Regression guard: the idle loops used to keep running here, because the
+    // reduced-motion rule was written at a lower specificity than the
+    // per-species rules it was meant to override.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await goToGladeWithSeed(page, {
+      residents: [
+        { speciesId: "rabbit", x: 20, y: 40 },
+        { speciesId: "fox", x: 60, y: 50 },
+        { speciesId: "owl", x: 80, y: 35 },
+      ],
+    });
+
+    const scene = page.getByRole("region", { name: "Glade ecosystem" });
+    await expect(scene).toBeVisible();
+
+    const running = await scene.evaluate((el) =>
+      [...el.querySelectorAll("*")]
+        .filter((node) => getComputedStyle(node).animationName !== "none")
+        .map(
+          (node) =>
+            `${node.tagName.toLowerCase()}:${getComputedStyle(node).animationName}`,
+        ),
+    );
+    expect(running).toEqual([]);
+  });
+
   test("core action buttons meet the 44px touch target", async ({ page }) => {
     await goToGladeWithSeed(page);
 

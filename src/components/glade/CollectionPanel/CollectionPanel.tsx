@@ -1,6 +1,6 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { ALL_SPECIES_IDS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
@@ -15,8 +15,12 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function CollectionPanel() {
-  const { state } = useGlade();
+  const { state, tamedResidentId } = useGlade();
   const residentSpecies = new Set(state.residents.map((r) => r.speciesId));
+  // The species tamed this session, so opening the tab after a tame points
+  // straight at the entry that just turned from a silhouette into a creature.
+  const newestSpeciesId =
+    state.residents.find((r) => r.id === tamedResidentId)?.speciesId ?? null;
 
   return (
     <Grid>
@@ -24,7 +28,10 @@ export function CollectionPanel() {
         const species = SPECIES[speciesId];
         const collected = residentSpecies.has(speciesId);
         return (
-          <Entry key={speciesId}>
+          <Entry
+            data-new={speciesId === newestSpeciesId ? "true" : undefined}
+            key={speciesId}
+          >
             <CreatureSVG
               silhouette={!collected}
               size={56}
@@ -50,6 +57,14 @@ const Grid = styled.div`
   gap: 0.75rem;
 `;
 
+/* A ring that widens and fades, so the newest entry announces itself once
+   without the grid around it moving. */
+const justCollected = keyframes`
+  0%   { box-shadow: 0 0 0 0 var(--color-primary-400); }
+  70%  { box-shadow: 0 0 0 6px color-mix(in oklch, var(--color-primary-400) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-primary-400) 0%, transparent); }
+`;
+
 const Entry = styled.div`
   display: flex;
   flex-direction: column;
@@ -60,6 +75,20 @@ const Entry = styled.div`
   background: light-dark(var(--color-grey-50), var(--color-grey-800));
   border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
   text-align: center;
+
+  &[data-new="true"] {
+    border-color: light-dark(
+      var(--color-primary-400),
+      var(--color-primary-500)
+    );
+    animation: ${justCollected} 900ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-new="true"] {
+      animation: none;
+    }
+  }
 `;
 
 const EntryName = styled.span`

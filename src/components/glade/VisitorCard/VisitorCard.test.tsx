@@ -19,6 +19,15 @@ vi.mock("@/components/glade/CreatureSVG", () => ({
 
 const rabbit: WildVisitor = makeVisitor({ speciesId: "rabbit" });
 
+/** The always-mounted region a screen reader hears the trust feedback from. */
+const liveRegion = (container: HTMLElement) =>
+  container.querySelector('[aria-live="polite"]');
+
+/** The on-screen copy of the same line, hidden from assistive tech so the
+ *  two are never announced together. */
+const visibleFeedback = (container: HTMLElement) =>
+  container.querySelector('p[aria-hidden="true"]');
+
 function mockGlade(overrides: Partial<GladeContextType> = {}) {
   vi.mocked(useGlade).mockReturnValue(
     makeGladeContext({
@@ -290,14 +299,20 @@ describe("VisitorCard feedback and actions", () => {
       lastAction: {
         state: makeGladeState({ visitors: [rabbit] }),
         visitorId: rabbit.id,
+        kind: "approach",
         trustGained: 9,
         matched: true,
         tamed: false,
       },
     });
-    render(<VisitorCard visitor={rabbit} />);
+    const { container } = render(<VisitorCard visitor={rabbit} />);
 
-    expect(screen.getByText("+9 trust — just right!")).toBeInTheDocument();
+    // Announced once and shown once: the visible line is aria-hidden, so the
+    // two copies are never read out together.
+    expect(liveRegion(container)).toHaveTextContent("+9 trust — just right!");
+    expect(visibleFeedback(container)).toHaveTextContent(
+      "+9 trust — just right!",
+    );
   });
 
   it("shows plain feedback for a mismatched action, and none for a different visitor", () => {
@@ -306,6 +321,7 @@ describe("VisitorCard feedback and actions", () => {
       lastAction: {
         state: makeGladeState({ visitors: [rabbit] }),
         visitorId: "some-other-visitor",
+        kind: "approach",
         trustGained: 3,
         matched: false,
         tamed: false,
@@ -314,6 +330,64 @@ describe("VisitorCard feedback and actions", () => {
     render(<VisitorCard visitor={rabbit} />);
 
     expect(screen.queryByText(/trust/)).not.toBeInTheDocument();
+  });
+
+  it("announces the feedback through a region that stays mounted between actions", () => {
+    // The visible line is remounted each action so it can replay its
+    // entrance, which would silence a live region placed on it. The
+    // announcement is separate and always present, so every action is spoken.
+    mockGlade({ state: makeGladeState({ visitors: [rabbit] }) });
+    const { container, rerender } = render(<VisitorCard visitor={rabbit} />);
+
+    const region = liveRegion(container);
+    expect(region).toBeEmptyDOMElement();
+
+    mockGlade({
+      state: makeGladeState({ visitors: [rabbit] }),
+      lastAction: {
+        state: makeGladeState({ visitors: [rabbit] }),
+        visitorId: rabbit.id,
+        kind: "approach",
+        trustGained: 4,
+        matched: false,
+        tamed: false,
+      },
+    });
+    rerender(<VisitorCard visitor={rabbit} />);
+
+    // Same node, new contents — which is the only thing a live region
+    // announces. A remounted region is silent.
+    expect(liveRegion(container)).toBe(region);
+    expect(region).toHaveTextContent("+4 trust");
+  });
+
+  it("marks only the action just taken as fresh, not every action already spent", () => {
+    // Acting on another visitor and coming back must not replay the entrance
+    // on a note that has been sitting there since an earlier action.
+    const petted = makeVisitor({
+      speciesId: "rabbit",
+      actionsToday: { treat: false, approach: true, pet: true },
+    });
+    mockGlade({
+      state: makeGladeState({ visitors: [petted] }),
+      lastAction: {
+        state: makeGladeState({ visitors: [petted] }),
+        visitorId: petted.id,
+        kind: "pet",
+        trustGained: 6,
+        matched: true,
+        tamed: false,
+      },
+    });
+    render(<VisitorCard visitor={petted} />);
+
+    expect(screen.getByText("Petted today")).toHaveAttribute(
+      "data-fresh",
+      "true",
+    );
+    expect(screen.getByText("Approached today")).not.toHaveAttribute(
+      "data-fresh",
+    );
   });
 
   it("clicking a posture calls approachVisitor with the visitor and posture", async () => {

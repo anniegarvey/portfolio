@@ -149,7 +149,7 @@ const XpFill = styled.div`
   height: 100%;
   border-radius: 4px;
   background: light-dark(var(--color-secondary-500), var(--color-secondary-400));
-  transition: width 300ms ease;
+  transition: width 420ms var(--ease-out);
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

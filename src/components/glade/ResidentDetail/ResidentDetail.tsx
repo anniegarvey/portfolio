@@ -1,6 +1,6 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
@@ -105,6 +105,13 @@ export function ResidentDetail({ resident, onClose, id }: ResidentDetailProps) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+const openIn = keyframes`
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+/* Keyed on the resident in GladeScene, so switching from one to another
+   replays this — the card reads as answering the creature you just greeted. */
 const Card = styled.section`
   display: flex;
   align-items: flex-start;
@@ -114,6 +121,11 @@ const Card = styled.section`
   background: light-dark(var(--color-grey-50), var(--color-grey-800));
   border: 1px solid
     light-dark(var(--color-primary-300), var(--color-primary-700));
+  animation: ${openIn} 240ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const Portrait = styled.div`
