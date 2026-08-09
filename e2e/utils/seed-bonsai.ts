@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 const BONSAI_KEY = "bonsai-game-state-v2";
 const POINTS_KEY = "energy-planner-points";
+const LAST_ACTIVE_KEY = "energy-planner-last-active-date";
 
 const FIXED_TREE_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -16,6 +17,13 @@ export interface BonsaiSeedOptions {
   points?: number;
   /** Navigate with `?demo=1` to enable the manual day-advance affordances. */
   demoMode?: boolean;
+  /**
+   * Mark the energy planner as used today, which is what makes the page apply
+   * the daily growth on load. This is how real players' trees grow — the
+   * day-advance affordances are a demo aid.
+   */
+  plannerActiveToday?: boolean;
+  equippedBackgroundId?: string;
 }
 
 /**
@@ -50,6 +58,12 @@ export function makeBonsaiGameState(opts: BonsaiSeedOptions = {}) {
         "simple-clay-small",
       ],
       ownedStandIds: opts.ownedStandIds ?? [],
+      ...(opts.equippedBackgroundId
+        ? {
+            equippedBackgroundId: opts.equippedBackgroundId,
+            ownedBackgroundIds: [opts.equippedBackgroundId],
+          }
+        : {}),
     },
   };
 }
@@ -67,17 +81,31 @@ export async function goToBonsaiWithSeed(
   await page.goto(url, { waitUntil: "domcontentloaded" });
 
   await page.evaluate(
-    ({ gameStateJson, pointsStr, bonsaiKey, pointsKey }) => {
+    ({
+      gameStateJson,
+      pointsStr,
+      activeDate,
+      bonsaiKey,
+      pointsKey,
+      lastKey,
+    }) => {
       localStorage.setItem(bonsaiKey, gameStateJson);
       if (pointsStr !== null) {
         localStorage.setItem(pointsKey, pointsStr);
+      }
+      if (activeDate !== null) {
+        localStorage.setItem(lastKey, activeDate);
       }
     },
     {
       gameStateJson: JSON.stringify(makeBonsaiGameState(opts)),
       pointsStr: opts.points != null ? String(opts.points) : null,
+      activeDate: opts.plannerActiveToday
+        ? new Date().toISOString().split("T")[0]
+        : null,
       bonsaiKey: BONSAI_KEY,
       pointsKey: POINTS_KEY,
+      lastKey: LAST_ACTIVE_KEY,
     },
   );
 
