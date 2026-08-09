@@ -88,8 +88,12 @@ const Floater = styled.span`
   left: 50%;
   bottom: 8%;
   transform: translate(-50%, 0);
-  /* "Ancient Tree" is wider than a 90px garden tree, and the garden clips at
-     its own edges — so the longest label wraps rather than losing its end. */
+  /* Absolutely positioned from the centre line, so without an explicit width
+     it shrinks to the 45px left over on its right and wraps "+1 day" onto two
+     lines. max-content restores one line; the cap keeps the longest stage name
+     from overhanging a 90px garden tree far enough to clip at the garden's
+     edge, and lets it wrap if a translation ever runs longer still. */
+  width: max-content;
   max-width: 130%;
   text-align: center;
   font-weight: 700;
