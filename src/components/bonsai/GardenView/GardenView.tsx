@@ -1,17 +1,19 @@
 "use client";
 
 import { Coins, Droplets, Leaf, Lock, MousePointer2, Wind } from "lucide-react";
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import type React from "react";
 import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
 import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
+import { GrowthFlourish } from "@/components/bonsai/GrowthFlourish";
 import { StaticTreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import {
   WaterSprinkles,
@@ -21,11 +23,12 @@ import { SkeletonBox } from "@/components/Skeleton";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
+import type { GrowthEvent } from "@/lib/bonsai/growthEvents";
 import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
 import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
-import { clamp } from "@/lib/bonsai/treeGenerator.math";
+import { clamp, seededVal } from "@/lib/bonsai/treeGenerator.math";
 
 // Trees positioned near an edge get clamped so they stay fully visible.
 // The mini tree container is ~90px wide and the garden uses percentage coords,
@@ -46,6 +49,8 @@ interface MiniTreeProps {
   isPlacing: boolean;
   gardenTool: GardenTool;
   gardenRef: RefObject<HTMLDivElement | null>;
+  growth: GrowthEvent | null;
+  arriving: boolean;
   onOpen: (tree: BonsaiTree) => void;
   onPositionChange: (treeId: string, pos: GardenPosition) => void;
   onWater: (treeId: string) => void;
@@ -56,6 +61,8 @@ function MiniTree({
   isPlacing,
   gardenTool,
   gardenRef,
+  growth,
+  arriving,
   onOpen,
   onPositionChange,
   onWater,
@@ -198,6 +205,7 @@ function MiniTree({
       tabIndex={isPlacing ? -1 : 0}
     >
       <MiniSVGWrapper
+        data-arriving={arriving || undefined}
         style={
           {
             "--glow-h": glowH,
@@ -205,11 +213,25 @@ function MiniTree({
           } as React.CSSProperties
         }
       >
-        {/* StaticTreeSVG, not TreeSVG: the garden never passes `activeTool`, so
-            TreeSVG's per-branch pruning hit targets are unreachable here — and
-            doubly so under MiniSVGWrapper's `pointer-events: none`. Pruning
-            happens in the tending modal. */}
-        <StaticTreeSVG tree={tree} />
+        {/* Inside the wrapper rather than around the whole tree, so the canopy
+            leans on the breeze while the name tag and the button box you are
+            aiming at stay exactly where they were. */}
+        <Breeze
+          style={
+            {
+              "--sway-period": `${9 + seededVal(tree.id, 1) * 5}s`,
+              "--sway-offset": `${seededVal(tree.id, 2) * -14}s`,
+            } as React.CSSProperties
+          }
+        >
+          {/* StaticTreeSVG, not TreeSVG: the garden never passes `activeTool`, so
+              TreeSVG's per-branch pruning hit targets are unreachable here — and
+              doubly so under MiniSVGWrapper's `pointer-events: none`. Pruning
+              happens in the tending modal. */}
+          <GrowthFlourish event={growth} variant="mini">
+            <StaticTreeSVG growing={growth !== null} tree={tree} />
+          </GrowthFlourish>
+        </Breeze>
       </MiniSVGWrapper>
       <TreeNameTag>
         {config.emoji} {displayName}
@@ -261,6 +283,46 @@ function GardenViewSkeleton({ demoMode }: { demoMode: boolean }) {
   );
 }
 
+// ─── Arrivals ─────────────────────────────────────────────────────────────────
+
+/** How long a newly planted tree takes to settle into the garden. */
+const ARRIVAL_MS = 600;
+
+/**
+ * The id of a tree that was planted just now, or null.
+ *
+ * A tree cannot tell a first mount from an arrival on its own — every tree in
+ * a saved garden mounts at once on load, and none of those was planted. So the
+ * ids present at the first settled commit are taken as the garden that was
+ * already there, and only what appears after that is an arrival.
+ */
+function useJustPlanted(trees: BonsaiTree[], isLoading: boolean) {
+  const known = useRef<Set<string> | null>(null);
+  const [justPlanted, setJustPlanted] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const ids = new Set(trees.map((tree) => tree.id));
+    const before = known.current;
+    known.current = ids;
+    if (before === null) return; // the saved garden, not an arrival
+    const fresh = [...ids].find((id) => !before.has(id));
+    if (fresh !== undefined) setJustPlanted(fresh);
+  }, [trees, isLoading]);
+
+  // Its own effect, keyed on the arrival rather than on the tree list. Sharing
+  // the effect above would let any unrelated change within the window — a
+  // watering, a drag, which both hand back a new trees array — cancel the
+  // timer on the way past and leave the arrival flagged for good.
+  useEffect(() => {
+    if (justPlanted === null) return;
+    const timer = setTimeout(() => setJustPlanted(null), ARRIVAL_MS);
+    return () => clearTimeout(timer);
+  }, [justPlanted]);
+
+  return justPlanted;
+}
+
 // ─── Garden View ──────────────────────────────────────────────────────────────
 
 interface GardenViewProps {
@@ -278,9 +340,11 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     updateTreePosition,
     waterTree,
     demoMode,
+    growthEvents,
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
+  const justPlanted = useJustPlanted(state.trees, isLoading);
   const ownedTools = state.inventory.ownedToolIds;
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
@@ -409,8 +473,10 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
 
         {state.trees.map((tree) => (
           <MiniTree
+            arriving={tree.id === justPlanted}
             gardenRef={gardenRef}
             gardenTool={gardenTool}
+            growth={growthEvents.find((e) => e.treeId === tree.id) ?? null}
             isPlacing={isPlacing}
             key={tree.id}
             onOpen={onOpenTree}
@@ -583,6 +649,34 @@ const MiniTreeContainer = styled.div`
   }
 `;
 
+/*
+ * A degree and a half, over nine to fourteen seconds, pivoting on the pot.
+ * Small enough that nobody watching a single tree would call it movement, and
+ * enough that a garden of them is never quite still. Each tree gets its own
+ * period and a negative delay that starts it mid-cycle, so they never fall
+ * into step and the garden does not pulse.
+ */
+const breeze = keyframes`
+  0%, 100% { transform: rotate(-0.75deg); }
+  50%      { transform: rotate(0.75deg); }
+`;
+
+const Breeze = styled.div`
+  transform-origin: 50% 92%;
+  animation: ${breeze} var(--sway-period) var(--sway-offset) ease-in-out
+    infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+/* Pressed into the soil and unfurling, rather than blinking into existence. */
+const arrive = keyframes`
+  from { opacity: 0; transform: scale(0.35, 0.2); }
+  to   { opacity: 1; transform: scale(1, 1); }
+`;
+
 const MiniSVGWrapper = styled.div`
   width: 90px;
   pointer-events: none;
@@ -591,6 +685,17 @@ const MiniSVGWrapper = styled.div`
     light-dark(transparent, rgba(220, 255, 200, 0.22)) 0%,
     transparent 100%
   );
+
+  &[data-arriving] {
+    transform-origin: 50% 92%;
+    animation: ${arrive} ${ARRIVAL_MS}ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-arriving] {
+      animation: none;
+    }
+  }
 `;
 
 const TreeNameTag = styled.span`

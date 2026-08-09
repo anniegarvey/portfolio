@@ -591,6 +591,104 @@ test.describe("Bonsai Garden", () => {
     }
   });
 
+  // ─── Motion ────────────────────────────────────────────────────────────────
+
+  /** Every element under the page that currently declares an animation. */
+  const animating = (page: Page) =>
+    page
+      .getByRole("main")
+      .evaluate((el) =>
+        [...el.querySelectorAll("*")]
+          .filter((node) => getComputedStyle(node).animationName !== "none")
+          .map(
+            (node) =>
+              `${node.tagName.toLowerCase()}:${getComputedStyle(node).animationName}`,
+          ),
+      );
+
+  // The garden animates in several places at once: a breeze on every tree, a
+  // per-scene ambient loop, and whatever flourish the last action left running.
+  // All of it is decorative, so all of it has to stop. Regression guard for the
+  // shape of bug the glade hit — a blanket `animation: none` inside a media
+  // query loses to any `[data-*]`-scoped rule above it, so each one needs its
+  // own equally specific override.
+  //
+  // Both scenes, because they animate through different components: autumn
+  // runs twelve falling leaves, and night runs twenty-five glimmering stars
+  // and lantern halos, which no other scene uses.
+  for (const scene of ["autumn-forest", "night-garden"] as const) {
+    test(`stops every ${scene} animation when the reader asks for reduced motion`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await goToBonsaiWithSeed(page, {
+        activeDaysCount: 9,
+        lastWateredDay: 9,
+        plannerActiveToday: true,
+        equippedBackgroundId: scene,
+      });
+
+      await expect(
+        page.getByRole("img", { name: /bonsai tree/i }).first(),
+      ).toBeVisible();
+
+      expect(await animating(page)).toEqual([]);
+    });
+  }
+
+  // The mirror of the tests above: without it, deleting every animation in the
+  // garden would still satisfy them. Deliberately not a count — the number
+  // moves whenever a scene gains an element, and a stale expectation failing
+  // reads as a bug in the garden rather than in the test.
+  test("the garden is animating when motion is allowed", async ({ page }) => {
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 40,
+      equippedBackgroundId: "autumn-forest",
+    });
+
+    await expect(
+      page.getByRole("img", { name: /bonsai tree/i }).first(),
+    ).toBeVisible();
+
+    expect((await animating(page)).length).toBeGreaterThan(0);
+  });
+
+  // Real growth arrives while the page is loading — the day-advance control is
+  // a demo aid. Nothing else covers that path end to end.
+  test("celebrates the growth applied on load, without any demo control", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 9,
+      lastWateredDay: 9,
+      plannerActiveToday: true,
+    });
+
+    // Day 9 → 10 crosses into Sapling.
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 10/i }).first(),
+    ).toBeVisible();
+    await expect(page.getByText("Sapling", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Pine 1 grew 1 day. It is now a Sapling."),
+    ).toBeAttached();
+  });
+
+  test("a growth that changes no stage counts the days instead", async ({
+    page,
+  }) => {
+    await goToBonsaiWithSeed(page, {
+      activeDaysCount: 12,
+      lastWateredDay: 12,
+      plannerActiveToday: true,
+    });
+
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 13/i }).first(),
+    ).toBeVisible();
+    await expect(page.getByText("+1 day")).toBeVisible();
+  });
+
   test("accessibility scan", async ({ page, makeAxeBuilder }) => {
     await page.goto("/bonsai");
     // Wait for the garden tree to render before scanning

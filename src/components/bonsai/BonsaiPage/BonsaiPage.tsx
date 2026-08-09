@@ -11,11 +11,13 @@ import { TreeCollection } from "@/components/bonsai/TreeCollection";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { useBonsai } from "@/lib/bonsai/context";
+import { describeGrowth } from "@/lib/bonsai/growthEvents";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 import { QUERIES } from "@/lib/constants";
 
 export function BonsaiPage() {
-  const { state, advanceDay, demoMode } = useBonsai();
+  const { state, advanceDay, demoMode, growthEvents } = useBonsai();
   const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("collection");
   const [focusShopItemId, setFocusShopItemId] = useState<string | undefined>();
@@ -55,6 +57,17 @@ export function BonsaiPage() {
         <PageTitle>Bonsai Garden</PageTitle>
       </PageHeader>
 
+      {/* Always mounted, and the only place growth is announced: the flourish
+          on each tree is decorative, so a garden of five reads out once. */}
+      <GrowthAnnouncement aria-atomic="true" aria-live="polite">
+        {describeGrowth(growthEvents, (treeId) => {
+          const tree = state.trees.find((t) => t.id === treeId);
+          return tree
+            ? (tree.name ?? SPECIES_CONFIG[tree.speciesId].label)
+            : "A tree";
+        })}
+      </GrowthAnnouncement>
+
       <Layout>
         <GardenView
           onNavigateToShop={handleNavigateToShop}
@@ -93,6 +106,18 @@ export function BonsaiPage() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+
+const GrowthAnnouncement = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
 
 const Layout = styled.div`
   display: flex;

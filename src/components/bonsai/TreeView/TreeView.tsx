@@ -22,6 +22,7 @@ import {
   useState,
 } from "react";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
+import { GrowthFlourish } from "@/components/bonsai/GrowthFlourish";
 import {
   type ActiveTool,
   TreeSVG,
@@ -75,7 +76,7 @@ function WaterableSVGContainer({
   tree: BonsaiTree;
   activeTool: ActiveTool;
 }) {
-  const { waterTree, state } = useBonsai();
+  const { waterTree, state, growthEvents } = useBonsai();
   const isWatering = activeTool === "watering-can";
   const sprinklesRef = useRef<WaterSprinklesHandle>(null);
   const handleKeyDown = useCallback(
@@ -105,6 +106,7 @@ function WaterableSVGContainer({
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
   const pos = tree.gardenPosition ?? { x: 50, y: 50 };
+  const growth = growthEvents.find((e) => e.treeId === tree.id) ?? null;
   return (
     <SVGContainer
       aria-label={isWatering ? "Water the tree" : undefined}
@@ -123,8 +125,20 @@ function WaterableSVGContainer({
       tabIndex={isWatering ? 0 : undefined}
     >
       <GardenBackground backgroundId={bgId} tendPos={pos} />
-      <TreeSVGLayer>
-        <TreeSVG activeTool={activeTool} cropTop tree={tree} />
+      {/* The breeze stops while the shears are out: the branch hit targets are
+          a few pixels wide, and a target that drifts under the cursor is a tax
+          on exactly the people this app is for. The growth surge and the
+          watered lift still move them, but each is one short pass rather than
+          a loop, and both need the shears and a growth in the same moment. */}
+      <TreeSVGLayer data-still={activeTool === "pruning-shears" || undefined}>
+        <GrowthFlourish event={growth} variant="full">
+          <TreeSVG
+            activeTool={activeTool}
+            cropTop
+            growing={growth !== null}
+            tree={tree}
+          />
+        </GrowthFlourish>
       </TreeSVGLayer>
       <WaterSprinkles ref={sprinklesRef} />
     </SVGContainer>
@@ -679,8 +693,27 @@ const SVGContainer = styled.div`
   border: 1px solid transparent;
 `;
 
+const breeze = keyframes`
+  0%, 100% { transform: rotate(-0.6deg); }
+  50%      { transform: rotate(0.6deg); }
+`;
+
 const TreeSVGLayer = styled.div`
   position: relative;
+  transform-origin: 50% 92%;
+  animation: ${breeze} 11s ease-in-out infinite;
+
+  &[data-still] {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+
+    &[data-still] {
+      animation: none;
+    }
+  }
 `;
 
 const WaterStatus = styled.div`
