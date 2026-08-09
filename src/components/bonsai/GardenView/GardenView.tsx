@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -49,6 +50,7 @@ interface MiniTreeProps {
   gardenTool: GardenTool;
   gardenRef: RefObject<HTMLDivElement | null>;
   growth: GrowthEvent | null;
+  arriving: boolean;
   onOpen: (tree: BonsaiTree) => void;
   onPositionChange: (treeId: string, pos: GardenPosition) => void;
   onWater: (treeId: string) => void;
@@ -60,6 +62,7 @@ function MiniTree({
   gardenTool,
   gardenRef,
   growth,
+  arriving,
   onOpen,
   onPositionChange,
   onWater,
@@ -202,6 +205,7 @@ function MiniTree({
       tabIndex={isPlacing ? -1 : 0}
     >
       <MiniSVGWrapper
+        data-arriving={arriving || undefined}
         style={
           {
             "--glow-h": glowH,
@@ -279,6 +283,39 @@ function GardenViewSkeleton({ demoMode }: { demoMode: boolean }) {
   );
 }
 
+// ─── Arrivals ─────────────────────────────────────────────────────────────────
+
+/** How long a newly planted tree takes to settle into the garden. */
+const ARRIVAL_MS = 600;
+
+/**
+ * The id of a tree that was planted just now, or null.
+ *
+ * A tree cannot tell a first mount from an arrival on its own — every tree in
+ * a saved garden mounts at once on load, and none of those was planted. So the
+ * ids present at the first settled commit are taken as the garden that was
+ * already there, and only what appears after that is an arrival.
+ */
+function useJustPlanted(trees: BonsaiTree[], isLoading: boolean) {
+  const known = useRef<Set<string> | null>(null);
+  const [justPlanted, setJustPlanted] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const ids = new Set(trees.map((tree) => tree.id));
+    const before = known.current;
+    known.current = ids;
+    if (before === null) return; // the saved garden, not an arrival
+    const fresh = [...ids].find((id) => !before.has(id));
+    if (fresh === undefined) return;
+    setJustPlanted(fresh);
+    const timer = setTimeout(() => setJustPlanted(null), ARRIVAL_MS);
+    return () => clearTimeout(timer);
+  }, [trees, isLoading]);
+
+  return justPlanted;
+}
+
 // ─── Garden View ──────────────────────────────────────────────────────────────
 
 interface GardenViewProps {
@@ -300,6 +337,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
+  const justPlanted = useJustPlanted(state.trees, isLoading);
   const ownedTools = state.inventory.ownedToolIds;
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
@@ -428,6 +466,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
 
         {state.trees.map((tree) => (
           <MiniTree
+            arriving={tree.id === justPlanted}
             gardenRef={gardenRef}
             gardenTool={gardenTool}
             growth={growthEvents.find((e) => e.treeId === tree.id) ?? null}
@@ -625,6 +664,12 @@ const Breeze = styled.div`
   }
 `;
 
+/* Pressed into the soil and unfurling, rather than blinking into existence. */
+const arrive = keyframes`
+  from { opacity: 0; transform: scale(0.35, 0.2); }
+  to   { opacity: 1; transform: scale(1, 1); }
+`;
+
 const MiniSVGWrapper = styled.div`
   width: 90px;
   pointer-events: none;
@@ -633,6 +678,17 @@ const MiniSVGWrapper = styled.div`
     light-dark(transparent, rgba(220, 255, 200, 0.22)) 0%,
     transparent 100%
   );
+
+  &[data-arriving] {
+    transform-origin: 50% 92%;
+    animation: ${arrive} ${ARRIVAL_MS}ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-arriving] {
+      animation: none;
+    }
+  }
 `;
 
 const TreeNameTag = styled.span`

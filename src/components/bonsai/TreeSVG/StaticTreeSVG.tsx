@@ -948,6 +948,7 @@ export function StaticTreeSVG({
         growing={growing}
         soilX={svgData.trunkX}
         soilY={svgData.trunkBaseY}
+        watered={isWateredToday}
       >
         {/* Nebari root fingers painted before the main trunk so the trunk
            overlaps their inner end. */}
@@ -1048,13 +1049,38 @@ const SurgeGroup = styled.g`
   }
 `;
 
+/*
+ * A watered tree stands a little taller. It is the same soil anchor as the
+ * surge, on its own group so the two never fight over `transform`, and a
+ * transition rather than an animation so it holds for as long as the tree is
+ * watered instead of playing once and forgetting.
+ *
+ * Only the lift is expressed, never a droop: an unwatered tree is the
+ * baseline. Falling short of a day is information here, not a rebuke.
+ */
+const RefreshGroup = styled.g`
+  transform-box: view-box;
+  transform-origin: var(--soil-x) var(--soil-y);
+  transition: transform 700ms var(--ease-out);
+
+  &[data-watered] {
+    transform: scale(1.008, 1.022);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 function TreeBody({
   growing,
+  watered,
   soilX,
   soilY,
   children,
 }: {
   growing?: boolean;
+  watered?: boolean;
   soilX: number;
   soilY: number;
   children: React.ReactNode;
@@ -1071,7 +1097,9 @@ function TreeBody({
         } as React.CSSProperties
       }
     >
-      {children}
+      <RefreshGroup data-watered={watered || undefined}>
+        {children}
+      </RefreshGroup>
     </SurgeGroup>
   );
 }
