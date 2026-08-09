@@ -47,6 +47,7 @@ function mockBonsai(inventory: MockInventory = {}) {
     equipStand: vi.fn(),
     unequipStand: vi.fn(),
     applyFertiliser: vi.fn(),
+    growthEvents: [],
   } as unknown as ReturnType<typeof useBonsai>);
 }
 
@@ -192,6 +193,7 @@ describe("TreeView — keyboard watering", () => {
       equipStand: vi.fn(),
       unequipStand: vi.fn(),
       applyFertiliser: vi.fn(),
+      growthEvents: [],
     } as unknown as ReturnType<typeof useBonsai>);
 
     render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
@@ -219,6 +221,7 @@ describe("TreeView — keyboard watering", () => {
       equipStand: vi.fn(),
       unequipStand: vi.fn(),
       applyFertiliser: vi.fn(),
+      growthEvents: [],
     } as unknown as ReturnType<typeof useBonsai>);
 
     render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
@@ -319,6 +322,7 @@ describe("TreeView — accessory bar", () => {
       equipStand: vi.fn(),
       unequipStand: vi.fn(),
       applyFertiliser,
+      growthEvents: [],
     } as unknown as ReturnType<typeof useBonsai>);
 
     render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);

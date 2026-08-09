@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffGrowth } from "./growthEvents";
+import { describeGrowth, diffGrowth } from "./growthEvents";
 import type { BonsaiGameState, BonsaiTree } from "./schema";
 
 function makeTree(id: string, activeDaysCount: number): BonsaiTree {
@@ -93,5 +93,48 @@ describe("diffGrowth", () => {
     const before = makeState([makeTree("a", 8)]);
     const after = makeState([makeTree("a", 6)]);
     expect(diffGrowth(before, after)).toEqual([]);
+  });
+});
+
+describe("describeGrowth", () => {
+  const nameOf = (treeId: string) => `Tree ${treeId.toUpperCase()}`;
+
+  it("says nothing when nothing grew", () => {
+    expect(describeGrowth([], nameOf)).toBe("");
+  });
+
+  it("names the tree and the days it gained", () => {
+    expect(
+      describeGrowth([{ treeId: "a", daysGained: 1, newStage: null }], nameOf),
+    ).toBe("Tree A grew 1 day.");
+  });
+
+  it("pluralises a multi-day gain", () => {
+    expect(
+      describeGrowth([{ treeId: "a", daysGained: 3, newStage: null }], nameOf),
+    ).toBe("Tree A grew 3 days.");
+  });
+
+  it("adds the milestone for a single tree", () => {
+    expect(
+      describeGrowth(
+        [{ treeId: "a", daysGained: 1, newStage: "Sapling" }],
+        nameOf,
+      ),
+    ).toBe("Tree A grew 1 day. It is now a Sapling.");
+  });
+
+  // Five trees growing overnight is one piece of news, not five.
+  it("summarises a whole garden and calls out only the milestones", () => {
+    expect(
+      describeGrowth(
+        [
+          { treeId: "a", daysGained: 1, newStage: null },
+          { treeId: "b", daysGained: 1, newStage: "Mature Tree" },
+          { treeId: "c", daysGained: 2, newStage: null },
+        ],
+        nameOf,
+      ),
+    ).toBe("3 trees grew today. Tree B is now a Mature Tree.");
   });
 });

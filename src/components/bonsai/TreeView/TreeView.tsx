@@ -22,6 +22,7 @@ import {
   useState,
 } from "react";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
+import { GrowthFlourish } from "@/components/bonsai/GrowthFlourish";
 import {
   type ActiveTool,
   TreeSVG,
@@ -75,7 +76,7 @@ function WaterableSVGContainer({
   tree: BonsaiTree;
   activeTool: ActiveTool;
 }) {
-  const { waterTree, state } = useBonsai();
+  const { waterTree, state, growthEvents } = useBonsai();
   const isWatering = activeTool === "watering-can";
   const sprinklesRef = useRef<WaterSprinklesHandle>(null);
   const handleKeyDown = useCallback(
@@ -105,6 +106,7 @@ function WaterableSVGContainer({
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
   const pos = tree.gardenPosition ?? { x: 50, y: 50 };
+  const growth = growthEvents.find((e) => e.treeId === tree.id) ?? null;
   return (
     <SVGContainer
       aria-label={isWatering ? "Water the tree" : undefined}
@@ -124,7 +126,14 @@ function WaterableSVGContainer({
     >
       <GardenBackground backgroundId={bgId} tendPos={pos} />
       <TreeSVGLayer>
-        <TreeSVG activeTool={activeTool} cropTop tree={tree} />
+        <GrowthFlourish event={growth} variant="full">
+          <TreeSVG
+            activeTool={activeTool}
+            cropTop
+            growing={growth !== null}
+            tree={tree}
+          />
+        </GrowthFlourish>
       </TreeSVGLayer>
       <WaterSprinkles ref={sprinklesRef} />
     </SVGContainer>

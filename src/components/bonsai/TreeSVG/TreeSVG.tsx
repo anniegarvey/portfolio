@@ -16,12 +16,15 @@ export function TreeSVG({
   activeTool,
   cropTop,
   style,
+  growing,
 }: {
   tree: BonsaiTree;
   activeTool?: ActiveTool;
   /** Crop the SVG viewBox so there's equal vertical space above and below the tree. */
   cropTop?: boolean;
   style?: React.CSSProperties;
+  /** Play the growth surge — see StaticTreeSVG. */
+  growing?: boolean;
 }) {
   const { pruneBranch } = useBonsai();
 
@@ -32,6 +35,7 @@ export function TreeSVG({
   return (
     <StaticTreeSVG
       cropTop={cropTop}
+      growing={growing}
       overlay={(svgData) => (
         <>
           {svgData.branches.map((branch) => (

@@ -12,6 +12,7 @@ import {
 } from "react";
 import { AdvanceDayButton } from "@/components/bonsai/AdvanceDayButton";
 import { GardenBackground } from "@/components/bonsai/GardenBackground";
+import { GrowthFlourish } from "@/components/bonsai/GrowthFlourish";
 import { StaticTreeSVG, WATER_CURSOR } from "@/components/bonsai/TreeSVG";
 import {
   WaterSprinkles,
@@ -21,6 +22,7 @@ import { SkeletonBox } from "@/components/Skeleton";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
+import type { GrowthEvent } from "@/lib/bonsai/growthEvents";
 import type { BonsaiTree, GardenPosition } from "@/lib/bonsai/schema";
 import { DEFAULT_BACKGROUND_ID } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
@@ -46,6 +48,7 @@ interface MiniTreeProps {
   isPlacing: boolean;
   gardenTool: GardenTool;
   gardenRef: RefObject<HTMLDivElement | null>;
+  growth: GrowthEvent | null;
   onOpen: (tree: BonsaiTree) => void;
   onPositionChange: (treeId: string, pos: GardenPosition) => void;
   onWater: (treeId: string) => void;
@@ -56,6 +59,7 @@ function MiniTree({
   isPlacing,
   gardenTool,
   gardenRef,
+  growth,
   onOpen,
   onPositionChange,
   onWater,
@@ -209,7 +213,9 @@ function MiniTree({
             TreeSVG's per-branch pruning hit targets are unreachable here — and
             doubly so under MiniSVGWrapper's `pointer-events: none`. Pruning
             happens in the tending modal. */}
-        <StaticTreeSVG tree={tree} />
+        <GrowthFlourish event={growth} variant="mini">
+          <StaticTreeSVG growing={growth !== null} tree={tree} />
+        </GrowthFlourish>
       </MiniSVGWrapper>
       <TreeNameTag>
         {config.emoji} {displayName}
@@ -278,6 +284,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     updateTreePosition,
     waterTree,
     demoMode,
+    growthEvents,
   } = useBonsai();
   const gardenRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
@@ -411,6 +418,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
           <MiniTree
             gardenRef={gardenRef}
             gardenTool={gardenTool}
+            growth={growthEvents.find((e) => e.treeId === tree.id) ?? null}
             isPlacing={isPlacing}
             key={tree.id}
             onOpen={onOpenTree}

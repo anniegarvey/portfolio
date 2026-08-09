@@ -1,6 +1,7 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
+import type React from "react";
 import { useMemo } from "react";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { parsePotId, parseStandId } from "@/lib/bonsai/schema";
@@ -821,6 +822,7 @@ export function StaticTreeSVG({
   cropTop,
   style,
   overlay,
+  growing,
 }: {
   tree: BonsaiTree;
   /** Crop the SVG viewBox so there's equal vertical space above and below the tree. */
@@ -831,6 +833,8 @@ export function StaticTreeSVG({
    * to inject interactive elements inside the <svg> element (e.g. pruning hit targets).
    */
   overlay?: (svgData: TreeSVGData) => React.ReactNode;
+  /** Play the growth surge: the tree pushes up out of a pot that stays put. */
+  growing?: boolean;
 }) {
   const config = SPECIES_CONFIG[tree.speciesId];
   const svgData = useMemo(
@@ -936,60 +940,72 @@ export function StaticTreeSVG({
         y2={svgData.trunkBaseY}
       />
 
-      {/* Nebari root fingers painted before the main trunk so the trunk
-         overlaps their inner end. */}
-      {svgData.nebariPathData.map((d, idx) => (
-        <path
-          d={d}
-          fill={config.trunkColor}
-          // biome-ignore lint/suspicious/noArrayIndexKey: deterministic order per generation
-          key={`nebari-${idx}`}
-        />
-      ))}
+      {/* Everything that grows sits in one group anchored on the soil, so a
+         growth surge pushes the tree up out of a pot that stays where it is.
+         The pruning overlay rides along, keeping its hit targets on the
+         branches they belong to for the length of the animation. */}
+      <TreeBody
+        growing={growing}
+        soilX={svgData.trunkX}
+        soilY={svgData.trunkBaseY}
+      >
+        {/* Nebari root fingers painted before the main trunk so the trunk
+           overlaps their inner end. */}
+        {svgData.nebariPathData.map((d, idx) => (
+          <path
+            d={d}
+            fill={config.trunkColor}
+            // biome-ignore lint/suspicious/noArrayIndexKey: deterministic order per generation
+            key={`nebari-${idx}`}
+          />
+        ))}
 
-      {svgData.trunkPathData && (
-        <path d={svgData.trunkPathData} fill={config.trunkColor} />
-      )}
+        {svgData.trunkPathData && (
+          <path d={svgData.trunkPathData} fill={config.trunkColor} />
+        )}
 
-      {/* Branch wood — z-sorted back-to-front so near branches overpaint. */}
-      {sortedBranches.map((branch) => {
-        const branchColor = depthTintedTrunkColor(
-          branch.z,
-          zMin,
-          zRange,
-          config.trunkColor,
-        );
-        return <path d={branch.pathData} fill={branchColor} key={branch.id} />;
-      })}
+        {/* Branch wood — z-sorted back-to-front so near branches overpaint. */}
+        {sortedBranches.map((branch) => {
+          const branchColor = depthTintedTrunkColor(
+            branch.z,
+            zMin,
+            zRange,
+            config.trunkColor,
+          );
+          return (
+            <path d={branch.pathData} fill={branchColor} key={branch.id} />
+          );
+        })}
 
-      {/* Foliage layer — every leaf z-sorted globally so overlapping pads
-         on different branches paint in true depth order. */}
-      {globalLeaves.map(({ leaf, absoluteZ }) =>
-        renderLeaf(
-          leaf,
-          config.leafShape,
-          depthTintedColor(
-            absoluteZ,
-            leafZMin,
-            leafZRange,
-            config.foliageColor,
-            config.foliageColorLight,
+        {/* Foliage layer — every leaf z-sorted globally so overlapping pads
+           on different branches paint in true depth order. */}
+        {globalLeaves.map(({ leaf, absoluteZ }) =>
+          renderLeaf(
+            leaf,
+            config.leafShape,
+            depthTintedColor(
+              absoluteZ,
+              leafZMin,
+              leafZRange,
+              config.foliageColor,
+              config.foliageColorLight,
+            ),
           ),
-        ),
-      )}
+        )}
 
-      <FlowerLayer flowerSpec={config.flowers} flowers={svgData.flowers} />
+        <FlowerLayer flowerSpec={config.flowers} flowers={svgData.flowers} />
 
-      {showSeed && (
-        <SeedSprout
-          baseY={svgData.trunkBaseY}
-          cx={svgData.trunkX}
-          day={tree.activeDaysCount}
-          foliageColor={config.foliageColor}
-        />
-      )}
+        {showSeed && (
+          <SeedSprout
+            baseY={svgData.trunkBaseY}
+            cx={svgData.trunkX}
+            day={tree.activeDaysCount}
+            foliageColor={config.foliageColor}
+          />
+        )}
 
-      {overlay?.(svgData)}
+        {overlay?.(svgData)}
+      </TreeBody>
     </svg>
   );
 }
@@ -1003,3 +1019,59 @@ const SoilEllipse = styled.ellipse`
     transition: none;
   }
 `;
+
+/*
+ * Squashed more vertically than horizontally, and anchored on the soil rather
+ * than on the group's own box, so the tree rises rather than swelling in
+ * place. No overshoot: a tree that has grown a day does not boing.
+ */
+const surge = keyframes`
+  from { transform: scale(0.96, 0.84); }
+  to   { transform: scale(1, 1); }
+`;
+
+const SurgeGroup = styled.g`
+  /* view-box, not fill-box: the origin is a point in the tree's own
+     coordinate system (the soil under the trunk), not a corner of whatever
+     bounding box this group happens to have at its current size. */
+  transform-box: view-box;
+  transform-origin: var(--soil-x) var(--soil-y);
+
+  &[data-growing] {
+    animation: ${surge} 900ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-growing] {
+      animation: none;
+    }
+  }
+`;
+
+function TreeBody({
+  growing,
+  soilX,
+  soilY,
+  children,
+}: {
+  growing?: boolean;
+  soilX: number;
+  soilY: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <SurgeGroup
+      // Omitted rather than "false": React writes booleans into data-*
+      // attributes verbatim, and [data-growing] would match either way.
+      data-growing={growing || undefined}
+      style={
+        {
+          "--soil-x": `${soilX}px`,
+          "--soil-y": `${soilY}px`,
+        } as React.CSSProperties
+      }
+    >
+      {children}
+    </SurgeGroup>
+  );
+}

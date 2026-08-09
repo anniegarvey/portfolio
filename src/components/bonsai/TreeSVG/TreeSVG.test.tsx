@@ -331,3 +331,46 @@ describe("StaticTreeSVG — fertiliser dots", () => {
     expect(container.querySelector("circle")).not.toBeInTheDocument();
   });
 });
+
+// ─── Growth surge ─────────────────────────────────────────────────────────────
+
+describe("StaticTreeSVG — growth surge", () => {
+  const body = (container: HTMLElement) =>
+    container.querySelector("g[style*='--soil-y']");
+
+  it("marks the tree body as growing and anchors it on the soil", () => {
+    const { container } = render(
+      <StaticTreeSVG growing tree={{ ...baseTree, activeDaysCount: 20 }} />,
+    );
+    const group = body(container);
+    expect(group).toHaveAttribute("data-growing", "true");
+    // The soil sits under the trunk, 30 units up from the viewBox floor.
+    expect(group?.getAttribute("style")).toContain("--soil-y: 270px");
+  });
+
+  it("leaves the body unmarked when the tree is standing still", () => {
+    const { container } = render(
+      <StaticTreeSVG tree={{ ...baseTree, activeDaysCount: 20 }} />,
+    );
+    expect(body(container)).not.toHaveAttribute("data-growing");
+  });
+
+  // The pot and its soil do not grow, so they sit outside the group that does
+  // — otherwise the whole planting would swell rather than the tree rising.
+  it("keeps the soil out of the growing group", () => {
+    const { container } = render(
+      <StaticTreeSVG
+        growing
+        tree={{
+          ...baseTree,
+          activeDaysCount: 20,
+          equippedPotId: "glazed-ceramic-large",
+        }}
+      />,
+    );
+    // The dry soil disc, as distinct from the pine's elliptical leaves.
+    const soil = container.querySelector('ellipse[fill="#c4a878"]');
+    expect(soil).not.toBeNull();
+    expect(body(container)?.contains(soil)).toBe(false);
+  });
+});
