@@ -42,8 +42,18 @@ import {
 
 // ─── Context Type ─────────────────────────────────────────────────────────────
 
-/** The most recent taming action, tagged with its visitor for feedback UI. */
-export type VisitorActionResult = ActionResult & { visitorId: string };
+/** Which of the three daily actions produced an ActionResult. */
+export type ActionKind = "approach" | "pet" | "treat";
+
+/**
+ * The most recent taming action, tagged with the visitor it was taken on and
+ * the kind it was. The kind is what lets a card animate the one control the
+ * action just closed off, rather than every control that visitor has spent.
+ */
+export type VisitorActionResult = ActionResult & {
+  visitorId: string;
+  kind: ActionKind;
+};
 
 /** Ephemeral (not persisted) state tracking a taming success animation. */
 export type Celebration = {
@@ -53,6 +63,14 @@ export type Celebration = {
   /** Pixel center of the new resident's spot in the glade (viewport coords). */
   toX: number;
   toY: number;
+  /**
+   * Where the page was scrolled when the flight began. Captured here with the
+   * rects above so the whole flight shares one coordinate frame: the creature
+   * is laid out in the page, and re-reading the scroll later would move it out
+   * from under its own running animation.
+   */
+  scrollX: number;
+  scrollY: number;
   newResidentId: string;
 };
 
@@ -201,6 +219,8 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         fromRect,
         toX,
         toY,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
         newResidentId: newResident.id,
       });
     },
@@ -221,7 +241,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         treatId,
         getTodayDateString(),
       );
-      setLastAction({ ...result, visitorId });
+      setLastAction({ ...result, visitorId, kind: "treat" });
       setState(() => result.state);
       if (result.tamed && fromRect && visitor)
         onTamed(visitor, visitorIndex, result, fromRect);
@@ -240,7 +260,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         posture,
         getTodayDateString(),
       );
-      setLastAction({ ...result, visitorId });
+      setLastAction({ ...result, visitorId, kind: "approach" });
       setState(() => result.state);
       if (result.tamed && fromRect && visitor)
         onTamed(visitor, visitorIndex, result, fromRect);
@@ -254,7 +274,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       const visitor =
         visitorIndex !== -1 ? state.visitors[visitorIndex] : undefined;
       const result = petVisitor(state, visitorId, spot, getTodayDateString());
-      setLastAction({ ...result, visitorId });
+      setLastAction({ ...result, visitorId, kind: "pet" });
       setState(() => result.state);
       if (result.tamed && fromRect && visitor)
         onTamed(visitor, visitorIndex, result, fromRect);

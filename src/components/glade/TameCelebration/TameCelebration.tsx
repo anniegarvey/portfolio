@@ -3,6 +3,7 @@
 import { keyframes, styled } from "next-yak";
 import { type CSSProperties, useEffect } from "react";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
+import { FLIGHT_MS } from "@/components/glade/TameCelebration/timing";
 import { useGlade } from "@/lib/glade/context";
 
 export function TameCelebration() {
@@ -24,12 +25,19 @@ export function TameCelebration() {
 
   if (!celebration) return null;
 
-  const { fromRect, speciesId, toX, toY } = celebration;
-  // Centre the flying element on the portrait centre.
-  const fromX = fromRect.left + fromRect.width / 2;
-  const fromY = fromRect.top + fromRect.height / 2;
-  const dx = toX - fromX;
-  const dy = toY - fromY;
+  const { fromRect, speciesId, toX, toY, scrollX, scrollY } = celebration;
+  // Centre the flying element on the portrait centre. Every value here was
+  // captured in the same moment, so the distance is right as it stands; only
+  // the starting anchor is converted to page coordinates, because the element
+  // is laid out in the page and not the viewport. That is what lets the glade
+  // shift under a mid-flight scroll — or under the reflow when the tamed
+  // visitor's card shrinks — without the creature missing it.
+  const viewportX = fromRect.left + fromRect.width / 2;
+  const viewportY = fromRect.top + fromRect.height / 2;
+  const fromX = viewportX + scrollX;
+  const fromY = viewportY + scrollY;
+  const dx = toX - viewportX;
+  const dy = toY - viewportY;
   // Resident SVG is 52px; portrait is 72px → scale down to match on landing.
   const endScale = (52 / 72).toFixed(4);
 
@@ -44,6 +52,7 @@ export function TameCelebration() {
           "--dx": `${dx}px`,
           "--dy": `${dy}px`,
           "--end-scale": endScale,
+          "--flight-duration": `${FLIGHT_MS}ms`,
         } as CSSProperties
       }
     >
@@ -54,20 +63,52 @@ export function TameCelebration() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-// The transform at 0% centres the element on the portrait (left/top point at the
-// portrait centre, then -50% shifts back). At 90% the creature arrives at the
-// resident's exact position, scaled to match the resident SVG size.
+/*
+ * The transform at 0% centres the element on the portrait (left/top point at
+ * the portrait centre, then -50% shifts back). The midpoint lifts the creature
+ * well above the straight line between the two, so it arcs across the page the
+ * way something with wings would rather than sliding there; the tilt leans into
+ * the climb and levels off for the landing.
+ *
+ * `--land-lift` corrects for the resident spot centring its creature and its
+ * name label together: the spot's centre sits roughly half a label below the
+ * creature itself, and it is the creature the flight has to meet. Landing on
+ * the pixel matters because the resident replaces this element with no fade —
+ * see ResidentSpot in GladeScene.
+ */
 const flyToGlade = keyframes`
-  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  90%  { opacity: 1; transform: translate(calc(var(--dx) - 50%), calc(var(--dy) - 50%)) scale(var(--end-scale)); }
-  100% { opacity: 0; transform: translate(calc(var(--dx) - 50%), calc(var(--dy) - 50%)) scale(var(--end-scale)); }
+  0% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  45% {
+    transform:
+      translate(calc(var(--dx) * 0.45 - 50%), calc(var(--dy) * 0.45 - 50% - 56px))
+      scale(0.88) rotate(-6deg);
+  }
+  100% {
+    transform:
+      translate(calc(var(--dx) - 50%), calc(var(--dy) - 50% - var(--land-lift)))
+      scale(var(--end-scale)) rotate(0deg);
+  }
 `;
 
 const FlyingCreature = styled.div`
-  position: fixed;
+  --land-lift: 10px;
+
+  /*
+   * Laid out in the page rather than the viewport, so the flight survives a
+   * scroll. That relies on nothing between here and the root establishing a
+   * containing block: no ancestor may take position, transform, filter,
+   * perspective or contain without this being revisited.
+   */
+  position: absolute;
   pointer-events: none;
-  z-index: 9999;
-  animation: ${flyToGlade} 900ms ease-in both;
+  /* Clears every layer this app stacks (the highest is a popover at 60). */
+  z-index: 100;
+  /* Decelerating into the landing, so the arrival is the calm part. The
+     duration comes in from FLIGHT_MS, so the card that waits for this flight
+     to land is timing itself against the real number. */
+  animation: ${flyToGlade} var(--flight-duration) var(--ease-out) both;
 
   @media (prefers-reduced-motion: reduce) {
     display: none;

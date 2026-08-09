@@ -1,6 +1,6 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { type RefObject, useId, useRef } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
@@ -15,6 +15,7 @@ import {
   type SpeciesConfig,
   tameThresholdFor,
 } from "@/lib/glade/catalog";
+import type { ActionKind, VisitorActionResult } from "@/lib/glade/context";
 import { useGlade } from "@/lib/glade/context";
 import type {
   GladeState,
@@ -70,6 +71,21 @@ function visibleHintKinds(state: GladeState): PreferenceKind[] {
   return PREFERENCE_KINDS.filter((kind) => isVagueHintUnlocked(state, kind));
 }
 
+/**
+ * Which of this visitor's action groups the last action just spent, if any.
+ * Narrower than "something happened on this card": that would mark every
+ * group the visitor has already spent today, so acting on another visitor and
+ * coming back would replay the entrance on a note that had been sitting there
+ * for two actions. Null on a page load, where nothing has just happened.
+ */
+function justClosedBy(
+  lastAction: VisitorActionResult | null,
+  visitorId: string,
+): ActionKind | null {
+  if (lastAction === null || lastAction.visitorId !== visitorId) return null;
+  return lastAction.kind;
+}
+
 export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const { state, lastAction, approachVisitor } = useGlade();
   const headingId = useId();
@@ -81,14 +97,23 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const hintKinds = visibleHintKinds(state);
 
   // Feedback for the most recent action, only on the card it was taken on
+  const actedOnThisVisitor =
+    lastAction !== null && lastAction.visitorId === visitor.id;
+  const justClosed = justClosedBy(lastAction, visitor.id);
   const feedback =
-    lastAction !== null &&
-    lastAction.visitorId === visitor.id &&
-    lastAction.trustGained !== null
+    actedOnThisVisitor && lastAction.trustGained !== null
       ? lastAction.matched
         ? `+${lastAction.trustGained} trust — just right!`
         : `+${lastAction.trustGained} trust`
       : null;
+  // Changes with every action taken on this visitor (each one flips a
+  // different flag), which is enough to remount the visible feedback so it
+  // plays again on the second and third action of the day rather than
+  // swapping its text in place. It resets with the flags on a new day; only
+  // that it changes matters, not that it grows.
+  const actionsTaken = Object.values(visitor.actionsToday).filter(
+    Boolean,
+  ).length;
 
   return (
     <Card aria-labelledby={headingId}>
@@ -119,18 +144,40 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
         role="meter"
       >
         <TrustFill style={{ width: `${trustPct}%` }} />
+        {/* One pass of light along the bar the moment it grows — the meter
+            reads as something that just happened, not something that is. */}
+        {feedback !== null && (
+          <TrustSweep aria-hidden="true" key={actionsTaken} />
+        )}
       </TrustTrack>
       <TrustLabel>
         Trust {visitor.trust}/{threshold}
       </TrustLabel>
 
-      {feedback !== null && <Feedback role="status">{feedback}</Feedback>}
+      {/* The announcement and the visible text are separate on purpose. A
+          live region is only announced when its contents change while it is
+          already mounted, and the visible line is remounted every action so
+          it can replay its entrance — which would silence every action after
+          the first. This one stays mounted and out of the layout. */}
+      {/* A bare live region rather than role="status", which the preference
+          toggletip on this same card already uses — two status roles per
+          visitor is noise in the accessibility tree. */}
+      <FeedbackAnnouncement aria-atomic="true" aria-live="polite">
+        {feedback ?? ""}
+      </FeedbackAnnouncement>
+      {feedback !== null && (
+        <Feedback aria-hidden="true" key={actionsTaken}>
+          {feedback}
+        </Feedback>
+      )}
 
       <Actions>
         <ActionGroup>
           <GroupLabel>Approach</GroupLabel>
           {visitor.actionsToday.approach ? (
-            <Done>Approached today</Done>
+            <Done data-fresh={justClosed === "approach" || undefined}>
+              Approached today
+            </Done>
           ) : (
             <ChoiceRow>
               {POSTURES.map((posture) => (
@@ -168,7 +215,7 @@ function PetActionGroup({
   visitor: WildVisitor;
   portraitRef: RefObject<HTMLDivElement | null>;
 }) {
-  const { state, petVisitor } = useGlade();
+  const { state, lastAction, petVisitor } = useGlade();
   const petUnlocked = isSkillUnlocked(state, "petting-technique");
 
   return (
@@ -177,7 +224,13 @@ function PetActionGroup({
       {!petUnlocked ? (
         <UnlockNotice skillId="petting-technique" />
       ) : visitor.actionsToday.pet ? (
-        <Done>Petted today</Done>
+        <Done
+          data-fresh={
+            justClosedBy(lastAction, visitor.id) === "pet" || undefined
+          }
+        >
+          Petted today
+        </Done>
       ) : (
         <ChoiceRow>
           {PET_SPOTS.map((spot) => (
@@ -209,7 +262,7 @@ function TreatActionGroup({
   visitor: WildVisitor;
   portraitRef: RefObject<HTMLDivElement | null>;
 }) {
-  const { state, offerTreat } = useGlade();
+  const { state, lastAction, offerTreat } = useGlade();
   const treatUnlocked = isSkillUnlocked(state, "treat-cooking");
   const availableTreats = ALL_TREAT_IDS.filter(
     (id) => (state.pantry.treats[id] ?? 0) > 0,
@@ -221,7 +274,13 @@ function TreatActionGroup({
       {!treatUnlocked ? (
         <UnlockNotice skillId="treat-cooking" />
       ) : visitor.actionsToday.treat ? (
-        <Done>Fed for today</Done>
+        <Done
+          data-fresh={
+            justClosedBy(lastAction, visitor.id) === "treat" || undefined
+          }
+        >
+          Fed for today
+        </Done>
       ) : availableTreats.length === 0 ? (
         <Done>No treats cooked yet</Done>
       ) : (
@@ -352,6 +411,7 @@ const Hint = styled.p`
 `;
 
 const TrustTrack = styled.div`
+  position: relative;
   height: 8px;
   border-radius: 4px;
   background: light-dark(var(--color-grey-200), var(--color-grey-700));
@@ -362,10 +422,35 @@ const TrustFill = styled.div`
   height: 100%;
   border-radius: 4px;
   background: light-dark(var(--color-primary-500), var(--color-primary-400));
-  transition: width 300ms ease;
+  transition: width 420ms var(--ease-out);
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+const trustSweep = keyframes`
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+`;
+
+const TrustSweep = styled.span`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    light-dark(
+      color-mix(in oklch, white 80%, transparent),
+      color-mix(in oklch, var(--color-primary-200) 55%, transparent)
+    ),
+    transparent
+  );
+  animation: ${trustSweep} 700ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0;
   }
 `;
 
@@ -374,11 +459,34 @@ const TrustLabel = styled.span`
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 
+const riseIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+/* Out of the flow entirely, so an always-mounted region costs no layout. */
+const FeedbackAnnouncement = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
 const Feedback = styled.p`
   margin: 0;
   font-size: 0.85rem;
   font-weight: 600;
   color: light-dark(var(--color-primary-700), var(--color-primary-400));
+  animation: ${riseIn} 220ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const Actions = styled.div`
@@ -408,10 +516,22 @@ const ChoiceRow = styled.div`
   gap: 0.4rem;
 `;
 
+/* Only what the last action just closed off animates. On a page load where
+   the day's actions are already spent, all three are simply there. */
 const Done = styled.span`
   font-size: 0.85rem;
   font-style: italic;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
+
+  &[data-fresh="true"] {
+    animation: ${riseIn} 240ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-fresh="true"] {
+      animation: none;
+    }
+  }
 `;
 
 const ToggletipRow = styled.div`
