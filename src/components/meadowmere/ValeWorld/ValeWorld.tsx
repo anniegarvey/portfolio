@@ -6,7 +6,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
 import { StallDialog } from "@/components/meadowmere/StallDialog";
 import { ValeHUD } from "@/components/meadowmere/ValeHUD";
-import type { Haul } from "@/components/meadowmere/ValeScene";
+import type { Haul, Touched } from "@/components/meadowmere/ValeScene";
 import { ValeScene } from "@/components/meadowmere/ValeScene";
 import { QUERIES } from "@/lib/constants";
 import { getTodayDateString } from "@/lib/date";
@@ -179,6 +179,15 @@ export function ValeWorld() {
    */
   const [haul, setHaul] = useState<Haul | null>(null);
   const haulSpot = useRef<Tile | null>(null);
+  /**
+   * The tile the last action changed something on. Only the actions that
+   * change the valley itself: opening a door or a stall is answered by the
+   * dialog that opens, not by the building rocking on its foundations.
+   */
+  const [touched, setTouched] = useState<Touched | null>(null);
+  const touch = useCallback((at: Tile) => {
+    setTouched((prev) => ({ ...at, tick: (prev?.tick ?? 0) + 1 }));
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   /** The map itself, whose box turns a tap into a tile. */
@@ -291,19 +300,23 @@ export function ValeWorld() {
       switch (action.type) {
         case "plant":
           plantSeed(action.plotId, action.cropId);
+          touch(at);
           announce(`Sowed ${CROPS[action.cropId].name}.`);
           break;
         case "water":
           waterPlot(action.plotId);
+          touch(at);
           announce("Watered.");
           break;
         case "harvest":
           haulSpot.current = at;
           harvestPlot(action.plotId);
+          touch(at);
           break;
         case "forage":
           haulSpot.current = at;
           forage(action.siteId);
+          touch(at);
           break;
         case "visit":
           setVisiting(action.neighbourId);
@@ -318,11 +331,14 @@ export function ValeWorld() {
           const purr = PURRS[pets.current % PURRS.length];
           pets.current += 1;
           setAside(purr);
+          // The cat is the one thing in the valley that answers for its own
+          // sake, so it had better be seen to.
+          touch(at);
           break;
         }
       }
     },
-    [plantSeed, waterPlot, harvestPlot, forage, announce],
+    [plantSeed, waterPlot, harvestPlot, forage, announce, touch],
   );
 
   /**
@@ -574,6 +590,7 @@ export function ValeWorld() {
               selectedCropId={selectedCropId}
               state={state}
               today={today}
+              touched={touched}
               walking={walk !== null}
             />
           </Track>

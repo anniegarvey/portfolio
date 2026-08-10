@@ -115,6 +115,14 @@ export interface Haul {
   tick: number;
 }
 
+/** Where the last action landed, and which one it was. */
+export interface Touched {
+  x: number;
+  y: number;
+  /** Watering the same bed twice over is two actions on one tile. */
+  tick: number;
+}
+
 export interface ValeSceneProps {
   state: MeadowmereState;
   pose: FarmerPose;
@@ -123,6 +131,12 @@ export interface ValeSceneProps {
   today: string;
   /** The most recent haul, or null before the first one of the session. */
   haul: Haul | null;
+  /**
+   * The tile the last action changed something on, and when. Null on a page
+   * load, where every bed is simply already in the state it is in — a valley
+   * that pops itself into existence is a page-load sequence, not feedback.
+   */
+  touched: Touched | null;
   /** Fired by clicking or activating a feature's button. */
   onActivateFeature: (feature: Feature) => void;
   /**
@@ -143,6 +157,7 @@ export function ValeScene({
   selectedCropId,
   today,
   haul,
+  touched,
   onActivateFeature,
   onFocusFeature,
 }: ValeSceneProps) {
@@ -173,14 +188,28 @@ export function ValeScene({
             />
           </g>
         ))}
-        {sorted.map((feature) => (
-          <g
-            key={`${feature.kind}-${feature.x}-${feature.y}`}
-            transform={`translate(${feature.x * TILE_SIZE} ${feature.y * TILE_SIZE})`}
-          >
-            <FeatureBody feature={feature} state={state} today={today} />
-          </g>
-        ))}
+        {sorted.map((feature) => {
+          const settling =
+            touched !== null &&
+            touched.x === feature.x &&
+            touched.y === feature.y;
+          return (
+            <g
+              key={`${feature.kind}-${feature.x}-${feature.y}`}
+              transform={`translate(${feature.x * TILE_SIZE} ${feature.y * TILE_SIZE})`}
+            >
+              {/* Keyed on the tick so a second action on the same tile —
+                  watering one bed and coming back to it — plays again rather
+                  than sitting still because the attribute never changed. */}
+              <Settle
+                data-settling={settling || undefined}
+                key={settling ? `settling-${touched.tick}` : "at-rest"}
+              >
+                <FeatureBody feature={feature} state={state} today={today} />
+              </Settle>
+            </g>
+          );
+        })}
 
         {/*
           Drawn last, so the farmer is never hidden by scenery. Positioned with
@@ -320,6 +349,33 @@ const Farmer = styled.g`
 
   @media (prefers-reduced-motion: reduce) {
     transition-property: none;
+  }
+`;
+
+/* Takes the weight of whatever was just done to it, then settles. The tile's
+   drawing changes under the player — soil darkens, a seed appears, a ripe bed
+   empties — and this is what says it was them who did it. */
+const settle = keyframes`
+  0%   { transform: scale(1.12, 0.9) translateY(1.5px); }
+  45%  { transform: scale(0.97, 1.03) translateY(-1px); }
+  100% { transform: scale(1); }
+`;
+
+const Settle = styled.g`
+  /* Squashes onto the ground it stands on, not about the middle of the tile. */
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+
+  &[data-settling] {
+    animation: ${settle} 360ms var(--ease-out);
+  }
+
+  /* Matched on the attribute rather than the bare element: a media query adds
+     no specificity, and a plain rule here would lose to the one above it. */
+  @media (prefers-reduced-motion: reduce) {
+    &[data-settling] {
+      animation: none;
+    }
   }
 `;
 

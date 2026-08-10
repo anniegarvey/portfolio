@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
@@ -89,7 +89,11 @@ export function NeighbourDialog({
                     </Checklist>
                   )}
                   {done ? (
+                    /* Only the one just handed in. Calling on a neighbour whose
+                       quest was settled last week shows a badge that has been
+                       sitting there for days, not news. */
                     <DoneBadge
+                      data-fresh={quest.id === justHandedIn || undefined}
                       ref={quest.id === justHandedIn ? handedInRef : undefined}
                       tabIndex={-1}
                     >
@@ -183,6 +187,11 @@ const Line = styled.li<{ $met: boolean }>`
       : "light-dark(var(--color-grey-700), var(--color-grey-300))"};
 `;
 
+const riseIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
 const DoneBadge = styled.p`
   display: inline-flex;
   outline-offset: 3px;
@@ -192,6 +201,16 @@ const DoneBadge = styled.p`
   font-size: 0.875rem;
   font-weight: 600;
   color: light-dark(var(--color-green-700), var(--color-green-400));
+
+  &[data-fresh="true"] {
+    animation: ${riseIn} 240ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-fresh="true"] {
+      animation: none;
+    }
+  }
 `;
 
 const Muted = styled.p`

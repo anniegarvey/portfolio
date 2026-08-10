@@ -1,2 +1,2 @@
-export type { Haul } from "./ValeScene";
+export type { Haul, Touched } from "./ValeScene";
 export { ValeScene } from "./ValeScene";

@@ -1,6 +1,6 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { useId } from "react";
 import { Button } from "@/components/Button";
 import { CROPS } from "@/lib/meadowmere/catalog";
@@ -79,6 +79,13 @@ export function DailyDigest() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+const arrive = keyframes`
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+/* What happened while you were away, so it arrives rather than being there
+   already — it renders once the overnight advance has run, not on first paint. */
 const Panel = styled.section`
   display: flex;
   flex-direction: column;
@@ -88,6 +95,11 @@ const Panel = styled.section`
   border-radius: 12px;
   background: light-dark(var(--color-grey-50), var(--color-grey-800));
   border: 1px solid light-dark(var(--color-orange-300), var(--color-orange-800));
+  animation: ${arrive} 320ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const Heading = styled.h2`

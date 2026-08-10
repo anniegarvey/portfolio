@@ -9,6 +9,7 @@ import {
   makeMeadowmereState,
   makePlanting,
 } from "@/lib/meadowmere/testFixtures";
+import { valeFeatures } from "@/lib/meadowmere/valeMap";
 import { ValeScene } from "./ValeScene";
 
 const TODAY = "2026-06-20";
@@ -34,6 +35,7 @@ function renderScene(
   const result = render(
     <ValeScene
       haul={null}
+      touched={null}
       onActivateFeature={onActivateFeature}
       onFocusFeature={onFocusFeature}
       pose={POSE}
@@ -149,6 +151,24 @@ describe("ValeScene", () => {
     expect(container.innerHTML).toContain("translate(128px, 186px)");
   });
 
+  it("settles the one tile the action landed on", () => {
+    const state = stateWith(6);
+    const [first] = valeFeatures(state);
+    const { container } = renderScene(state, {
+      touched: { x: first.x, y: first.y, tick: 1 },
+    });
+
+    expect(container.querySelectorAll("[data-settling]")).toHaveLength(1);
+  });
+
+  it("leaves the valley at rest on a page load", () => {
+    // Nothing has just been done, so nothing has just happened to answer —
+    // every bed popping into place would be a page-load sequence.
+    const { container } = renderScene(stateWith(6));
+
+    expect(container.querySelectorAll("[data-settling]")).toHaveLength(0);
+  });
+
   it("floats a haul off the tile it came from", () => {
     const { container } = renderScene(stateWith(6), {
       haul: { x: 4, y: 6, glyph: "🍓", amount: "+3", tick: 1 },
@@ -184,6 +204,7 @@ describe("ValeScene", () => {
         selectedCropId={null}
         state={stateWith(6)}
         today={TODAY}
+        touched={null}
         walking={false}
       />,
     );
