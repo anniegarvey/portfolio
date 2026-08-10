@@ -262,6 +262,44 @@ test.describe("Meadowmere", () => {
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(24);
   });
 
+  test("stops every animation in the valley when the player asks for reduced motion", async ({
+    page,
+  }) => {
+    // The valley runs four ambient loops — chimney smoke, the river catching
+    // the light, ripe beds swaying, the cat's tail — plus the settle each
+    // action leaves behind. All of it is decorative, so all of it has to stop.
+    // The guard is on the declarations rather than on what happens to be
+    // painted: a reduced-motion rule sits at no extra specificity, so one
+    // written against the bare element loses to every attribute rule above it.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await goToMeadowmereWithSeed(page, {
+      plots: [
+        { cropId: "parsnip", plantedDaysAgo: 6, wateredDays: 4 },
+        { cropId: "strawberry", plantedDaysAgo: 8, wateredDays: 5 },
+        null,
+        null,
+        null,
+        null,
+      ],
+    });
+
+    // Harvesting is what leaves a settle behind and floats a note, so the
+    // check covers the answering motion as well as the ambient loops.
+    await page.getByRole("button", { name: /Harvest Parsnip/ }).click();
+
+    const running = await page
+      .getByRole("application", { name: map })
+      .evaluate((el) =>
+        [...el.querySelectorAll("*")]
+          .filter((node) => getComputedStyle(node).animationName !== "none")
+          .map(
+            (node) =>
+              `${node.tagName.toLowerCase()}:${getComputedStyle(node).animationName}`,
+          ),
+      );
+    expect(running).toEqual([]);
+  });
+
   test("has no automatically detectable accessibility issues", async ({
     page,
     makeAxeBuilder,

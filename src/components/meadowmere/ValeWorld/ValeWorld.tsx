@@ -185,8 +185,10 @@ export function ValeWorld() {
    * dialog that opens, not by the building rocking on its foundations.
    */
   const [touched, setTouched] = useState<Touched | null>(null);
+  // Only the tile: `at` is often a whole feature, and spreading one would file
+  // its kind and its site id away in a record that is about a square of ground.
   const touch = useCallback((at: Tile) => {
-    setTouched((prev) => ({ ...at, tick: (prev?.tick ?? 0) + 1 }));
+    setTouched((prev) => ({ x: at.x, y: at.y, tick: (prev?.tick ?? 0) + 1 }));
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
