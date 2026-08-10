@@ -75,6 +75,7 @@ const Form = styled.form`
   flex-direction: column;
   gap: 1.25rem;
   max-width: 40rem;
+  margin-inline: auto;
 `;
 
 const Field = styled.div`
@@ -121,6 +122,8 @@ const TextArea = styled.textarea`
 `;
 
 const BlockedNotice = styled.p`
+  max-width: 40rem;
+  margin-inline: auto;
   margin-top: 1rem;
   color: light-dark(var(--color-rose-700), var(--color-rose-300));
 `;

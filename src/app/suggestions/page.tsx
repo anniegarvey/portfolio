@@ -30,5 +30,7 @@ export default function SuggestionsPage() {
 
 const Intro = styled.p`
   color: light-dark(var(--color-grey-700), var(--color-grey-300));
+  max-width: 40rem;
+  margin-inline: auto;
   margin-bottom: 1.5rem;
 `;
