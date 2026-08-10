@@ -1,6 +1,6 @@
 "use client";
 
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { FarmerSVG } from "@/components/meadowmere/ValeArt/FarmerSVG";
 import {
   CatArt,
@@ -46,6 +46,17 @@ function tileBox(x: number, y: number) {
   };
 }
 
+/**
+ * The top of a tile, at its centre. A haul note is wider than the tile it rose
+ * from, so it is centred on the tile rather than boxed into it.
+ */
+function tileTop(x: number, y: number) {
+  return {
+    left: `${((x + 0.5) / VALE_WIDTH) * 100}%`,
+    top: `${(y / VALE_HEIGHT) * 100}%`,
+  };
+}
+
 function FeatureBody({
   feature,
   state,
@@ -84,12 +95,33 @@ function FeatureBody({
   }
 }
 
+/**
+ * What the farmer just came away with, rising off the tile it came from. The
+ * larder and the live region both say it too, but neither is on screen at the
+ * moment of the harvest — this is the only place the payoff and the thing that
+ * paid it are in the same spot.
+ */
+export interface Haul {
+  x: number;
+  y: number;
+  glyph: string;
+  /** "+3", already counted. */
+  amount: string;
+  /**
+   * Changes with every haul. Two trips to the same hedgerow are the same tile
+   * and the same material, so only this makes the note play a second time.
+   */
+  tick: number;
+}
+
 export interface ValeSceneProps {
   state: MeadowmereState;
   pose: FarmerPose;
   walking: boolean;
   selectedCropId: CropId | null;
   today: string;
+  /** The most recent haul, or null before the first one of the session. */
+  haul: Haul | null;
   /** Fired by clicking or activating a feature's button. */
   onActivateFeature: (feature: Feature) => void;
   /**
@@ -109,6 +141,7 @@ export function ValeScene({
   walking,
   selectedCropId,
   today,
+  haul,
   onActivateFeature,
   onFocusFeature,
 }: ValeSceneProps) {
@@ -187,6 +220,16 @@ export function ValeScene({
           );
         })}
       </Hotspots>
+
+      {/* Keyed on the tick so a second trip to the same place replays rather
+          than leaving the first note sitting there. Silent: the world already
+          announces every haul, and a note that rises and goes has nothing to
+          add for anyone who isn't watching it. */}
+      {haul !== null && (
+        <HaulNote aria-hidden key={haul.tick} style={tileTop(haul.x, haul.y)}>
+          <span>{haul.glyph}</span> {haul.amount}
+        </HaulNote>
+      )}
     </Stage>
   );
 }
@@ -285,6 +328,42 @@ const Canvas = styled.svg`
 const Hotspots = styled.div`
   position: absolute;
   inset: 0;
+`;
+
+/**
+ * Rises off the tile and goes. Longer than a feedback transition because it is
+ * not holding anything up: nothing waits on it, and a payoff that has to be
+ * caught in 200ms isn't one.
+ */
+const haulRise = keyframes`
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.9); }
+  16%  { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+  65%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -34px) scale(1); }
+`;
+
+const HaulNote = styled.span`
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  background: light-dark(rgb(255 255 255 / 0.92), rgb(23 23 23 / 0.92));
+  color: light-dark(var(--color-orange-700), var(--color-orange-400));
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.25);
+  animation: ${haulRise} 1100ms var(--ease-out) both;
+
+  /* Dropped rather than stilled: the prompt and the live region already say
+     what the trip was worth, so a note that cannot rise has nothing left to do. */
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+    animation: none;
+  }
 `;
 
 /**

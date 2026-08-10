@@ -33,6 +33,7 @@ function renderScene(
   const onFocusFeature = vi.fn();
   const result = render(
     <ValeScene
+      haul={null}
       onActivateFeature={onActivateFeature}
       onFocusFeature={onFocusFeature}
       pose={POSE}
@@ -146,5 +147,49 @@ describe("ValeScene", () => {
     });
     // 32 user units per tile, lifted 6 so the farmer stands in the tile.
     expect(container.innerHTML).toContain("translate(128px, 186px)");
+  });
+
+  it("floats a haul off the tile it came from", () => {
+    const { container } = renderScene(stateWith(6), {
+      haul: { x: 4, y: 6, glyph: "🍓", amount: "+3", tick: 1 },
+    });
+    const note = screen.getByText("+3", { exact: false });
+
+    // Centred on the tile it rose from: half a tile east of its left edge, and
+    // level with its top. The note is wider than the 40px tile it belongs to.
+    expect(note).toHaveStyle({ left: `${(4.5 / 16) * 100}%` });
+    expect(note).toHaveStyle({ top: `${(6 / 12) * 100}%` });
+    expect(note).toHaveTextContent("🍓");
+    // The world announces the haul; a second voice would say it twice.
+    expect(container.querySelector("[aria-hidden]")).toBeInTheDocument();
+    expect(note).toHaveAttribute("aria-hidden");
+  });
+
+  it("shows no haul before anything has been harvested or foraged", () => {
+    renderScene(stateWith(6));
+    expect(screen.queryByText("+3", { exact: false })).not.toBeInTheDocument();
+  });
+
+  it("replays the note for a second haul from the same tile", () => {
+    const haul = { x: 4, y: 6, glyph: "🌰", amount: "+1", tick: 1 };
+    const { rerender } = renderScene(stateWith(6), { haul });
+    const first = screen.getByText("+1", { exact: false });
+
+    rerender(
+      <ValeScene
+        haul={{ ...haul, tick: 2 }}
+        onActivateFeature={vi.fn()}
+        onFocusFeature={vi.fn()}
+        pose={POSE}
+        selectedCropId={null}
+        state={stateWith(6)}
+        today={TODAY}
+        walking={false}
+      />,
+    );
+
+    // A new element, not the same one re-labelled: only a remount replays the
+    // animation, and two trips to the same hedgerow read identically.
+    expect(screen.getByText("+1", { exact: false })).not.toBe(first);
   });
 });

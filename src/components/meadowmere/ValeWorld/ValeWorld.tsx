@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
 import { StallDialog } from "@/components/meadowmere/StallDialog";
 import { ValeHUD } from "@/components/meadowmere/ValeHUD";
+import type { Haul } from "@/components/meadowmere/ValeScene";
 import { ValeScene } from "@/components/meadowmere/ValeScene";
 import { QUERIES } from "@/lib/constants";
 import { getTodayDateString } from "@/lib/date";
@@ -170,6 +171,14 @@ export function ValeWorld() {
   const announce = useCallback((text: string) => {
     setAnnouncement((prev) => ({ text, tick: prev.tick + 1 }));
   }, []);
+  /**
+   * What the farmer came away with, and where from. What it was worth is only
+   * known once the action has run, and where it came from is only known where
+   * the action was asked for — so the tile is kept here until the notice
+   * carrying the amount arrives.
+   */
+  const [haul, setHaul] = useState<Haul | null>(null);
+  const haulSpot = useRef<Tile | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   /** The map itself, whose box turns a tap into a tile. */
@@ -248,8 +257,26 @@ export function ValeWorld() {
     if (notice !== null) announce(describeNotice(notice));
   }, [notice, announce]);
 
+  // The two loops that pay out in goods rise off the tile they came from.
+  // Gifts and quests are settled inside a dialog, with the map behind it.
+  useEffect(() => {
+    const spot = haulSpot.current;
+    if (notice === null || spot === null) return;
+    if (notice.kind !== "harvest" && notice.kind !== "forage") return;
+    const glyph =
+      notice.kind === "harvest"
+        ? CROPS[notice.cropId].glyph
+        : ITEMS[notice.itemId].glyph;
+    setHaul((prev) => ({
+      ...spot,
+      glyph,
+      amount: `+${notice.amount}`,
+      tick: (prev?.tick ?? 0) + 1,
+    }));
+  }, [notice]);
+
   const performInteraction = useCallback(
-    (interaction: Interaction) => {
+    (interaction: Interaction, at: Tile) => {
       const { action } = interaction;
       // Whatever the valley last said back, this replaces it.
       setAside(null);
@@ -271,9 +298,11 @@ export function ValeWorld() {
           announce("Watered.");
           break;
         case "harvest":
+          haulSpot.current = at;
           harvestPlot(action.plotId);
           break;
         case "forage":
+          haulSpot.current = at;
           forage(action.siteId);
           break;
         case "visit":
@@ -321,7 +350,10 @@ export function ValeWorld() {
       const route = routeToFeature(state, poseRef.current, feature);
       // Re-derived here rather than taken from the scene, so the world stays
       // the only authority on what activating something actually does.
-      performInteraction(interactionFor(state, feature, selectedCropId, today));
+      performInteraction(
+        interactionFor(state, feature, selectedCropId, today),
+        feature,
+      );
       if (route !== null) travel(route, feature);
     },
     [state, selectedCropId, today, performInteraction, travel],
@@ -431,7 +463,10 @@ export function ValeWorld() {
       }
       return;
     }
-    performInteraction(interactionFor(state, feature, selectedCropId, today));
+    performInteraction(
+      interactionFor(state, feature, selectedCropId, today),
+      ahead,
+    );
   }, [
     state,
     pose,
@@ -532,6 +567,7 @@ export function ValeWorld() {
         >
           <Track ref={trackRef}>
             <ValeScene
+              haul={haul}
               onActivateFeature={activateFeature}
               onFocusFeature={setFocused}
               pose={pose}
