@@ -1,3 +1,4 @@
+import { keyframes, styled } from "next-yak";
 import type { GrowthStage } from "@/lib/meadowmere/catalog";
 import type { CropId, NeighbourId, SiteId } from "@/lib/meadowmere/schema";
 
@@ -141,9 +142,20 @@ export interface PlotArtProps {
   cropId: CropId | null;
   stage: GrowthStage | null;
   wateredToday: boolean;
+  /**
+   * Which bed this is, which is only used to put the ripe sway out of step
+   * with its neighbours. Six beds of parsnip nodding in time reads as a
+   * machine rather than a field.
+   */
+  plotIndex: number;
 }
 
-export function PlotArt({ cropId, stage, wateredToday }: PlotArtProps) {
+export function PlotArt({
+  cropId,
+  stage,
+  wateredToday,
+  plotIndex,
+}: PlotArtProps) {
   if (cropId === null || stage === null) {
     return <SoilBed watered={false} />;
   }
@@ -199,10 +211,33 @@ export function PlotArt({ cropId, stage, wateredToday }: PlotArtProps) {
           <circle cx="16" cy="13" fill={CROP_COLOURS[cropId].accent} r="3" />
         </>
       )}
-      {stage === "Ripe" && <RipeCrop cropId={cropId} />}
+      {/* Only the ripe stage moves. A crop that is ready is the thing the
+          player is scanning the farm for, so the one bed that sways is the one
+          worth walking to. */}
+      {stage === "Ripe" && (
+        <RipeSway style={{ animationDelay: `${(plotIndex % 5) * 0.7}s` }}>
+          <RipeCrop cropId={cropId} />
+        </RipeSway>
+      )}
     </>
   );
 }
+
+const ripeSway = keyframes`
+  0%, 100% { transform: rotate(-1.3deg); }
+  50%      { transform: rotate(1.3deg); }
+`;
+
+/** Rocks on the root of the plant rather than about the middle of the tile. */
+const RipeSway = styled.g`
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ${ripeSway} 4.6s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
 
 // ─── Wild sites ───────────────────────────────────────────────────────────────
 
@@ -295,6 +330,49 @@ export function SiteArt({
   );
 }
 
+// ─── Chimney smoke ────────────────────────────────────────────────────────────
+
+const puffRise = keyframes`
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  18%  { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(4px, -17px) scale(1.6); }
+`;
+
+const Puff = styled.circle`
+  fill: var(--vale-smoke);
+  /* Transparent at rest, so a valley that isn't moving — a still screenshot,
+     or a player who asked for no motion — has no smoke rather than a stack of
+     grey dots parked on the roof. */
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ${puffRise} 7.2s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+/**
+ * Somebody is in. Three puffs off the pot, spaced far enough apart that the
+ * column never closes up, in tile-local coordinates like everything else here.
+ */
+export function ChimneySmoke({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      {[0, 2.4, 4.8].map((delay) => (
+        <Puff
+          cx={x}
+          cy={y}
+          key={delay}
+          r="2.2"
+          style={{ animationDelay: `${delay}s` }}
+        />
+      ))}
+    </g>
+  );
+}
+
 // ─── Cottages ─────────────────────────────────────────────────────────────────
 
 /** Nessa cooks at the inn, Bram is a woodsman, Marigold keeps bees and a kiln. */
@@ -359,6 +437,7 @@ export function CottageArt({ neighbourId }: { neighbourId: NeighbourId }) {
         x="24"
         y="2"
       />
+      <ChimneySmoke x={27} y={1} />
       {neighbourId === "nessa" && (
         <>
           {/* Inn sign hanging by the door. */}
@@ -470,6 +549,25 @@ export function StallArt() {
  */
 const TAIL = "M21 27 q7 2 5 -6";
 
+/* Still for most of the loop, then two quick flicks. A tail that swings the
+   whole time is a metronome; a tail that goes off now and again is a cat. */
+const tailFlick = keyframes`
+  0%, 70%, 90%, 100% { transform: rotate(0deg); }
+  77% { transform: rotate(-11deg); }
+  84% { transform: rotate(6deg); }
+`;
+
+/** Pivots on the root of the tail, at the bottom-left of its own box. */
+const Tail = styled.g`
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: ${tailFlick} 9s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
 export function CatArt() {
   return (
     <g
@@ -478,9 +576,12 @@ export function CatArt() {
       transform="translate(0, -4)"
     >
       {/* The tail is a line, so its rim is a wider pale line drawn beneath it.
-          Both come first, so the tail curls up behind the body. */}
-      <path d={TAIL} fill="none" stroke={CAT_RIM} strokeWidth="5.4" />
-      <path d={TAIL} fill="none" stroke={CAT} strokeWidth="3" />
+          Both come first, so the tail curls up behind the body — and both flick
+          together, so the rim never parts company with what it is rimming. */}
+      <Tail>
+        <path d={TAIL} fill="none" stroke={CAT_RIM} strokeWidth="5.4" />
+        <path d={TAIL} fill="none" stroke={CAT} strokeWidth="3" />
+      </Tail>
       {/* The silhouette, every shape rimmed. Ears before the head, so the
           head's edge tidies up their base. */}
       <g fill={CAT} stroke={CAT_RIM} strokeWidth="1.2">

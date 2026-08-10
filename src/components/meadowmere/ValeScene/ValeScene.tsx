@@ -74,6 +74,7 @@ function FeatureBody({
       return (
         <PlotArt
           cropId={planting?.cropId ?? null}
+          plotIndex={feature.index}
           stage={planting ? growthStageOf(planting, today) : null}
           wateredToday={planting?.lastWateredDate === today}
         />
@@ -267,6 +268,9 @@ const Stage = styled.div`
   --vale-window: light-dark(#8fc4d8, #d9b25a);
   --vale-door: light-dark(#6d4c41, #47301f);
   --vale-chimney: light-dark(#8a7f6d, #5b5346);
+  /* Woodsmoke reads pale against the daytime valley and warm against the dusk
+     one, the same way the lit windows do. */
+  --vale-smoke: light-dark(#f4f1ea, #b6a88f);
 
   --vale-nessa-wall: light-dark(#e0cfae, #82755c);
   --vale-nessa-roof: light-dark(#b5583f, #71382a);

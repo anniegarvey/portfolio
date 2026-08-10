@@ -88,41 +88,66 @@ describe("TerrainLayer", () => {
 describe("PlotArt", () => {
   it("draws bare soil for an empty bed", () => {
     const { container } = renderSvg(
-      <PlotArt cropId={null} stage={null} wateredToday={false} />,
+      <PlotArt cropId={null} plotIndex={0} stage={null} wateredToday={false} />,
     );
     expect(container.querySelectorAll("rect").length).toBe(1);
   });
 
   it.each(GROWTH_STAGES)("draws the %s stage", (stage) => {
     const { container } = renderSvg(
-      <PlotArt cropId="parsnip" stage={stage} wateredToday={false} />,
+      <PlotArt
+        cropId="parsnip"
+        plotIndex={0}
+        stage={stage}
+        wateredToday={false}
+      />,
     );
     expect(container.querySelectorAll("*").length).toBeGreaterThan(3);
   });
 
   it.each(ALL_CROP_IDS)("gives %s its own ripe form", (cropId) => {
     const { container } = renderSvg(
-      <PlotArt cropId={cropId} stage="Ripe" wateredToday={false} />,
+      <PlotArt
+        cropId={cropId}
+        plotIndex={0}
+        stage="Ripe"
+        wateredToday={false}
+      />,
     );
     expect(container.innerHTML).not.toBe("");
   });
 
   it("draws ripe crops differently from one another", () => {
     const parsnip = renderSvg(
-      <PlotArt cropId="parsnip" stage="Ripe" wateredToday={false} />,
+      <PlotArt
+        cropId="parsnip"
+        plotIndex={0}
+        stage="Ripe"
+        wateredToday={false}
+      />,
     ).container.innerHTML;
     const pumpkin = renderSvg(
-      <PlotArt cropId="pumpkin" stage="Ripe" wateredToday={false} />,
+      <PlotArt
+        cropId="pumpkin"
+        plotIndex={0}
+        stage="Ripe"
+        wateredToday={false}
+      />,
     ).container.innerHTML;
     expect(parsnip).not.toBe(pumpkin);
   });
 
   it("darkens the soil once the bed has been watered today", () => {
     const dry = renderSvg(
-      <PlotArt cropId="parsnip" stage="Sprout" wateredToday={false} />,
+      <PlotArt
+        cropId="parsnip"
+        plotIndex={0}
+        stage="Sprout"
+        wateredToday={false}
+      />,
     ).container.innerHTML;
     const wet = renderSvg(
-      <PlotArt cropId="parsnip" stage="Sprout" wateredToday />,
+      <PlotArt cropId="parsnip" plotIndex={0} stage="Sprout" wateredToday />,
     ).container.innerHTML;
     expect(dry).not.toBe(wet);
   });

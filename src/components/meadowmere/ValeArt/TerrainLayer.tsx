@@ -1,3 +1,5 @@
+import { keyframes, styled } from "next-yak";
+import { ChimneySmoke } from "@/components/meadowmere/ValeArt/FeatureArt";
 import {
   type TerrainId,
   TILE_SIZE,
@@ -83,27 +85,48 @@ function FlowerTile({ x, y }: { x: number; y: number }) {
 }
 
 function WaterTile({ x, y }: { x: number; y: number }) {
-  const offset = tileVariant(x, y, 3) * 3;
+  const variant = tileVariant(x, y, 3);
+  const offset = variant * 3;
+  // The river runs the height of the map, so its tiles are staggered against
+  // one another: catching the light all at once would read as a single sheet.
+  const delay = { animationDelay: `${variant}s` };
   return (
     <>
       <rect fill="var(--vale-water)" height={TILE_SIZE} width={TILE_SIZE} />
-      <path
+      <Glint
         d={`M2 ${9 + offset} q5 -3 10 0 t10 0`}
         fill="none"
         stroke="var(--vale-water-glint)"
         strokeLinecap="round"
         strokeWidth="1.8"
+        style={delay}
       />
-      <path
+      <Glint
         d={`M4 ${23 + offset / 2} q5 -3 10 0 t9 0`}
         fill="none"
         stroke="var(--vale-water-glint)"
         strokeLinecap="round"
         strokeWidth="1.4"
+        style={delay}
       />
     </>
   );
 }
+
+const waterGlint = keyframes`
+  0%, 100% { opacity: 1; transform: translateX(0); }
+  50%      { opacity: 0.5; transform: translateX(1.6px); }
+`;
+
+/* Drawn at full strength and dimmed by the loop, so a still river looks like
+   the river always did. */
+const Glint = styled.path`
+  animation: ${waterGlint} 7s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
 
 function HedgeTile({ x, y }: { x: number; y: number }) {
   const variant = tileVariant(x, y, 3);
@@ -185,6 +208,7 @@ function FarmhouseTile({ x, y }: { x: number; y: number }) {
           x="23"
           y="0"
         />
+        <ChimneySmoke x={26} y={-1} />
       </g>
     </>
   );
