@@ -187,6 +187,51 @@ describe("gifting", () => {
   });
 });
 
+describe("the meter answering a gift", () => {
+  /** The sweep is the only span inside the track; the fill is a div. */
+  const sweep = () => screen.getByRole("progressbar").querySelector("span");
+
+  it("passes a light along the bar when the gift lands", () => {
+    mock({
+      notice: {
+        kind: "gift",
+        neighbourId: "marigold",
+        itemId: "wild-honey",
+        liked: true,
+        friendshipGained: 12,
+        newTierName: null,
+      },
+    });
+    render(<NeighbourCard neighbourId="marigold" />);
+
+    expect(sweep()).toBeInTheDocument();
+    expect(sweep()).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("leaves the bar alone when nothing has just happened", () => {
+    mock();
+    render(<NeighbourCard neighbourId="marigold" />);
+
+    expect(sweep()).not.toBeInTheDocument();
+  });
+
+  it("leaves the bar alone for a gift given to someone else", () => {
+    mock({
+      notice: {
+        kind: "gift",
+        neighbourId: "bram",
+        itemId: "acorn",
+        liked: true,
+        friendshipGained: 12,
+        newTierName: null,
+      },
+    });
+    render(<NeighbourCard neighbourId="marigold" />);
+
+    expect(sweep()).not.toBeInTheDocument();
+  });
+});
+
 describe("focus after giving", () => {
   it("makes the reaction focusable so focus isn't lost when the button disables", async () => {
     mock({
@@ -206,5 +251,31 @@ describe("focus after giving", () => {
       "tabindex",
       "-1",
     );
+  });
+
+  it("marks the reaction as arriving without taking it out of the tree", () => {
+    mock({
+      state: makeMeadowmereState({ inventory: { acorn: 1 } }),
+      notice: {
+        kind: "gift",
+        neighbourId: "bram",
+        itemId: "acorn",
+        liked: true,
+        friendshipGained: 12,
+        newTierName: null,
+      },
+    });
+    const { rerender } = render(<NeighbourCard neighbourId="bram" />);
+    const reaction = screen.getByText(/loved the acorn/);
+
+    expect(reaction).toHaveAttribute("data-shown", "true");
+
+    // The live region has to survive the notice being cleared: an element that
+    // unmounts announces nothing the next time round.
+    mock({ state: makeMeadowmereState({ inventory: { acorn: 1 } }) });
+    rerender(<NeighbourCard neighbourId="bram" />);
+
+    expect(reaction).toBeInTheDocument();
+    expect(reaction).not.toHaveAttribute("data-shown");
   });
 });

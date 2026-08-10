@@ -1,7 +1,7 @@
 "use client";
 
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import {
@@ -92,6 +92,10 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
         <FriendshipFill
           style={{ width: `${(friendship / MAX_FRIENDSHIP) * 100}%` }}
         />
+        {/* One pass of light along the bar the moment it grows, as the glade's
+            trust meter does. No remount key: a neighbour takes one gift a day,
+            so this mounts once and plays once. */}
+        {reaction !== "" && <FriendshipSweep aria-hidden="true" />}
       </FriendshipTrack>
 
       <Likes>
@@ -142,9 +146,14 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
             : "One gift per neighbour per day."}
       </GiftHint>
 
+      {/* Kept mounted and animated on an attribute rather than remounted on a
+          key: this one element is the live region, the visible line and the
+          focus target all at once, and a remount would lose the announcement
+          and the focus it has just been given. */}
       <Reaction
         aria-atomic="true"
         aria-live="polite"
+        data-shown={reaction === "" ? undefined : true}
         ref={reactionRef}
         tabIndex={reaction === "" ? undefined : -1}
       >
@@ -208,6 +217,7 @@ const TierMeta = styled.span`
 `;
 
 const FriendshipTrack = styled.div`
+  position: relative;
   width: 100%;
   height: 6px;
   border-radius: 999px;
@@ -219,10 +229,35 @@ const FriendshipFill = styled.div`
   height: 100%;
   border-radius: 999px;
   background: light-dark(var(--color-orange-500), var(--color-orange-400));
-  transition: width 250ms ease;
+  transition: width 420ms var(--ease-out);
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+const friendshipSweep = keyframes`
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+`;
+
+const FriendshipSweep = styled.span`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    light-dark(
+      color-mix(in oklch, white 80%, transparent),
+      color-mix(in oklch, var(--color-orange-200) 55%, transparent)
+    ),
+    transparent
+  );
+  animation: ${friendshipSweep} 700ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0;
   }
 `;
 
@@ -243,10 +278,27 @@ const GiftHint = styled.span`
   color: light-dark(var(--color-grey-500), var(--color-grey-400));
 `;
 
+const riseIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
 const Reaction = styled.p`
   margin: 0;
   min-height: 1.2rem;
   font-size: 0.83rem;
   font-weight: 600;
   color: light-dark(var(--color-secondary-700), var(--color-secondary-300));
+
+  /* Fires when the attribute appears, which is the moment the reaction has
+     something to say — the element itself never leaves the tree. */
+  &[data-shown="true"] {
+    animation: ${riseIn} 220ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-shown="true"] {
+      animation: none;
+    }
+  }
 `;
