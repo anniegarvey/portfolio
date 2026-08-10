@@ -42,10 +42,16 @@ export function friendshipTier(friendship: number): {
   return { name: FRIENDSHIP_TIERS[index].name, index };
 }
 
-/** Friendship needed for the next tier, or null once at the top. */
-export function nextTierThreshold(friendship: number): number | null {
-  const next = FRIENDSHIP_TIERS.find((t) => friendship < t.threshold);
-  return next?.threshold ?? null;
+/**
+ * The tier this friendship is climbing towards, or null once at the top. Both
+ * halves of it: what it is called and what it costs are only ever wanted
+ * together, and looking the name up from the number a second time is how the
+ * two drift apart.
+ */
+export function nextTier(
+  friendship: number,
+): { threshold: number; name: string } | null {
+  return FRIENDSHIP_TIERS.find((t) => friendship < t.threshold) ?? null;
 }
 
 export function likesItem(neighbourId: NeighbourId, itemId: ItemId): boolean {
@@ -87,6 +93,13 @@ export interface GiftResult {
   neighbourId: NeighbourId;
   itemId: ItemId;
   liked: boolean;
+  /**
+   * What the friendship actually went up by, which is not always what the gift
+   * was worth: the last few points before the cap earn less than the gift
+   * nominally offers, and at the cap a gift earns nothing at all. Reported as
+   * the difference so nothing downstream promises a number the neighbour
+   * didn't get.
+   */
   friendshipGained: number;
   /** Set when the gift pushed the neighbour into a new friendship tier. */
   newTierName: string | null;
@@ -106,15 +119,17 @@ export function giveGift(
   if (!canGift(state, neighbourId, itemId, today)) return null;
 
   const liked = likesItem(neighbourId, itemId);
-  const gained = liked ? LIKED_GIFT_FRIENDSHIP : NEUTRAL_GIFT_FRIENDSHIP;
-  const beforeTier = friendshipTier(friendshipOf(state, neighbourId)).index;
+  const offered = liked ? LIKED_GIFT_FRIENDSHIP : NEUTRAL_GIFT_FRIENDSHIP;
+  const before = friendshipOf(state, neighbourId);
+  const beforeTier = friendshipTier(before).index;
 
   const given = addFriendship(
     removeItems(state, { [itemId]: 1 }),
     neighbourId,
-    gained,
+    offered,
   );
-  const afterTier = friendshipTier(friendshipOf(given, neighbourId));
+  const after = friendshipOf(given, neighbourId);
+  const afterTier = friendshipTier(after);
 
   return {
     state: {
@@ -130,7 +145,7 @@ export function giveGift(
     neighbourId,
     itemId,
     liked,
-    friendshipGained: gained,
+    friendshipGained: after - before,
     newTierName: afterTier.index > beforeTier ? afterTier.name : null,
   };
 }

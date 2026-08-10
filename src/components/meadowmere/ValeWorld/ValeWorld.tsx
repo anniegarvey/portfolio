@@ -115,7 +115,13 @@ function describeNotice(notice: Notice): string {
     case "gift": {
       const name = NEIGHBOURS[notice.neighbourId].name;
       const tier = notice.newTierName ? ` Now ${notice.newTierName}.` : "";
-      return `${name} ${notice.liked ? "loved" : "accepted"} the ${ITEMS[notice.itemId].name}. +${notice.friendshipGained} friendship.${tier}`;
+      // Left out entirely at the cap rather than announced as "+0 friendship",
+      // which is the card's reasoning and has to match it.
+      const gained =
+        notice.friendshipGained > 0
+          ? ` +${notice.friendshipGained} friendship.`
+          : "";
+      return `${name} ${notice.liked ? "loved" : "accepted"} the ${ITEMS[notice.itemId].name}.${gained}${tier}`;
     }
     case "quest":
       return `Handed in ${QUESTS[notice.questId].title}.`;

@@ -51,7 +51,24 @@ afterEach(() => {
 });
 
 describe("friendship", () => {
-  it("shows the tier and progress to the next one", () => {
+  it("counts the bar, the number beside it and the meter out of one total", () => {
+    mock({
+      state: makeMeadowmereState({
+        neighbours: { marigold: { friendship: 25 } },
+      }),
+    });
+    render(<NeighbourCard neighbourId="marigold" />);
+    const meter = screen.getByRole("meter");
+
+    expect(screen.getByText("Acquaintance")).toBeInTheDocument();
+    // Not "25/40": the bar runs to a hundred, so the number beside it has to.
+    expect(screen.getByText("25/100")).toBeInTheDocument();
+    expect(meter).toHaveAttribute("aria-valuenow", "25");
+    expect(meter).toHaveAttribute("aria-valuemax", "100");
+    expect(meter.firstElementChild).toHaveStyle({ width: "25%" });
+  });
+
+  it("says how far the next tier is, in words rather than a second fraction", () => {
     mock({
       state: makeMeadowmereState({
         neighbours: { marigold: { friendship: 25 } },
@@ -59,15 +76,10 @@ describe("friendship", () => {
     });
     render(<NeighbourCard neighbourId="marigold" />);
 
-    expect(screen.getByText("Acquaintance")).toBeInTheDocument();
-    expect(screen.getByText("25/40")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute(
-      "aria-valuenow",
-      "25",
-    );
+    expect(screen.getByText("15 more to Friend")).toBeInTheDocument();
   });
 
-  it("shows the total once at the top tier", () => {
+  it("has nothing left to reach for at the top tier", () => {
     mock({
       state: makeMeadowmereState({
         neighbours: { marigold: { friendship: 90 } },
@@ -77,6 +89,7 @@ describe("friendship", () => {
 
     expect(screen.getByText("Dear Friend")).toBeInTheDocument();
     expect(screen.getByText("90/100")).toBeInTheDocument();
+    expect(screen.queryByText(/more to/)).not.toBeInTheDocument();
   });
 
   it("lists what the neighbour likes", () => {
@@ -189,7 +202,7 @@ describe("gifting", () => {
 
 describe("the meter answering a gift", () => {
   /** The sweep is the only span inside the track; the fill is a div. */
-  const sweep = () => screen.getByRole("progressbar").querySelector("span");
+  const sweep = () => screen.getByRole("meter").querySelector("span");
 
   it("passes a light along the bar when the gift lands", () => {
     mock({
@@ -213,6 +226,31 @@ describe("the meter answering a gift", () => {
     render(<NeighbourCard neighbourId="marigold" />);
 
     expect(sweep()).not.toBeInTheDocument();
+  });
+
+  it("leaves the bar alone for a gift that earned nothing", () => {
+    // A neighbour already at the top still likes the gift, but the bar did not
+    // move — passing a light along it would be claiming otherwise.
+    mock({
+      state: makeMeadowmereState({
+        neighbours: { marigold: { friendship: 100 } },
+      }),
+      notice: {
+        kind: "gift",
+        neighbourId: "marigold",
+        itemId: "wild-honey",
+        liked: true,
+        friendshipGained: 0,
+        newTierName: null,
+      },
+    });
+    render(<NeighbourCard neighbourId="marigold" />);
+
+    expect(sweep()).not.toBeInTheDocument();
+    // The thank-you still lands; it just doesn't promise a number.
+    expect(
+      screen.getByText("Marigold loved the wild honey"),
+    ).toBeInTheDocument();
   });
 
   it("leaves the bar alone for a gift given to someone else", () => {
