@@ -1,5 +1,5 @@
 import { keyframes, styled } from "next-yak";
-import { ChimneySmoke } from "@/components/meadowmere/ValeArt/FeatureArt";
+import { ChimneySmoke } from "@/components/meadowmere/ValeArt/ChimneySmoke";
 import {
   type TerrainId,
   TILE_SIZE,

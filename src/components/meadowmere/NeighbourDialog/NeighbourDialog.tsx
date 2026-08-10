@@ -59,6 +59,11 @@ export function NeighbourDialog({
         // clears — without this, reopening a door replays an old thank-you as
         // though it had just happened.
         clearNotice();
+        // Same reasoning, for the same reason it is easy to miss: this dialog
+        // is always mounted and only renders nothing while the door is shut,
+        // so its state outlives the visit it belongs to. Left set, the badge on
+        // a quest handed in last week would announce itself on every call.
+        setJustHandedIn(null);
         onClose();
       }}
       title={neighbour.name}
@@ -74,7 +79,7 @@ export function NeighbourDialog({
             theirQuests.map((quest) => (
               <Ask key={quest.id}>
                 <QuestAsk
-                  badgeRef={quest.id === justHandedIn ? handedInRef : undefined}
+                  badgeRef={handedInRef}
                   justHandedIn={quest.id === justHandedIn}
                   onHandIn={() => {
                     claimQuest(quest.id);
@@ -104,7 +109,12 @@ function QuestAsk({
   quest: QuestConfig;
   /** True only for a quest handed in on this visit, not one settled earlier. */
   justHandedIn: boolean;
-  badgeRef: RefObject<HTMLParagraphElement | null> | undefined;
+  /**
+   * The dialog's one focus target, taken by whichever quest was just handed
+   * in. Claimed here rather than at the call site so the badge that is marked
+   * fresh and the badge that takes focus can't drift apart.
+   */
+  badgeRef: RefObject<HTMLParagraphElement | null>;
   onHandIn: () => void;
 }) {
   const { state } = useMeadowmere();
@@ -119,7 +129,7 @@ function QuestAsk({
             badge that has been sitting there for days, not news. */}
         <DoneBadge
           data-fresh={justHandedIn || undefined}
-          ref={badgeRef}
+          ref={justHandedIn ? badgeRef : undefined}
           tabIndex={-1}
         >
           <Check aria-hidden size={14} /> Handed in

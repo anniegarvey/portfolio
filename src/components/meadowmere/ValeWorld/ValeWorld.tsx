@@ -274,6 +274,10 @@ export function ValeWorld() {
     const spot = haulSpot.current;
     if (notice === null || spot === null) return;
     if (notice.kind !== "harvest" && notice.kind !== "forage") return;
+    // Spent. The notice is shared state that a gift or a quest also passes
+    // through, so a tile left lying here would eventually pair itself with
+    // somebody else's result.
+    haulSpot.current = null;
     const glyph =
       notice.kind === "harvest"
         ? CROPS[notice.cropId].glyph
@@ -311,12 +315,12 @@ export function ValeWorld() {
           announce("Watered.");
           break;
         case "harvest":
-          haulSpot.current = at;
+          haulSpot.current = { x: at.x, y: at.y };
           harvestPlot(action.plotId);
           touch(at);
           break;
         case "forage":
-          haulSpot.current = at;
+          haulSpot.current = { x: at.x, y: at.y };
           forage(action.siteId);
           touch(at);
           break;

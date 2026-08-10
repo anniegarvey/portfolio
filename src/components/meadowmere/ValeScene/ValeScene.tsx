@@ -47,6 +47,19 @@ function tileBox(x: number, y: number) {
 }
 
 /**
+ * Which of the two settles this tile should be playing, or undefined for a
+ * tile nothing has just happened to. Consecutive actions alternate, so acting
+ * on the same tile twice changes the animation's name and it plays again.
+ */
+function settleTurn(
+  settling: boolean,
+  touched: Touched | null,
+): "odd" | "even" | undefined {
+  if (!settling || touched === null) return undefined;
+  return touched.tick % 2 === 0 ? "even" : "odd";
+}
+
+/**
  * The top of a tile, at its centre. A haul note is wider than the tile it rose
  * from, so it is centred on the tile rather than boxed into it.
  */
@@ -198,13 +211,15 @@ export function ValeScene({
               key={`${feature.kind}-${feature.x}-${feature.y}`}
               transform={`translate(${feature.x * TILE_SIZE} ${feature.y * TILE_SIZE})`}
             >
-              {/* Keyed on the tick so a second action on the same tile —
-                  watering one bed and coming back to it — plays again rather
-                  than sitting still because the attribute never changed. */}
-              <Settle
-                data-settling={settling || undefined}
-                key={settling ? `settling-${touched.tick}` : "at-rest"}
-              >
+              {/* Two settles taking it in turns, rather than a key. An
+                  animation only replays from the start when its name changes,
+                  and a second action on the same tile — sowing a bed then
+                  watering it, or petting the cat twice — has to play again.
+                  Remounting on a key would do that, but it would also restart
+                  every loop underneath: petting the cat would reset the tail
+                  flick it was meant to celebrate, and buy six seconds of a
+                  dead-still tail. */}
+              <Settle data-settling={settleTurn(settling, touched)}>
                 <FeatureBody feature={feature} state={state} today={today} />
               </Settle>
             </g>
@@ -355,7 +370,15 @@ const Farmer = styled.g`
 /* Takes the weight of whatever was just done to it, then settles. The tile's
    drawing changes under the player — soil darkens, a seed appears, a ripe bed
    empties — and this is what says it was them who did it. */
-const settle = keyframes`
+/* Identical twins on purpose: an animation restarts when its name changes, so
+   two takes turns to give a repeated action somewhere to change to. */
+const settleOdd = keyframes`
+  0%   { transform: scale(1.12, 0.9) translateY(1.5px); }
+  45%  { transform: scale(0.97, 1.03) translateY(-1px); }
+  100% { transform: scale(1); }
+`;
+
+const settleEven = keyframes`
   0%   { transform: scale(1.12, 0.9) translateY(1.5px); }
   45%  { transform: scale(0.97, 1.03) translateY(-1px); }
   100% { transform: scale(1); }
@@ -366,12 +389,16 @@ const Settle = styled.g`
   transform-box: fill-box;
   transform-origin: 50% 100%;
 
-  &[data-settling] {
-    animation: ${settle} 360ms var(--ease-out);
+  &[data-settling="odd"] {
+    animation: ${settleOdd} 360ms var(--ease-out);
+  }
+
+  &[data-settling="even"] {
+    animation: ${settleEven} 360ms var(--ease-out);
   }
 
   /* Matched on the attribute rather than the bare element: a media query adds
-     no specificity, and a plain rule here would lose to the one above it. */
+     no specificity, and a plain rule here would lose to the ones above it. */
   @media (prefers-reduced-motion: reduce) {
     &[data-settling] {
       animation: none;
@@ -416,12 +443,17 @@ const HaulNote = styled.span`
   background: light-dark(rgb(255 255 255 / 0.92), rgb(23 23 23 / 0.92));
   color: light-dark(var(--color-orange-700), var(--color-orange-400));
   box-shadow: 0 1px 6px rgb(0 0 0 / 0.25);
+  /* Centred on its tile even with the animation off, which is why this is here
+     and not only in the keyframes. */
+  transform: translateX(-50%);
   animation: ${haulRise} 1100ms var(--ease-out) both;
 
-  /* Dropped rather than stilled: the prompt and the live region already say
-     what the trip was worth, so a note that cannot rise has nothing left to do. */
+  /* Stilled rather than dropped. Without the float it simply sits over the tile
+     until the next haul replaces it — which is the point: it is the only place
+     the payoff and the thing that paid it are in the same spot, and taking it
+     away would leave a reduced-motion player reading the larder above the fold
+     to find out what they picked. */
   @media (prefers-reduced-motion: reduce) {
-    display: none;
     animation: none;
   }
 `;
