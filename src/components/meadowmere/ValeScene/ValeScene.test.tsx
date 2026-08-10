@@ -9,6 +9,7 @@ import {
   makeMeadowmereState,
   makePlanting,
 } from "@/lib/meadowmere/testFixtures";
+import { valeFeatures } from "@/lib/meadowmere/valeMap";
 import { ValeScene } from "./ValeScene";
 
 const TODAY = "2026-06-20";
@@ -33,12 +34,14 @@ function renderScene(
   const onFocusFeature = vi.fn();
   const result = render(
     <ValeScene
+      haul={null}
       onActivateFeature={onActivateFeature}
       onFocusFeature={onFocusFeature}
       pose={POSE}
       selectedCropId={null}
       state={state}
       today={TODAY}
+      touched={null}
       walking={false}
       {...props}
     />,
@@ -146,5 +149,99 @@ describe("ValeScene", () => {
     });
     // 32 user units per tile, lifted 6 so the farmer stands in the tile.
     expect(container.innerHTML).toContain("translate(128px, 186px)");
+  });
+
+  it("settles the one tile the action landed on", () => {
+    const state = stateWith(6);
+    const [first] = valeFeatures(state);
+    const { container } = renderScene(state, {
+      touched: { x: first.x, y: first.y, tick: 1 },
+    });
+
+    expect(container.querySelectorAll("[data-settling]")).toHaveLength(1);
+  });
+
+  it("replays the settle on a second action without remounting the tile", () => {
+    // Sowing a bed and then watering it, or petting the cat twice, has to play
+    // again — but through a change of animation rather than a change of
+    // element. Remounting would restart every loop underneath, and petting the
+    // cat would stop the tail flick it was meant to celebrate.
+    const state = stateWith(6);
+    const [first] = valeFeatures(state);
+    const { container, rerender } = renderScene(state, {
+      touched: { x: first.x, y: first.y, tick: 1 },
+    });
+    const before = container.querySelector("[data-settling]");
+    const firstTurn = before?.getAttribute("data-settling");
+
+    rerender(
+      <ValeScene
+        haul={null}
+        onActivateFeature={vi.fn()}
+        onFocusFeature={vi.fn()}
+        pose={POSE}
+        selectedCropId={null}
+        state={state}
+        today={TODAY}
+        touched={{ x: first.x, y: first.y, tick: 2 }}
+        walking={false}
+      />,
+    );
+    const after = container.querySelector("[data-settling]");
+
+    expect(after).toBe(before);
+    expect(after?.getAttribute("data-settling")).not.toBe(firstTurn);
+  });
+
+  it("leaves the valley at rest on a page load", () => {
+    // Nothing has just been done, so nothing has just happened to answer —
+    // every bed popping into place would be a page-load sequence.
+    const { container } = renderScene(stateWith(6));
+
+    expect(container.querySelectorAll("[data-settling]")).toHaveLength(0);
+  });
+
+  it("floats a haul off the tile it came from", () => {
+    renderScene(stateWith(6), {
+      haul: { x: 4, y: 6, glyph: "🍓", amount: "+3", tick: 1 },
+    });
+    const note = screen.getByText("+3", { exact: false });
+
+    // Centred on the tile it rose from: half a tile east of its left edge, and
+    // level with its top. The note is wider than the 40px tile it belongs to.
+    expect(note).toHaveStyle({ left: `${(4.5 / 16) * 100}%` });
+    expect(note).toHaveStyle({ top: `${(6 / 12) * 100}%` });
+    expect(note).toHaveTextContent("🍓");
+    // The world announces the haul; a second voice would say it twice.
+    expect(note).toHaveAttribute("aria-hidden");
+  });
+
+  it("shows no haul before anything has been harvested or foraged", () => {
+    renderScene(stateWith(6));
+    expect(screen.queryByText("+3", { exact: false })).not.toBeInTheDocument();
+  });
+
+  it("replays the note for a second haul from the same tile", () => {
+    const haul = { x: 4, y: 6, glyph: "🌰", amount: "+1", tick: 1 };
+    const { rerender } = renderScene(stateWith(6), { haul });
+    const first = screen.getByText("+1", { exact: false });
+
+    rerender(
+      <ValeScene
+        haul={{ ...haul, tick: 2 }}
+        onActivateFeature={vi.fn()}
+        onFocusFeature={vi.fn()}
+        pose={POSE}
+        selectedCropId={null}
+        state={stateWith(6)}
+        today={TODAY}
+        touched={null}
+        walking={false}
+      />,
+    );
+
+    // A new element, not the same one re-labelled: only a remount replays the
+    // animation, and two trips to the same hedgerow read identically.
+    expect(screen.getByText("+1", { exact: false })).not.toBe(first);
   });
 });

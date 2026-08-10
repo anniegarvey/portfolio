@@ -1,11 +1,12 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { styled } from "next-yak";
-import { useEffect, useRef, useState } from "react";
+import { keyframes, styled } from "next-yak";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { NeighbourCard } from "@/components/meadowmere/NeighbourCard";
+import type { QuestConfig } from "@/lib/meadowmere/catalog";
 import { NEIGHBOURS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
 import {
@@ -58,6 +59,11 @@ export function NeighbourDialog({
         // clears — without this, reopening a door replays an old thank-you as
         // though it had just happened.
         clearNotice();
+        // Same reasoning, for the same reason it is easy to miss: this dialog
+        // is always mounted and only renders nothing while the door is shut,
+        // so its state outlives the visit it belongs to. Left set, the badge on
+        // a quest handed in last week would announce itself on every call.
+        setJustHandedIn(null);
         onClose();
       }}
       title={neighbour.name}
@@ -70,52 +76,85 @@ export function NeighbourDialog({
           {theirQuests.length === 0 ? (
             <Muted>Nothing at the moment.</Muted>
           ) : (
-            theirQuests.map((quest) => {
-              const status = questStatus(state, quest.id);
-              const done = status === "completed";
-              return (
-                <Ask key={quest.id}>
-                  <AskTitle>{quest.title}</AskTitle>
-                  <AskText>{done ? quest.thanks : quest.description}</AskText>
-                  {!done && (
-                    <Checklist>
-                      {questProgress(state, quest).map((line) => (
-                        <Line $met={line.met} key={line.key}>
-                          <span aria-hidden>{line.glyph}</span> {line.label}{" "}
-                          {Math.min(line.have, line.need)}/{line.need}
-                          {line.met && <Check aria-hidden size={14} />}
-                        </Line>
-                      ))}
-                    </Checklist>
-                  )}
-                  {done ? (
-                    <DoneBadge
-                      ref={quest.id === justHandedIn ? handedInRef : undefined}
-                      tabIndex={-1}
-                    >
-                      <Check aria-hidden size={14} /> Handed in
-                    </DoneBadge>
-                  ) : (
-                    <Button
-                      disabled={status !== "ready"}
-                      onClick={() => {
-                        claimQuest(quest.id);
-                        setJustHandedIn(quest.id);
-                      }}
-                      size="sm"
-                    >
-                      {status === "ready"
-                        ? `Hand in “${quest.title}”`
-                        : "Not ready yet"}
-                    </Button>
-                  )}
-                </Ask>
-              );
-            })
+            theirQuests.map((quest) => (
+              <Ask key={quest.id}>
+                <QuestAsk
+                  badgeRef={handedInRef}
+                  justHandedIn={quest.id === justHandedIn}
+                  onHandIn={() => {
+                    claimQuest(quest.id);
+                    setJustHandedIn(quest.id);
+                  }}
+                  quest={quest}
+                />
+              </Ask>
+            ))
           )}
         </Asks>
       </Body>
     </Modal>
+  );
+}
+
+/**
+ * One thing a neighbour has asked for: what it is, how far along it is, and
+ * the button that settles it.
+ */
+function QuestAsk({
+  quest,
+  justHandedIn,
+  badgeRef,
+  onHandIn,
+}: {
+  quest: QuestConfig;
+  /** True only for a quest handed in on this visit, not one settled earlier. */
+  justHandedIn: boolean;
+  /**
+   * The dialog's one focus target, taken by whichever quest was just handed
+   * in. Claimed here rather than at the call site so the badge that is marked
+   * fresh and the badge that takes focus can't drift apart.
+   */
+  badgeRef: RefObject<HTMLParagraphElement | null>;
+  onHandIn: () => void;
+}) {
+  const { state } = useMeadowmere();
+  const status = questStatus(state, quest.id);
+
+  if (status === "completed") {
+    return (
+      <>
+        <AskTitle>{quest.title}</AskTitle>
+        <AskText>{quest.thanks}</AskText>
+        {/* Calling on a neighbour whose quest was settled last week shows a
+            badge that has been sitting there for days, not news. */}
+        <DoneBadge
+          data-fresh={justHandedIn || undefined}
+          ref={justHandedIn ? badgeRef : undefined}
+          tabIndex={-1}
+        >
+          <Check aria-hidden size={14} /> Handed in
+        </DoneBadge>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <AskTitle>{quest.title}</AskTitle>
+      <AskText>{quest.description}</AskText>
+      <Checklist>
+        {questProgress(state, quest).map((line) => (
+          <Line $met={line.met} key={line.key}>
+            <span aria-hidden>{line.glyph}</span> {line.label}{" "}
+            {Math.min(line.have, line.need)}/{line.need}
+            {line.met && <Check aria-hidden size={14} />}
+          </Line>
+        ))}
+      </Checklist>
+      <Button disabled={status !== "ready"} onClick={onHandIn} size="sm">
+        {status === "ready" ? `Hand in “${quest.title}”` : "Not ready yet"}
+      </Button>
+    </>
   );
 }
 
@@ -183,6 +222,11 @@ const Line = styled.li<{ $met: boolean }>`
       : "light-dark(var(--color-grey-700), var(--color-grey-300))"};
 `;
 
+const riseIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
 const DoneBadge = styled.p`
   display: inline-flex;
   outline-offset: 3px;
@@ -192,6 +236,16 @@ const DoneBadge = styled.p`
   font-size: 0.875rem;
   font-weight: 600;
   color: light-dark(var(--color-green-700), var(--color-green-400));
+
+  &[data-fresh="true"] {
+    animation: ${riseIn} 240ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-fresh="true"] {
+      animation: none;
+    }
+  }
 `;
 
 const Muted = styled.p`

@@ -12,7 +12,7 @@ import {
   giveGift,
   likesItem,
   neighbourState,
-  nextTierThreshold,
+  nextTier,
 } from "./neighboursModule";
 import { makeMeadowmereState } from "./testFixtures";
 
@@ -46,13 +46,13 @@ describe("friendshipTier", () => {
   });
 });
 
-describe("nextTierThreshold", () => {
-  it("reports the next rung up", () => {
-    expect(nextTierThreshold(25)).toBe(40);
+describe("nextTier", () => {
+  it("reports the next rung up, and what it is called", () => {
+    expect(nextTier(25)).toEqual({ threshold: 40, name: "Friend" });
   });
 
   it("is null at the top tier", () => {
-    expect(nextTierThreshold(90)).toBeNull();
+    expect(nextTier(90)).toBeNull();
   });
 });
 
@@ -79,6 +79,45 @@ describe("addFriendship", () => {
   it("creates an entry for a neighbour with no state yet", () => {
     const state = makeMeadowmereState({ neighbours: {} });
     expect(friendshipOf(addFriendship(state, "bram", 5), "bram")).toBe(5);
+  });
+});
+
+describe("what a gift was actually worth", () => {
+  it("reports the whole gift when there is room for it", () => {
+    const state = makeMeadowmereState({
+      neighbours: { marigold: { friendship: 10 } },
+      inventory: { "wild-honey": 1 },
+    });
+    const result = giveGift(state, "marigold", "wild-honey", TODAY);
+
+    expect(result?.friendshipGained).toBe(LIKED_GIFT_FRIENDSHIP);
+  });
+
+  it("reports only the part that fitted under the cap", () => {
+    // Five short of the top, given something worth twelve.
+    const state = makeMeadowmereState({
+      neighbours: { marigold: { friendship: MAX_FRIENDSHIP - 5 } },
+      inventory: { "wild-honey": 1 },
+    });
+    const result = giveGift(state, "marigold", "wild-honey", TODAY);
+
+    expect(result?.friendshipGained).toBe(5);
+    expect(friendshipOf(result?.state ?? state, "marigold")).toBe(
+      MAX_FRIENDSHIP,
+    );
+  });
+
+  it("reports nothing gained once a neighbour is as close as they get", () => {
+    const state = makeMeadowmereState({
+      neighbours: { marigold: { friendship: MAX_FRIENDSHIP } },
+      inventory: { "wild-honey": 1 },
+    });
+    const result = giveGift(state, "marigold", "wild-honey", TODAY);
+
+    // Still a gift: the item is spent and the day is used up. It just doesn't
+    // claim to have earned anything.
+    expect(result?.friendshipGained).toBe(0);
+    expect(result?.liked).toBe(true);
   });
 });
 

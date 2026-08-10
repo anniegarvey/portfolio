@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
 import { StallDialog } from "@/components/meadowmere/StallDialog";
 import { ValeHUD } from "@/components/meadowmere/ValeHUD";
+import type { Haul, Touched } from "@/components/meadowmere/ValeScene";
 import { ValeScene } from "@/components/meadowmere/ValeScene";
 import { QUERIES } from "@/lib/constants";
 import { getTodayDateString } from "@/lib/date";
@@ -114,7 +115,13 @@ function describeNotice(notice: Notice): string {
     case "gift": {
       const name = NEIGHBOURS[notice.neighbourId].name;
       const tier = notice.newTierName ? ` Now ${notice.newTierName}.` : "";
-      return `${name} ${notice.liked ? "loved" : "accepted"} the ${ITEMS[notice.itemId].name}. +${notice.friendshipGained} friendship.${tier}`;
+      // Left out entirely at the cap rather than announced as "+0 friendship",
+      // which is the card's reasoning and has to match it.
+      const gained =
+        notice.friendshipGained > 0
+          ? ` +${notice.friendshipGained} friendship.`
+          : "";
+      return `${name} ${notice.liked ? "loved" : "accepted"} the ${ITEMS[notice.itemId].name}.${gained}${tier}`;
     }
     case "quest":
       return `Handed in ${QUESTS[notice.questId].title}.`;
@@ -169,6 +176,25 @@ export function ValeWorld() {
   const [announcement, setAnnouncement] = useState({ text: "", tick: 0 });
   const announce = useCallback((text: string) => {
     setAnnouncement((prev) => ({ text, tick: prev.tick + 1 }));
+  }, []);
+  /**
+   * What the farmer came away with, and where from. What it was worth is only
+   * known once the action has run, and where it came from is only known where
+   * the action was asked for — so the tile is kept here until the notice
+   * carrying the amount arrives.
+   */
+  const [haul, setHaul] = useState<Haul | null>(null);
+  const haulSpot = useRef<Tile | null>(null);
+  /**
+   * The tile the last action changed something on. Only the actions that
+   * change the valley itself: opening a door or a stall is answered by the
+   * dialog that opens, not by the building rocking on its foundations.
+   */
+  const [touched, setTouched] = useState<Touched | null>(null);
+  // Only the tile: `at` is often a whole feature, and spreading one would file
+  // its kind and its site id away in a record that is about a square of ground.
+  const touch = useCallback((at: Tile) => {
+    setTouched((prev) => ({ x: at.x, y: at.y, tick: (prev?.tick ?? 0) + 1 }));
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -248,8 +274,30 @@ export function ValeWorld() {
     if (notice !== null) announce(describeNotice(notice));
   }, [notice, announce]);
 
+  // The two loops that pay out in goods rise off the tile they came from.
+  // Gifts and quests are settled inside a dialog, with the map behind it.
+  useEffect(() => {
+    const spot = haulSpot.current;
+    if (notice === null || spot === null) return;
+    if (notice.kind !== "harvest" && notice.kind !== "forage") return;
+    // Spent. The notice is shared state that a gift or a quest also passes
+    // through, so a tile left lying here would eventually pair itself with
+    // somebody else's result.
+    haulSpot.current = null;
+    const glyph =
+      notice.kind === "harvest"
+        ? CROPS[notice.cropId].glyph
+        : ITEMS[notice.itemId].glyph;
+    setHaul((prev) => ({
+      ...spot,
+      glyph,
+      amount: `+${notice.amount}`,
+      tick: (prev?.tick ?? 0) + 1,
+    }));
+  }, [notice]);
+
   const performInteraction = useCallback(
-    (interaction: Interaction) => {
+    (interaction: Interaction, at: Tile) => {
       const { action } = interaction;
       // Whatever the valley last said back, this replaces it.
       setAside(null);
@@ -264,17 +312,23 @@ export function ValeWorld() {
       switch (action.type) {
         case "plant":
           plantSeed(action.plotId, action.cropId);
+          touch(at);
           announce(`Sowed ${CROPS[action.cropId].name}.`);
           break;
         case "water":
           waterPlot(action.plotId);
+          touch(at);
           announce("Watered.");
           break;
         case "harvest":
+          haulSpot.current = { x: at.x, y: at.y };
           harvestPlot(action.plotId);
+          touch(at);
           break;
         case "forage":
+          haulSpot.current = { x: at.x, y: at.y };
           forage(action.siteId);
+          touch(at);
           break;
         case "visit":
           setVisiting(action.neighbourId);
@@ -289,11 +343,14 @@ export function ValeWorld() {
           const purr = PURRS[pets.current % PURRS.length];
           pets.current += 1;
           setAside(purr);
+          // The cat is the one thing in the valley that answers for its own
+          // sake, so it had better be seen to.
+          touch(at);
           break;
         }
       }
     },
-    [plantSeed, waterPlot, harvestPlot, forage, announce],
+    [plantSeed, waterPlot, harvestPlot, forage, announce, touch],
   );
 
   /**
@@ -321,7 +378,10 @@ export function ValeWorld() {
       const route = routeToFeature(state, poseRef.current, feature);
       // Re-derived here rather than taken from the scene, so the world stays
       // the only authority on what activating something actually does.
-      performInteraction(interactionFor(state, feature, selectedCropId, today));
+      performInteraction(
+        interactionFor(state, feature, selectedCropId, today),
+        feature,
+      );
       if (route !== null) travel(route, feature);
     },
     [state, selectedCropId, today, performInteraction, travel],
@@ -431,7 +491,10 @@ export function ValeWorld() {
       }
       return;
     }
-    performInteraction(interactionFor(state, feature, selectedCropId, today));
+    performInteraction(
+      interactionFor(state, feature, selectedCropId, today),
+      ahead,
+    );
   }, [
     state,
     pose,
@@ -532,12 +595,14 @@ export function ValeWorld() {
         >
           <Track ref={trackRef}>
             <ValeScene
+              haul={haul}
               onActivateFeature={activateFeature}
               onFocusFeature={setFocused}
               pose={pose}
               selectedCropId={selectedCropId}
               state={state}
               today={today}
+              touched={touched}
               walking={walk !== null}
             />
           </Track>

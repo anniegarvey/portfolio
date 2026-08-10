@@ -133,7 +133,7 @@ Fixed in `e2e/utils/seed-meadowmere.ts`: `goToMeadowmereWithSeed` now waits for 
 
 ## Parallel load: full-suite-only e2e failures that pass in isolation
 
-**Symptom:** Three unrelated tests each failed once across four full `pnpm playwright test` runs and passed immediately when re-run alone. No shared assertion between them; what they share is being measurement-sensitive — two compare rendered pixel or layout geometry, and one asserts the *absence* of a style, so a slow paint reads as a failure.
+**Symptom:** Four unrelated tests have each failed once across full `pnpm playwright test` runs and passed immediately when re-run alone. No shared assertion between them; what they share is being measurement-sensitive — three compare rendered pixel or layout geometry, and one asserts the *absence* of a style, so a slow paint reads as a failure.
 
 **Root cause (suspected):** Dev-server contention at full worker count, the same class as the entries above. `e2e/visual/app-routes.spec.ts` already carries a comment acknowledging this and runs its file serially; the failures below are the ones outside that protection. Not investigated further — recorded so the pattern is visible if the rate climbs.
 
@@ -142,3 +142,10 @@ Fixed in `e2e/utils/seed-meadowmere.ts`: `goToMeadowmereWithSeed` now waits for 
 | `e2e/bonsai/bonsai.spec.ts` > "loading skeleton reserves the space the loaded page uses" | 1 |
 | `e2e/navigation/active-nav-link.spec.ts` > "no nav link shows the active style away from its route" | 1 |
 | `e2e/visual/app-routes.spec.ts` > "Meadowmere > phone" | 1 |
+| `e2e/visual/app-routes.spec.ts` > "Bonsai > dark theme" | 1 |
+
+The Bonsai one came with its contention named: `pnpm validate` was running while
+three extra headless browsers drove the same dev server from another terminal.
+It passed in 2.2s in isolation immediately afterwards, on a branch that touches
+no bonsai file. Recorded because the load was unusual, not because the failure
+was — it is the same class as the rest of this table, just with a known cause.

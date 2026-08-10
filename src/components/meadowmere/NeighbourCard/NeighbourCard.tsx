@@ -1,7 +1,7 @@
 "use client";
 
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { styled } from "next-yak";
+import { keyframes, styled } from "next-yak";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import {
@@ -19,13 +19,22 @@ import {
   friendshipOf,
   friendshipTier,
   neighbourState,
-  nextTierThreshold,
+  nextTier,
 } from "@/lib/meadowmere/neighboursModule";
 import type { ItemId, NeighbourId } from "@/lib/meadowmere/schema";
 
 /** "a Friend" / "an Acquaintance" — tier names are the only nouns this sees. */
 function withArticle(tierName: string): string {
   return `${/^[aeiou]/i.test(tierName) ? "an" : "a"} ${tierName}`;
+}
+
+/**
+ * " (+12 friendship)", or nothing at all once a neighbour is as close as they
+ * get. Somebody already at the top of the bar still likes the gift; claiming
+ * they warmed to you by nothing would be worse than not mentioning it.
+ */
+function describeGain(gained: number): string {
+  return gained > 0 ? ` (+${gained} friendship)` : "";
 }
 
 export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
@@ -44,8 +53,6 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
 
   const neighbour = NEIGHBOURS[neighbourId];
   const friendship = friendshipOf(state, neighbourId);
-  const tier = friendshipTier(friendship);
-  const nextThreshold = nextTierThreshold(friendship);
   const today = getTodayDateString();
   const giftedToday = neighbourState(state, neighbourId).lastGiftDate === today;
 
@@ -56,12 +63,18 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
   const giftable =
     chosenItemId !== "" && canGift(state, neighbourId, chosenItemId, today);
 
-  const reaction =
+  // The one notice this card speaks for, so what it says and whether the bar
+  // acknowledges it can't disagree.
+  const gift =
     notice?.kind === "gift" && notice.neighbourId === neighbourId
-      ? `${neighbour.name} ${notice.liked ? "loved" : "accepted"} the ${ITEMS[notice.itemId].name.toLowerCase()} (+${notice.friendshipGained} friendship)${
-          notice.newTierName ? ` — now ${withArticle(notice.newTierName)}!` : ""
-        }`
-      : "";
+      ? notice
+      : null;
+  const reaction =
+    gift === null
+      ? ""
+      : `${neighbour.name} ${gift.liked ? "loved" : "accepted"} the ${ITEMS[gift.itemId].name.toLowerCase()}${describeGain(gift.friendshipGained)}${
+          gift.newTierName ? ` — now ${withArticle(gift.newTierName)}!` : ""
+        }`;
 
   return (
     // The neighbour's name titles the dialog this sits in, so the header only
@@ -74,25 +87,11 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
 
       <Blurb>{neighbour.blurb}</Blurb>
 
-      <TierRow>
-        <TierName>{tier.name}</TierName>
-        <TierMeta>
-          {nextThreshold === null
-            ? `${friendship}/${MAX_FRIENDSHIP}`
-            : `${friendship}/${nextThreshold}`}
-        </TierMeta>
-      </TierRow>
-      <FriendshipTrack
-        aria-label={`Friendship with ${neighbour.name}`}
-        aria-valuemax={MAX_FRIENDSHIP}
-        aria-valuemin={0}
-        aria-valuenow={friendship}
-        role="progressbar"
-      >
-        <FriendshipFill
-          style={{ width: `${(friendship / MAX_FRIENDSHIP) * 100}%` }}
-        />
-      </FriendshipTrack>
+      <FriendshipMeter
+        friendship={friendship}
+        justGrew={gift !== null && gift.friendshipGained > 0}
+        neighbourName={neighbour.name}
+      />
 
       <Likes>
         Likes: {neighbour.likedItemIds.map((id) => ITEMS[id].name).join(", ")}
@@ -142,15 +141,77 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
             : "One gift per neighbour per day."}
       </GiftHint>
 
+      {/* Kept mounted and animated on an attribute rather than remounted on a
+          key: this one element is the live region, the visible line and the
+          focus target all at once, and a remount would lose the announcement
+          and the focus it has just been given. */}
       <Reaction
         aria-atomic="true"
         aria-live="polite"
+        data-shown={reaction === "" ? undefined : true}
         ref={reactionRef}
         tabIndex={reaction === "" ? undefined : -1}
       >
         {reaction}
       </Reaction>
     </Card>
+  );
+}
+
+/**
+ * How things stand with a neighbour: where they are, how full the bar is, and
+ * what is next. The bar, the number beside it and what a screen reader is told
+ * all count the same thing out of the same total — they used to disagree, with
+ * the bar running to a hundred while the number counted to the next tier, so a
+ * bar a twentieth full sat next to the text "5/20".
+ */
+function FriendshipMeter({
+  friendship,
+  neighbourName,
+  justGrew,
+}: {
+  friendship: number;
+  neighbourName: string;
+  /** True only when a gift has just moved the bar, which is when it lights up. */
+  justGrew: boolean;
+}) {
+  const tier = friendshipTier(friendship);
+  const next = nextTier(friendship);
+
+  return (
+    <>
+      <TierRow>
+        <TierName>{tier.name}</TierName>
+        <TierMeta>
+          {friendship}/{MAX_FRIENDSHIP}
+        </TierMeta>
+      </TierRow>
+      {/* A meter, not a progress bar: friendship is a level you are at, not a
+          task running to completion. The glade's trust meter says the same. */}
+      <FriendshipTrack
+        aria-label={`Friendship with ${neighbourName}: ${friendship} of ${MAX_FRIENDSHIP}`}
+        aria-valuemax={MAX_FRIENDSHIP}
+        aria-valuemin={0}
+        aria-valuenow={friendship}
+        role="meter"
+      >
+        <FriendshipFill
+          style={{ width: `${(friendship / MAX_FRIENDSHIP) * 100}%` }}
+        />
+        {/* One pass of light along the bar the moment it grows, as the glade's
+            trust meter does. No remount key: a neighbour takes one gift a day,
+            so this mounts once and plays once. Guarded on the gain, or the bar
+            would flash at a neighbour who is already as close as they get. */}
+        {justGrew && <FriendshipSweep aria-hidden="true" />}
+      </FriendshipTrack>
+      {/* What the tier fraction used to carry, in words. Leaving it out at the
+          top says the same thing as anything we could write there. */}
+      {next !== null && (
+        <ToNextTier>
+          {next.threshold - friendship} more to {next.name}
+        </ToNextTier>
+      )}
+    </>
   );
 }
 
@@ -208,6 +269,7 @@ const TierMeta = styled.span`
 `;
 
 const FriendshipTrack = styled.div`
+  position: relative;
   width: 100%;
   height: 6px;
   border-radius: 999px;
@@ -219,11 +281,44 @@ const FriendshipFill = styled.div`
   height: 100%;
   border-radius: 999px;
   background: light-dark(var(--color-orange-500), var(--color-orange-400));
-  transition: width 250ms ease;
+  transition: width 420ms var(--ease-out);
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+
+const friendshipSweep = keyframes`
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+`;
+
+const FriendshipSweep = styled.span`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    light-dark(
+      color-mix(in oklch, white 80%, transparent),
+      color-mix(in oklch, var(--color-orange-200) 55%, transparent)
+    ),
+    transparent
+  );
+  animation: ${friendshipSweep} 700ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0;
+  }
+`;
+
+/* Sits under the bar it explains, tight to it — the gap the card gives every
+   other row would read as a line about something else. */
+const ToNextTier = styled.span`
+  margin-top: -0.25rem;
+  font-size: 0.78rem;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 
 const Likes = styled.span`
@@ -243,10 +338,27 @@ const GiftHint = styled.span`
   color: light-dark(var(--color-grey-500), var(--color-grey-400));
 `;
 
+const riseIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
 const Reaction = styled.p`
   margin: 0;
   min-height: 1.2rem;
   font-size: 0.83rem;
   font-weight: 600;
   color: light-dark(var(--color-secondary-700), var(--color-secondary-300));
+
+  /* Fires when the attribute appears, which is the moment the reaction has
+     something to say — the element itself never leaves the tree. */
+  &[data-shown="true"] {
+    animation: ${riseIn} 220ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-shown="true"] {
+      animation: none;
+    }
+  }
 `;

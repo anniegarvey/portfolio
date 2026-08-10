@@ -92,6 +92,69 @@ describe("NeighbourDialog", () => {
     expect(screen.getByText("Handed in")).toHaveAttribute("tabindex", "-1");
   });
 
+  it("leaves a quest settled on an earlier visit as old news", () => {
+    // Opened on a quest that was already complete when the door opened: the
+    // badge has been sitting there for days and has nothing to announce.
+    mock({
+      state: makeMeadowmereState({
+        completedQuestIds: ["a-bed-for-parsnips"],
+      }),
+    });
+    render(<NeighbourDialog neighbourId="nessa" onClose={onClose} />);
+
+    expect(screen.getByText("Handed in")).not.toHaveAttribute("data-fresh");
+  });
+
+  it("marks the quest just handed in as the thing that just happened", async () => {
+    mock({
+      state: makeMeadowmereState({ inventory: { "parsnip-root": 3 } }),
+    });
+    const { rerender } = render(
+      <NeighbourDialog neighbourId="nessa" onClose={onClose} />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Hand in .A Bed for Parsnips./ }),
+    );
+    // The context is mocked, so the completion has to be fed back by hand.
+    mock({
+      state: makeMeadowmereState({
+        completedQuestIds: ["a-bed-for-parsnips"],
+      }),
+    });
+    rerender(<NeighbourDialog neighbourId="nessa" onClose={onClose} />);
+
+    expect(screen.getByText("Handed in")).toHaveAttribute("data-fresh", "true");
+  });
+
+  it("stops calling a hand-in fresh once the door has shut on it", async () => {
+    // The dialog is always mounted and only renders nothing while the door is
+    // shut, so its state outlives the visit. Left set, calling on Nessa a week
+    // later would replay the badge for a quest settled long ago.
+    mock({
+      state: makeMeadowmereState({ inventory: { "parsnip-root": 3 } }),
+    });
+    const { rerender } = render(
+      <NeighbourDialog neighbourId="nessa" onClose={onClose} />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /Hand in .A Bed for Parsnips./ }),
+    );
+
+    const settled = makeMeadowmereState({
+      completedQuestIds: ["a-bed-for-parsnips"],
+    });
+    mock({ state: settled });
+    rerender(<NeighbourDialog neighbourId="nessa" onClose={onClose} />);
+    await userEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    // Shut, then called on again — the same instance, a later visit.
+    rerender(<NeighbourDialog neighbourId={null} onClose={onClose} />);
+    rerender(<NeighbourDialog neighbourId="nessa" onClose={onClose} />);
+
+    expect(screen.getByText("Handed in")).not.toHaveAttribute("data-fresh");
+  });
+
   it("shows the giver's thanks once it's done", () => {
     mock({
       state: makeMeadowmereState({

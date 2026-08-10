@@ -888,6 +888,25 @@ describe("announcements", () => {
     ).toBeInTheDocument();
   });
 
+  it("announces a gift that earned nothing without claiming it earned nothing", () => {
+    // The neighbour is already as close as they get. "+0 friendship" is worse
+    // than saying nothing about it, and the card's wording agrees.
+    mock({
+      notice: {
+        kind: "gift",
+        neighbourId: "bram",
+        itemId: "strawberry",
+        liked: true,
+        friendshipGained: 0,
+        newTierName: null,
+      },
+    });
+    render(<ValeWorld />);
+
+    expect(screen.getByText("Bram loved the Strawberry.")).toBeInTheDocument();
+    expect(screen.queryByText(/friendship/)).not.toBeInTheDocument();
+  });
+
   it("announces a quest hand-in", () => {
     mock({ notice: { kind: "quest", questId: "a-bed-for-parsnips" } });
     render(<ValeWorld />);
