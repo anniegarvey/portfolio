@@ -266,6 +266,17 @@ describe("Navigation", () => {
     expect(projectsToggle).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("renders a suggestion link to /suggestions in both desktop and mobile nav", () => {
+    renderWithTheme();
+    const links = screen.getAllByRole("link", {
+      name: /suggest an improvement/i,
+    });
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toHaveAttribute("href", "/suggestions");
+    }
+  });
+
   it("renders theme toggle button defaulting to system mode", () => {
     renderWithTheme();
     expect(

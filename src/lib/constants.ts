@@ -6,5 +6,6 @@ export const QUERIES = {
 } as const;
 
 export const GITHUB_URL = "https://github.com/anniegarvey";
+export const GITHUB_REPO_URL = "https://github.com/anniegarvey/portfolio";
 export const LINKEDIN_URL =
   "https://www.linkedin.com/in/annie-garvey-208895110/";

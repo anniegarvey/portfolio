@@ -10,6 +10,7 @@ import { useState } from "react";
 import { PointsDisplay } from "@/components/PointsDisplay";
 import { QUERIES } from "@/lib/constants";
 import { CASE_STUDIES, LIVE_APPS, PLAYGROUND_LABEL } from "./projects";
+import { SuggestionButton } from "./SuggestionButton";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function MobileDrawer() {
@@ -23,6 +24,7 @@ export function MobileDrawer() {
   return (
     <MobileNav>
       <PointsDisplay />
+      <SuggestionButton />
       <Dialog.Root onOpenChange={setOpen} open={open}>
         <Dialog.Trigger asChild>
           <HamburgerButton aria-label="Toggle navigation menu">

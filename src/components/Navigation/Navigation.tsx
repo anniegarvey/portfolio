@@ -8,6 +8,7 @@ import { PointsDisplay } from "@/components/PointsDisplay";
 import { QUERIES } from "@/lib/constants";
 import { MobileDrawer } from "./MobileDrawer";
 import { ProjectsMenu } from "./ProjectsMenu";
+import { SuggestionButton } from "./SuggestionButton";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Navigation() {
@@ -44,6 +45,7 @@ export function Navigation() {
 
       <DesktopSide>
         <PointsDisplay />
+        <SuggestionButton />
         <ThemeToggle />
       </DesktopSide>
     </Header>
