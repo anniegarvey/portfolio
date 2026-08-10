@@ -2,10 +2,11 @@
 
 import { Check } from "lucide-react";
 import { keyframes, styled } from "next-yak";
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { NeighbourCard } from "@/components/meadowmere/NeighbourCard";
+import type { QuestConfig } from "@/lib/meadowmere/catalog";
 import { NEIGHBOURS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
 import {
@@ -70,56 +71,80 @@ export function NeighbourDialog({
           {theirQuests.length === 0 ? (
             <Muted>Nothing at the moment.</Muted>
           ) : (
-            theirQuests.map((quest) => {
-              const status = questStatus(state, quest.id);
-              const done = status === "completed";
-              return (
-                <Ask key={quest.id}>
-                  <AskTitle>{quest.title}</AskTitle>
-                  <AskText>{done ? quest.thanks : quest.description}</AskText>
-                  {!done && (
-                    <Checklist>
-                      {questProgress(state, quest).map((line) => (
-                        <Line $met={line.met} key={line.key}>
-                          <span aria-hidden>{line.glyph}</span> {line.label}{" "}
-                          {Math.min(line.have, line.need)}/{line.need}
-                          {line.met && <Check aria-hidden size={14} />}
-                        </Line>
-                      ))}
-                    </Checklist>
-                  )}
-                  {done ? (
-                    /* Only the one just handed in. Calling on a neighbour whose
-                       quest was settled last week shows a badge that has been
-                       sitting there for days, not news. */
-                    <DoneBadge
-                      data-fresh={quest.id === justHandedIn || undefined}
-                      ref={quest.id === justHandedIn ? handedInRef : undefined}
-                      tabIndex={-1}
-                    >
-                      <Check aria-hidden size={14} /> Handed in
-                    </DoneBadge>
-                  ) : (
-                    <Button
-                      disabled={status !== "ready"}
-                      onClick={() => {
-                        claimQuest(quest.id);
-                        setJustHandedIn(quest.id);
-                      }}
-                      size="sm"
-                    >
-                      {status === "ready"
-                        ? `Hand in “${quest.title}”`
-                        : "Not ready yet"}
-                    </Button>
-                  )}
-                </Ask>
-              );
-            })
+            theirQuests.map((quest) => (
+              <Ask key={quest.id}>
+                <QuestAsk
+                  badgeRef={quest.id === justHandedIn ? handedInRef : undefined}
+                  justHandedIn={quest.id === justHandedIn}
+                  onHandIn={() => {
+                    claimQuest(quest.id);
+                    setJustHandedIn(quest.id);
+                  }}
+                  quest={quest}
+                />
+              </Ask>
+            ))
           )}
         </Asks>
       </Body>
     </Modal>
+  );
+}
+
+/**
+ * One thing a neighbour has asked for: what it is, how far along it is, and
+ * the button that settles it.
+ */
+function QuestAsk({
+  quest,
+  justHandedIn,
+  badgeRef,
+  onHandIn,
+}: {
+  quest: QuestConfig;
+  /** True only for a quest handed in on this visit, not one settled earlier. */
+  justHandedIn: boolean;
+  badgeRef: RefObject<HTMLParagraphElement | null> | undefined;
+  onHandIn: () => void;
+}) {
+  const { state } = useMeadowmere();
+  const status = questStatus(state, quest.id);
+
+  if (status === "completed") {
+    return (
+      <>
+        <AskTitle>{quest.title}</AskTitle>
+        <AskText>{quest.thanks}</AskText>
+        {/* Calling on a neighbour whose quest was settled last week shows a
+            badge that has been sitting there for days, not news. */}
+        <DoneBadge
+          data-fresh={justHandedIn || undefined}
+          ref={badgeRef}
+          tabIndex={-1}
+        >
+          <Check aria-hidden size={14} /> Handed in
+        </DoneBadge>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <AskTitle>{quest.title}</AskTitle>
+      <AskText>{quest.description}</AskText>
+      <Checklist>
+        {questProgress(state, quest).map((line) => (
+          <Line $met={line.met} key={line.key}>
+            <span aria-hidden>{line.glyph}</span> {line.label}{" "}
+            {Math.min(line.have, line.need)}/{line.need}
+            {line.met && <Check aria-hidden size={14} />}
+          </Line>
+        ))}
+      </Checklist>
+      <Button disabled={status !== "ready"} onClick={onHandIn} size="sm">
+        {status === "ready" ? `Hand in “${quest.title}”` : "Not ready yet"}
+      </Button>
+    </>
   );
 }
 

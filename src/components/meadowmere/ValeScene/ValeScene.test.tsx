@@ -35,13 +35,13 @@ function renderScene(
   const result = render(
     <ValeScene
       haul={null}
-      touched={null}
       onActivateFeature={onActivateFeature}
       onFocusFeature={onFocusFeature}
       pose={POSE}
       selectedCropId={null}
       state={state}
       today={TODAY}
+      touched={null}
       walking={false}
       {...props}
     />,
