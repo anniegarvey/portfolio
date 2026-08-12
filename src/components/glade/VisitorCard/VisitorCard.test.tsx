@@ -90,6 +90,61 @@ describe("VisitorCard preference hints", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("orders vague hints to match the skill unlock sequence: posture, then pet spot, then treat", () => {
+    mockGlade({
+      state: makeGladeState({
+        visitors: [rabbit],
+        skills: {
+          "treat-cooking": makeSkill({ tier: 2 }),
+          "body-language": makeSkill({ tier: 2 }),
+          "petting-technique": makeSkill({ tier: 2 }),
+        },
+      }),
+    });
+    const { container } = render(<VisitorCard visitor={rabbit} />);
+
+    const text = container.textContent ?? "";
+    const postureIndex = text.indexOf("Gets nervous when you tower over it.");
+    const petSpotIndex = text.indexOf(
+      "Leans its head sideways toward a hand near its ears.",
+    );
+    const treatIndex = text.indexOf(
+      "Noses hopefully toward anything warm and grainy.",
+    );
+
+    expect(postureIndex).toBeGreaterThan(-1);
+    expect(petSpotIndex).toBeGreaterThan(postureIndex);
+    expect(treatIndex).toBeGreaterThan(petSpotIndex);
+  });
+
+  it("orders toggletip preference sections to match the skill unlock sequence", async () => {
+    const user = userEvent.setup();
+    mockGlade({
+      state: makeGladeState({
+        visitors: [rabbit],
+        skills: {
+          "treat-cooking": makeSkill({ tier: 3 }),
+          "body-language": makeSkill({ tier: 3 }),
+          "petting-technique": makeSkill({ tier: 3 }),
+        },
+      }),
+    });
+    render(<VisitorCard visitor={rabbit} />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Preference details" }),
+    );
+
+    const labels = screen.getAllByText(
+      /Preferred posture|Preferred pet spot|Favourite treat/,
+    );
+    expect(labels.map((el) => el.textContent)).toEqual([
+      "Preferred posture",
+      "Preferred pet spot",
+      "Favourite treat",
+    ]);
+  });
+
   it("does not show the toggletip while every skill is below tier 3", () => {
     mockGlade({
       state: makeGladeState({

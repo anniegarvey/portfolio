@@ -36,7 +36,9 @@ import {
 const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
 
-const PREFERENCE_KINDS: PreferenceKind[] = ["treat", "posture", "petSpot"];
+// Ordered to match the taming skill unlock sequence (body-language →
+// petting-technique → treat-cooking), the same order actions appear in below.
+const PREFERENCE_KINDS: PreferenceKind[] = ["posture", "petSpot", "treat"];
 
 const PREFERENCE_LABELS: Record<PreferenceKind, string> = {
   treat: "Favourite treat",
