@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMeadowmere } from "@/lib/meadowmere/context";
+import { markInstructionsSeen } from "@/lib/meadowmere/storage";
 import { makeMeadowmereContext } from "@/lib/meadowmere/testFixtures";
 import { MeadowmerePage } from "./MeadowmerePage";
 
@@ -11,6 +12,11 @@ vi.mock("@/lib/points/context", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
+  // Otherwise the first-visit how-to-play modal opens on mount and hides the
+  // rest of the page from the accessibility tree — these tests are about the
+  // page underneath it, not the modal, which has its own coverage.
+  markInstructionsSeen();
   vi.mocked(useMeadowmere).mockReturnValue(makeMeadowmereContext());
 });
 

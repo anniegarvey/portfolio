@@ -13,6 +13,7 @@ import {
 } from "@/lib/meadowmere/context";
 import { STEP_MS } from "@/lib/meadowmere/movement";
 import type { MeadowmereState } from "@/lib/meadowmere/schema";
+import { markInstructionsSeen } from "@/lib/meadowmere/storage";
 import {
   makeMeadowmereContext,
   makeMeadowmereState,
@@ -137,6 +138,11 @@ async function playBackWalk(tiles: number) {
 beforeEach(() => {
   vi.clearAllMocks();
   setReducedMotion(true);
+  localStorage.clear();
+  // Otherwise the first-visit how-to-play modal opens on mount and hides the
+  // map from the accessibility tree — first-visit behaviour has its own
+  // tests below, under "how-to-play modal".
+  markInstructionsSeen();
 });
 
 afterEach(() => {
@@ -948,5 +954,45 @@ describe("controls", () => {
     mock();
     render(<ValeWorld />);
     expect(stage()).toHaveAccessibleName("The Vale — Meadowmere's map");
+  });
+});
+
+describe("how-to-play modal", () => {
+  it("opens on first visit", () => {
+    localStorage.clear(); // undo the file's beforeEach markInstructionsSeen()
+    mock();
+    render(<ValeWorld />);
+
+    expect(screen.getByRole("dialog", { name: "How to play" })).toBeVisible();
+  });
+
+  it("stays closed on a return visit", () => {
+    mock();
+    render(<ValeWorld />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("reopens from the help trigger", async () => {
+    const user = userEvent.setup();
+    mock();
+    render(<ValeWorld />);
+
+    await user.click(screen.getByRole("button", { name: "How to play" }));
+
+    expect(screen.getByRole("dialog", { name: "How to play" })).toBeVisible();
+  });
+
+  it("remembers it was dismissed, so it doesn't reopen on the next visit", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    mock();
+    const { unmount } = render(<ValeWorld />);
+
+    await user.click(screen.getByRole("button", { name: "Got it" }));
+    unmount();
+    render(<ValeWorld />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

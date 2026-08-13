@@ -1,8 +1,10 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
 import { styled } from "next-yak";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Button } from "@/components/Button";
+import { Modal } from "@/components/Modal";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
 import { StallDialog } from "@/components/meadowmere/StallDialog";
 import { ValeHUD } from "@/components/meadowmere/ValeHUD";
@@ -31,6 +33,10 @@ import {
   tileInFront,
 } from "@/lib/meadowmere/movement";
 import type { CropId, NeighbourId } from "@/lib/meadowmere/schema";
+import {
+  hasSeenInstructions,
+  markInstructionsSeen,
+} from "@/lib/meadowmere/storage";
 import type { Feature, Tile } from "@/lib/meadowmere/valeMap";
 import {
   FARMER_START,
@@ -104,6 +110,17 @@ const PURRS = [
   "Headbutts your hand, then pretends that never happened.",
   "Purring. Loud, unhurried, and entirely unearned.",
 ];
+
+/**
+ * How to play. Shown in a modal on first visit and from the help trigger
+ * after that, plus permanently — but visually hidden — as the map's own
+ * accessible description, so screen reader users always have it regardless
+ * of whether the modal has ever been opened.
+ */
+const HOW_TO_PLAY_TEXT =
+  "Tap or click any place on the map to walk there and use it. Swipe the " +
+  "map sideways — the valley is wider than the screen. With a keyboard: " +
+  "arrow keys or W, A, S and D to walk, E to use whatever the farmer faces.";
 
 /** What just happened, phrased for the live region. */
 function describeNotice(notice: Notice): string {
@@ -208,6 +225,21 @@ export function ValeWorld() {
   poseRef.current = pose;
   const today = getTodayDateString();
   const instructionsId = useId();
+
+  /**
+   * The how-to-play modal. Closed on the server and on first client render —
+   * so hydration matches — and opened right after if this device has never
+   * dismissed it, which is what makes it a first-visit tutorial rather than
+   * something the player has to go looking for.
+   */
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  useEffect(() => {
+    if (!hasSeenInstructions()) setInstructionsOpen(true);
+  }, []);
+  const closeInstructions = useCallback(() => {
+    setInstructionsOpen(false);
+    markInstructionsSeen();
+  }, []);
 
   /**
    * Which way the map still has valley left to show. On a phone two thirds of
@@ -564,11 +596,18 @@ export function ValeWorld() {
         selectedCropId={selectedCropId}
       />
 
-      <Instructions id={instructionsId}>
-        Tap or click any place on the map to walk there and use it. Swipe the
-        map sideways — the valley is wider than the screen. With a keyboard:
-        arrow keys or W, A, S and D to walk, E to use whatever the farmer faces.
-      </Instructions>
+      <HelpRow>
+        <HelpTrigger onClick={() => setInstructionsOpen(true)} type="button">
+          <HelpCircle aria-hidden size={14} />
+          How to play
+        </HelpTrigger>
+      </HelpRow>
+      {/* Always in the DOM, unlike the modal above — a screen reader needs
+          the map's description reachable whether or not this device has
+          ever opened the how-to-play modal. */}
+      <VisuallyHiddenInstructions id={instructionsId}>
+        {HOW_TO_PLAY_TEXT}
+      </VisuallyHiddenInstructions>
 
       {/* The prompt is laid over the map rather than left under it: on a phone
           the map is taller than the space above the fold, so a line below it
@@ -642,6 +681,20 @@ export function ValeWorld() {
         onClose={() => setVisiting(null)}
       />
       <StallDialog onClose={() => setShopOpen(false)} open={shopOpen} />
+
+      <Modal
+        description={HOW_TO_PLAY_TEXT}
+        isOpen={instructionsOpen}
+        onClose={closeInstructions}
+        showDescription
+        title="How to play"
+      >
+        <ModalActions>
+          <Button onClick={closeInstructions} size="sm">
+            Got it
+          </Button>
+        </ModalActions>
+      </Modal>
     </Layout>
   );
 }
@@ -734,14 +787,51 @@ const Track = styled.div`
   min-width: 640px;
 `;
 
-const Instructions = styled.p`
-  margin: 0;
-  font-size: 0.9rem;
+const HelpRow = styled.div`
+  display: flex;
+`;
+
+const HelpTrigger = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
+  background: light-dark(var(--color-grey-50), var(--color-grey-800));
   color: light-dark(var(--color-grey-700), var(--color-grey-300));
 
-  @media ${QUERIES.PHABLET_UP} {
-    font-size: 0.95rem;
+  @media (hover: hover) {
+    &:hover {
+      border-color: light-dark(var(--color-grey-500), var(--color-grey-400));
+    }
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+`;
+
+const VisuallyHiddenInstructions = styled.p`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 /**

@@ -22,6 +22,21 @@ export function saveMeadowmereState(state: MeadowmereState): void {
   localStorage.setItem(MEADOWMERE_STORAGE_KEY, JSON.stringify(state));
 }
 
+const INSTRUCTIONS_SEEN_KEY = "meadowmere-instructions-seen";
+
+/**
+ * Whether the how-to-play modal has already been dismissed once, on this
+ * device. Only ever called client-side (a useEffect and an event handler),
+ * so unlike the load/save above it needs no SSR guard.
+ */
+export function hasSeenInstructions(): boolean {
+  return localStorage.getItem(INSTRUCTIONS_SEEN_KEY) === "1";
+}
+
+export function markInstructionsSeen(): void {
+  localStorage.setItem(INSTRUCTIONS_SEEN_KEY, "1");
+}
+
 export function makeEmptyPlots(count: number): MeadowmereState["plots"] {
   return Array.from({ length: count }, () => ({
     id: uuidv4(),

@@ -12,9 +12,6 @@ import {
 import { ValeHUD } from "./ValeHUD";
 
 vi.mock("@/lib/meadowmere/context");
-vi.mock("@/lib/points/context", () => ({
-  usePoints: () => ({ points: 42, spendPoints: vi.fn() }),
-}));
 
 const onSelectCrop = vi.fn();
 
@@ -33,12 +30,6 @@ beforeEach(() => {
 });
 
 describe("what the farmer is carrying", () => {
-  it("shows points, which is the only thing seeds cost", () => {
-    mock();
-    renderHUD();
-    expect(screen.getByText("42 points")).toBeInTheDocument();
-  });
-
   it("counts down the day's forage trips", () => {
     mock({ state: makeMeadowmereState({ foragesToday: 2 }) });
     renderHUD();

@@ -1,6 +1,6 @@
 "use client";
 
-import { Coins, Footprints, ScrollText, Sprout } from "lucide-react";
+import { Footprints, ScrollText, Sprout } from "lucide-react";
 import { styled } from "next-yak";
 import { useId, useState } from "react";
 import { Modal } from "@/components/Modal";
@@ -11,7 +11,6 @@ import { foragesLeft } from "@/lib/meadowmere/foragingModule";
 import { seedCount } from "@/lib/meadowmere/inventory";
 import { questStatus, visibleQuests } from "@/lib/meadowmere/questsModule";
 import type { CropId, ItemId } from "@/lib/meadowmere/schema";
-import { usePoints } from "@/lib/points/context";
 
 /**
  * The band above the map: what the farmer is carrying and which seed is in
@@ -50,7 +49,6 @@ function sowingHint(selectedCropId: CropId | null, count: number): string {
 
 export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
   const { state } = useMeadowmere();
-  const { points } = usePoints();
   const [questsOpen, setQuestsOpen] = useState(false);
   // Each region is named by the heading it already shows, so a screen reader
   // doesn't announce a region and a heading as two unrelated things.
@@ -72,10 +70,6 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
   return (
     <Bar>
       <Group>
-        <Stat>
-          <Coins aria-hidden size={15} />
-          {points} points
-        </Stat>
         <Stat>
           <Footprints aria-hidden size={15} />
           {foragesLeft(state)} forage trips left
