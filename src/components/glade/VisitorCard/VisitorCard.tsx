@@ -1,5 +1,6 @@
 "use client";
 
+import { Lightbulb } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { type RefObject, useId, useRef } from "react";
 import { Button } from "@/components/Button";
@@ -97,6 +98,7 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
   const threshold = tameThresholdFor(visitor.speciesId);
   const trustPct = Math.round((visitor.trust / threshold) * 100);
   const hintKinds = visibleHintKinds(state);
+  const toggletipVisible = isToggletipVisible(state);
 
   // Feedback for the most recent action, only on the card it was taken on
   const actedOnThisVisitor =
@@ -126,14 +128,20 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
         {species.name} <Rarity>· {species.rarity}</Rarity>
       </Name>
       <Blurb>{species.blurb}</Blurb>
-      {hintKinds.map((kind) => (
-        <Hint key={kind}>{VAGUE_HINT[kind](species)}</Hint>
-      ))}
-      {isToggletipVisible(state) && (
+      {/* Once the toggletip exists, every vague hint moves inside it (see
+          PreferenceDetails) rather than sitting here too — a card with three
+          hints stacked above an already-open toggletip was most of its
+          height on mobile, saying half of it twice. */}
+      {!toggletipVisible &&
+        hintKinds.map((kind) => (
+          <Hint key={kind}>{VAGUE_HINT[kind](species)}</Hint>
+        ))}
+      {toggletipVisible && (
         <ToggletipRow>
           <Toggletip
             content={<PreferenceDetails species={species} visitor={visitor} />}
-            label="Preference details"
+            icon={<Lightbulb aria-hidden size={16} />}
+            label="Hints"
           />
         </ToggletipRow>
       )}
@@ -341,9 +349,10 @@ function PreferenceDetails({
                 <DetailsPlaceholder>Not yet confirmed.</DetailsPlaceholder>
               )
             ) : (
-              <DetailsPlaceholder>
-                Keep training to learn more.
-              </DetailsPlaceholder>
+              // Every kind reaching this map is already vague-hint-unlocked
+              // (visibleHintKinds filters on it), so there is always a real
+              // hint to show here rather than a placeholder.
+              <DetailsHint>{VAGUE_HINT[kind](species)}</DetailsHint>
             )}
             {isTriedLogUnlocked(state, kind) && (
               <TriedList kind={kind} tried={tried?.[kind] ?? []} />

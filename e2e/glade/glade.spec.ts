@@ -52,7 +52,7 @@ test.describe("Creature Glade", () => {
     });
 
     const toggletipTrigger = page.getByRole("button", {
-      name: "Preference details",
+      name: "Hints",
     });
     await expect(toggletipTrigger).toBeVisible();
     await toggletipTrigger.click();
