@@ -12,9 +12,6 @@ import {
 import { ValeHUD } from "./ValeHUD";
 
 vi.mock("@/lib/meadowmere/context");
-vi.mock("@/lib/points/context", () => ({
-  usePoints: () => ({ points: 42, spendPoints: vi.fn() }),
-}));
 
 const onSelectCrop = vi.fn();
 
@@ -33,31 +30,10 @@ beforeEach(() => {
 });
 
 describe("what the farmer is carrying", () => {
-  it("shows points, which is the only thing seeds cost", () => {
-    mock();
-    renderHUD();
-    expect(screen.getByText("42 points")).toBeInTheDocument();
-  });
-
   it("counts down the day's forage trips", () => {
     mock({ state: makeMeadowmereState({ foragesToday: 2 }) });
     renderHUD();
     expect(screen.getByText("1 forage trips left")).toBeInTheDocument();
-  });
-
-  it("says what a forage trip is for, not only how many are left", () => {
-    mock({ state: makeMeadowmereState({ foragesToday: 2 }) });
-    renderHUD();
-
-    // A counter alone leaves foraging the one loop with no visible cause and
-    // effect: you spend a trip and something you've never heard of turns up.
-    expect(
-      screen.getByText(/Materials are what neighbours want/),
-    ).toBeVisible();
-    expect(screen.getByText(/Trips refill each morning/)).toBeVisible();
-    expect(
-      screen.getByText(/more places open up as quests are handed in/),
-    ).toBeVisible();
   });
 
   it("says the larder is empty rather than showing nothing", () => {

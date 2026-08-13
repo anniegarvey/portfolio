@@ -41,6 +41,7 @@ import {
   VALE_HEIGHT,
   VALE_WIDTH,
 } from "@/lib/meadowmere/valeMap";
+import { HOW_TO_PLAY_TEXT } from "./instructionsText";
 
 /**
  * The playable world: a farmer you walk around the Vale, and the one action
@@ -128,7 +129,19 @@ function describeNotice(notice: Notice): string {
   }
 }
 
-export function ValeWorld() {
+export interface ValeWorldProps {
+  /**
+   * Id of the visually-hidden instructions paragraph rendered below, for
+   * MeadowmerePage's how-to-play trigger/modal to point at. Falls back to a
+   * locally generated id so this component stays self-contained when
+   * rendered on its own (e.g. in tests).
+   */
+  instructionsId?: string;
+}
+
+export function ValeWorld({
+  instructionsId: instructionsIdProp,
+}: ValeWorldProps = {}) {
   const { state, notice, plantSeed, waterPlot, harvestPlot, forage } =
     useMeadowmere();
 
@@ -207,7 +220,8 @@ export function ValeWorld() {
   const poseRef = useRef(pose);
   poseRef.current = pose;
   const today = getTodayDateString();
-  const instructionsId = useId();
+  const generatedInstructionsId = useId();
+  const instructionsId = instructionsIdProp ?? generatedInstructionsId;
 
   /**
    * Which way the map still has valley left to show. On a phone two thirds of
@@ -564,11 +578,12 @@ export function ValeWorld() {
         selectedCropId={selectedCropId}
       />
 
-      <Instructions id={instructionsId}>
-        Tap or click any place on the map to walk there and use it. Swipe the
-        map sideways — the valley is wider than the screen. With a keyboard:
-        arrow keys or W, A, S and D to walk, E to use whatever the farmer faces.
-      </Instructions>
+      {/* Always in the DOM, unlike MeadowmerePage's how-to-play modal — a
+          screen reader needs the map's description reachable whether or not
+          this device has ever opened it. */}
+      <VisuallyHiddenInstructions id={instructionsId}>
+        {HOW_TO_PLAY_TEXT}
+      </VisuallyHiddenInstructions>
 
       {/* The prompt is laid over the map rather than left under it: on a phone
           the map is taller than the space above the fold, so a line below it
@@ -734,14 +749,16 @@ const Track = styled.div`
   min-width: 640px;
 `;
 
-const Instructions = styled.p`
-  margin: 0;
-  font-size: 0.9rem;
-  color: light-dark(var(--color-grey-700), var(--color-grey-300));
-
-  @media ${QUERIES.PHABLET_UP} {
-    font-size: 0.95rem;
-  }
+const VisuallyHiddenInstructions = styled.p`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 `;
 
 /**

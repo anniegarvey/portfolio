@@ -18,8 +18,10 @@ export function TameCelebration() {
       clearCelebration();
       return;
     }
-    // Safety-net: clear if onAnimationEnd somehow doesn't fire (tab hidden, etc.)
-    const fallback = setTimeout(clearCelebration, 1100);
+    // Safety-net: clear if onAnimationEnd somehow doesn't fire (tab hidden,
+    // etc). Derived from FLIGHT_MS rather than a fixed number so it can never
+    // fire before the flight it is meant to catch actually lands.
+    const fallback = setTimeout(clearCelebration, FLIGHT_MS + 200);
     return () => clearTimeout(fallback);
   }, [celebration, clearCelebration]);
 

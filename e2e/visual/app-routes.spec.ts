@@ -65,6 +65,7 @@ const MEADOWMERE_STATE = JSON.stringify(
   }),
 );
 const MEADOWMERE_KEY = "meadowmere-game-state";
+const MEADOWMERE_INSTRUCTIONS_SEEN_KEY = "meadowmere-instructions-seen";
 
 /**
  * The Vale draws one thing that depends on the calendar rather than on the save:
@@ -83,7 +84,7 @@ async function goToValeAtPinnedTime(page: Page, theme: "light" | "dark") {
   await page.clock.setFixedTime(MEADOWMERE_PINNED_DAY);
   await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
   await page.evaluate(
-    ({ stateJson, key, plots, themeValue }) => {
+    ({ stateJson, key, plots, themeValue, instructionsSeenKey }) => {
       const stamp = (date: Date) =>
         `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
       const state = JSON.parse(stateJson);
@@ -101,12 +102,16 @@ async function goToValeAtPinnedTime(page: Page, theme: "light" | "dark") {
       }
       localStorage.setItem(key, JSON.stringify(state));
       localStorage.setItem("theme", themeValue);
+      // A snapshot of a farm mid-run represents a returning player — the
+      // first-visit how-to-play modal shouldn't be what this baseline shows.
+      localStorage.setItem(instructionsSeenKey, "1");
     },
     {
       stateJson: MEADOWMERE_STATE,
       key: MEADOWMERE_KEY,
       plots: MEADOWMERE_PLOTS,
       themeValue: theme,
+      instructionsSeenKey: MEADOWMERE_INSTRUCTIONS_SEEN_KEY,
     },
   );
   await page.reload();

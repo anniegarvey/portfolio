@@ -9,9 +9,15 @@ interface ToggletipProps {
   content: React.ReactNode;
   /** Trigger button label. Defaults to "About". */
   label?: string;
+  /** Trigger button icon. Defaults to an info glyph. */
+  icon?: React.ReactNode;
 }
 
-export function Toggletip({ content, label = "About" }: ToggletipProps) {
+export function Toggletip({
+  content,
+  label = "About",
+  icon = <Info aria-hidden size={16} />,
+}: ToggletipProps) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -45,7 +51,7 @@ export function Toggletip({ content, label = "About" }: ToggletipProps) {
         aria-controls={id}
         aria-expanded={open}
         intent="secondary"
-        leftIcon={<Info aria-hidden size={16} />}
+        leftIcon={icon}
         onClick={() => setOpen((v) => !v)}
         variant="outline"
       >

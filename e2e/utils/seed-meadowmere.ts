@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 const MEADOWMERE_KEY = "meadowmere-game-state";
 const POINTS_KEY = "energy-planner-points";
+const INSTRUCTIONS_SEEN_KEY = "meadowmere-instructions-seen";
 
 const PLOT_ID_PREFIX = "00000000-0000-4000-8000-00000000000";
 
@@ -90,7 +91,7 @@ export async function goToMeadowmereWithSeed(
   await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
 
   await page.evaluate(
-    ({ gameStateJson, pointsStr, key, pointsKey }) => {
+    ({ gameStateJson, pointsStr, key, pointsKey, instructionsSeenKey }) => {
       const state = JSON.parse(gameStateJson);
       // Same local-date format as getTodayDateString()
       const now = new Date();
@@ -102,12 +103,17 @@ export async function goToMeadowmereWithSeed(
       if (pointsStr !== null) {
         localStorage.setItem(pointsKey, pointsStr);
       }
+      // A seeded save represents a returning player, so the first-visit
+      // how-to-play modal shouldn't pop open and steal focus from whatever
+      // the test came here to check.
+      localStorage.setItem(instructionsSeenKey, "1");
     },
     {
       gameStateJson: JSON.stringify(makeMeadowmereGameState(opts)),
       pointsStr: opts.points != null ? String(opts.points) : null,
       key: MEADOWMERE_KEY,
       pointsKey: POINTS_KEY,
+      instructionsSeenKey: INSTRUCTIONS_SEEN_KEY,
     },
   );
 

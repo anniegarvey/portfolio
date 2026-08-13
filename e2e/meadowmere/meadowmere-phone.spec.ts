@@ -191,8 +191,10 @@ test.describe("Meadowmere on a phone", () => {
     await expect(
       page.getByText("Pick a seed, then tap or click a bare plot to sow it."),
     ).toBeVisible();
+    // The general how-to-play text moved into a modal (see the "how to play"
+    // describe block below); on screen, its entry point is this trigger.
     await expect(
-      page.getByText(/^Tap or click any place on the map/),
+      page.getByRole("button", { name: "How to play" }),
     ).toBeVisible();
   });
 

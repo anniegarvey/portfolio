@@ -72,10 +72,14 @@ test.describe("Meadowmere", () => {
     );
   });
 
-  test("explains foraging above the map, not only how many trips are left", async ({
+  test("explains foraging in the how-to-play modal, not only how many trips are left", async ({
     page,
   }) => {
     await goToMeadowmereWithSeed(page);
+
+    // A counter alone leaves foraging the one loop with no visible cause and
+    // effect: you spend a trip and something you've never heard of turns up.
+    await page.getByRole("button", { name: "How to play" }).click();
 
     await expect(
       page.getByText(/Materials are what neighbours want as gifts/),
@@ -169,7 +173,13 @@ test.describe("Meadowmere", () => {
     await expect(
       page.getByRole("button", { name: "Parsnip, 1 seed" }),
     ).toBeVisible();
-    await expect(page.getByText("16 points")).toBeVisible();
+    // The points count lives in the site header (PointsDisplay), not in
+    // Meadowmere's own HUD — it would otherwise duplicate the header. Both
+    // the desktop and mobile-drawer copies of it are always in the DOM, one
+    // hidden by CSS depending on viewport, so scope to the visible one.
+    await expect(page.locator("[data-points-display]:visible")).toContainText(
+      "16",
+    );
   });
 
   test("a liked gift moves a neighbour up a friendship tier", async ({
@@ -319,5 +329,35 @@ test.describe("Meadowmere", () => {
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
     expect(violationFingerprints(accessibilityScanResults)).toEqual("[]");
+  });
+
+  test("shows a how-to-play modal on first visit, dismissible and reachable again from a help trigger", async ({
+    page,
+  }) => {
+    // A genuinely fresh visit — no seeded save, and critically no seeded
+    // "instructions seen" flag either, unlike goToMeadowmereWithSeed.
+    await page.goto("/meadowmere", { waitUntil: "domcontentloaded" });
+    await page.getByRole("application", { name: map }).waitFor();
+
+    // The map's role="application" is present in the server-rendered HTML
+    // before hydration, so waiting for it above doesn't guarantee the
+    // first-visit effect that opens this modal has run yet — a generous
+    // timeout instead of the 5s default, since hydration under concurrent
+    // e2e load can genuinely take longer than that.
+    const dialog = page.getByRole("dialog", { name: "How to play" });
+    await expect(dialog).toBeVisible({ timeout: 15000 });
+
+    await dialog.getByRole("button", { name: "Got it" }).click();
+    await expect(dialog).not.toBeVisible();
+
+    // Dismissal is remembered, so a reload doesn't pop it open again.
+    await page.reload();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+
+    // Still reachable on demand from the trigger.
+    await page.getByRole("button", { name: "How to play" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "How to play" }),
+    ).toBeVisible();
   });
 });

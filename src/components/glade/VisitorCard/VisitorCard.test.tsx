@@ -131,9 +131,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
 
     const labels = screen.getAllByText(
       /Preferred posture|Preferred pet spot|Favourite treat/,
@@ -159,7 +157,7 @@ describe("VisitorCard preference hints", () => {
     render(<VisitorCard visitor={rabbit} />);
 
     expect(
-      screen.queryByRole("button", { name: "Preference details" }),
+      screen.queryByRole("button", { name: "Hints" }),
     ).not.toBeInTheDocument();
   });
 
@@ -177,7 +175,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    const trigger = screen.getByRole("button", { name: "Preference details" });
+    const trigger = screen.getByRole("button", { name: "Hints" });
     await user.click(trigger);
 
     expect(screen.getByText("Preferred posture")).toBeVisible();
@@ -185,7 +183,7 @@ describe("VisitorCard preference hints", () => {
     expect(screen.queryByText("Favourite treat")).not.toBeInTheDocument();
   });
 
-  it("shows 'Keep training to learn more.' for a type below its own tier 3, even while the toggletip is open", async () => {
+  it("shows a type's vague hint inside the toggletip once it's open, for a type below its own tier 3", async () => {
     const user = userEvent.setup();
     mockGlade({
       state: makeGladeState({
@@ -199,11 +197,31 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
 
-    expect(screen.getByText("Keep training to learn more.")).toBeVisible();
+    expect(
+      screen.getByText("Gets nervous when you tower over it."),
+    ).toBeVisible();
+  });
+
+  it("moves a type's vague hint off the card body once the toggletip appears, so it isn't shown twice", () => {
+    mockGlade({
+      state: makeGladeState({
+        visitors: [rabbit],
+        skills: {
+          "treat-cooking": makeSkill(),
+          "body-language": makeSkill({ tier: 2 }),
+          "petting-technique": makeSkill({ tier: 3 }), // triggers the toggletip
+        },
+      }),
+    });
+    render(<VisitorCard visitor={rabbit} />);
+
+    // Still reachable — just inside the (closed) toggletip now, not on the
+    // card body where it would duplicate what the toggletip already shows.
+    expect(
+      screen.queryByText("Gets nervous when you tower over it."),
+    ).not.toBeInTheDocument();
   });
 
   it("shows 'Not yet confirmed.' once a type reaches tier 3 but its preference isn't discovered", async () => {
@@ -220,9 +238,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
 
     expect(screen.getByText("Not yet confirmed.")).toBeVisible();
   });
@@ -242,9 +258,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
 
     expect(screen.getByText("Crouch low.")).toBeVisible();
   });
@@ -264,9 +278,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
     const details = within(screen.getByRole("status"));
 
     expect(details.getByText("Slow blink — tried")).toBeVisible();
@@ -290,9 +302,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
 
     expect(screen.getByText("Berry Bites — tried")).toBeVisible();
     expect(screen.getByText("Cream Puffs — not yet tried")).toBeVisible();
@@ -313,9 +323,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
 
     expect(screen.getByText("Scratch behind the ears.")).toBeVisible();
     expect(screen.getByText("Loves oat cakes.")).toBeVisible();
@@ -335,9 +343,7 @@ describe("VisitorCard preference hints", () => {
     });
     render(<VisitorCard visitor={rabbit} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Preference details" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hints" }));
     const details = within(screen.getByRole("status"));
 
     expect(details.getByText("Crouch low — not yet tried")).toBeVisible();

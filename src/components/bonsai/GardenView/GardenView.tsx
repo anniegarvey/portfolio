@@ -31,8 +31,9 @@ import { computeTrunkHeight, VIEWBOX_HEIGHT } from "@/lib/bonsai/treeGenerator";
 import { clamp, seededVal } from "@/lib/bonsai/treeGenerator.math";
 
 // Trees positioned near an edge get clamped so they stay fully visible.
-// The mini tree container is ~90px wide and the garden uses percentage coords,
-// so we clamp x/y to keep the tree center away from the edges.
+// The mini tree art (MiniSVGWrapper) is ~90px wide and the garden uses
+// percentage coords, so we clamp x/y to keep the tree center away from the
+// edges. (The tap target itself, MiniTreeContainer, is narrower — see there.)
 const CLAMP_MIN = 8;
 const CLAMP_MAX = 92;
 
@@ -608,6 +609,12 @@ const Garden = styled.div`
 
 const MiniTreeContainer = styled.div`
   position: absolute;
+  /* Narrower than the 90px artwork it wraps (see MiniSVGWrapper): the art
+     overflows this box symmetrically via align-items: center below, so the
+     tap target shrinks without shrinking the tree itself. Seven of these in
+     a small mobile garden made the full 90px+ boxes overlap enough that
+     presses landed on the wrong tree. */
+  width: 56px;
   transform: translate(-50%, -80%);
   display: flex;
   flex-direction: column;
@@ -618,6 +625,11 @@ const MiniTreeContainer = styled.div`
   border-radius: 8px;
   padding: 4px;
   transition: filter 150ms ease;
+  /* Mobile browsers flash a highlight over the whole tap target on press;
+     the size mismatch with the (smaller) tap target above is exactly the
+     "hit boxes light up blue and look too big" complaint. Press feedback
+     already comes from the :active brightness filter below. */
+  -webkit-tap-highlight-color: transparent;
   /* Each tree gets its own compositor layer. A mature garden is tens of
      thousands of SVG nodes, and without this they share the page layer — so
      any repaint anywhere (the soil darkening on water, the nav menu opening)
@@ -705,6 +717,15 @@ const TreeNameTag = styled.span`
   background: light-dark(rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0.5));
   padding: 1px 6px;
   border-radius: 4px;
+  /* Capped to the art's own width (MiniSVGWrapper, 90px) rather than left to
+     grow with the name: MiniTreeContainer no longer sizes itself to its
+     widest child (see the tap-target width above), so an uncapped long name
+     — a species like "Cherry Blossom", or any custom tree.name — would
+     overflow into a neighbouring tree in a dense garden instead of being
+     bounded by the container the way it used to be. */
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
 `;

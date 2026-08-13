@@ -949,4 +949,14 @@ describe("controls", () => {
     render(<ValeWorld />);
     expect(stage()).toHaveAccessibleName("The Vale — Meadowmere's map");
   });
+
+  it("accepts an external id for the instructions description, for MeadowmerePage's how-to-play modal to point at", () => {
+    mock();
+    render(<ValeWorld instructionsId="how-to-play-text" />);
+
+    expect(document.getElementById("how-to-play-text")?.textContent).toMatch(
+      /^Tap or click any place on the map/,
+    );
+    expect(stage()).toHaveAccessibleDescription(/arrow keys or W, A, S and D/);
+  });
 });

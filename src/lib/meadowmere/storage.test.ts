@@ -3,8 +3,10 @@ import { STARTING_PLOTS } from "./catalog";
 import {
   createInitialState,
   EMPTY_STATE,
+  hasSeenInstructions,
   loadMeadowmereState,
   makeEmptyPlots,
+  markInstructionsSeen,
   saveMeadowmereState,
 } from "./storage";
 
@@ -75,5 +77,13 @@ describe("EMPTY_STATE", () => {
   it("is inert so the server and first client render match", () => {
     expect(EMPTY_STATE.plots).toEqual([]);
     expect(EMPTY_STATE.lastAdvanceDate).toBeUndefined();
+  });
+});
+
+describe("instructions seen", () => {
+  it("is unseen until marked", () => {
+    expect(hasSeenInstructions()).toBe(false);
+    markInstructionsSeen();
+    expect(hasSeenInstructions()).toBe(true);
   });
 });

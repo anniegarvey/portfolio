@@ -1,6 +1,6 @@
 "use client";
 
-import { Coins, Footprints, ScrollText, Sprout } from "lucide-react";
+import { Footprints, ScrollText, Sprout } from "lucide-react";
 import { styled } from "next-yak";
 import { useId, useState } from "react";
 import { Modal } from "@/components/Modal";
@@ -11,7 +11,6 @@ import { foragesLeft } from "@/lib/meadowmere/foragingModule";
 import { seedCount } from "@/lib/meadowmere/inventory";
 import { questStatus, visibleQuests } from "@/lib/meadowmere/questsModule";
 import type { CropId, ItemId } from "@/lib/meadowmere/schema";
-import { usePoints } from "@/lib/points/context";
 
 /**
  * The band above the map: what the farmer is carrying and which seed is in
@@ -22,15 +21,6 @@ export interface ValeHUDProps {
   selectedCropId: CropId | null;
   onSelectCrop: (cropId: CropId | null) => void;
 }
-
-/**
- * What a forage trip is and what it buys you. Fixed wording, because it is the
- * loop rather than the state that needs explaining.
- */
-const FORAGING_HINT =
-  "Walk up to a wild place and use it to spend a trip and bring a material " +
-  "home. Materials are what neighbours want as gifts and what quests ask for. " +
-  "Trips refill each morning, and more places open up as quests are handed in.";
 
 /**
  * The next step of sowing, in the state the pouch is currently in. Sowing the
@@ -50,7 +40,6 @@ function sowingHint(selectedCropId: CropId | null, count: number): string {
 
 export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
   const { state } = useMeadowmere();
-  const { points } = usePoints();
   const [questsOpen, setQuestsOpen] = useState(false);
   // Each region is named by the heading it already shows, so a screen reader
   // doesn't announce a region and a heading as two unrelated things.
@@ -73,10 +62,6 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
     <Bar>
       <Group>
         <Stat>
-          <Coins aria-hidden size={15} />
-          {points} points
-        </Stat>
-        <Stat>
           <Footprints aria-hidden size={15} />
           {foragesLeft(state)} forage trips left
         </Stat>
@@ -87,11 +72,6 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
             <ReadyPip>{readyQuests} ready to hand in</ReadyPip>
           )}
         </QuestsButton>
-        {/* A trip counter says how many are left but nothing about what they are
-            for. Foraging is the one loop with no visible cause and effect — you
-            spend a trip and an item you have never heard of appears in the
-            larder — so what it earns and when it comes back are said out loud. */}
-        <Hint>{FORAGING_HINT}</Hint>
       </Group>
 
       <Section aria-labelledby={pouchId}>
