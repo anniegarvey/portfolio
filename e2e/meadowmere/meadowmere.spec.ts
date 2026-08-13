@@ -72,10 +72,14 @@ test.describe("Meadowmere", () => {
     );
   });
 
-  test("explains foraging above the map, not only how many trips are left", async ({
+  test("explains foraging in the how-to-play modal, not only how many trips are left", async ({
     page,
   }) => {
     await goToMeadowmereWithSeed(page);
+
+    // A counter alone leaves foraging the one loop with no visible cause and
+    // effect: you spend a trip and something you've never heard of turns up.
+    await page.getByRole("button", { name: "How to play" }).click();
 
     await expect(
       page.getByText(/Materials are what neighbours want as gifts/),

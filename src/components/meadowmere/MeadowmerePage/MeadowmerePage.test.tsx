@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMeadowmere } from "@/lib/meadowmere/context";
 import { markInstructionsSeen } from "@/lib/meadowmere/storage";
@@ -59,5 +60,60 @@ describe("MeadowmerePage", () => {
     render(<MeadowmerePage />);
 
     expect(screen.getByText("Overnight at Meadowmere")).toBeInTheDocument();
+  });
+});
+
+describe("how-to-play modal", () => {
+  it("opens on first visit", () => {
+    localStorage.clear(); // undo the file's beforeEach markInstructionsSeen()
+    render(<MeadowmerePage />);
+
+    expect(screen.getByRole("dialog", { name: "How to play" })).toBeVisible();
+  });
+
+  it("stays closed on a return visit", () => {
+    render(<MeadowmerePage />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("sits alongside the intro text rather than in its own row", () => {
+    render(<MeadowmerePage />);
+
+    const trigger = screen.getByRole("button", { name: "How to play" });
+    const intro = screen.getByText(/Walk the Vale/);
+    expect(trigger.parentElement).toBe(intro.parentElement);
+  });
+
+  it("reopens from the help trigger", async () => {
+    const user = userEvent.setup();
+    render(<MeadowmerePage />);
+
+    await user.click(screen.getByRole("button", { name: "How to play" }));
+
+    expect(screen.getByRole("dialog", { name: "How to play" })).toBeVisible();
+  });
+
+  it("includes the foraging guidance, no longer shown above the map", async () => {
+    const user = userEvent.setup();
+    render(<MeadowmerePage />);
+
+    await user.click(screen.getByRole("button", { name: "How to play" }));
+
+    expect(
+      screen.getByText(/Materials are what neighbours want as gifts/),
+    ).toBeVisible();
+  });
+
+  it("remembers it was dismissed, so it doesn't reopen on the next visit", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    const { unmount } = render(<MeadowmerePage />);
+
+    await user.click(screen.getByRole("button", { name: "Got it" }));
+    unmount();
+    render(<MeadowmerePage />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
