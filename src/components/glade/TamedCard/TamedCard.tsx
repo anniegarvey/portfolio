@@ -32,7 +32,10 @@ export function TamedCard({ visitor }: { visitor: WildVisitor }) {
       style={{ "--arrival-delay": `${ARRIVAL_DELAY_MS}ms` } as CSSProperties}
     >
       <PortraitWrapper>
-        <CreatureSVG size={72} speciesId={visitor.speciesId} />
+        <Glow aria-hidden="true" />
+        <CreatureLayer>
+          <CreatureSVG size={72} speciesId={visitor.speciesId} />
+        </CreatureLayer>
         <Particles aria-hidden="true">
           {PARTICLE_ANGLES.map((angle) => (
             <Particle
@@ -96,15 +99,60 @@ const PortraitWrapper = styled.div`
   background: light-dark(#eaf3e2, var(--color-grey-900));
 `;
 
+/*
+ * A soft wash that blooms in behind the creature once it lands and lingers a
+ * beat after the sparkles are done, so the celebration doesn't end the moment
+ * the burst does. Explicit z-index because CreatureLayer and Particles both
+ * need to paint above it, on purpose, in that order — see CreatureLayer.
+ */
+const glowPulse = keyframes`
+  0%   { opacity: 0; transform: scale(0.85); }
+  20%  { opacity: 1; transform: scale(1.05); }
+  70%  { opacity: 0.85; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1.1); }
+`;
+
+const Glow = styled.div`
+  position: absolute;
+  inset: -10px;
+  z-index: 0;
+  border-radius: 14px;
+  background: radial-gradient(
+    ellipse at center,
+    light-dark(
+      color-mix(in oklch, var(--color-primary-300) 60%, transparent),
+      color-mix(in oklch, var(--color-primary-500) 50%, transparent)
+    ) 0%,
+    transparent 72%
+  );
+  opacity: 0;
+  animation: ${glowPulse} 1800ms var(--arrival-delay) var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+`;
+
+/* Above Glow so the wash reads as coming from behind the creature rather
+   than washing over it. */
+const CreatureLayer = styled.div`
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+`;
+
 const sparkleOut = keyframes`
   0%   { opacity: 1; transform: rotate(var(--angle)) translateX(0) scale(1); }
   70%  { opacity: 1; }
   100% { opacity: 0; transform: rotate(var(--angle)) translateX(44px) scale(0); }
 `;
 
+/* Above CreatureLayer — the sparkle burst flies out over the portrait. */
 const Particles = styled.div`
   position: absolute;
   inset: 0;
+  z-index: 2;
   pointer-events: none;
   display: grid;
   place-items: center;
@@ -125,7 +173,7 @@ const Particle = styled.div`
    * for the creature to land is a wait, not six dots parked on the portrait.
    */
   opacity: 0;
-  animation: ${sparkleOut} 650ms var(--arrival-delay) var(--ease-out) forwards;
+  animation: ${sparkleOut} 950ms var(--arrival-delay) var(--ease-out) forwards;
 `;
 
 const badgeArrive = keyframes`
@@ -143,7 +191,7 @@ const SuccessBadge = styled.span`
   background: light-dark(var(--color-primary-100), var(--color-primary-900));
   color: light-dark(var(--color-primary-700), var(--color-primary-300));
   /* Filling backwards, so it holds its space in the layout while it waits. */
-  animation: ${badgeArrive} 260ms var(--arrival-delay) var(--ease-out) backwards;
+  animation: ${badgeArrive} 400ms var(--arrival-delay) var(--ease-out) backwards;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

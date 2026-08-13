@@ -6,4 +6,4 @@
  * restating the number and the two quietly drifting apart. The tame reads as
  * one sequence only while they agree.
  */
-export const FLIGHT_MS = 900;
+export const FLIGHT_MS = 1300;
