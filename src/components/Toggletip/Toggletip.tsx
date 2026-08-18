@@ -2,7 +2,7 @@
 
 import { Info } from "lucide-react";
 import { styled } from "next-yak";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 
 interface ToggletipProps {
@@ -13,14 +13,38 @@ interface ToggletipProps {
   icon?: React.ReactNode;
 }
 
+const VIEWPORT_MARGIN = 8;
+
 export function Toggletip({
   content,
   label = "About",
   icon = <Info aria-hidden size={16} />,
 }: ToggletipProps) {
   const [open, setOpen] = useState(false);
+  const [shift, setShift] = useState(0);
   const id = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // The popover is centered on the trigger by default (see `left`/`transform`
+  // below). On a narrow viewport that can push it past the screen edge with
+  // no way to read the clipped half, so once it's open we nudge it back on
+  // screen by exactly as much as it overflows.
+  useLayoutEffect(() => {
+    if (!open) {
+      setShift(0);
+      return;
+    }
+    const rect = popoverRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    if (rect.left < VIEWPORT_MARGIN) {
+      setShift(VIEWPORT_MARGIN - rect.left);
+    } else if (rect.right > window.innerWidth - VIEWPORT_MARGIN) {
+      setShift(window.innerWidth - VIEWPORT_MARGIN - rect.right);
+    } else {
+      setShift(0);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +81,17 @@ export function Toggletip({
       >
         {label}
       </Button>
-      <Popover hidden={!open} id={id} role="status">
+      <Popover
+        hidden={!open}
+        id={id}
+        ref={popoverRef}
+        role="status"
+        style={
+          shift !== 0
+            ? { transform: `translateX(calc(-50% + ${shift}px))` }
+            : undefined
+        }
+      >
         {open && content}
       </Popover>
     </Wrapper>
