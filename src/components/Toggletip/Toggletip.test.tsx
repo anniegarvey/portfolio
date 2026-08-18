@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Toggletip } from "./Toggletip";
 
 const CONTENT = "Plan your day according to your energy levels.";
@@ -97,5 +97,48 @@ describe("Toggletip", () => {
     );
     await user.click(screen.getByRole("button", { name: "About" }));
     expect(screen.getByText("Tried crouch-low")).toBeVisible();
+  });
+
+  it("shifts the popover back on screen when it would overflow the left edge", async () => {
+    const user = userEvent.setup();
+    render(<Toggletip content={CONTENT} />);
+    const popover = screen.getByRole("status", { hidden: true });
+    vi.spyOn(popover, "getBoundingClientRect").mockReturnValue({
+      left: -40,
+      right: 240,
+      width: 280,
+      height: 60,
+      top: 0,
+      bottom: 60,
+      x: -40,
+      y: 0,
+      toJSON() {},
+    });
+
+    await user.click(screen.getByRole("button", { name: "About" }));
+
+    expect(popover.style.transform).toBe("translateX(calc(-50% + 48px))");
+  });
+
+  it("shifts the popover back on screen when it would overflow the right edge", async () => {
+    const user = userEvent.setup();
+    render(<Toggletip content={CONTENT} />);
+    const popover = screen.getByRole("status", { hidden: true });
+    const innerWidth = window.innerWidth;
+    vi.spyOn(popover, "getBoundingClientRect").mockReturnValue({
+      left: innerWidth - 240,
+      right: innerWidth + 40,
+      width: 280,
+      height: 60,
+      top: 0,
+      bottom: 60,
+      x: innerWidth - 240,
+      y: 0,
+      toJSON() {},
+    });
+
+    await user.click(screen.getByRole("button", { name: "About" }));
+
+    expect(popover.style.transform).toBe("translateX(calc(-50% + -48px))");
   });
 });
