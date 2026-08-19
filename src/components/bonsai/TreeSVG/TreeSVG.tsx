@@ -52,6 +52,7 @@ export function TreeSVG({
   cropTop,
   style,
   growing,
+  viewAngle,
 }: {
   tree: BonsaiTree;
   activeTool?: ActiveTool;
@@ -60,6 +61,8 @@ export function TreeSVG({
   style?: React.CSSProperties;
   /** Play the growth surge — see StaticTreeSVG. */
   growing?: boolean;
+  /** Yaw (radians) around the trunk's vertical axis. */
+  viewAngle?: number;
 }) {
   const { pruneBranch } = useBonsai();
   const [snip, setSnip] = useState<Snip | null>(null);
@@ -180,6 +183,7 @@ export function TreeSVG({
       )}
       style={style}
       tree={tree}
+      viewAngle={viewAngle}
     />
   );
 }

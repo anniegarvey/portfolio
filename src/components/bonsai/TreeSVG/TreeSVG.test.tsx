@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useBonsai } from "@/lib/bonsai/context";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
+import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
+import { generateTree } from "@/lib/bonsai/treeGenerator";
 import { PotBodySVG, PotRimSVG } from "./PotSVG";
 import { StaticTreeSVG } from "./StaticTreeSVG";
 import { TreeSVG } from "./TreeSVG";
@@ -203,6 +205,36 @@ describe("StaticTreeSVG — expanded viewBox", () => {
     const viewBox = svg?.getAttribute("viewBox") ?? "";
     const height = Number(viewBox.split(" ")[3]);
     expect(height).toBeGreaterThan(300);
+  });
+
+  it("widens to fit a rotated maple's canopy instead of clipping it", () => {
+    // Maple's crown is wide enough that some viewAngles push branch tips
+    // past the default 0..200 width — the viewBox must widen to cover them
+    // rather than silently clip the canopy.
+    const viewAngle = Math.PI / 2;
+    const tree: BonsaiTree = { ...mapleAt50, activeDaysCount: 100 };
+    const { container } = render(
+      <StaticTreeSVG tree={tree} viewAngle={viewAngle} />,
+    );
+    const svg = container.querySelector("svg");
+    const [minX, , width] = (svg?.getAttribute("viewBox") ?? "")
+      .split(" ")
+      .map(Number);
+    const maxX = minX + width;
+
+    const data = generateTree(
+      tree.activeDaysCount,
+      SPECIES_CONFIG.maple,
+      tree.prunedBranches,
+      tree.id,
+      viewAngle,
+    );
+    for (const branch of data.branches) {
+      expect(branch.x1).toBeGreaterThanOrEqual(minX);
+      expect(branch.x1).toBeLessThanOrEqual(maxX);
+      expect(branch.x2).toBeGreaterThanOrEqual(minX);
+      expect(branch.x2).toBeLessThanOrEqual(maxX);
+    }
   });
 });
 
