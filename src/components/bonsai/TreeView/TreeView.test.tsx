@@ -403,3 +403,91 @@ describe("TreeView — active fertiliser status", () => {
     expect(screen.getByText(/6 days left/)).toBeInTheDocument();
   });
 });
+
+describe("TreeView — view controls (rotate / zoom)", () => {
+  it("shows rotate and zoom controls", () => {
+    mockBonsai();
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    expect(screen.getByLabelText("Rotate left")).toBeInTheDocument();
+    expect(screen.getByLabelText("Rotate right")).toBeInTheDocument();
+    expect(screen.getByLabelText("Zoom in")).toBeInTheDocument();
+    expect(screen.getByLabelText("Zoom out")).toBeInTheDocument();
+  });
+
+  // Zoom limits use aria-disabled (not the disabled attribute) so the
+  // button stays focusable at the limit — see the comment on ViewBtn.
+  // toBeDisabled()/toBeEnabled() don't look at aria-disabled, so assert the
+  // attribute directly.
+  it("marks zoom out aria-disabled at the default (minimum) zoom level", () => {
+    mockBonsai();
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    expect(screen.getByLabelText("Zoom out")).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByLabelText("Zoom in")).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+  });
+
+  it("stays focusable when aria-disabled, and clicking it is a no-op", async () => {
+    const user = userEvent.setup();
+    mockBonsai();
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    const zoomOut = screen.getByLabelText("Zoom out");
+    zoomOut.focus();
+    expect(zoomOut).toHaveFocus();
+    await user.click(zoomOut);
+    // Still at the minimum — the click had no effect, so zoom in is still available.
+    expect(screen.getByLabelText("Zoom in")).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+  });
+
+  it("clears zoom out's aria-disabled after zooming in", async () => {
+    const user = userEvent.setup();
+    mockBonsai();
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    await user.click(screen.getByLabelText("Zoom in"));
+    expect(screen.getByLabelText("Zoom out")).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+  });
+
+  it("ignores extra clicks past the max instead of accumulating past it", async () => {
+    const user = userEvent.setup();
+    mockBonsai();
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    const zoomIn = screen.getByLabelText("Zoom in");
+    const zoomOut = screen.getByLabelText("Zoom out");
+    for (let i = 0; i < 4; i++) {
+      await user.click(zoomIn);
+    }
+    expect(zoomIn).toHaveAttribute("aria-disabled", "true");
+    // One more click while aria-disabled, then a single step back out. If the
+    // extra click had taken effect, this would still read aria-disabled
+    // (one zoom-out wouldn't be enough to clear a doubled-up zoom level).
+    await user.click(zoomIn);
+    await user.click(zoomOut);
+    expect(zoomIn).toHaveAttribute("aria-disabled", "false");
+  });
+
+  it("rotate buttons stay enabled through a full turn in either direction", async () => {
+    const user = userEvent.setup();
+    mockBonsai();
+    render(<TreeView onNavigateToShop={vi.fn()} tree={pine} />);
+    const rotateLeft = screen.getByLabelText("Rotate left");
+    const rotateRight = screen.getByLabelText("Rotate right");
+    for (let i = 0; i < 9; i++) {
+      await user.click(rotateRight);
+    }
+    for (let i = 0; i < 9; i++) {
+      await user.click(rotateLeft);
+    }
+    expect(rotateLeft).toBeEnabled();
+    expect(rotateRight).toBeEnabled();
+  });
+});
