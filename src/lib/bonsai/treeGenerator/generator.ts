@@ -393,6 +393,11 @@ export function generateTree(
   inputSpec: SpeciesConfig,
   prunedBranches: PrunedBranch[],
   treeId: string,
+  /** Extra yaw (radians) applied uniformly to every branch's azimuth — spins
+   *  the whole tree around the trunk's vertical axis. Branch identity, growth
+   *  progress and pruning state are all keyed on id, never azimuth, so this
+   *  is safe to vary independently of everything else. */
+  viewAngle = 0,
 ): TreeSVGData {
   // Phase 8 — every downstream read of the spec sees per-tree-perturbed values
   // so seeds of the same species look like distinct individuals.
@@ -432,7 +437,11 @@ export function generateTree(
   // gets ±68% spread, producing visibly straight-vs-bent individuals.
   const curveMag =
     spec.trunkCurvature * (1 + ivSignedScalar(treeId, 6) * iv * 1.7);
-  const curveOffset = curveMag * trunkHeight * 0.4 * curveDir;
+  // cos(viewAngle) so the trunk's lean rotates with the rest of the tree:
+  // full lean face-on (viewAngle = 0), edge-on and reading straight at a
+  // quarter turn, mirrored on the far side of a half turn.
+  const curveOffset =
+    curveMag * trunkHeight * 0.4 * curveDir * Math.cos(viewAngle);
 
   // Trunk centreline: quadratic bezier P0 (base) → P1 (control) → P2 (top)
   const trunkCpX = trunkBaseX + curveOffset * 0.65;
@@ -612,7 +621,7 @@ export function generateTree(
           (seededVal(`az${id}${treeId}`, 0) - 0.5) * 0.3 * jitterScale;
         azimuth = baseAzimuth + azJitter;
       }
-      azimuth += treeAzimuthOffset;
+      azimuth += treeAzimuthOffset + viewAngle;
 
       // Thickness from trunk width at attachment — upper branches naturally thinner
       const attachTrunkW = lerp(trunkBaseW, trunkTopW, t);
@@ -712,7 +721,7 @@ export function generateTree(
           (seededVal(`az${apexId}${treeId}`, 0) - 0.5) * 0.3 * jitterScale;
         apexAzimuth = baseAzimuth + azJitter;
       }
-      apexAzimuth += treeAzimuthOffset;
+      apexAzimuth += treeAzimuthOffset + viewAngle;
 
       // Pitch — near-vertical with small per-branch tilt so multi-apex
       // species don't read as a single ramrod-straight column.

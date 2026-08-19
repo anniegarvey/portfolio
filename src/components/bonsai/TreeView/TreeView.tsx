@@ -7,10 +7,14 @@ import {
   Droplets,
   FlaskConical,
   Lock,
+  RotateCcw,
+  RotateCw,
   Scissors,
   ShoppingBag,
   Sprout,
   Square,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import {
@@ -60,6 +64,18 @@ const CHEAPEST_FERTILISER_PRICE = Math.min(
   ...SHOP_CATALOG.filter((i) => i.category === "fertiliser").map((i) => i.cost),
 );
 
+// ─── View Controls (rotate / zoom) ───────────────────────────────────────────
+
+/** 45° per click — 8 clicks make a full turn. */
+const ROTATE_STEP = Math.PI / 4;
+const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 1;
+// The tree's SVG box already crops tight to its own bounds (see cropTop in
+// TreeSVG), so there's no slack to zoom into before the canopy top clips —
+// 1.75 was picked by eye as the largest step that still keeps the apex in
+// frame on the tallest mature trees.
+const ZOOM_MAX = 1.75;
+
 // ─── Watering wrapper ─────────────────────────────────────────────────────────
 
 function onWaterKeyDown(e: KeyboardEvent, waterFn: () => void) {
@@ -72,9 +88,13 @@ function onWaterKeyDown(e: KeyboardEvent, waterFn: () => void) {
 function WaterableSVGContainer({
   tree,
   activeTool,
+  viewAngle,
+  zoom,
 }: {
   tree: BonsaiTree;
   activeTool: ActiveTool;
+  viewAngle: number;
+  zoom: number;
 }) {
   const { waterTree, state, growthEvents } = useBonsai();
   const isWatering = activeTool === "watering-can";
@@ -124,22 +144,26 @@ function WaterableSVGContainer({
       }}
       tabIndex={isWatering ? 0 : undefined}
     >
-      <GardenBackground backgroundId={bgId} tendPos={pos} />
-      {/* The breeze stops while the shears are out: the branch hit targets are
-          a few pixels wide, and a target that drifts under the cursor is a tax
-          on exactly the people this app is for. The growth surge and the
-          watered lift still move them, but each is one short pass rather than
-          a loop, and both need the shears and a growth in the same moment. */}
-      <TreeSVGLayer data-still={activeTool === "pruning-shears" || undefined}>
-        <GrowthFlourish event={growth} variant="full">
-          <TreeSVG
-            activeTool={activeTool}
-            cropTop
-            growing={growth !== null}
-            tree={tree}
-          />
-        </GrowthFlourish>
-      </TreeSVGLayer>
+      <ZoomWrapper style={{ transform: `scale(${zoom})` }}>
+        <GardenBackground backgroundId={bgId} tendPos={pos} />
+        {/* The breeze stops while the shears are out: the branch hit targets
+            are a few pixels wide, and a target that drifts under the cursor
+            is a tax on exactly the people this app is for. The growth surge
+            and the watered lift still move them, but each is one short pass
+            rather than a loop, and both need the shears and a growth in the
+            same moment. */}
+        <TreeSVGLayer data-still={activeTool === "pruning-shears" || undefined}>
+          <GrowthFlourish event={growth} variant="full">
+            <TreeSVG
+              activeTool={activeTool}
+              cropTop
+              growing={growth !== null}
+              tree={tree}
+              viewAngle={viewAngle}
+            />
+          </GrowthFlourish>
+        </TreeSVGLayer>
+      </ZoomWrapper>
       <WaterSprinkles ref={sprinklesRef} />
     </SVGContainer>
   );
@@ -490,6 +514,51 @@ function TreeToolBar({
   );
 }
 
+// ─── View Control Bar (rotate / zoom) ────────────────────────────────────────
+
+function ViewControlBar({
+  onRotateLeft,
+  onRotateRight,
+  onZoomOut,
+  onZoomIn,
+  canZoomOut,
+  canZoomIn,
+}: {
+  onRotateLeft: () => void;
+  onRotateRight: () => void;
+  onZoomOut: () => void;
+  onZoomIn: () => void;
+  canZoomOut: boolean;
+  canZoomIn: boolean;
+}) {
+  return (
+    <ViewBar>
+      <ViewBtn aria-label="Rotate left" onClick={onRotateLeft} type="button">
+        <RotateCcw size={16} />
+      </ViewBtn>
+      <ViewBtn aria-label="Rotate right" onClick={onRotateRight} type="button">
+        <RotateCw size={16} />
+      </ViewBtn>
+      <ViewBtn
+        aria-disabled={!canZoomOut}
+        aria-label="Zoom out"
+        onClick={canZoomOut ? onZoomOut : undefined}
+        type="button"
+      >
+        <ZoomOut size={16} />
+      </ViewBtn>
+      <ViewBtn
+        aria-disabled={!canZoomIn}
+        aria-label="Zoom in"
+        onClick={canZoomIn ? onZoomIn : undefined}
+        type="button"
+      >
+        <ZoomIn size={16} />
+      </ViewBtn>
+    </ViewBar>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function TreeView({
@@ -504,11 +573,19 @@ export function TreeView({
   const [activeTool, setActiveTool] = useState<ActiveTool>(
     hasWateringCan ? "watering-can" : "pruning-shears",
   );
+  const [viewAngle, setViewAngle] = useState(0);
+  const [zoom, setZoom] = useState(1);
 
   const config = SPECIES_CONFIG[tree.speciesId];
   const isWateredToday = tree.lastWateredDay === tree.activeDaysCount;
 
   const handleSetTool = (tool: ActiveTool) => setActiveTool(tool);
+  const handleRotateLeft = () => setViewAngle((a) => a - ROTATE_STEP);
+  const handleRotateRight = () => setViewAngle((a) => a + ROTATE_STEP);
+  const handleZoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
+  const handleZoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
+  const canZoomOut = zoom > ZOOM_MIN;
+  const canZoomIn = zoom < ZOOM_MAX;
 
   return (
     <TreeViewWrapper>
@@ -528,7 +605,21 @@ export function TreeView({
         <FertiliserDropdown onNavigateToShop={onNavigateToShop} tree={tree} />
       </AccessoryBar>
 
-      <WaterableSVGContainer activeTool={activeTool} tree={tree} />
+      <ViewControlBar
+        canZoomIn={canZoomIn}
+        canZoomOut={canZoomOut}
+        onRotateLeft={handleRotateLeft}
+        onRotateRight={handleRotateRight}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+      />
+
+      <WaterableSVGContainer
+        activeTool={activeTool}
+        tree={tree}
+        viewAngle={viewAngle}
+        zoom={zoom}
+      />
 
       <WaterStatus data-watered={isWateredToday || undefined}>
         <Droplets aria-hidden="true" size={13} />
@@ -587,6 +678,44 @@ const AccessoryBar = styled.div`
   gap: 0.5rem;
   flex-wrap: wrap;
   justify-content: center;
+`;
+
+const ViewBar = styled.div`
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+`;
+
+const ViewBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.3rem;
+  border-radius: 6px;
+  border: 1.5px solid light-dark(#c8c0b4, #4a5060);
+  background: transparent;
+  color: light-dark(#6a6058, #a09888);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &:hover:not([aria-disabled="true"]) {
+    background: light-dark(#f5f3f0, #2a3040);
+  }
+
+  /* aria-disabled rather than the disabled attribute: at min/max zoom the
+     button stays focusable, so a keyboard user tabbing between the four
+     controls doesn't get bumped out of the toolbar the moment they hit a
+     limit. */
+  &[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 `;
 
 const ToolBtn = styled.button`
@@ -691,6 +820,25 @@ const SVGContainer = styled.div`
   border-radius: 12px;
   padding: 1rem;
   border: 1px solid transparent;
+`;
+
+const ZoomWrapper = styled.div`
+  /* GardenBackground fills its containing block via position:absolute +
+     inset:0 — and a transform (our scale) makes this element that containing
+     block, in place of SVGContainer. Without the margin/padding pair below,
+     the background would size to this element's own (unpadded) box instead
+     of bleeding into SVGContainer's 1rem padding as it used to, leaving a
+     bare ring around the scene. The negative margin reclaims that 1rem so
+     the background still bleeds to SVGContainer's edge; the matching padding
+     re-applies it to normal-flow children (TreeSVGLayer) so the tree itself
+     stays exactly where it was. */
+  margin: -1rem;
+  padding: 1rem;
+  transition: transform 200ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const breeze = keyframes`

@@ -1144,4 +1144,113 @@ describe("generateTree", () => {
       expect(totalElements(data)).toBeLessThan(budget);
     });
   });
+
+  // ─── viewAngle — camera rotation around the trunk's vertical axis ───────────
+  // Every branch's azimuth is offset by the same viewAngle, so this is a rigid
+  // rotation of the whole tree about its (vertical) y-axis rather than a 2D
+  // shear: pitch, and therefore every branch's y-extent, never reads azimuth,
+  // while z-depth is a pure sin(azimuth) term that flips sign at a half turn.
+
+  describe("viewAngle (Step 9 — rotate around the trunk)", () => {
+    it("omitting viewAngle matches passing 0 explicitly", () => {
+      const omitted = generateTree(100, PINE, [], TREE_ID);
+      const explicit = generateTree(100, PINE, [], TREE_ID, 0);
+      expect(omitted).toEqual(explicit);
+    });
+
+    it("adds viewAngle to a branch's azimuth — not subtracts, not some other offset", () => {
+      // For a fully-grown, unbent depth-0 branch attached at z=0 (a primary or
+      // an apex twig): x2-x1 = cos(pitch)·length·cos(azimuth) and
+      // z = cos(pitch)·length·sin(azimuth) — the same amplitude on both, so
+      // atan2(z, x2-x1) recovers the effective azimuth exactly, independent of
+      // pitch and length. Reading it back at two viewAngles pins the sign: a
+      // sign-flipped or dropped viewAngle would move the recovered angle by
+      // -delta or 0 instead of +delta.
+      const delta = 0.3;
+      const base = generateTree(100, PINE, [], TREE_ID, 0);
+      const rotated = generateTree(100, PINE, [], TREE_ID, delta);
+
+      for (const branchId of ["p0", "apex-0"]) {
+        const b0 = base.branches.find((b) => b.id === branchId);
+        const b1 = rotated.branches.find((b) => b.id === branchId);
+        expect(b0).toBeDefined();
+        expect(b1).toBeDefined();
+        if (!(b0 && b1)) continue;
+
+        const angle0 = Math.atan2(b0.z, b0.x2 - b0.x1);
+        const angle1 = Math.atan2(b1.z, b1.x2 - b1.x1);
+        // Wrap into (-π, π] before comparing so the branch is free to sit
+        // near the atan2 seam.
+        const diff = Math.atan2(
+          Math.sin(angle1 - angle0),
+          Math.cos(angle1 - angle0),
+        );
+        expect(diff).toBeCloseTo(delta, 6);
+      }
+    });
+
+    it("rotating leaves the set of branch ids unchanged (pruning stays keyed correctly)", () => {
+      const upright = generateTree(100, PINE, [], TREE_ID, 0);
+      const rotated = generateTree(100, PINE, [], TREE_ID, 1.7);
+      expect(rotated.branches.map((b) => b.id).sort()).toEqual(
+        upright.branches.map((b) => b.id).sort(),
+      );
+    });
+
+    it("a mature tree's branch heights (y1/y2) are unchanged by rotation", () => {
+      const upright = generateTree(100, PINE, [], TREE_ID, 0);
+      const rotated = generateTree(100, PINE, [], TREE_ID, 2.2);
+      const byId = new Map(rotated.branches.map((b) => [b.id, b]));
+      for (const b of upright.branches) {
+        const r = byId.get(b.id);
+        expect(r).toBeDefined();
+        expect(r?.y1).toBeCloseTo(b.y1, 6);
+        expect(r?.y2).toBeCloseTo(b.y2, 6);
+      }
+    });
+
+    it.each(
+      Object.keys(SPECIES_CONFIG),
+    )("%s: a half turn (π) negates every branch's z-depth", (id) => {
+      const spec = SPECIES_CONFIG[id as keyof typeof SPECIES_CONFIG];
+      const front = generateTree(100, spec, [], TREE_ID, 0);
+      const back = generateTree(100, spec, [], TREE_ID, Math.PI);
+      const byId = new Map(back.branches.map((b) => [b.id, b]));
+      let checkedNonZero = false;
+      for (const b of front.branches) {
+        const r = byId.get(b.id);
+        expect(r?.z).toBeCloseTo(-b.z, 6);
+        if (Math.abs(b.z) > 1e-6) checkedNonZero = true;
+      }
+      expect(checkedNonZero).toBe(true);
+    });
+
+    it("a full turn (2π) returns to the same branch geometry", () => {
+      const upright = generateTree(100, PINE, [], TREE_ID, 0);
+      const fullTurn = generateTree(100, PINE, [], TREE_ID, Math.PI * 2);
+      const byId = new Map(fullTurn.branches.map((b) => [b.id, b]));
+      for (const b of upright.branches) {
+        const r = byId.get(b.id);
+        expect(r?.x1).toBeCloseTo(b.x1, 6);
+        expect(r?.y1).toBeCloseTo(b.y1, 6);
+        expect(r?.x2).toBeCloseTo(b.x2, 6);
+        expect(r?.y2).toBeCloseTo(b.y2, 6);
+        expect(r?.z).toBeCloseTo(b.z, 6);
+      }
+    });
+
+    it("juniper's trunk lean straightens at a quarter turn and mirrors at a half turn", () => {
+      const juniper = SPECIES_CONFIG.juniper;
+      const front = generateTree(100, juniper, [], TREE_ID, 0);
+      const side = generateTree(100, juniper, [], TREE_ID, Math.PI / 2);
+      const back = generateTree(100, juniper, [], TREE_ID, Math.PI);
+      const lean = front.trunkTopX - front.trunkX;
+      // Only species with a real curve make this a meaningful assertion.
+      expect(Math.abs(lean)).toBeGreaterThan(0.5);
+      expect(Math.abs(side.trunkTopX - side.trunkX)).toBeLessThan(
+        Math.abs(lean) * 0.05,
+      );
+      expect(back.trunkTopX - back.trunkX).toBeCloseTo(-lean, 4);
+    });
+  });
 });

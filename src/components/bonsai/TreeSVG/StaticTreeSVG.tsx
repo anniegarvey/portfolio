@@ -805,14 +805,29 @@ function computeViewBox(
   const standHeightPx = standCfg ? Math.round(standCfg.height * standScale) : 0;
   const svgViewHeight = Math.max(300, standTopY + standHeightPx + 5);
 
-  if (!cropTop) return `0 0 200 ${svgViewHeight}`;
+  // Branches normally stay within the default 0..200 width, but a rotated
+  // view can redistribute canopy weight toward one side far enough to push
+  // branch tips past it — widen (never narrow) to whatever the content
+  // actually needs, so rotating never silently clips part of the tree.
+  const contentMinX = svgData.branches.reduce(
+    (min, b) => Math.min(min, b.x1, b.x2),
+    100,
+  );
+  const contentMaxX = svgData.branches.reduce(
+    (max, b) => Math.max(max, b.x1, b.x2),
+    100,
+  );
+  const minX = Math.min(0, contentMinX - 30);
+  const svgViewWidth = Math.max(200, contentMaxX + 30) - minX;
+
+  if (!cropTop) return `${minX} 0 ${svgViewWidth} ${svgViewHeight}`;
 
   const contentTopY = svgData.branches.reduce(
     (min, b) => Math.min(min, b.y1, b.y2),
     svgData.trunkTopY,
   );
   const minY = Math.max(0, contentTopY - 30);
-  return `0 ${minY} 200 ${svgViewHeight - minY}`;
+  return `${minX} ${minY} ${svgViewWidth} ${svgViewHeight - minY}`;
 }
 
 // ─── Static Tree SVG ──────────────────────────────────────────────────────────
@@ -823,6 +838,7 @@ export function StaticTreeSVG({
   style,
   overlay,
   growing,
+  viewAngle,
 }: {
   tree: BonsaiTree;
   /** Crop the SVG viewBox so there's equal vertical space above and below the tree. */
@@ -835,12 +851,20 @@ export function StaticTreeSVG({
   overlay?: (svgData: TreeSVGData) => React.ReactNode;
   /** Play the growth surge: the tree pushes up out of a pot that stays put. */
   growing?: boolean;
+  /** Yaw (radians) around the trunk's vertical axis. */
+  viewAngle?: number;
 }) {
   const config = SPECIES_CONFIG[tree.speciesId];
   const svgData = useMemo(
     () =>
-      generateTree(tree.activeDaysCount, config, tree.prunedBranches, tree.id),
-    [tree.activeDaysCount, config, tree.prunedBranches, tree.id],
+      generateTree(
+        tree.activeDaysCount,
+        config,
+        tree.prunedBranches,
+        tree.id,
+        viewAngle ?? 0,
+      ),
+    [tree.activeDaysCount, config, tree.prunedBranches, tree.id, viewAngle],
   );
 
   const showSeed = tree.activeDaysCount < 6;
