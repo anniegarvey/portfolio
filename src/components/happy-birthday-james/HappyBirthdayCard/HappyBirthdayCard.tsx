@@ -86,7 +86,7 @@ export function HappyBirthdayCard() {
         <CardGrid>
           <InterestCard
             accent="primary"
-            detail="33 years in and still working to tolerances of ±0.01mm. Happy birthday to the one person in the family who can actually make something — instead of just complaining that nobody's made it yet."
+            detail="Machine shop by 34?"
             icon={<Ruler aria-hidden="true" size={22} />}
             muted={muted}
             tagline="Precision, always"
@@ -94,11 +94,11 @@ export function HappyBirthdayCard() {
           />
           <InterestCard
             accent="teal"
-            detail="print(f&quot;Happy Birthday, {name}!&quot;) — probably still debugging a script for this at 2am, and somehow we love that about you."
+            detail="print(f&quot;Happy Birthday, {name}!&quot;) — probably still debugging a script at 2am!"
             icon={<Terminal aria-hidden="true" size={22} />}
             muted={muted}
             tagline="Probably automating something right now"
-            title="Python & DIY"
+            title="Hobby Pythonista"
           />
           <InterestCard
             accent="secondary"
@@ -110,7 +110,7 @@ export function HappyBirthdayCard() {
           />
           <InterestCard
             accent="rose"
-            detail="Here's to another year of extremely well-researched opinions and debates nobody asked for. We ask for them anyway."
+            detail="Here's to another year of extremely well-researched opinions and debates!"
             icon={<Landmark aria-hidden="true" size={22} />}
             muted={muted}
             tagline="Has a take, and receipts"
