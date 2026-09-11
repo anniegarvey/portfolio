@@ -20,9 +20,7 @@ import { QUERIES } from "@/lib/constants";
 
 export function HappyBirthdayCard() {
   const [celebrated, setCelebrated] = useState(false);
-  // Starts muted: sound is a nice-to-have on a page someone might open at a
-  // desk or in a quiet room, so it's opt-in rather than a surprise.
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
 
   return (
     <Page>
@@ -103,20 +101,20 @@ export function HappyBirthdayCard() {
             title="Python & DIY"
           />
           <InterestCard
-            accent="rose"
-            detail="Here's to another year of extremely well-researched opinions and debates nobody asked for. We ask for them anyway."
-            icon={<Landmark aria-hidden="true" size={22} />}
-            muted={muted}
-            tagline="Has a take, and receipts"
-            title="Politics"
-          />
-          <InterestCard
             accent="secondary"
             detail="33 and still compounding — in birthdays and portfolio gains. May your returns always outpace your candles."
             icon={<TrendingUp aria-hidden="true" size={22} />}
             muted={muted}
             tagline="Reads the market like a spec sheet"
             title="Investing"
+          />
+          <InterestCard
+            accent="rose"
+            detail="Here's to another year of extremely well-researched opinions and debates nobody asked for. We ask for them anyway."
+            icon={<Landmark aria-hidden="true" size={22} />}
+            muted={muted}
+            tagline="Has a take, and receipts"
+            title="Politics"
           />
         </CardGrid>
 
@@ -220,7 +218,7 @@ const Annotations = styled.div`
 const Title = styled.h1`
   font-size: clamp(1.8rem, 6vw, 2.8rem);
   font-weight: 700;
-  color: light-dark(var(--color-primary-700), var(--color-primary-400));
+  color: light-dark(var(--color-secondary-700), var(--color-secondary-400));
   margin: 0 0 0.5rem;
   text-wrap: balance;
 `;
@@ -240,20 +238,24 @@ const DialSection = styled.section`
 `;
 
 const fadeInUp = keyframes`
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(8px) scale(0.92);
   }
-  to {
+  60% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(-3px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 `;
 
 const Message = styled.div`
   max-width: 46ch;
   text-align: center;
-  animation: ${fadeInUp} 500ms var(--ease-out) both;
+  animation: ${fadeInUp} 650ms var(--ease-out) both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

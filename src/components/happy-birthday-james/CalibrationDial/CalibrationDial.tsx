@@ -16,28 +16,33 @@ import {
 } from "@/components/happy-birthday-james/sounds";
 
 const TARGET = 33;
-const SPIN_MS = 1500;
-const STEP_MS = Math.round(SPIN_MS / TARGET);
+// Cumulative tick count after each of the 4 clicks in one cycle (8, 9, 8, 8
+// ticks per quarter) — uneven only because 33 doesn't divide by 4 evenly.
+const QUARTER_TARGETS = [8, 17, 25, 33];
+const SPIN_MS = 1100;
+const STEP_MS = Math.round(SPIN_MS / 9);
 const SETTLE_MS = 420;
 const TICKS = Array.from({ length: TARGET }, (_, i) => i);
 
 // A damped-oscillator curve sampled into points, so the needle overshoots
 // past its target and settles back rather than easing to a clean stop —
 // spring physics via a plain CSS transition, no animation library needed.
-// Reserved for the final tick only: at 45ms per intermediate step there's no
-// time to perceive an overshoot, so every step but the last uses a quick,
-// plain ease instead.
+// Reserved for the last tick of each click only: at ~165ms per intermediate
+// step there's no time to perceive an overshoot, so every other step uses a
+// quick, plain ease instead.
 const SPRING_EASE =
   "linear(0, 0.349, 0.715, 0.994, 1.153, 1.202, 1.177, 1.117, 1.053, 1.003, 0.974, 0.965, 0.969, 0.979, 0.99, 0.999, 1.004, 1.006, 1.006, 1.004, 1.002, 1, 0.999, 0.999, 0.999, 0.999, 1)";
 const STEP_EASE = "cubic-bezier(0.3, 0, 0.2, 1)";
 
 /**
- * The birthday card's centrepiece: an engineering-dial button that "revs up"
- * to 33 on tap, then celebrates. The needle's rotation is driven directly by
- * `count`, one short transition per tick, so it visibly points at whichever
- * tick just lit rather than spinning independently of the readout — the
- * final tick swaps in a longer spring transition so completion still gets a
- * satisfying overshoot-and-settle.
+ * The birthday card's centrepiece: an engineering-dial button that fills a
+ * quarter of its 33 ticks per tap, taking 4 taps (one per line of "Happy
+ * Birthday to You") to fully calibrate — then celebrates with confetti and a
+ * shockwave, and the cycle can be replayed. `totalFilled` is a single,
+ * monotonically increasing count across every tap ever made (never reset),
+ * which is what lets the needle keep turning forward through replays: both
+ * the needle's angle and the current cycle's display count are derived from
+ * it rather than tracked separately, so they can never drift out of sync.
  */
 export function CalibrationDial({
   muted,
@@ -46,11 +51,11 @@ export function CalibrationDial({
   muted: boolean;
   onCelebrate?: () => void;
 }) {
-  const [count, setCount] = useState(0);
-  const [turns, setTurns] = useState(0);
+  const [totalFilled, setTotalFilled] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [hasCelebrated, setHasCelebrated] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
   const [justCelebrated, setJustCelebrated] = useState(false);
+  const [finalCelebration, setFinalCelebration] = useState(false);
   const [burstId, setBurstId] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // A ref, not `isAnimating` state, gates re-entry: state updates land on the
@@ -59,11 +64,10 @@ export function CalibrationDial({
   const isRunningRef = useRef(false);
   const dialRef = useRef<HTMLButtonElement>(null);
   const glowRafRef = useRef<number | null>(null);
-  // How many times the riff has actually played — drives which line of the
-  // song plays next. A ref because it only needs to be read inside `finish`
-  // (never rendered), and must be exact the instant a completion happens,
-  // not delayed a render behind like state would be.
-  const sectionRef = useRef(0);
+  // Which tap (0-indexed) is about to happen. Taken mod 4, it selects both
+  // the quarter of the dial to fill next and which line of the song plays,
+  // so the two always correspond regardless of whether sound is muted.
+  const clickIndexRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -101,64 +105,88 @@ export function CalibrationDial({
     [],
   );
 
-  const finish = useCallback(() => {
-    setCount(TARGET);
-    setIsAnimating(false);
-    setHasCelebrated(true);
-    setJustCelebrated(true);
-    isRunningRef.current = false;
-    setBurstId((id) => id + 1);
-    if (!muted) {
-      const section = sectionRef.current;
-      sectionRef.current += 1;
-      const analyser = playHappyBirthdayRiff(section);
-      if (analyser) startGlow(analyser, getHappyBirthdayRiffMs(section));
-    }
-    onCelebrate?.();
-  }, [muted, onCelebrate, startGlow]);
+  const finish = useCallback(
+    (endTotal: number, isFinal: boolean, quarterIndex: number) => {
+      setTotalFilled(endTotal);
+      setIsAnimating(false);
+      setIsSettling(true);
+      setJustCelebrated(true);
+      isRunningRef.current = false;
+
+      if (isFinal) {
+        setBurstId((id) => id + 1);
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          setFinalCelebration(true);
+        }
+      }
+
+      if (!muted) {
+        const analyser = playHappyBirthdayRiff(quarterIndex);
+        if (analyser) startGlow(analyser, getHappyBirthdayRiffMs(quarterIndex));
+      }
+
+      if (isFinal) onCelebrate?.();
+    },
+    [muted, onCelebrate, startGlow],
+  );
 
   const handleTurn = useCallback(() => {
     if (isRunningRef.current) return;
     isRunningRef.current = true;
+
+    const clickIndex = clickIndexRef.current;
+    clickIndexRef.current += 1;
+    const quarterIndex = clickIndex % 4;
+    const cycle = Math.floor(clickIndex / 4);
+    const startTotal =
+      cycle * TARGET +
+      (quarterIndex === 0 ? 0 : QUARTER_TARGETS[quarterIndex - 1]);
+    const endTotal = cycle * TARGET + QUARTER_TARGETS[quarterIndex];
+    const isFinal = quarterIndex === 3;
+
     setIsAnimating(true);
-    setTurns((t) => t + 1);
-    setCount(0);
+    setIsSettling(false);
+    setTotalFilled(startTotal);
     if (!muted) playDialClick();
 
+    const settle = () => finish(endTotal, isFinal, quarterIndex);
+
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      finish();
+      settle();
       return;
     }
 
-    let current = 0;
+    let current = startTotal;
     intervalRef.current = setInterval(() => {
       current += 1;
-      if (current >= TARGET) {
+      if (current >= endTotal) {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        finish();
+        settle();
         return;
       }
-      setCount(current);
+      setTotalFilled(current);
     }, STEP_MS);
   }, [finish, muted]);
 
-  // The needle's rotation is derived from `count`, not tracked separately —
-  // it's what makes it visibly point at whichever tick just lit. Each prior
-  // completed sweep banks a full 360° so a replay continues turning forward
-  // instead of snapping back to 0.
-  const priorLaps = Math.max(turns - 1, 0);
-  const rotationDeg = priorLaps * 360 + (360 / TARGET) * count;
-  const isSettling = count >= TARGET;
+  // The current cycle's display count: totalFilled wraps every TARGET ticks,
+  // but an exact multiple should read as "33" (fully lit), not reset to 0.
+  const displayCount = totalFilled === 0 ? 0 : ((totalFilled - 1) % TARGET) + 1;
+  const rotationDeg = (360 / TARGET) * totalFilled;
+  const isFullyLit = displayCount >= TARGET;
 
   return (
     <Wrapper>
       <DialButton
         aria-label={
-          hasCelebrated
+          isFullyLit
             ? "James, fully calibrated to Mark 33. Tap to celebrate again."
-            : "Tap to calibrate James to Mark 33"
+            : displayCount > 0
+              ? `James calibrated to ${displayCount} of ${TARGET}. Tap to continue.`
+              : "Tap to calibrate James to Mark 33"
         }
-        data-shudder={justCelebrated || undefined}
+        data-shudder={
+          justCelebrated ? (finalCelebration ? "final" : "quarter") : undefined
+        }
         disabled={isAnimating}
         onAnimationEnd={() => setJustCelebrated(false)}
         onClick={handleTurn}
@@ -175,7 +203,7 @@ export function CalibrationDial({
         <TickRing aria-hidden="true">
           {TICKS.map((i) => (
             <Tick
-              data-lit={i < count || undefined}
+              data-lit={i < displayCount || undefined}
               key={i}
               style={
                 { "--tick-angle": `${(360 / TARGET) * i}deg` } as CSSProperties
@@ -183,16 +211,35 @@ export function CalibrationDial({
             />
           ))}
         </TickRing>
+        {finalCelebration && (
+          <>
+            <ShockwaveRing
+              aria-hidden="true"
+              style={{ "--ring-delay": "0ms" } as CSSProperties}
+            />
+            <ShockwaveRing
+              aria-hidden="true"
+              style={{ "--ring-delay": "130ms" } as CSSProperties}
+            />
+            <ShockwaveRing
+              aria-hidden="true"
+              onAnimationEnd={() => setFinalCelebration(false)}
+              style={{ "--ring-delay": "260ms" } as CSSProperties}
+            />
+          </>
+        )}
         <Needle aria-hidden="true" />
         <Readout aria-hidden="true">
-          <Count>{count}</Count>
+          <Count>{displayCount}</Count>
           <CountLabel>/ {TARGET}</CountLabel>
         </Readout>
       </DialButton>
       <Instruction aria-live="polite">
-        {hasCelebrated
+        {isFullyLit
           ? "James, Mark 33 — fully calibrated."
-          : "Tap the dial to calibrate James to Mark 33"}
+          : displayCount > 0
+            ? `Calibrated to ${displayCount} of ${TARGET} — tap to continue.`
+            : "Tap the dial to calibrate James to Mark 33"}
       </Instruction>
       <ConfettiBurst triggerCount={burstId} />
     </Wrapper>
@@ -214,6 +261,17 @@ const shudder = keyframes`
   40% { transform: translate(2px, -1px) rotate(1deg); }
   60% { transform: translate(-1px, 1px) rotate(-0.5deg); }
   80% { transform: translate(1px, -1px) rotate(0.5deg); }
+`;
+
+// A bigger, bouncier pulse reserved for completing the whole dial (not each
+// quarter) — the shudder above reads as a mechanical catch; this reads as
+// the dial itself celebrating.
+const finalPulse = keyframes`
+  0% { transform: scale(1); }
+  30% { transform: scale(1.09); }
+  55% { transform: scale(0.97); }
+  78% { transform: scale(1.03); }
+  100% { transform: scale(1); }
 `;
 
 const DialButton = styled.button`
@@ -245,8 +303,12 @@ const DialButton = styled.button`
     outline-offset: 3px;
   }
 
-  &[data-shudder] {
+  &[data-shudder="quarter"] {
     animation: ${shudder} 350ms ease-in-out;
+  }
+
+  &[data-shudder="final"] {
+    animation: ${finalPulse} 650ms ease-out;
   }
 
   /*
@@ -266,13 +328,39 @@ const DialButton = styled.button`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &[data-shudder] {
+    &[data-shudder="quarter"],
+    &[data-shudder="final"] {
       animation: none;
     }
 
     &::after {
       display: none;
     }
+  }
+`;
+
+const shockwave = keyframes`
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+`;
+
+// A ring expanding out from the dial, three staggered copies, only on
+// completing the whole dial — the confetti fires the same moment, but this
+// is the flourish that's felt right at the dial itself.
+const ShockwaveRing = styled.span`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  border: 3px solid var(--color-orange-400);
+  pointer-events: none;
+  animation: ${shockwave} 900ms ease-out both;
+  animation-delay: var(--ring-delay, 0ms);
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
   }
 `;
 
@@ -341,7 +429,7 @@ const Count = styled.span`
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: light-dark(var(--color-primary-700), var(--color-primary-300));
+  color: light-dark(var(--color-secondary-700), var(--color-secondary-300));
 `;
 
 const CountLabel = styled.span`
