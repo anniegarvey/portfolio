@@ -181,25 +181,25 @@ const Hero = styled.div`
   margin-bottom: 2.5rem;
 `;
 
+const twinkle = keyframes`
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+`;
+
 const Sparkle = styled.span`
   position: absolute;
   top: 1rem;
   color: var(--color-orange-400);
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: hbd-twinkle 2.4s ease-in-out infinite;
-  }
-
-  @keyframes hbd-twinkle {
-    0%,
-    100% {
-      opacity: 0.4;
-      transform: scale(0.9);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.05);
-    }
+    animation: ${twinkle} 2.4s ease-in-out infinite;
   }
 `;
 
