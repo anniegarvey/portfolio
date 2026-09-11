@@ -12,6 +12,7 @@ import {
 import { keyframes, styled } from "next-yak";
 import type { CSSProperties } from "react";
 import { useState } from "react";
+import { BlueprintScene } from "@/components/happy-birthday-james/BlueprintScene";
 import { CalibrationDial } from "@/components/happy-birthday-james/CalibrationDial";
 import { InterestCard } from "@/components/happy-birthday-james/InterestCard";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
@@ -42,6 +43,7 @@ export function HappyBirthdayCard() {
         </SoundToggleRow>
 
         <Hero>
+          <BlueprintScene />
           <Sparkle aria-hidden="true" style={{ left: "1rem" } as CSSProperties}>
             <Sparkles size={28} />
           </Sparkle>
@@ -172,6 +174,8 @@ const SoundToggleButton = styled.button`
 
 const Hero = styled.div`
   position: relative;
+  z-index: 0;
+  overflow: hidden;
   text-align: center;
   border: 2px dashed light-dark(var(--color-grey-300), var(--color-grey-600));
   border-radius: 16px;
