@@ -102,10 +102,44 @@ function recordAttempt<K extends PreferenceKind>(
   };
 }
 
+/** Candidate spots sampled when placing a new resident; the best one wins. */
+const PLACEMENT_CANDIDATES = 12;
+
+/**
+ * Picks a spot within the habitat band that is as far as possible from every
+ * existing resident (best-candidate sampling), so the glade fills out evenly
+ * instead of clumping or lining up by chance.
+ */
+function pickResidentPosition(
+  residents: GladeState["residents"],
+  band: { min: number; max: number },
+  rng: () => number,
+): { x: number; y: number } {
+  let best = { x: 0, y: 0 };
+  let bestDistance = -1;
+  for (let i = 0; i < PLACEMENT_CANDIDATES; i++) {
+    const candidate = {
+      x: 10 + rng() * 80,
+      y: band.min + rng() * (band.max - band.min),
+    };
+    const nearest = Math.min(
+      ...residents.map((r) =>
+        Math.hypot(r.position.x - candidate.x, r.position.y - candidate.y),
+      ),
+    );
+    if (nearest > bestDistance) {
+      best = candidate;
+      bestDistance = nearest;
+    }
+  }
+  return best;
+}
+
 /**
  * Applies a trust gain to a visitor and converts it to a resident when the
  * species' tame threshold is reached. `rng` picks the new resident's spot
- * within its habitat's vertical band (see HABITAT_Y_RANGE).
+ * within its habitat's vertical band (see HABITAT_Y_RANGE), spread away from
+ * the existing residents.
  */
 function applyTrust(
   state: GladeState,
@@ -121,7 +155,6 @@ function applyTrust(
   if (trust >= threshold) {
     // The species is tamed for good — its banked visit trust is obsolete.
     const { [visitor.speciesId]: _tamed, ...speciesTrust } = state.speciesTrust;
-    const { min, max } = HABITAT_Y_RANGE[SPECIES[visitor.speciesId].habitat];
     return {
       state: {
         ...state,
@@ -132,7 +165,11 @@ function applyTrust(
             id: uuidv4(),
             speciesId: visitor.speciesId,
             tamedDate: today,
-            position: { x: 10 + rng() * 80, y: min + rng() * (max - min) },
+            position: pickResidentPosition(
+              state.residents,
+              HABITAT_Y_RANGE[SPECIES[visitor.speciesId].habitat],
+              rng,
+            ),
           },
         ],
         speciesTrust,

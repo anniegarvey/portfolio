@@ -59,7 +59,7 @@ const CLEAR_HINT: Record<PreferenceKind, (species: SpeciesConfig) => string> = {
   petSpot: (species) => species.clearPetSpotHint,
 };
 
-/** Every option for a preference type, used to render the tier-4 elimination log. */
+/** Every option for a preference type, used to render the tier-4 tried log. */
 const PREFERENCE_OPTIONS: Record<
   PreferenceKind,
   { value: string; label: string }[]
@@ -319,9 +319,11 @@ function TreatActionGroup({
 
 /**
  * The shared toggletip's content: one section per currently-visible
- * preference type. Each section's own depth (nothing / confirmed hint /
- * full tried-vs-untried log) tracks that type's own skill tier independently
- * of what triggered the toggletip's overall visibility.
+ * preference type. Once a type's confirmed hint is unlocked and its preference
+ * discovered, the answer is all that section shows. Until then it shows the
+ * vague hint, plus (at the type's own tier 4) the options already tried —
+ * each depth tracking that type's own skill tier independently of what
+ * triggered the toggletip's overall visibility.
  */
 function PreferenceDetails({
   species,
@@ -342,20 +344,18 @@ function PreferenceDetails({
         return (
           <DetailsSection aria-labelledby={labelId} key={kind} role="group">
             <DetailsLabel id={labelId}>{PREFERENCE_LABELS[kind]}</DetailsLabel>
-            {isConfirmedHintUnlocked(state, kind) ? (
-              discovered?.[kind] ? (
-                <DetailsHint>{CLEAR_HINT[kind](species)}</DetailsHint>
-              ) : (
-                <DetailsPlaceholder>Not yet confirmed.</DetailsPlaceholder>
-              )
+            {isConfirmedHintUnlocked(state, kind) && discovered?.[kind] ? (
+              <DetailsHint>{CLEAR_HINT[kind](species)}</DetailsHint>
             ) : (
-              // Every kind reaching this map is already vague-hint-unlocked
-              // (visibleHintKinds filters on it), so there is always a real
-              // hint to show here rather than a placeholder.
-              <DetailsHint>{VAGUE_HINT[kind](species)}</DetailsHint>
-            )}
-            {isTriedLogUnlocked(state, kind) && (
-              <TriedList kind={kind} tried={tried?.[kind] ?? []} />
+              <>
+                {/* Every kind reaching this map is already vague-hint-unlocked
+                    (visibleHintKinds filters on it), so there is always a
+                    real hint to show here rather than a placeholder. */}
+                <DetailsHint>{VAGUE_HINT[kind](species)}</DetailsHint>
+                {isTriedLogUnlocked(state, kind) && (
+                  <TriedLine kind={kind} tried={tried?.[kind] ?? []} />
+                )}
+              </>
             )}
           </DetailsSection>
         );
@@ -364,17 +364,13 @@ function PreferenceDetails({
   );
 }
 
-/** Every option for a preference type, marked tried or not — an elimination aid. */
-function TriedList({ kind, tried }: { kind: PreferenceKind; tried: string[] }) {
-  return (
-    <TriedItems>
-      {PREFERENCE_OPTIONS[kind].map(({ value, label }) => (
-        <TriedItem data-tried={tried.includes(value)} key={value}>
-          {label} — {tried.includes(value) ? "tried" : "not yet tried"}
-        </TriedItem>
-      ))}
-    </TriedItems>
-  );
+/** The options already tried for a preference type — an elimination aid. */
+function TriedLine({ kind, tried }: { kind: PreferenceKind; tried: string[] }) {
+  const labels = PREFERENCE_OPTIONS[kind]
+    .filter(({ value }) => tried.includes(value))
+    .map(({ label }) => label);
+  if (labels.length === 0) return null;
+  return <TriedText>Tried: {labels.join(", ")}</TriedText>;
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -573,28 +569,7 @@ const DetailsHint = styled.span`
   font-size: 0.85rem;
 `;
 
-const DetailsPlaceholder = styled.span`
-  font-size: 0.85rem;
-  font-style: italic;
-  color: light-dark(var(--color-grey-600), var(--color-grey-400));
-`;
-
-const TriedItems = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-`;
-
-const TriedItem = styled.li`
+const TriedText = styled.span`
   font-size: 0.8rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  background: light-dark(var(--color-grey-100), var(--color-grey-700));
-
-  &[data-tried="true"] {
-    color: light-dark(var(--color-grey-600), var(--color-grey-400));
-  }
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;

@@ -224,7 +224,7 @@ describe("VisitorCard preference hints", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows 'Not yet confirmed.' once a type reaches tier 3 but its preference isn't discovered", async () => {
+  it("keeps showing the vague hint at tier 3 while the preference isn't discovered", async () => {
     const user = userEvent.setup();
     mockGlade({
       state: makeGladeState({
@@ -240,7 +240,9 @@ describe("VisitorCard preference hints", () => {
 
     await user.click(screen.getByRole("button", { name: "Hints" }));
 
-    expect(screen.getByText("Not yet confirmed.")).toBeVisible();
+    expect(
+      screen.getByText("Gets nervous when you tower over it."),
+    ).toBeVisible();
   });
 
   it("reveals the clear hint once a type reaches tier 3 and its preference is discovered", async () => {
@@ -263,7 +265,7 @@ describe("VisitorCard preference hints", () => {
     expect(screen.getByText("Crouch low.")).toBeVisible();
   });
 
-  it("shows a tried/untried log of every posture once a type reaches tier 4", async () => {
+  it("shows the vague hint alongside the options already tried once a type reaches tier 4", async () => {
     const user = userEvent.setup();
     mockGlade({
       state: makeGladeState({
@@ -273,7 +275,7 @@ describe("VisitorCard preference hints", () => {
           "body-language": makeSkill({ tier: 4 }),
           "petting-technique": makeSkill(),
         },
-        triedPreferences: { rabbit: { posture: ["slow-blink"] } },
+        triedPreferences: { rabbit: { posture: ["slow-blink", "sit-still"] } },
       }),
     });
     render(<VisitorCard visitor={rabbit} />);
@@ -281,12 +283,15 @@ describe("VisitorCard preference hints", () => {
     await user.click(screen.getByRole("button", { name: "Hints" }));
     const details = within(screen.getByRole("status"));
 
-    expect(details.getByText("Slow blink — tried")).toBeVisible();
-    expect(details.getByText("Sit still — not yet tried")).toBeVisible();
-    expect(details.getByText("Crouch low — not yet tried")).toBeVisible();
+    expect(
+      details.getByText("Gets nervous when you tower over it."),
+    ).toBeVisible();
+    expect(details.getByText("Tried: Sit still, Slow blink")).toBeVisible();
+    // Untried options aren't listed — only what's been ruled out.
+    expect(details.queryByText(/Crouch low/)).not.toBeInTheDocument();
   });
 
-  it("lists every treat recipe (not just cooked ones) in the tier-4 tried log", async () => {
+  it("lists tried treat recipes even when none are currently cooked", async () => {
     const user = userEvent.setup();
     mockGlade({
       state: makeGladeState({
@@ -304,8 +309,33 @@ describe("VisitorCard preference hints", () => {
 
     await user.click(screen.getByRole("button", { name: "Hints" }));
 
-    expect(screen.getByText("Berry Bites — tried")).toBeVisible();
-    expect(screen.getByText("Cream Puffs — not yet tried")).toBeVisible();
+    expect(screen.getByText("Tried: Berry Bites")).toBeVisible();
+  });
+
+  it("shows only the answer once a tier-4 preference is discovered", async () => {
+    const user = userEvent.setup();
+    mockGlade({
+      state: makeGladeState({
+        visitors: [rabbit],
+        skills: {
+          "treat-cooking": makeSkill(),
+          "body-language": makeSkill({ tier: 4 }),
+          "petting-technique": makeSkill(),
+        },
+        discoveredPreferences: { rabbit: { posture: true } },
+        triedPreferences: { rabbit: { posture: ["slow-blink", "crouch-low"] } },
+      }),
+    });
+    render(<VisitorCard visitor={rabbit} />);
+
+    await user.click(screen.getByRole("button", { name: "Hints" }));
+    const details = within(screen.getByRole("status"));
+
+    expect(details.getByText("Crouch low.")).toBeVisible();
+    expect(
+      details.queryByText("Gets nervous when you tower over it."),
+    ).not.toBeInTheDocument();
+    expect(details.queryByText(/^Tried:/)).not.toBeInTheDocument();
   });
 
   it("reveals the pet-spot and treat clear hints independently of posture", async () => {
@@ -329,7 +359,7 @@ describe("VisitorCard preference hints", () => {
     expect(screen.getByText("Loves oat cakes.")).toBeVisible();
   });
 
-  it("marks every option untried when a type reaches tier 4 with no recorded attempts", async () => {
+  it("shows no tried line at tier 4 when nothing has been tried yet", async () => {
     const user = userEvent.setup();
     mockGlade({
       state: makeGladeState({
@@ -346,10 +376,10 @@ describe("VisitorCard preference hints", () => {
     await user.click(screen.getByRole("button", { name: "Hints" }));
     const details = within(screen.getByRole("status"));
 
-    expect(details.getByText("Crouch low — not yet tried")).toBeVisible();
-    expect(details.getByText("Sit still — not yet tried")).toBeVisible();
-    expect(details.getByText("Slow blink — not yet tried")).toBeVisible();
-    expect(details.queryByText(/ — tried$/)).not.toBeInTheDocument();
+    expect(
+      details.getByText("Gets nervous when you tower over it."),
+    ).toBeVisible();
+    expect(details.queryByText(/^Tried:/)).not.toBeInTheDocument();
   });
 });
 

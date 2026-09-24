@@ -56,13 +56,18 @@ test.describe("Creature Glade", () => {
     });
     await expect(toggletipTrigger).toBeVisible();
     await toggletipTrigger.click();
-    await expect(page.getByText("Not yet confirmed.")).toBeVisible();
+    await expect(
+      page.getByText("Seems happiest when you keep very still."),
+    ).toBeVisible();
 
     await toggletipTrigger.click(); // close before acting, same as a real user would
     await page.getByRole("button", { name: "Sit still" }).click(); // robin's preferred posture
 
     await toggletipTrigger.click();
     await expect(page.getByText("Sit still nearby.")).toBeVisible();
+    await expect(
+      page.getByText("Seems happiest when you keep very still."),
+    ).toBeHidden();
   });
 
   test("cooking a treat and offering it raises trust (favourite = double)", async ({
