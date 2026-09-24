@@ -532,6 +532,31 @@ describe("taming", () => {
     }
   });
 
+  it("places a new resident away from existing residents rather than on top of them", () => {
+    const threshold = tameThresholdFor("robin");
+    const visitor = makeVisitor({ speciesId: "robin", trust: threshold - 1 });
+    const state = makeGladeState({
+      visitors: [visitor],
+      residents: [
+        {
+          id: "00000000-0000-4000-8000-000000000001",
+          speciesId: "rabbit",
+          tamedDate: TODAY,
+          position: { x: 50, y: 48 },
+        },
+      ],
+    });
+    // The first candidate lands exactly on the existing resident; later
+    // candidates spread out, so a spread-aware placement must skip it.
+    const rolls = [0.5, 0.5, 0, 0, 1, 1];
+    let i = 0;
+    const rng = () => rolls[i++ % rolls.length];
+    const result = petVisitor(state, visitor.id, "back", TODAY, rng);
+
+    const placed = result.state.residents[1].position;
+    expect(Math.hypot(placed.x - 50, placed.y - 48)).toBeGreaterThan(30);
+  });
+
   it("orders habitat bands top to bottom as air, tree, ground with no overlap", () => {
     expect(HABITAT_Y_RANGE.air.max).toBeLessThan(HABITAT_Y_RANGE.tree.min);
     expect(HABITAT_Y_RANGE.tree.max).toBeLessThan(HABITAT_Y_RANGE.ground.min);
