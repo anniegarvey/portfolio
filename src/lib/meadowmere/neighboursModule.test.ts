@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  LIKED_GIFT_FRIENDSHIP,
-  MAX_FRIENDSHIP,
-  NEUTRAL_GIFT_FRIENDSHIP,
-} from "./catalog";
+import { FRIENDSHIP_TIERS, MAX_FRIENDSHIP } from "./catalog";
 import {
   addFriendship,
   canGift,
   friendshipOf,
   friendshipTier,
+  giftWorth,
   giveGift,
   likesItem,
   neighbourState,
@@ -90,18 +87,19 @@ describe("what a gift was actually worth", () => {
     });
     const result = giveGift(state, "marigold", "wild-honey", TODAY);
 
-    expect(result?.friendshipGained).toBe(LIKED_GIFT_FRIENDSHIP);
+    expect(result?.friendshipGained).toBe(giftWorth(true, 10));
   });
 
   it("reports only the part that fitted under the cap", () => {
-    // Five short of the top, given something worth twelve.
+    // One short of the top, given something worth more than one.
     const state = makeMeadowmereState({
-      neighbours: { marigold: { friendship: MAX_FRIENDSHIP - 5 } },
+      neighbours: { marigold: { friendship: MAX_FRIENDSHIP - 1 } },
       inventory: { "wild-honey": 1 },
     });
     const result = giveGift(state, "marigold", "wild-honey", TODAY);
 
-    expect(result?.friendshipGained).toBe(5);
+    expect(giftWorth(true, MAX_FRIENDSHIP - 1)).toBeGreaterThan(1);
+    expect(result?.friendshipGained).toBe(1);
     expect(friendshipOf(result?.state ?? state, "marigold")).toBe(
       MAX_FRIENDSHIP,
     );
@@ -148,9 +146,10 @@ describe("giveGift", () => {
     const result = giveGift(state, "marigold", "wild-honey", TODAY);
 
     expect(result?.liked).toBe(true);
-    expect(result?.friendshipGained).toBe(LIKED_GIFT_FRIENDSHIP);
+    expect(result?.friendshipGained).toBe(giftWorth(true, 0));
+    expect(result?.friendshipGained).toBeGreaterThan(giftWorth(false, 0));
     expect(result?.state.neighbours.marigold?.friendship).toBe(
-      LIKED_GIFT_FRIENDSHIP,
+      giftWorth(true, 0),
     );
   });
 
@@ -159,7 +158,8 @@ describe("giveGift", () => {
     const result = giveGift(state, "marigold", "pumpkin", TODAY);
 
     expect(result?.liked).toBe(false);
-    expect(result?.friendshipGained).toBe(NEUTRAL_GIFT_FRIENDSHIP);
+    expect(result?.friendshipGained).toBe(giftWorth(false, 0));
+    expect(result?.friendshipGained).toBeGreaterThan(0);
   });
 
   it("consumes the gifted item and stamps the day", () => {
@@ -173,7 +173,7 @@ describe("giveGift", () => {
   it("reports crossing into a new friendship tier", () => {
     const state = makeMeadowmereState({
       inventory: { "wild-honey": 1 },
-      neighbours: { marigold: { friendship: 12 } },
+      neighbours: { marigold: { friendship: 18 } },
     });
     const result = giveGift(state, "marigold", "wild-honey", TODAY);
     expect(result?.newTierName).toBe("Acquaintance");
@@ -201,5 +201,46 @@ describe("giveGift", () => {
     const second =
       first && giveGift(first.state, "marigold", "wild-honey", "2026-06-12");
     expect(second).not.toBeNull();
+  });
+});
+
+describe("friendship pacing", () => {
+  /** Days of one liked gift a day, and nothing else, to reach `target`. */
+  function daysOfLikedGifts(target: number): number {
+    let friendship = 0;
+    let days = 0;
+    while (friendship < target) {
+      friendship = Math.min(
+        MAX_FRIENDSHIP,
+        friendship + giftWorth(true, friendship),
+      );
+      days += 1;
+    }
+    return days;
+  }
+
+  it("earns less from a gift the closer a neighbour already is", () => {
+    const worth = FRIENDSHIP_TIERS.map((tier) =>
+      giftWorth(true, tier.threshold),
+    );
+    expect([...worth].sort((a, b) => b - a)).toEqual(worth);
+    expect(worth[0]).toBeGreaterThan(worth[worth.length - 1]);
+  });
+
+  it("always earns something, even from a gift they don't care for", () => {
+    for (const tier of FRIENDSHIP_TIERS) {
+      expect(giftWorth(false, tier.threshold)).toBeGreaterThan(0);
+      expect(giftWorth(true, tier.threshold)).toBeGreaterThan(
+        giftWorth(false, tier.threshold),
+      );
+    }
+  });
+
+  it("takes a few days of favourites to make an acquaintance", () => {
+    expect(daysOfLikedGifts(20)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("takes weeks of favourites to make a dear friend", () => {
+    expect(daysOfLikedGifts(85)).toBeGreaterThanOrEqual(21);
   });
 });

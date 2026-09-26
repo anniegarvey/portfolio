@@ -227,7 +227,7 @@ A per-neighbour meter from 0–100, raised by **Gifts** and quest rewards, never
 A label derived from friendship: Stranger → Acquaintance → Friend → Confidant → Dear Friend. Some quests require reaching a tier.
 
 **Gift**
-One item given to one neighbour, once per neighbour per calendar day. A liked item earns more friendship than a neutral one; nothing a neighbour receives ever loses them any.
+One item given to one neighbour, once per neighbour per calendar day. A liked item earns more friendship than a neutral one, and every gift earns less the higher the **Friendship tier** already reached, so closeness takes weeks rather than days; nothing a neighbour receives ever loses them any.
 
 **Quest**
 An objective set by a neighbour. Auto-unlocks when its prerequisites are met — there is no accept step — and is handed in by calling on whoever set it. Only `completedQuestIds` is stored; a quest's status (_locked_ → _active_ → _ready_ → _completed_) and its progress checklist are derived from current state, so progress can't desync from the larder it is counted against.
