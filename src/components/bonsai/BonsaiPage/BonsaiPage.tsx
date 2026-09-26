@@ -1,12 +1,10 @@
 "use client";
 
 import * as Tabs from "@radix-ui/react-tabs";
+import dynamic from "next/dynamic";
 import { styled } from "next-yak";
 import { useEffect, useState } from "react";
-import { BonsaiShop } from "@/components/bonsai/BonsaiShop";
 import { GardenView } from "@/components/bonsai/GardenView";
-import { InventoryPanel } from "@/components/bonsai/InventoryPanel";
-import { TendingModal } from "@/components/bonsai/TendingModal";
 import { TreeCollection } from "@/components/bonsai/TreeCollection";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
@@ -16,8 +14,20 @@ import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
 import { QUERIES } from "@/lib/constants";
 
+// Split out of the route's first load: the shop and inventory only render when
+// their tab is picked, and the tending modal only when a tree is opened.
+const BonsaiShop = dynamic(() =>
+  import("@/components/bonsai/BonsaiShop").then((m) => m.BonsaiShop),
+);
+const InventoryPanel = dynamic(() =>
+  import("@/components/bonsai/InventoryPanel").then((m) => m.InventoryPanel),
+);
+const TendingModal = dynamic(() =>
+  import("@/components/bonsai/TendingModal").then((m) => m.TendingModal),
+);
+
 export function BonsaiPage() {
-  const { state, advanceDay, demoMode, growthEvents } = useBonsai();
+  const { state, isLoading, advanceDay, demoMode, growthEvents } = useBonsai();
   const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("collection");
   const [focusShopItemId, setFocusShopItemId] = useState<string | undefined>();
@@ -30,8 +40,9 @@ export function BonsaiPage() {
 
   useEffect(() => {
     // The D shortcut is a demo-only fast-forward, mirroring the Advance Day
-    // button; only wire it up when demo mode is active.
-    if (!demoMode) return;
+    // button; only wire it up when demo mode is active. The garden loads in a
+    // transition, so a press before it lands would be overwritten by it.
+    if (!demoMode || isLoading) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (
@@ -44,7 +55,7 @@ export function BonsaiPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [advanceDay, demoMode]);
+  }, [advanceDay, demoMode, isLoading]);
 
   const tendingTree =
     tendingTreeId !== null

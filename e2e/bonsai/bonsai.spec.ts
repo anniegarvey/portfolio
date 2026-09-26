@@ -37,6 +37,11 @@ test.describe("Bonsai Garden", () => {
       demoMode: true,
     });
 
+    // The shortcut waits for the garden to load; press it once the tree is up.
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 10/i }).first(),
+    ).toBeVisible();
+
     // Press D from the garden — tree should grow to day 11
     await page.keyboard.press("d");
 
@@ -93,6 +98,10 @@ test.describe("Bonsai Garden", () => {
     await expect(
       page.getByRole("button", { name: /advance day/i }),
     ).toHaveCount(0);
+
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 10/i }).first(),
+    ).toBeVisible();
 
     // The D shortcut is also gated off, so the tree stays at day 10
     await page.keyboard.press("d");
@@ -238,6 +247,10 @@ test.describe("Bonsai Garden", () => {
     page,
   }) => {
     await goToBonsaiWithSeed(page, { activeDaysCount: 5, demoMode: true });
+
+    await expect(
+      page.getByRole("img", { name: /bonsai tree, day 5/i }).first(),
+    ).toBeVisible();
 
     // Press D without watering — tree should stay at day 5
     await page.keyboard.press("d");
