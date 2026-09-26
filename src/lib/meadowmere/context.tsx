@@ -12,6 +12,7 @@ import {
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
 import { CROPS } from "./catalog";
+import { claimErrand, todaysErrand } from "./errandsModule";
 import * as farming from "./farmingModule";
 import { forageSite } from "./foragingModule";
 import { addSeeds } from "./inventory";
@@ -48,7 +49,8 @@ export type Notice =
       friendshipGained: number;
       newTierName: string | null;
     }
-  | { kind: "quest"; questId: QuestId };
+  | { kind: "quest"; questId: QuestId }
+  | { kind: "errand"; neighbourId: NeighbourId };
 
 export interface MeadowmereContextType {
   state: MeadowmereState;
@@ -65,6 +67,8 @@ export interface MeadowmereContextType {
   forage: (siteId: SiteId) => void;
   giveGift: (neighbourId: NeighbourId, itemId: ItemId) => void;
   claimQuest: (questId: QuestId) => void;
+  /** Hands in today's errand, if it is ready. */
+  claimErrand: () => void;
 }
 
 const MeadowmereContext = createContext<MeadowmereContextType | undefined>(
@@ -190,6 +194,15 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     [state, setState],
   );
 
+  const handleClaimErrand = useCallback(() => {
+    const today = getTodayDateString();
+    const errand = todaysErrand(state, today);
+    const next = claimErrand(state, today);
+    if (errand === null || next === null) return;
+    setNotice({ kind: "errand", neighbourId: errand.neighbourId });
+    setState(() => next);
+  }, [state, setState]);
+
   return (
     <MeadowmereContext.Provider
       value={{
@@ -205,6 +218,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         forage: handleForage,
         giveGift: handleGiveGift,
         claimQuest: handleClaimQuest,
+        claimErrand: handleClaimErrand,
       }}
     >
       {children}

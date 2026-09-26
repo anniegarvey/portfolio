@@ -54,6 +54,7 @@ export function createInitialState(): MeadowmereState {
       nessa: { friendship: 0 },
       bram: { friendship: 0 },
       marigold: { friendship: 0 },
+      wren: { friendship: 0 },
     },
     unlockedCropIds: ["parsnip"],
     unlockedSiteIds: ["hedgerow"],

@@ -1,4 +1,5 @@
-import { ALL_NEIGHBOUR_IDS, MAX_PLOTS } from "./catalog";
+import { ALL_NEIGHBOUR_IDS, type KeepsakeId, MAX_PLOTS } from "./catalog";
+import { earnedKeepsakes } from "./questsModule";
 import type { MeadowmereState, NeighbourId, SiteId } from "./schema";
 
 /**
@@ -53,7 +54,7 @@ const TERRAIN_ROWS = [
   "~.*.....,....*.T",
   "~.......,,,,.*.T",
   "~.......,......T",
-  "~.*.....,..*...T",
+  "~.*.....,,.*...T",
   "TTTTTTTTTTTTTTTT",
 ] as const;
 
@@ -89,12 +90,15 @@ export type Feature =
   | { kind: "site"; x: number; y: number; siteId: SiteId }
   | { kind: "cottage"; x: number; y: number; neighbourId: NeighbourId }
   | { kind: "stall"; x: number; y: number }
-  | { kind: "cat"; x: number; y: number };
+  | { kind: "cat"; x: number; y: number }
+  | { kind: "keepsake"; x: number; y: number; keepsakeId: KeepsakeId };
 
 /**
  * Where each plot sits, in the order plots are stored. Four rows of three with
  * a walkway between them, so every bed is reachable and the farm grows a tidy
- * row at a time as quests hand over land (6 → 9 → 12).
+ * row at a time as quests hand over land (6 → 9 → 12). The last four extend
+ * each row by one bed towards the lane (12 → 14 → 16); they come last so a
+ * save's existing plots keep the tiles they were planted on.
  */
 const PLOT_TILES: readonly Tile[] = [
   { x: 3, y: 3 },
@@ -109,6 +113,10 @@ const PLOT_TILES: readonly Tile[] = [
   { x: 3, y: 9 },
   { x: 4, y: 9 },
   { x: 5, y: 9 },
+  { x: 6, y: 3 },
+  { x: 6, y: 5 },
+  { x: 6, y: 7 },
+  { x: 6, y: 9 },
 ];
 
 /**
@@ -121,12 +129,38 @@ const SITE_TILES: Record<SiteId, Tile> = {
   hedgerow: { x: 5, y: 1 },
   stonewood: { x: 14, y: 1 },
   riverbank: { x: 0, y: 6 },
+  orchard: { x: 10, y: 1 },
+  fen: { x: 0, y: 10 },
 };
 
 const COTTAGE_TILES: Record<NeighbourId, Tile> = {
   nessa: { x: 12, y: 2 },
   bram: { x: 12, y: 5 },
   marigold: { x: 12, y: 8 },
+  wren: { x: 10, y: 10 },
+};
+
+/**
+ * Where each keepsake stands once it has been given. The farm's own things sit
+ * on the west side around the beds; the ones that belong to the village sit
+ * among the cottages. None of them is on the lane, the walkways between the
+ * beds, or the tile above a cottage, so however many are standing the farmer can
+ * still get round to everything.
+ */
+const KEEPSAKE_TILES: Record<KeepsakeId, Tile> = {
+  scarecrow: { x: 2, y: 6 },
+  well: { x: 1, y: 3 },
+  bench: { x: 3, y: 1 },
+  "herb-box": { x: 1, y: 8 },
+  windmill: { x: 2, y: 10 },
+  "picnic-table": { x: 13, y: 3 },
+  "rose-arch": { x: 13, y: 6 },
+  lanterns: { x: 9, y: 4 },
+  birdbath: { x: 11, y: 4 },
+  maypole: { x: 10, y: 7 },
+  bunting: { x: 14, y: 5 },
+  beehive: { x: 13, y: 9 },
+  urns: { x: 13, y: 10 },
 };
 
 const STALL_TILE: Tile = { x: 6, y: 2 };
@@ -144,7 +178,7 @@ const CAT_PERCHES: readonly Tile[] = [
   { x: 15, y: 3 },
   { x: 15, y: 8 },
   { x: 3, y: 11 },
-  { x: 10, y: 11 },
+  { x: 12, y: 11 },
 ];
 
 /**
@@ -189,10 +223,16 @@ export function valeFeatures(state: MeadowmereState): Feature[] {
     state.lastAdvanceDate === undefined
       ? []
       : [{ kind: "cat", ...catPerch(state.lastAdvanceDate) }];
+  const keepsakes: Feature[] = earnedKeepsakes(state).map((keepsakeId) => ({
+    kind: "keepsake",
+    keepsakeId,
+    ...KEEPSAKE_TILES[keepsakeId],
+  }));
   return [
     ...plots,
     ...sites,
     ...cottages,
+    ...keepsakes,
     ...cat,
     { kind: "stall", ...STALL_TILE },
   ];

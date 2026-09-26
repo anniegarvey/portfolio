@@ -8,6 +8,9 @@ export const CropIdSchema = z.enum([
   "strawberry",
   "pumpkin",
   "moonpetal",
+  "wheat",
+  "sunflower",
+  "honeymelon",
 ]);
 export type CropId = z.infer<typeof CropIdSchema>;
 
@@ -23,6 +26,9 @@ export const ItemIdSchema = z.enum([
   "strawberry",
   "pumpkin",
   "moonpetal-bloom",
+  "wheat-sheaf",
+  "sunflower-head",
+  "honeymelon",
   // Materials
   "acorn",
   "bramble-berry",
@@ -33,13 +39,25 @@ export const ItemIdSchema = z.enum([
   "wild-honey",
   "oak-resin",
   "chanterelle",
+  "crab-apple",
+  "elderflower",
+  "walnut",
+  "wild-mint",
+  "glowcap",
+  "amber",
 ]);
 export type ItemId = z.infer<typeof ItemIdSchema>;
 
-export const SiteIdSchema = z.enum(["hedgerow", "riverbank", "stonewood"]);
+export const SiteIdSchema = z.enum([
+  "hedgerow",
+  "riverbank",
+  "stonewood",
+  "orchard",
+  "fen",
+]);
 export type SiteId = z.infer<typeof SiteIdSchema>;
 
-export const NeighbourIdSchema = z.enum(["nessa", "bram", "marigold"]);
+export const NeighbourIdSchema = z.enum(["nessa", "bram", "marigold", "wren"]);
 export type NeighbourId = z.infer<typeof NeighbourIdSchema>;
 
 export const QuestIdSchema = z.enum([
@@ -49,6 +67,29 @@ export const QuestIdSchema = z.enum([
   "sweet-on-you",
   "the-harvest-table",
   "three-good-friends",
+  "a-new-face-at-the-mill",
+  "a-scarecrow-for-the-field",
+  "first-loaves",
+  "a-posy-for-the-inn",
+  "honey-for-the-hives",
+  "the-orchard-gate",
+  "bramble-jelly",
+  "a-sunny-disposition",
+  "a-well-for-the-farm",
+  "walnut-bread",
+  "lanterns-for-the-fair",
+  "birds-of-a-feather",
+  "into-the-fen",
+  "mint-tea",
+  "glowcap-glaze",
+  "amber-for-the-mill",
+  "the-harvest-festival",
+  "four-good-friends",
+  "the-innkeepers-recipe",
+  "the-oldest-path",
+  "the-finest-pot",
+  "the-sails-turn",
+  "the-heart-of-the-vale",
 ]);
 export type QuestId = z.infer<typeof QuestIdSchema>;
 
@@ -100,5 +141,10 @@ export const MeadowmereStateSchema = z.object({
   /** Forage trips already spent today; reset by the daily advance. */
   foragesToday: z.number().int().min(0),
   lastAdvanceDate: z.string().optional(),
+  /**
+   * Local date the day's errand was last handed in; one errand per day.
+   * Optional so saves written before errands existed still parse.
+   */
+  lastErrandDate: z.string().optional(),
 });
 export type MeadowmereState = z.infer<typeof MeadowmereStateSchema>;

@@ -6,9 +6,22 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { NeighbourCard } from "@/components/meadowmere/NeighbourCard";
+import { getTodayDateString } from "@/lib/date";
 import type { QuestConfig } from "@/lib/meadowmere/catalog";
-import { NEIGHBOURS } from "@/lib/meadowmere/catalog";
+import {
+  CROPS,
+  ERRAND_FRIENDSHIP,
+  ERRAND_SEEDS,
+  ITEMS,
+  NEIGHBOURS,
+} from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
+import {
+  type Errand,
+  errandStatus,
+  todaysErrand,
+} from "@/lib/meadowmere/errandsModule";
+import { itemCount } from "@/lib/meadowmere/inventory";
 import {
   questProgress,
   questStatus,
@@ -49,6 +62,8 @@ export function NeighbourDialog({
   const theirQuests = visibleQuests(state).filter(
     (quest) => quest.giverId === neighbourId,
   );
+  const errand = todaysErrand(state, getTodayDateString());
+  const theirErrand = errand?.neighbourId === neighbourId ? errand : null;
 
   return (
     <Modal
@@ -73,23 +88,26 @@ export function NeighbourDialog({
 
         <Asks>
           <AsksTitle>What {neighbour.name} has asked for</AsksTitle>
-          {theirQuests.length === 0 ? (
-            <Muted>Nothing at the moment.</Muted>
-          ) : (
-            theirQuests.map((quest) => (
-              <Ask key={quest.id}>
-                <QuestAsk
-                  badgeRef={handedInRef}
-                  justHandedIn={quest.id === justHandedIn}
-                  onHandIn={() => {
-                    claimQuest(quest.id);
-                    setJustHandedIn(quest.id);
-                  }}
-                  quest={quest}
-                />
-              </Ask>
-            ))
+          {theirErrand !== null && (
+            <Ask>
+              <ErrandAsk errand={theirErrand} />
+            </Ask>
           )}
+          {theirQuests.length === 0
+            ? theirErrand === null && <Muted>Nothing at the moment.</Muted>
+            : theirQuests.map((quest) => (
+                <Ask key={quest.id}>
+                  <QuestAsk
+                    badgeRef={handedInRef}
+                    justHandedIn={quest.id === justHandedIn}
+                    onHandIn={() => {
+                      claimQuest(quest.id);
+                      setJustHandedIn(quest.id);
+                    }}
+                    quest={quest}
+                  />
+                </Ask>
+              ))}
         </Asks>
       </Body>
     </Modal>
@@ -154,6 +172,64 @@ function QuestAsk({
       <Button disabled={status !== "ready"} onClick={onHandIn} size="sm">
         {status === "ready" ? `Hand in “${quest.title}”` : "Not ready yet"}
       </Button>
+    </>
+  );
+}
+/**
+ * Today's errand, when it is this neighbour's turn to ask. Handed in here like
+ * a quest; once done it stays until tomorrow's errand replaces it.
+ */
+function ErrandAsk({ errand }: { errand: Errand }) {
+  const { state, claimErrand } = useMeadowmere();
+  const today = getTodayDateString();
+  // Handing in swaps the focused button for the badge, as with a quest — so
+  // focus goes to the outcome rather than falling back to the dialog.
+  const [justHandedIn, setJustHandedIn] = useState(false);
+  const badgeRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (justHandedIn) badgeRef.current?.focus();
+  }, [justHandedIn]);
+  const status = errandStatus(state, errand, today);
+  const item = ITEMS[errand.itemId];
+  const have = Math.min(itemCount(state, errand.itemId), errand.amount);
+
+  return (
+    <>
+      <AskTitle>Today’s errand</AskTitle>
+      <AskText>
+        {status === "done"
+          ? "Thank you — that’s just what was needed. Come back tomorrow."
+          : `Could you spare ${errand.amount} × ${item.name}? There are ${ERRAND_SEEDS} ${CROPS[errand.rewardCropId].name} seeds and +${ERRAND_FRIENDSHIP} friendship in it.`}
+      </AskText>
+      {status === "done" ? (
+        <DoneBadge
+          data-fresh={justHandedIn || undefined}
+          ref={badgeRef}
+          tabIndex={-1}
+        >
+          <Check aria-hidden size={14} /> Done today
+        </DoneBadge>
+      ) : (
+        <>
+          <Checklist>
+            <Line $met={status === "ready"}>
+              <span aria-hidden>{item.glyph}</span> {item.name} {have}/
+              {errand.amount}
+              {status === "ready" && <Check aria-hidden size={14} />}
+            </Line>
+          </Checklist>
+          <Button
+            disabled={status !== "ready"}
+            onClick={() => {
+              claimErrand();
+              setJustHandedIn(true);
+            }}
+            size="sm"
+          >
+            {status === "ready" ? "Hand in today’s errand" : "Not ready yet"}
+          </Button>
+        </>
+      )}
     </>
   );
 }

@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { ALL_QUEST_IDS, MAX_PLOTS, QUESTS } from "./catalog";
+import {
+  ALL_CROP_IDS,
+  ALL_KEEPSAKE_IDS,
+  ALL_QUEST_IDS,
+  ALL_SITE_IDS,
+  CROPS,
+  MAX_PLOTS,
+  QUESTS,
+  SITES,
+  STARTING_PLOTS,
+} from "./catalog";
 import {
   claimQuest,
+  earnedKeepsakes,
   isQuestUnlocked,
   meetsRequirement,
   questProgress,
@@ -107,6 +118,7 @@ describe("visibleQuests", () => {
     expect(visibleQuests(state).map((q) => q.id)).toEqual([
       "a-bed-for-parsnips",
       "down-to-the-riverbank",
+      "a-new-face-at-the-mill",
     ]);
   });
 });
@@ -225,5 +237,143 @@ describe("claimQuest", () => {
     });
     const next = claimQuest(state, "a-bed-for-parsnips");
     expect(next?.unlockedCropIds).toEqual(["parsnip", "cornflower"]);
+  });
+});
+
+describe("earnedKeepsakes", () => {
+  it("is empty on a fresh farm", () => {
+    expect(earnedKeepsakes(makeMeadowmereState())).toEqual([]);
+  });
+
+  it("lists the keepsake of each completed quest that gives one", () => {
+    const state = makeMeadowmereState({
+      completedQuestIds: [
+        "a-bed-for-parsnips",
+        "a-scarecrow-for-the-field",
+        "honey-for-the-hives",
+      ],
+    });
+    expect(earnedKeepsakes(state)).toEqual(["scarecrow", "beehive"]);
+  });
+
+  it("is handed over by claiming the quest", () => {
+    const state = makeMeadowmereState({
+      completedQuestIds: ["a-bed-for-parsnips", "down-to-the-riverbank"],
+      inventory: { feather: 3, reed: 2 },
+    });
+    const next = claimQuest(state, "a-scarecrow-for-the-field");
+    if (next === null) throw new Error("not claimed");
+    expect(earnedKeepsakes(next)).toEqual(["scarecrow"]);
+  });
+});
+
+/**
+ * The chain as a whole. With thirty quests it is easy to write one that asks
+ * for something the player can't have yet, or that nothing ever unlocks, and
+ * neither shows up until someone plays that far.
+ */
+describe("the quest chain", () => {
+  const byId = (id: (typeof ALL_QUEST_IDS)[number]) => QUESTS[id];
+
+  /** A quest and everything that has to be done before it can appear. */
+  function prerequisitesOf(
+    id: (typeof ALL_QUEST_IDS)[number],
+    seen = new Set<string>(),
+  ): Set<string> {
+    for (const before of byId(id).unlock.afterQuestIds ?? []) {
+      if (seen.has(before)) continue;
+      seen.add(before);
+      prerequisitesOf(before, seen);
+    }
+    return seen;
+  }
+
+  it("only names quests that exist as prerequisites", () => {
+    for (const quest of ALL_QUEST_IDS.map(byId)) {
+      for (const before of quest.unlock.afterQuestIds ?? []) {
+        expect(ALL_QUEST_IDS, `${quest.id} waits on ${before}`).toContain(
+          before,
+        );
+      }
+    }
+  });
+
+  it("has no quest waiting on itself, however indirectly", () => {
+    for (const id of ALL_QUEST_IDS) {
+      expect(prerequisitesOf(id).has(id), id).toBe(false);
+    }
+  });
+
+  it("only asks for items the player can get by the time it appears", () => {
+    for (const quest of ALL_QUEST_IDS.map(byId)) {
+      const done = [...prerequisitesOf(quest.id)].map((id) =>
+        byId(id as (typeof ALL_QUEST_IDS)[number]),
+      );
+      const crops = new Set([
+        "parsnip",
+        ...done.flatMap((q) => q.reward.unlockCropId ?? []),
+      ]);
+      const sites = new Set([
+        "hedgerow",
+        ...done.flatMap((q) => q.reward.unlockSiteId ?? []),
+      ]);
+      const reachable = new Set([
+        ...ALL_CROP_IDS.filter((id) => crops.has(id)).map(
+          (id) => CROPS[id].produceId,
+        ),
+        ...ALL_SITE_IDS.filter((id) => sites.has(id)).flatMap(
+          (id) => SITES[id].materials,
+        ),
+      ]);
+      for (const itemId of Object.keys(quest.requirement.items ?? {})) {
+        expect(
+          reachable.has(itemId as never),
+          `${quest.id} asks for ${itemId} before it can be had`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("unlocks every crop and every site somewhere along the way", () => {
+    const crops = ALL_QUEST_IDS.flatMap(
+      (id) => QUESTS[id].reward.unlockCropId ?? [],
+    );
+    const sites = ALL_QUEST_IDS.flatMap(
+      (id) => QUESTS[id].reward.unlockSiteId ?? [],
+    );
+    expect(new Set(["parsnip", ...crops])).toEqual(new Set(ALL_CROP_IDS));
+    expect(new Set(["hedgerow", ...sites])).toEqual(new Set(ALL_SITE_IDS));
+  });
+
+  it("gives each keepsake exactly once", () => {
+    const given = ALL_QUEST_IDS.flatMap(
+      (id) => QUESTS[id].reward.keepsakeId ?? [],
+    );
+    expect([...given].sort()).toEqual([...ALL_KEEPSAKE_IDS].sort());
+  });
+
+  it("hands over exactly enough land to fill the farm", () => {
+    const extra = ALL_QUEST_IDS.reduce(
+      (sum, id) => sum + (QUESTS[id].reward.extraPlots ?? 0),
+      0,
+    );
+    expect(STARTING_PLOTS + extra).toBe(MAX_PLOTS);
+  });
+
+  it("never pays out seed the player hasn't been allowed to sow", () => {
+    for (const quest of ALL_QUEST_IDS.map(byId)) {
+      const done = [quest.id, ...prerequisitesOf(quest.id)].map((id) =>
+        byId(id as (typeof ALL_QUEST_IDS)[number]),
+      );
+      const crops = new Set([
+        "parsnip",
+        ...done.flatMap((q) => q.reward.unlockCropId ?? []),
+      ]);
+      for (const cropId of Object.keys(quest.reward.seeds ?? {})) {
+        expect(crops.has(cropId), `${quest.id} gives ${cropId} seed`).toBe(
+          true,
+        );
+      }
+    }
   });
 });

@@ -1,4 +1,4 @@
-import { CROPS, ITEMS, NEIGHBOURS, SITES } from "./catalog";
+import { CROPS, ITEMS, KEEPSAKES, NEIGHBOURS, SITES } from "./catalog";
 import { canPlant, canWater, isRipe } from "./farmingModule";
 import { canForage, foragesLeft } from "./foragingModule";
 import { siteUnlockGiver } from "./questsModule";
@@ -151,5 +151,11 @@ export function interactionFor(
       return { action: { type: "shop" }, label: "Browse the seed stall" };
     case "cat":
       return { action: { type: "pet" }, label: "Pet the cat" };
+    case "keepsake": {
+      // Nothing to do with a keepsake but look at it, which is the point: it is
+      // there to show how far the farm has come.
+      const keepsake = KEEPSAKES[feature.keepsakeId];
+      return { action: null, label: keepsake.name, detail: keepsake.remark };
+    }
   }
 }

@@ -126,6 +126,8 @@ function describeNotice(notice: Notice): string {
     }
     case "quest":
       return `Handed in ${QUESTS[notice.questId].title}.`;
+    case "errand":
+      return `Ran ${NEIGHBOURS[notice.neighbourId].name}’s errand.`;
   }
 }
 

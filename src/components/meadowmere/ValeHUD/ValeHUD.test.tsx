@@ -1,10 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MeadowmereContextType,
   useMeadowmere,
 } from "@/lib/meadowmere/context";
+import { todaysErrand } from "@/lib/meadowmere/errandsModule";
 import {
   makeMeadowmereContext,
   makeMeadowmereState,
@@ -27,6 +28,10 @@ function renderHUD(selectedCropId: "parsnip" | null = null) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("what the farmer is carrying", () => {
@@ -163,6 +168,21 @@ describe("the quest journal", () => {
   it("flags quests waiting to be handed in", () => {
     mock({
       state: makeMeadowmereState({ inventory: { "parsnip-root": 3 } }),
+    });
+    renderHUD();
+    expect(screen.getByText("1 ready to hand in")).toBeInTheDocument();
+  });
+
+  it("counts a ready errand among what is waiting", () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-09-26T12:00:00"));
+    const base = makeMeadowmereState({
+      completedQuestIds: ["a-bed-for-parsnips"],
+    });
+    const errand = todaysErrand(base, "2026-09-26");
+    if (errand === null) throw new Error("no errand");
+    mock({
+      state: { ...base, inventory: { [errand.itemId]: errand.amount } },
     });
     renderHUD();
     expect(screen.getByText("1 ready to hand in")).toBeInTheDocument();

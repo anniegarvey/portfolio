@@ -1,6 +1,6 @@
 import { keyframes, styled } from "next-yak";
 import { ChimneySmoke } from "@/components/meadowmere/ValeArt/ChimneySmoke";
-import type { GrowthStage } from "@/lib/meadowmere/catalog";
+import type { GrowthStage, KeepsakeId } from "@/lib/meadowmere/catalog";
 import type { CropId, NeighbourId, SiteId } from "@/lib/meadowmere/schema";
 
 /**
@@ -25,6 +25,9 @@ const CROP_COLOURS: Record<CropId, { main: string; accent: string }> = {
   strawberry: { main: "#d64545", accent: "#f07777" },
   pumpkin: { main: "#e08b34", accent: "#f2a552" },
   moonpetal: { main: "#e6dcf5", accent: "#b9a5dd" },
+  wheat: { main: "#e2b94e", accent: "#c99a2e" },
+  sunflower: { main: "#f2c230", accent: "#6b4423" },
+  honeymelon: { main: "#cfe08a", accent: "#a7bd5c" },
 };
 
 // ─── Plots ────────────────────────────────────────────────────────────────────
@@ -134,6 +137,65 @@ function RipeCrop({ cropId }: { cropId: CropId }) {
             />
           ))}
           <circle cx="16" cy="15" fill="#fff4c2" r="3" />
+        </>
+      );
+    case "wheat":
+      return (
+        <>
+          <path
+            d="M10 30 L11 14 M16 30 L16 11 M22 30 L21 14"
+            stroke={STEM}
+            strokeWidth="1.6"
+          />
+          {[11, 16, 21].map((x, i) => (
+            <ellipse
+              cx={x}
+              cy={i === 1 ? 10 : 13}
+              fill={i === 1 ? main : accent}
+              key={x}
+              rx="2.4"
+              ry="5"
+            />
+          ))}
+        </>
+      );
+    case "sunflower":
+      return (
+        <>
+          <path d="M16 30 L16 14" stroke={STEM} strokeWidth="2.4" />
+          <ellipse cx="11" cy="23" fill={LEAF} rx="5" ry="2.2" />
+          <ellipse cx="21" cy="21" fill={LEAF} rx="5" ry="2.2" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+            <ellipse
+              cx="16"
+              cy="5"
+              fill={main}
+              key={angle}
+              rx="2.2"
+              ry="4.2"
+              transform={`rotate(${angle} 16 10)`}
+            />
+          ))}
+          <circle cx="16" cy="10" fill={accent} r="3.6" />
+        </>
+      );
+    case "honeymelon":
+      return (
+        <>
+          <path
+            d="M4 26 q6 -6 12 -2 q6 4 12 -2"
+            fill="none"
+            stroke={LEAF}
+            strokeWidth="2"
+          />
+          <ellipse cx="16" cy="21" fill={main} rx="10" ry="8" />
+          <path
+            d="M9 18 q7 4 14 0 M8 22 q8 4 16 0"
+            fill="none"
+            stroke={accent}
+            strokeWidth="1.2"
+          />
+          <ellipse cx="11" cy="23" fill={LEAF_DARK} rx="4" ry="2" />
         </>
       );
   }
@@ -294,10 +356,60 @@ function Riverbank() {
   );
 }
 
+function Orchard() {
+  return (
+    <g transform="translate(0, -12)">
+      <rect
+        fill="var(--vale-bark)"
+        height="14"
+        rx="2"
+        width="5"
+        x="13.5"
+        y="28"
+      />
+      <ellipse cx="16" cy="20" fill="var(--vale-canopy-lit)" rx="14" ry="11" />
+      <ellipse cx="11" cy="16" fill="var(--vale-leaf)" rx="7" ry="5" />
+      <circle cx="9" cy="22" fill="#9cc34a" r="2.2" />
+      <circle cx="17" cy="14" fill="#c9443a" r="2.2" />
+      <circle cx="23" cy="22" fill="#9cc34a" r="2.2" />
+      <circle cx="20" cy="27" fill="#c9443a" r="2" />
+      <ellipse cx="25" cy="42" fill="#8b6a45" rx="2.2" ry="1.6" />
+    </g>
+  );
+}
+
+function Fen() {
+  return (
+    <g transform="translate(0, -6)">
+      <ellipse cx="16" cy="30" fill="var(--vale-fen-water)" rx="15" ry="7" />
+      <ellipse cx="10" cy="29" fill="var(--vale-leaf)" rx="4" ry="1.6" />
+      <path
+        d="M22 31 L21 17 M25 31 L26 19"
+        stroke="var(--vale-reed)"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+      <ellipse cx="21" cy="16" fill="#8a5a2e" rx="1.4" ry="3" />
+      <circle cx="8" cy="21" fill="#d9f2a0" opacity="0.85" r="1.6" />
+      <circle cx="14" cy="17" fill="#d9f2a0" opacity="0.6" r="1.2" />
+      <path
+        d="M2 16 q7 -4 14 0 q7 4 14 0"
+        fill="none"
+        opacity="0.7"
+        stroke="var(--vale-mist)"
+        strokeLinecap="round"
+        strokeWidth="2.4"
+      />
+    </g>
+  );
+}
+
 const SITE_ART: Record<SiteId, () => React.JSX.Element> = {
   hedgerow: Hedgerow,
   stonewood: Stonewood,
   riverbank: Riverbank,
+  orchard: Orchard,
+  fen: Fen,
 };
 
 export function SiteArt({
@@ -333,7 +445,10 @@ export function SiteArt({
 
 // ─── Cottages ─────────────────────────────────────────────────────────────────
 
-/** Nessa cooks at the inn, Bram is a woodsman, Marigold keeps bees and a kiln. */
+/**
+ * Nessa cooks at the inn, Bram is a woodsman, Marigold keeps bees and a kiln,
+ * Wren runs the mill.
+ */
 const COTTAGE_STYLE: Record<
   NeighbourId,
   { wall: string; roof: string; roofLit: string }
@@ -352,6 +467,11 @@ const COTTAGE_STYLE: Record<
     wall: "var(--vale-marigold-wall)",
     roof: "var(--vale-marigold-roof)",
     roofLit: "var(--vale-marigold-roof-lit)",
+  },
+  wren: {
+    wall: "var(--vale-wren-wall)",
+    roof: "var(--vale-wren-roof)",
+    roofLit: "var(--vale-wren-roof-lit)",
   },
 };
 
@@ -426,8 +546,329 @@ export function CottageArt({ neighbourId }: { neighbourId: NeighbourId }) {
           <circle cx="21" cy="39" fill="#3a3227" r="0.9" />
         </>
       )}
+      {neighbourId === "wren" && (
+        <>
+          {/* Flour sacks stacked by the door. */}
+          <ellipse cx="5" cy="45" fill="#efe6d2" rx="4" ry="3" />
+          <ellipse cx="6" cy="41" fill="#e3d7bd" rx="3.2" ry="2.4" />
+          <path d="M26 44 h4 M28 42 v4" stroke="#b69b6b" strokeWidth="1" />
+        </>
+      )}
     </g>
   );
+}
+
+// ─── Keepsakes ────────────────────────────────────────────────────────────────
+
+const WOOD = "var(--vale-stall-post)";
+const WOOD_LIT = "var(--vale-stall-counter)";
+const STONE = "var(--vale-rock)";
+const STONE_LIT = "var(--vale-rock-lit)";
+
+function Scarecrow() {
+  return (
+    <g transform="translate(0, -10)">
+      <path d="M16 42 L16 14" stroke={WOOD} strokeWidth="2.6" />
+      <path d="M5 22 L27 22" stroke={WOOD} strokeWidth="2.4" />
+      <path d="M10 20 h12 l-2 14 h-8 Z" fill="#b5583f" />
+      <circle cx="16" cy="13" fill="#e8d59c" r="5" />
+      <path d="M8 10 h16 l-3 -5 h-10 Z" fill="#7a5a3a" />
+      <circle cx="14" cy="13" fill="#3a3128" r="0.9" />
+      <circle cx="18" cy="13" fill="#3a3128" r="0.9" />
+      <path d="M5 22 l-2 3 M27 22 l2 3" stroke="#e2b94e" strokeWidth="1.4" />
+    </g>
+  );
+}
+
+function Beehive() {
+  return (
+    <g transform="translate(0, -4)">
+      <rect fill={WOOD} height="6" width="3" x="8" y="28" />
+      <rect fill={WOOD} height="6" width="3" x="21" y="28" />
+      <rect fill="#e5b95c" height="8" rx="1" width="20" x="6" y="21" />
+      <rect fill="#d9a441" height="8" rx="1" width="20" x="6" y="13" />
+      <path d="M4 13 L16 6 L28 13 Z" fill="#a9553f" />
+      <rect fill="#3a3227" height="2" rx="1" width="6" x="13" y="25" />
+      <circle cx="26" cy="9" fill="#3a3227" r="1" />
+      <circle cx="29" cy="15" fill="#3a3227" r="0.9" />
+    </g>
+  );
+}
+
+function Well() {
+  return (
+    <g transform="translate(0, -10)">
+      <path d="M7 22 L7 10 M25 22 L25 10" stroke={WOOD} strokeWidth="2.4" />
+      <path d="M3 12 L16 3 L29 12 Z" fill="#a9553f" />
+      <path d="M16 10 L16 22" stroke="#8a7f6d" strokeWidth="1" />
+      <rect fill="#8a7256" height="4" rx="1" width="5" x="13.5" y="20" />
+      <rect fill={STONE} height="16" rx="3" width="26" x="3" y="24" />
+      <path
+        d="M3 30 h26 M3 35 h26 M10 24 v6 M20 24 v6 M14 30 v5 M24 30 v5"
+        stroke={STONE_LIT}
+        strokeWidth="1"
+      />
+    </g>
+  );
+}
+
+function Lanterns() {
+  return (
+    <g>
+      {[8, 23].map((x) => (
+        <g key={x}>
+          <path
+            d={`M${x} 30 L${x} 10`}
+            stroke={WOOD}
+            strokeWidth="1.6"
+            transform="translate(0, -6)"
+          />
+          <ellipse cx={x} cy="10" fill="#e08b34" rx="6" ry="5" />
+          <path
+            d={`M${x - 3} 9 l1.5 -1.5 l1.5 1.5 M${x} 9 l1.5 -1.5 l1.5 1.5 M${x - 3} 12 q3 2 6 0`}
+            fill="none"
+            stroke="#fff1a8"
+            strokeWidth="1"
+          />
+          <rect fill={STEM} height="2.4" width="1.6" x={x - 0.8} y="3.6" />
+        </g>
+      ))}
+      <path d="M8 4 q7.5 5 15 0" fill="none" stroke={WOOD} strokeWidth="0.8" />
+    </g>
+  );
+}
+
+function Birdbath() {
+  return (
+    <g transform="translate(0, -2)">
+      <ellipse cx="16" cy="31" fill={STONE} rx="8" ry="2.6" />
+      <rect fill={STONE} height="14" width="5" x="13.5" y="17" />
+      <ellipse cx="16" cy="16" fill={STONE_LIT} rx="12" ry="4" />
+      <ellipse cx="16" cy="15.4" fill="var(--vale-window)" rx="9" ry="2.4" />
+      <ellipse cx="22" cy="11" fill="#8b6b4a" rx="3" ry="2.2" />
+      <circle cx="24.2" cy="9.4" fill="#8b6b4a" r="1.6" />
+      <path d="M25.6 9.4 l1.6 0.4" stroke="#e2b94e" strokeWidth="0.9" />
+    </g>
+  );
+}
+
+function Urns() {
+  return (
+    <g>
+      <circle cx="16" cy="18" fill="#d9f2a0" opacity="0.28" r="15" />
+      {[
+        { x: 9, h: 16 },
+        { x: 22, h: 12 },
+      ].map(({ x, h }) => (
+        <g key={x}>
+          <path
+            d={`M${x - 4} ${30 - h} q-3 ${h / 2} 1 ${h} h6 q4 ${-h / 2} 1 ${-h} Z`}
+            fill="#6f8fa8"
+          />
+          <rect
+            fill="#5a778f"
+            height="2"
+            rx="1"
+            width="9"
+            x={x - 4.5}
+            y={29 - h}
+          />
+          <path
+            d={`M${x - 3} ${30 - h / 2} h6`}
+            stroke="#d9f2a0"
+            strokeWidth="1.4"
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function Bunting() {
+  return (
+    <g transform="translate(0, -8)">
+      <path d="M3 38 L3 8 M29 38 L29 8" stroke={WOOD} strokeWidth="2" />
+      <path
+        d="M3 10 q13 8 26 0"
+        fill="none"
+        stroke="#6b5233"
+        strokeWidth="0.8"
+      />
+      {[
+        { x: 6, c: "#d64545" },
+        { x: 11, c: "#f2c230" },
+        { x: 16, c: "#5d7fd6" },
+        { x: 21, c: "#7fae5c" },
+        { x: 26, c: "#e08b34" },
+      ].map(({ x, c }) => {
+        const y = 10 + 8 * (1 - ((x - 16) / 13) ** 2) * 0.5;
+        return <path d={`M${x - 2.2} ${y} h4.4 l-2.2 5 Z`} fill={c} key={x} />;
+      })}
+    </g>
+  );
+}
+
+function PicnicTable() {
+  return (
+    <g>
+      <rect fill={WOOD_LIT} height="4" rx="1" width="28" x="2" y="12" />
+      <path d="M7 16 L4 28 M25 16 L28 28" stroke={WOOD} strokeWidth="2.2" />
+      <rect fill={WOOD} height="2.4" rx="1" width="30" x="1" y="21" />
+      <circle cx="11" cy="10" fill="#d64545" r="2.6" />
+      <rect fill="#e3d7bd" height="3" rx="1.4" width="7" x="16" y="8.6" />
+      <ellipse cx="24" cy="10.4" fill="#cfe08a" rx="2.6" ry="2" />
+    </g>
+  );
+}
+
+function HerbBox() {
+  return (
+    <g>
+      <rect fill={WOOD_LIT} height="10" rx="1.5" width="26" x="3" y="18" />
+      <path d="M3 22 h26" stroke={WOOD} strokeWidth="1" />
+      {[7, 12, 17, 22, 26].map((x, i) => (
+        <path
+          d={`M${x} 18 q${i % 2 === 0 ? -3 : 3} -6 0 -10`}
+          fill="none"
+          key={x}
+          stroke={i % 2 === 0 ? LEAF : LEAF_DARK}
+          strokeLinecap="round"
+          strokeWidth="2.4"
+        />
+      ))}
+      <circle cx="17" cy="9" fill="#b9a5dd" r="1.4" />
+    </g>
+  );
+}
+
+function Bench() {
+  return (
+    <g>
+      <rect fill={WOOD} height="11" rx="1" width="3" x="5" y="14" />
+      <rect fill={WOOD} height="11" rx="1" width="3" x="24" y="14" />
+      <rect fill={WOOD_LIT} height="4" rx="1.4" width="28" x="2" y="10" />
+      <rect fill={WOOD_LIT} height="4" rx="1.4" width="28" x="2" y="18" />
+      <path d="M6 20 h20" stroke={WOOD} strokeWidth="0.8" />
+    </g>
+  );
+}
+
+function RoseArch() {
+  return (
+    <g transform="translate(0, -14)">
+      <path
+        d="M5 46 L5 16 Q16 0 27 16 L27 46"
+        fill="none"
+        stroke={WOOD}
+        strokeWidth="2.4"
+      />
+      <path
+        d="M5 40 q3 -4 0 -8 q-3 -4 0 -8 q2 -6 6 -10 M27 40 q-3 -4 0 -8 q3 -4 0 -8 q-2 -6 -6 -10"
+        fill="none"
+        stroke={LEAF}
+        strokeWidth="2.4"
+      />
+      {[
+        [5, 36],
+        [5, 26],
+        [9, 13],
+        [16, 8],
+        [23, 13],
+        [27, 22],
+        [27, 33],
+      ].map(([x, y]) => (
+        <circle cx={x} cy={y} fill="#d64567" key={`${x}-${y}`} r="2.2" />
+      ))}
+    </g>
+  );
+}
+
+const windmillSpin = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+`;
+
+/** Turns about the hub the sails are drawn around. */
+const Sails = styled.g`
+  transform-box: view-box;
+  transform-origin: 16px 2px;
+  animation: ${windmillSpin} 14s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+function Windmill() {
+  return (
+    <g transform="translate(0, -14)">
+      <path d="M9 46 L12 10 L20 10 L23 46 Z" fill="var(--vale-wren-wall)" />
+      <path d="M10 12 L16 4 L22 12 Z" fill="var(--vale-wren-roof)" />
+      <rect
+        fill="var(--vale-door)"
+        height="8"
+        rx="1"
+        width="5"
+        x="13.5"
+        y="38"
+      />
+      <Sails>
+        {[0, 90, 180, 270].map((angle) => (
+          <rect
+            fill="#f0e3c8"
+            height="12"
+            key={angle}
+            stroke={WOOD}
+            strokeWidth="0.8"
+            transform={`rotate(${angle} 16 2)`}
+            width="4"
+            x="14"
+            y="-11"
+          />
+        ))}
+      </Sails>
+      <circle cx="16" cy="2" fill={WOOD} r="1.8" />
+    </g>
+  );
+}
+
+function Maypole() {
+  return (
+    <g transform="translate(0, -16)">
+      <ellipse cx="16" cy="46" fill="var(--vale-grass-alt)" rx="12" ry="3" />
+      <path d="M16 46 L16 2" stroke="#e8d8b8" strokeWidth="2.4" />
+      <circle cx="16" cy="3" fill="#f2c230" r="2.4" />
+      {[
+        { d: "M16 5 Q9 22 4 42", c: "#d64545" },
+        { d: "M16 5 Q12 24 10 44", c: "#5d7fd6" },
+        { d: "M16 5 Q20 24 22 44", c: "#7fae5c" },
+        { d: "M16 5 Q23 22 28 42", c: "#b9a5dd" },
+      ].map(({ d, c }) => (
+        <path d={d} fill="none" key={c} stroke={c} strokeWidth="1.4" />
+      ))}
+    </g>
+  );
+}
+
+const KEEPSAKE_ART: Record<KeepsakeId, () => React.JSX.Element> = {
+  scarecrow: Scarecrow,
+  beehive: Beehive,
+  well: Well,
+  lanterns: Lanterns,
+  birdbath: Birdbath,
+  urns: Urns,
+  bunting: Bunting,
+  "picnic-table": PicnicTable,
+  "herb-box": HerbBox,
+  bench: Bench,
+  "rose-arch": RoseArch,
+  windmill: Windmill,
+  maypole: Maypole,
+};
+
+export function KeepsakeArt({ keepsakeId }: { keepsakeId: KeepsakeId }) {
+  const Art = KEEPSAKE_ART[keepsakeId];
+  return <Art />;
 }
 
 // ─── Seed stall ───────────────────────────────────────────────────────────────

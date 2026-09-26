@@ -139,7 +139,7 @@ The once-per-calendar-day tick: yesterday's wild visitors depart (banking trust)
 
 ## Meadowmere
 
-A smallholding sim in the Stardew Valley mould. The player walks a farmer around a single map, growing crops, foraging materials, and befriending three neighbours by giving them things they like. A chain of quests ties the loops together and gates every unlock. No failure states — crops never wither and friendship never decays.
+A smallholding sim in the Stardew Valley mould. The player walks a farmer around a single map, growing crops, foraging materials, and befriending four neighbours by giving them things they like. A chain of quests ties the loops together and gates every unlock. No failure states — crops never wither and friendship never decays.
 
 ### The world
 
@@ -156,7 +156,7 @@ The player character. Has a position and a **Facing**.
 Which of the four directions the farmer is looking. The tile in front is where every interaction happens.
 
 **Feature**
-Something standing on a tile that the farmer can act on: a **Plot**, a **Site**, a **Cottage**, the **Seed stall**, or the **Barn cat**. Every feature blocks movement, so the rule is the same for all of them — stand beside it, face it, act on it.
+Something standing on a tile that the farmer can act on: a **Plot**, a **Site**, a **Cottage**, the **Seed stall**, the **Barn cat**, or a **Keepsake**. Every feature blocks movement, so the rule is the same for all of them — stand beside it, face it, act on it.
 
 **Cottage**
 Where a **Neighbour** lives. Calling on one is how gifts are given and quests handed in.
@@ -166,6 +166,9 @@ Where seed packets are bought with points. The only thing points are spent on in
 
 **Barn cat**
 A cat that takes a different perch each day, there to be found and petted. Its perch is derived from the date of the last **Daily Meadowmere advance**, and only ever falls on hedge or rock — ground the farmer could never stand on — so a feature that moves every morning can never wall off a loop.
+
+**Keepsake**
+Something a neighbour gives the farm to keep — a scarecrow, a well, a windmill — as a **Quest reward**. It stands on a fixed tile in the Vale from then on, with nothing to do but look at it. Never stored: a keepsake is on the map exactly when the quest that gives it is in `completedQuestIds`.
 
 **Interaction**
 The action available on a feature given current state, plus the wording for it ("Water Parsnip in Plot 4"). Derived, never stored, so the prompt under the map and the feature's button can never disagree. Carries an optional **Detail**.
@@ -182,7 +185,7 @@ What the valley says back when the farmer is sent somewhere they can't go — th
 A catalog definition of a plantable kind: seed cost in points, days to mature, base yield, and the **Produce** it gives. The source of truth for growing behaviour — never duplicated into game state.
 
 **Plot**
-One bed on the farm. Either bare or holding a **Planting**. The farm starts with six and grows to at most twelve through quest rewards, a row at a time.
+One bed on the farm. Either bare or holding a **Planting**. The farm starts with six and grows to at most sixteen through quest rewards: a row at a time to twelve, then a bed at the end of each row.
 
 **Planting**
 A crop sown in a plot. Holds its `cropId`, `plantedDate`, and how many days it has been watered.
@@ -209,13 +212,13 @@ The player's item store. (Distinct from the Creature Glade's **Pantry**, which h
 The land beyond the farm, made up of **Sites**. Named "wilds" rather than "zones" — **Zone** already means a time-of-day slot in the Energy Planner.
 
 **Site**
-A named place in the wilds (The Hedgerow, The Riverbank, Stonewood) with its own material pool. Only the hedgerow is open at the start; the rest are unlocked by quests, and stand behind a shut gate on the map until then.
+A named place in the wilds (The Hedgerow, The Riverbank, Stonewood, The Old Orchard, Misty Fen) with its own material pool. Only the hedgerow is open at the start; the rest are unlocked by quests, and stand behind a shut gate on the map until then.
 
 **Forage trip**
 One visit to an unlocked site, turning up one or two of a material. Three trips a day, refilled by the **Daily Meadowmere advance**.
 
 **Neighbour**
-One of three villagers — Nessa, Bram, Marigold — each with a set of liked **Items**, a **Friendship** meter, and a **Cottage** on the map.
+One of four villagers — Nessa, Bram, Marigold, Wren — each with a set of liked **Items**, a **Friendship** meter, and a **Cottage** on the map.
 
 **Friendship**
 A per-neighbour meter from 0–100, raised by **Gifts** and quest rewards, never lowered. Crossing a threshold advances the **Friendship tier**.
@@ -236,7 +239,10 @@ A read-only account of the whole chain, opened from above the map. Quests are ha
 What a quest asks for: items to hand in, and/or a friendship tier to have reached. Both are checked against current state. Handing in consumes the items; friendship is a standing relationship, not a cost.
 
 **Quest reward**
-What a quest pays out: seeds, items, a crop unlock, a site unlock, extra plots, or friendship — never points (see ADR 0003 and ADR 0007).
+What a quest pays out: seeds, items, a crop unlock, a site unlock, extra plots, a **Keepsake**, or friendship — never points (see ADR 0003 and ADR 0007).
+
+**Errand**
+A small repeatable ask, one a day once the first quest is done: one neighbour wants two or three of something the player can already grow or forage, preferring something they like. Handed in at their **Cottage** for seeds and friendship. Derived from the date and what is unlocked; only `lastErrandDate` is stored, to allow one hand-in a day. Keeps something to aim for after the quest chain runs out.
 
 **Daily Meadowmere advance**
 The once-per-calendar-day tick: forage trips refill and the digest reports what ripened while the player was away. Growth needs no work here because it is derived. Watering and gifting limits expire on their own, being date-stamped. Mirrors the Bonsai **Daily advance** and **Daily glade advance** pattern.
