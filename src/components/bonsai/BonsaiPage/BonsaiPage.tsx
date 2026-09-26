@@ -3,11 +3,12 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import dynamic from "next/dynamic";
 import { styled } from "next-yak";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GardenView } from "@/components/bonsai/GardenView";
 import { TreeCollection } from "@/components/bonsai/TreeCollection";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
+import { measureTreeFrame, type TreeFrame } from "@/lib/bonsai/backdrop";
 import { useBonsai } from "@/lib/bonsai/context";
 import { describeGrowth } from "@/lib/bonsai/growthEvents";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
@@ -29,8 +30,22 @@ const TendingModal = dynamic(() =>
 export function BonsaiPage() {
   const { state, isLoading, advanceDay, demoMode, growthEvents } = useBonsai();
   const [tendingTreeId, setTendingTreeId] = useState<string | null>(null);
+  // Where the tree stands in the garden, so the tend view can show the same
+  // patch of scene behind it. Measured on open, from either the garden or the
+  // collection: the garden is on the page either way.
+  const [tendingFrame, setTendingFrame] = useState<TreeFrame | null>(null);
+  const gardenRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState("collection");
   const [focusShopItemId, setFocusShopItemId] = useState<string | undefined>();
+
+  const handleOpenTree = (tree: BonsaiTree) => {
+    const garden = gardenRef.current;
+    const art = garden?.querySelector<HTMLElement>(
+      `[data-tree-art="${tree.id}"]`,
+    );
+    setTendingFrame(garden && art ? measureTreeFrame(garden, art) : null);
+    setTendingTreeId(tree.id);
+  };
 
   const handleNavigateToShop = (itemId: string) => {
     setTendingTreeId(null);
@@ -81,8 +96,9 @@ export function BonsaiPage() {
 
       <Layout>
         <GardenView
+          gardenRef={gardenRef}
           onNavigateToShop={handleNavigateToShop}
-          onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
+          onOpenTree={handleOpenTree}
         />
 
         <PageTabs onValueChange={setActiveTab} value={activeTab}>
@@ -95,7 +111,7 @@ export function BonsaiPage() {
           <Tabs.Content value="collection">
             <TreeCollection
               onNavigateToShop={handleNavigateToShop}
-              onOpenTree={(tree: BonsaiTree) => setTendingTreeId(tree.id)}
+              onOpenTree={handleOpenTree}
             />
           </Tabs.Content>
           <Tabs.Content value="shop">
@@ -108,6 +124,7 @@ export function BonsaiPage() {
       </Layout>
 
       <TendingModal
+        gardenFrame={tendingFrame}
         onClose={() => setTendingTreeId(null)}
         onNavigateToShop={handleNavigateToShop}
         tree={tendingTree}
