@@ -13,6 +13,23 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  // Reading `?demo=1` on the server would make /bonsai dynamic, so it could not
+  // be prefetched and every visit would wait on a server render. Rewriting to a
+  // separate static route keeps both variants instant.
+  // beforeFiles, as /bonsai itself is a page and would otherwise win.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/bonsai",
+          has: [{ type: "query", key: "demo", value: "1" }],
+          destination: "/bonsai/demo",
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default withYak(nextConfig);
