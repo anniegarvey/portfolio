@@ -90,25 +90,27 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
           <Muted>No seeds yet — buy some at the stall.</Muted>
         ) : (
           <>
-            {unlocked.map((cropId) => {
-              const count = seedCount(state, cropId);
-              const selected = selectedCropId === cropId;
-              return (
-                <SeedChip
-                  aria-label={`${CROPS[cropId].name}, ${count} ${count === 1 ? "seed" : "seeds"}`}
-                  aria-pressed={selected}
-                  disabled={count === 0}
-                  key={cropId}
-                  onClick={() => onSelectCrop(selected ? null : cropId)}
-                  type="button"
-                >
-                  <span aria-hidden>{CROPS[cropId].glyph}</span>
-                  <span aria-hidden>
-                    {CROPS[cropId].name} ×{count}
-                  </span>
-                </SeedChip>
-              );
-            })}
+            <Row>
+              {unlocked.map((cropId) => {
+                const count = seedCount(state, cropId);
+                const selected = selectedCropId === cropId;
+                return (
+                  <SeedChip
+                    aria-label={`${CROPS[cropId].name}, ${count} ${count === 1 ? "seed" : "seeds"}`}
+                    aria-pressed={selected}
+                    disabled={count === 0}
+                    key={cropId}
+                    onClick={() => onSelectCrop(selected ? null : cropId)}
+                    type="button"
+                  >
+                    <span aria-hidden>{CROPS[cropId].glyph}</span>
+                    <span aria-hidden>
+                      {CROPS[cropId].name} ×{count}
+                    </span>
+                  </SeedChip>
+                );
+              })}
+            </Row>
             {/* Sowing is two steps and only the second one happens on the map,
                 so the first says out loud what it is for. */}
             <Hint>{sowingHint(selectedCropId, seedsInHand)}</Hint>
@@ -121,12 +123,16 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
         {larder.length === 0 ? (
           <Muted>Empty.</Muted>
         ) : (
-          larder.map(([itemId, count]) => (
-            <Holding key={itemId}>
-              <span aria-hidden>{ITEMS[itemId].glyph}</span>
-              {ITEMS[itemId].name} ×{count}
-            </Holding>
-          ))
+          // Nothing in here takes focus, so the row itself does, or a keyboard
+          // could never scroll along to the end of a long larder.
+          <Row aria-labelledby={larderId} role="group" tabIndex={0}>
+            {larder.map(([itemId, count]) => (
+              <Holding key={itemId}>
+                <span aria-hidden>{ITEMS[itemId].glyph}</span>
+                {ITEMS[itemId].name} ×{count}
+              </Holding>
+            ))}
+          </Row>
         )}
       </Section>
 
@@ -150,11 +156,42 @@ const Bar = styled.div`
   gap: 0.6rem;
 `;
 
+/** A label with its contents on the line below. */
 const Section = styled.section`
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 0;
+`;
+
+/**
+ * One line of chips that scrolls sideways rather than wrapping, so the band
+ * stays the same height however many seeds and items the farm has unlocked.
+ * Padded so a focus ring on the first or last chip isn't clipped by the scroll
+ * edge.
+ */
+const Row = styled.div`
+  display: flex;
   gap: 0.5rem;
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  padding: 4px;
+  margin: -4px;
+  box-sizing: content-box;
+
+  & > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 `;
 
 const Group = styled.div`
@@ -191,9 +228,7 @@ const Muted = styled.span`
 `;
 
 /** Its own line under the chips, so it reads as a step rather than a chip. */
-const Hint = styled(Muted)`
-  flex-basis: 100%;
-`;
+const Hint = styled(Muted)``;
 
 const Holding = styled.span`
   display: inline-flex;
