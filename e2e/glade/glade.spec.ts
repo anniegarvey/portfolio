@@ -156,26 +156,32 @@ test.describe("Creature Glade", () => {
     ).toBeVisible();
     // Robin also appears as a resident in the glade scene
     await expect(
-      page.getByRole("region", { name: "Glade ecosystem" }).getByText("Robin"),
+      page
+        .getByRole("region", { name: "Glade ecosystem" })
+        .getByRole("button", { name: /^Robin/ }),
     ).toBeVisible();
   });
 
-  test("greeting a resident shows its benefit details", async ({ page }) => {
+  test("a resident's benefit details open from the Collection tab", async ({
+    page,
+  }) => {
     await goToGladeWithSeed(page, {
       residents: [{ speciesId: "rabbit", x: 30, y: 60 }],
     });
 
+    await page.getByRole("tab", { name: "Collection" }).click();
     await page
-      .getByRole("region", { name: "Glade ecosystem" })
-      .getByRole("button", { name: "Rabbit" })
+      .getByRole("tabpanel", { name: "Collection" })
+      .getByRole("button", { name: /Rabbit/ })
       .click();
 
+    const dialog = page.getByRole("dialog", { name: "Rabbit" });
     await expect(
-      page.getByText("Gathers an ingredient each day"),
+      dialog.getByText("Gathers an ingredient each day"),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Close details" }).click();
-    await expect(page.getByText("Gathers an ingredient each day")).toBeHidden();
+    await dialog.getByRole("button", { name: "Close modal" }).click();
+    await expect(dialog).toBeHidden();
   });
 
   test("skills tab shows the three taming skills", async ({ page }) => {
@@ -318,7 +324,7 @@ test.describe("Creature Glade", () => {
     // Wait for the seeded save to be on screen before resetting. The rabbit
     // resident exists only in the seed, so it proves the mount load has
     // landed — reset it any earlier and there is nothing to prove wiped.
-    await expect(scene.getByText("Rabbit")).toBeVisible();
+    await expect(scene.getByRole("button", { name: /^Rabbit/ })).toBeVisible();
 
     await page.getByRole("button", { name: "Reset glade" }).click();
     await page
@@ -330,7 +336,7 @@ test.describe("Creature Glade", () => {
     // scene is what tells the two saves apart — the seed's robin is also at
     // Trust 0/60, so those two assertions alone would pass either way.
     await expect(scene.getByText("The glade is quiet…")).toBeVisible();
-    await expect(scene.getByText("Rabbit")).toBeHidden();
+    await expect(scene.getByRole("button", { name: /^Rabbit/ })).toBeHidden();
     await expect(page.getByRole("heading", { name: /^Robin/ })).toBeVisible();
     await expect(page.getByText("Trust 0/60")).toBeVisible();
 
