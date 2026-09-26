@@ -360,4 +360,30 @@ test.describe("Meadowmere", () => {
       page.getByRole("dialog", { name: "How to play" }),
     ).toBeVisible();
   });
+
+  test("resetting Meadowmere wipes progress back to a fresh start", async ({
+    page,
+  }) => {
+    await goToMeadowmereWithSeed(page, {
+      plots: [{ cropId: "parsnip", plantedDaysAgo: 0 }],
+    });
+
+    // The planted plot exists only in the seed, so seeing it proves the mount
+    // load has landed before the reset.
+    await expect(
+      page.getByRole("button", { name: "Water Parsnip in Plot 1" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Reset Meadowmere" }).click();
+    await page
+      .getByRole("dialog", { name: "Reset Meadowmere?" })
+      .getByRole("button", { name: "Reset Meadowmere" })
+      .click();
+
+    await expect(
+      page.getByRole("button", {
+        name: "Plot 1 — bare soil, needs a seed in hand",
+      }),
+    ).toBeVisible();
+  });
 });

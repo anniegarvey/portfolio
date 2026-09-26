@@ -115,6 +115,9 @@ function MeadowmereDebug() {
       <button onClick={ctx.clearDailyReport} type="button">
         clear-report
       </button>
+      <button onClick={ctx.resetMeadowmere} type="button">
+        reset
+      </button>
     </div>
   );
 }
@@ -372,6 +375,40 @@ describe("notices", () => {
 
     await click("clear-notice");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+  });
+});
+
+describe("resetMeadowmere", () => {
+  it("wipes progress back to a fresh farm and persists it", async () => {
+    seedLocalStorage({
+      lastAdvanceDate: daysAgo(2),
+      seeds: { parsnip: 1 },
+      inventory: { "parsnip-root": 4 },
+      neighbours: { nessa: { friendship: 30 } },
+      completedQuestIds: ["a-bed-for-parsnips"],
+    });
+    renderProvider();
+    await click("forage");
+    expect(screen.getByTestId("notice")).toHaveTextContent("forage");
+    expect(screen.getByTestId("report-days")).toHaveTextContent("2");
+
+    await click("reset");
+
+    const fresh = createInitialState();
+    expect(screen.getByTestId("parsnip-seeds")).toHaveTextContent(
+      String(fresh.seeds.parsnip),
+    );
+    expect(screen.getByTestId("parsnip-root")).toHaveTextContent("0");
+    expect(screen.getByTestId("nessa")).toHaveTextContent("0");
+    expect(screen.getByTestId("completed")).toHaveTextContent("none");
+    expect(screen.getByTestId("forages")).toHaveTextContent("0");
+    expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(screen.getByTestId("report-days")).toHaveTextContent("none");
+
+    const stored = readStored();
+    expect(stored.inventory).toEqual({});
+    expect(stored.completedQuestIds).toEqual([]);
+    expect(stored.lastAdvanceDate).toBe(getTodayDateString());
   });
 });
 
