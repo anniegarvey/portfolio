@@ -61,6 +61,7 @@ export function makeMeadowmereContext(
     giveGift: vi.fn(),
     claimQuest: vi.fn(),
     claimErrand: vi.fn(),
+    resetMeadowmere: vi.fn(),
     ...overrides,
   };
 }

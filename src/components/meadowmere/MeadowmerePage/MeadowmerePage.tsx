@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { Modal } from "@/components/Modal";
 import { DailyDigest } from "@/components/meadowmere/DailyDigest";
+import { ResetMeadowmere } from "@/components/meadowmere/ResetMeadowmere";
 import { HOW_TO_PLAY_TEXT, ValeWorld } from "@/components/meadowmere/ValeWorld";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import {
@@ -63,6 +64,7 @@ export function MeadowmerePage() {
 
         <DailyDigest />
         <ValeWorld instructionsId={instructionsId} />
+        <ResetMeadowmere />
       </Layout>
 
       <Modal
