@@ -16,6 +16,7 @@ import { RoleBadge } from "@/components/glade/RoleBadge";
 import { ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { SpeciesId } from "@/lib/glade/schema";
+import { GladeBackdrop } from "./GladeBackdrop";
 import { useWander } from "./useWander";
 
 // ─── Idle Motion ──────────────────────────────────────────────────────────────
@@ -192,82 +193,7 @@ export function GladeScene() {
           tabIndex={0}
         >
           <World ref={gladeSceneRef}>
-            <BackgroundSVG
-              aria-hidden="true"
-              preserveAspectRatio="none"
-              viewBox="0 0 240 60"
-            >
-              {/* Sky */}
-              <rect fill="var(--glade-sky)" height="60" width="240" />
-              {/* Clouds, crossing the whole sky over a few minutes */}
-              <Clouds>
-                <g>
-                  <ellipse cx="10" cy="8" rx="7" ry="2.2" />
-                  <ellipse cx="14" cy="7" rx="5" ry="1.8" />
-                  <ellipse cx="6.5" cy="7.4" rx="4" ry="1.5" />
-                </g>
-                <g>
-                  <ellipse cx="10" cy="16" rx="5.5" ry="1.8" />
-                  <ellipse cx="13.5" cy="15.2" rx="4" ry="1.4" />
-                </g>
-                <g>
-                  <ellipse cx="10" cy="11" rx="6" ry="2" />
-                  <ellipse cx="6" cy="10.4" rx="4" ry="1.5" />
-                </g>
-              </Clouds>
-              {/* Distant treeline */}
-              <path
-                d="M0 28 Q8 14 16 26 Q24 14 32 24 Q40 18 48 26 Q56 12 64 26 Q72 12 80 24 Q88 16 96 26 Q104 14 112 22 Q120 18 128 26 Q136 18 144 24 Q152 14 160 22 Q168 14 176 26 Q184 18 192 26 Q200 12 208 26 Q216 12 224 22 Q232 12 240 24 L240 60 L0 60 Z"
-                fill="var(--glade-treeline)"
-              />
-              {/* Meadow */}
-              <path
-                d="M0 34 Q60 26 120 34 Q180 42 240 32 L240 60 L0 60 Z"
-                fill="var(--glade-meadow-far)"
-              />
-              <path
-                d="M0 44 Q60 36 120 44 Q180 50 240 42 L240 60 L0 60 Z"
-                fill="var(--glade-meadow-near)"
-              />
-              {/* Pond */}
-              <ellipse
-                cx="190"
-                cy="52"
-                fill="var(--glade-pond)"
-                rx="16"
-                ry="4.5"
-              />
-              <PondShine
-                cx="190"
-                cy="51.4"
-                fill="var(--glade-pond-shine)"
-                rx="12"
-                ry="3"
-              />
-              {/* Flowers */}
-              <Blooms>
-                <circle cx="12" cy="50" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="28" cy="55" fill="var(--glade-bloom-gold)" r="1" />
-                <circle cx="46" cy="52" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="70" cy="56" fill="var(--glade-bloom-gold)" r="1" />
-                <circle
-                  cx="88"
-                  cy="49"
-                  fill="var(--glade-bloom-white)"
-                  r="0.8"
-                />
-                <circle cx="110" cy="54" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="132" cy="51" fill="var(--glade-bloom-gold)" r="1" />
-                <circle
-                  cx="150"
-                  cy="56"
-                  fill="var(--glade-bloom-white)"
-                  r="0.8"
-                />
-                <circle cx="166" cy="50" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="222" cy="55" fill="var(--glade-bloom-gold)" r="1" />
-              </Blooms>
-            </BackgroundSVG>
+            <GladeBackdrop />
 
             {/* Ahead of the residents in the DOM, so nothing drifts over a face. */}
             <Motes aria-hidden="true">
@@ -491,116 +417,10 @@ const EastEdge = styled(Edge)`
   );
 `;
 
-const BackgroundSVG = styled.svg`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-`;
-
-// ─── Ambient scene ────────────────────────────────────────────────────────────
-// Nothing here reports state; it exists so the glade looks like somewhere a
-// creature would want to live. Every loop is long, low-amplitude and offset
-// from its neighbours, and all of it stops under reduced motion: the painted
-// scenery holds the position it was authored at, and the drifting specks —
-// which are transparent at rest anyway — are dropped entirely.
-
-// Crosses the full 240-unit viewBox with the cloud fully clear at both ends.
-const cloudDrift = keyframes`
-  from { transform: translateX(-24px); }
-  to   { transform: translateX(266px); }
-`;
-
-const Clouds = styled.g`
-  fill: var(--glade-cloud);
-  opacity: 0.7;
-
-  & > g {
-    animation-name: ${cloudDrift};
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-  }
-  & > g:nth-child(1) {
-    animation-duration: 230s;
-    animation-delay: -50s;
-  }
-  & > g:nth-child(2) {
-    animation-duration: 330s;
-    animation-delay: -190s;
-  }
-  & > g:nth-child(3) {
-    animation-duration: 280s;
-    animation-delay: -120s;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    & > g {
-      animation: none;
-    }
-  }
-`;
-
-const pondShimmer = keyframes`
-  0%, 100% { opacity: 0.5; transform: scaleX(1); }
-  50%      { opacity: 0.72; transform: scaleX(1.05); }
-`;
-
-const PondShine = styled.ellipse`
-  opacity: 0.6;
-  /* fill-box so the shine widens about its own centre, not the SVG's origin. */
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: ${pondShimmer} 9s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-/* Half a bloom's radius, which at the scene's vertical scale is ~2px. */
-const bloomBob = keyframes`
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-0.5px); }
-`;
-
-const Blooms = styled.g`
-  & > circle {
-    animation-name: ${bloomBob};
-    animation-duration: 5.5s;
-    animation-timing-function: ease-in-out;
-    animation-iteration-count: infinite;
-  }
-  & > circle:nth-child(2) {
-    animation-delay: -1.3s;
-  }
-  & > circle:nth-child(3) {
-    animation-delay: -2.6s;
-  }
-  & > circle:nth-child(4) {
-    animation-delay: -3.9s;
-  }
-  & > circle:nth-child(5) {
-    animation-delay: -0.7s;
-  }
-  & > circle:nth-child(6) {
-    animation-delay: -4.6s;
-  }
-  & > circle:nth-child(7) {
-    animation-delay: -2s;
-  }
-  & > circle:nth-child(8) {
-    animation-delay: -3.2s;
-  }
-  & > circle:nth-child(9) {
-    animation-delay: -5.1s;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    & > circle {
-      animation: none;
-    }
-  }
-`;
+// ─── Drifting specks ──────────────────────────────────────────────────────────
+// The rest of the scenery lives in GladeBackdrop. These drift over it, and
+// under reduced motion they — transparent at rest anyway — are dropped
+// entirely.
 
 const moteDrift = keyframes`
   0%   { opacity: 0; transform: translate3d(0, 0, 0) scale(0.7); }

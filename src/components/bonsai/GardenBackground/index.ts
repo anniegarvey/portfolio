@@ -1,0 +1,1 @@
+export { GardenBackground } from "./GardenBackground";
