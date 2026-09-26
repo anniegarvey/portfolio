@@ -7,6 +7,7 @@ const PROJECT_DESCRIPTIONS = [
   "A bonsai growing simulation with realistic procedural tree generation, gamification providing rewards for Energy Planner interaction",
   "A multilingual song of unity created in response to the invasion of Ukraine",
   "A WordPress site for a Wind Energy Storage startup — still live today",
+  "A soothing fluid simulation to stir with a pointer or fingertip, with its own palettes and flow settings",
 ];
 
 test.describe("Project cards", () => {

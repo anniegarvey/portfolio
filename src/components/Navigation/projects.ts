@@ -37,6 +37,13 @@ export const LIVE_APPS: readonly ProjectLink[] = [
     href: "/meadowmere",
     accent: "var(--color-orange-400)",
   },
+  {
+    slug: "drift",
+    title: "Drift",
+    blurb: "Stir soothing, swirling water",
+    href: "/drift",
+    accent: "var(--color-rose-400)",
+  },
 ] as const;
 
 export const CASE_STUDIES: readonly ProjectLink[] = [

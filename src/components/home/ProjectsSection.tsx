@@ -9,6 +9,7 @@ import { SectionTitle } from "./SectionTitle";
 const projects = [
   {
     slug: "energy-planner",
+    href: "/projects/energy-planner",
     title: "Energy Planner",
     description:
       "An extended spoon theory tool for managing daily energy and activities",
@@ -20,6 +21,7 @@ const projects = [
   },
   {
     slug: "bonsai",
+    href: "/projects/bonsai",
     title: "Bonsai Garden",
     description:
       "A bonsai growing simulation with realistic procedural tree generation, gamification providing rewards for Energy Planner interaction",
@@ -31,6 +33,7 @@ const projects = [
   },
   {
     slug: "one-anthem",
+    href: "/projects/one-anthem",
     title: "One Anthem",
     description:
       "A multilingual song of unity created in response to the invasion of Ukraine",
@@ -42,6 +45,7 @@ const projects = [
   },
   {
     slug: "windtp",
+    href: "/projects/windtp",
     title: "WindTP",
     description:
       "A WordPress site for a Wind Energy Storage startup — still live today",
@@ -50,6 +54,19 @@ const projects = [
       "repeating-linear-gradient(60deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 20px), linear-gradient(135deg, oklch(55.3% 0.195 38.402) 0%, oklch(70.5% 0.213 47.604) 100%)",
     accent: "oklch(83.7% 0.128 66.29)", // orange-300
     glow: "var(--glow-accent-orange)",
+  },
+  {
+    slug: "drift",
+    // A playground, not a case study: the card opens the toy itself.
+    href: "/drift",
+    title: "Drift",
+    description:
+      "A soothing fluid simulation to stir with a pointer or fingertip, with its own palettes and flow settings",
+    // Rose-700→violet-500; soft overlapping ink blooms (fluid)
+    background:
+      "radial-gradient(circle at 25% 35%, rgba(255,255,255,0.12) 0 8%, transparent 30%), radial-gradient(circle at 70% 65%, rgba(255,255,255,0.08) 0 10%, transparent 36%), linear-gradient(135deg, oklch(51.4% 0.222 16.935) 0%, oklch(60.6% 0.25 292.717) 100%)",
+    accent: "oklch(81% 0.117 11.638)", // rose-300
+    glow: "var(--glow-accent-rose)",
   },
 ] as const;
 
@@ -65,7 +82,7 @@ export function ProjectsSection() {
         {projects.map((project, i) => (
           <FadeIn delay={i * 80} key={project.slug}>
             <ProjectCard
-              href={`/projects/${project.slug}`}
+              href={project.href}
               style={
                 {
                   "--project-accent": project.accent,
@@ -99,15 +116,6 @@ const Projects = styled.section`
   /* Opposite diagonal from About: low on left, high on right */
   clip-path: polygon(0 60px, 100% 0, 100% 100%, 0 100%);
   margin-top: -60px;
-`;
-
-const ProjectsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-
-  @media (${QUERIES.PHABLET_UP}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
 `;
 
 const ProjectBackground = styled.div`
@@ -216,5 +224,24 @@ const ProjectCard = styled(Link)`
     /* Keep the card-shadow transition (unchanged behaviour) but drop the
        animated brightness transition for the lift enhancement. */
     transition: box-shadow 0.3s var(--ease-out);
+  }
+`;
+
+const ProjectsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+
+  @media (${QUERIES.PHABLET_UP}) {
+    grid-template-columns: repeat(2, 1fr);
+
+    /* An odd card out spans the row as a banner rather than leaving a gap. */
+    & > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+
+    & > :last-child:nth-child(odd) ${ProjectCard} {
+      aspect-ratio: 32 / 9;
+      min-height: 240px;
+    }
   }
 `;
