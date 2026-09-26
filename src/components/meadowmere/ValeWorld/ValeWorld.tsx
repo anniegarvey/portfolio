@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { styled } from "next-yak";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
 import { StallDialog } from "@/components/meadowmere/StallDialog";
 import { ValeHUD } from "@/components/meadowmere/ValeHUD";
@@ -575,10 +576,12 @@ export function ValeWorld({
 
   return (
     <Layout>
-      <ValeHUD
-        onSelectCrop={setSelectedCropId}
-        selectedCropId={selectedCropId}
-      />
+      <Column>
+        <ValeHUD
+          onSelectCrop={setSelectedCropId}
+          selectedCropId={selectedCropId}
+        />
+      </Column>
 
       {/* Always in the DOM, unlike MeadowmerePage's how-to-play modal — a
           screen reader needs the map's description reachable whether or not
@@ -665,15 +668,28 @@ export function ValeWorld({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+/**
+ * The page's text column. Stretched explicitly: it centres itself with auto
+ * margins, which in a flex column would otherwise shrink it to its content.
+ */
+const Column = styled(MaxWidthWrapper)`
+  width: 100%;
+`;
+
 const Layout = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 `;
 
-/** Anchors everything laid over the map: the prompt and the two scroll cues. */
+/**
+ * Anchors everything laid over the map: the prompt and the two scroll cues.
+ * Spans the whole window rather than the page's text column, less a small
+ * gutter so the map's rounded border stays in view.
+ */
 const Frame = styled.div`
   position: relative;
+  margin-inline: 1rem;
 `;
 
 const Stage = styled.div`
