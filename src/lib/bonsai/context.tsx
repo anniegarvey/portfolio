@@ -3,6 +3,7 @@
 import {
   createContext,
   type ReactNode,
+  startTransition,
   use,
   useCallback,
   useEffect,
@@ -158,15 +159,22 @@ export function BonsaiProvider({
       restored.lastGrowthCheckDate !== todayStr;
     const next = grows ? growWateredTrees(restored, todayStr) : restored;
 
-    setState(() => next);
-    // Diffed here rather than left to the committed-state watcher below: this
-    // path rebuilds from storage, so that watcher sees the empty placeholder as
-    // the "before" and every restored tree reads as newly planted rather than
-    // grown. Most growth arrives this way — advancing by hand is demo-only.
-    if (grows) setGrowthEvents(diffGrowth(restored, next));
-    // Batched with the setState above, so the loaded game and the "ready" flag
-    // land in the same commit — consumers never see the empty state unmasked.
-    setIsLoading(false);
+    // Generating and drawing every tree is the heaviest render on the page, so
+    // it runs as a transition: the skeletons paint first and the browser stays
+    // responsive while the garden renders in slices behind them.
+    startTransition(() => {
+      setState(() => next);
+      // Diffed here rather than left to the committed-state watcher below: this
+      // path rebuilds from storage, so that watcher sees the empty placeholder
+      // as the "before" and every restored tree reads as newly planted rather
+      // than grown. Most growth arrives this way — advancing by hand is
+      // demo-only.
+      if (grows) setGrowthEvents(diffGrowth(restored, next));
+      // Batched with the setState above, so the loaded game and the "ready"
+      // flag land in the same commit — consumers never see the empty state
+      // unmasked.
+      setIsLoading(false);
+    });
   }, [setState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Every other growth is read off the committed state. Comparing what React
