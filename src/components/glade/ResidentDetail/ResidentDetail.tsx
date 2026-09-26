@@ -1,7 +1,7 @@
 "use client";
 
-import { keyframes, styled } from "next-yak";
-import { useEffect, useId, useRef, useState } from "react";
+import { styled } from "next-yak";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { ResidentNameForm } from "@/components/glade/ResidentNameForm";
@@ -20,16 +20,16 @@ function formatTamedDate(dateString: string): string {
 
 export interface ResidentDetailProps {
   resident: Resident;
-  onClose: () => void;
-  /** Target of the greet button's aria-controls. */
-  id?: string;
 }
 
-/** Detail card shown when a resident in the glade scene is greeted. */
-export function ResidentDetail({ resident, onClose, id }: ResidentDetailProps) {
+/**
+ * A resident's details, opened from its Collection entry. The modal around it
+ * carries the resident's name as its title, so this starts at what kind of
+ * creature it is.
+ */
+export function ResidentDetail({ resident }: ResidentDetailProps) {
   const { nameResident } = useGlade();
   const [renaming, setRenaming] = useState(false);
-  const headingId = useId();
 
   // Saving removes the form (and the focused Save button) from the DOM;
   // hand focus back to the Rename button so keyboard users aren't dropped.
@@ -43,21 +43,17 @@ export function ResidentDetail({ resident, onClose, id }: ResidentDetailProps) {
   }, [renaming]);
 
   const species = SPECIES[resident.speciesId];
-  const displayName = resident.name ?? species.name;
   const role = species.benefitRole;
 
   return (
-    <Card aria-labelledby={headingId} id={id}>
+    <Layout>
       <Portrait>
         <CreatureSVG size={56} speciesId={resident.speciesId} />
       </Portrait>
       <Info>
-        <Heading id={headingId}>
-          {displayName}
-          {resident.name !== undefined && (
-            <SpeciesNote> the {species.name}</SpeciesNote>
-          )}
-        </Heading>
+        {resident.name !== undefined && (
+          <SpeciesNote>The {species.name}</SpeciesNote>
+        )}
         <Meta>
           {species.rarity} · tamed {formatTamedDate(resident.tamedDate)}
         </Meta>
@@ -91,41 +87,16 @@ export function ResidentDetail({ resident, onClose, id }: ResidentDetailProps) {
           </Button>
         )}
       </Info>
-      <Button
-        aria-label="Close details"
-        onClick={onClose}
-        size="sm"
-        variant="ghost"
-      >
-        Close
-      </Button>
-    </Card>
+    </Layout>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const openIn = keyframes`
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-`;
-
-/* Keyed on the resident in GladeScene, so switching from one to another
-   replays this — the card reads as answering the creature you just greeted. */
-const Card = styled.section`
+const Layout = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  padding: 1rem;
-  border-radius: 12px;
-  background: light-dark(var(--color-grey-50), var(--color-grey-800));
-  border: 1px solid
-    light-dark(var(--color-primary-300), var(--color-primary-700));
-  animation: ${openIn} 240ms var(--ease-out) both;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
 `;
 
 const Portrait = styled.div`
@@ -144,13 +115,9 @@ const Info = styled.div`
   gap: 0.35rem;
 `;
 
-const Heading = styled.h3`
+const SpeciesNote = styled.p`
   margin: 0;
-  font-size: 1.15rem;
-`;
-
-const SpeciesNote = styled.span`
-  font-weight: 400;
+  font-weight: 600;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 

@@ -6,13 +6,10 @@ import {
   type CSSProperties,
   useCallback,
   useEffect,
-  useId,
   useRef,
   useState,
 } from "react";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
-import { ResidentDetail } from "@/components/glade/ResidentDetail";
-import { RoleBadge } from "@/components/glade/RoleBadge";
 import { ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { SpeciesId } from "@/lib/glade/schema";
@@ -94,11 +91,9 @@ const MOTES = [
 
 export function GladeScene() {
   const { state, celebration, gladeSceneRef } = useGlade();
-  // Which resident's detail card is open, and which one is playing its
-  // greet animation (cleared when the animation finishes).
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Which resident is playing its greet animation (cleared when the animation
+  // finishes).
   const [greetingId, setGreetingId] = useState<string | null>(null);
-  const detailId = useId();
 
   /*
    * The resident the tame flight is still carrying, and the one it has just
@@ -129,28 +124,22 @@ export function GladeScene() {
         : current,
     );
 
-  const selected = state.residents.find((r) => r.id === selectedId) ?? null;
-
-  const toggleResident = (residentId: string) => {
-    const opening = selectedId !== residentId;
-    setSelectedId(opening ? residentId : null);
-    setGreetingId(opening ? residentId : null);
+  const greetResident = (residentId: string) => {
+    setGreetingId(residentId);
     // Both animations live on the same element and landing is authored last,
     // so greeting a resident mid-settle would otherwise do nothing visible.
     clearLanding(residentId);
   };
   /*
    * Who is standing still right now. A resident under the pointer or keyboard
-   * focus holds its ground so it can be pressed; the one whose card is open,
-   * or that is mid-greet, stays beside what you are reading about it; and the
-   * one arriving from a tame stays on the spot the flight is aiming at.
+   * focus holds its ground so it can be pressed; one mid-greet finishes its
+   * bounce where it stands; and the one arriving from a tame stays on the spot the flight is aiming at.
    */
   const [pointedId, setPointedId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const heldIds = [
     pointedId,
     focusedId,
-    selectedId,
     greetingId,
     enteringId,
     landingId,
@@ -180,229 +169,200 @@ export function GladeScene() {
   }, [syncEdges]);
 
   return (
-    <>
-      <Frame aria-label="Glade ecosystem" role="region">
-        <View
-          aria-label="Glade, scrolls sideways"
-          onScroll={syncEdges}
-          ref={viewRef}
-          role="group"
-          // Scrollable with the arrow keys even before there are residents to
-          // tab to.
-          tabIndex={0}
-        >
-          <World ref={gladeSceneRef}>
-            <BackgroundSVG
-              aria-hidden="true"
-              preserveAspectRatio="none"
-              viewBox="0 0 240 60"
-            >
-              {/* Sky */}
-              <rect fill="var(--glade-sky)" height="60" width="240" />
-              {/* Clouds, crossing the whole sky over a few minutes */}
-              <Clouds>
-                <g>
-                  <ellipse cx="10" cy="8" rx="7" ry="2.2" />
-                  <ellipse cx="14" cy="7" rx="5" ry="1.8" />
-                  <ellipse cx="6.5" cy="7.4" rx="4" ry="1.5" />
-                </g>
-                <g>
-                  <ellipse cx="10" cy="16" rx="5.5" ry="1.8" />
-                  <ellipse cx="13.5" cy="15.2" rx="4" ry="1.4" />
-                </g>
-                <g>
-                  <ellipse cx="10" cy="11" rx="6" ry="2" />
-                  <ellipse cx="6" cy="10.4" rx="4" ry="1.5" />
-                </g>
-              </Clouds>
-              {/* Distant treeline */}
-              <path
-                d="M0 28 Q8 14 16 26 Q24 14 32 24 Q40 18 48 26 Q56 12 64 26 Q72 12 80 24 Q88 16 96 26 Q104 14 112 22 Q120 18 128 26 Q136 18 144 24 Q152 14 160 22 Q168 14 176 26 Q184 18 192 26 Q200 12 208 26 Q216 12 224 22 Q232 12 240 24 L240 60 L0 60 Z"
-                fill="var(--glade-treeline)"
+    <Frame aria-label="Glade ecosystem" role="region">
+      <View
+        aria-label="Glade, scrolls sideways"
+        onScroll={syncEdges}
+        ref={viewRef}
+        role="group"
+        // Scrollable with the arrow keys even before there are residents to
+        // tab to.
+        tabIndex={0}
+      >
+        <World ref={gladeSceneRef}>
+          <BackgroundSVG
+            aria-hidden="true"
+            preserveAspectRatio="none"
+            viewBox="0 0 240 60"
+          >
+            {/* Sky */}
+            <rect fill="var(--glade-sky)" height="60" width="240" />
+            {/* Clouds, crossing the whole sky over a few minutes */}
+            <Clouds>
+              <g>
+                <ellipse cx="10" cy="8" rx="7" ry="2.2" />
+                <ellipse cx="14" cy="7" rx="5" ry="1.8" />
+                <ellipse cx="6.5" cy="7.4" rx="4" ry="1.5" />
+              </g>
+              <g>
+                <ellipse cx="10" cy="16" rx="5.5" ry="1.8" />
+                <ellipse cx="13.5" cy="15.2" rx="4" ry="1.4" />
+              </g>
+              <g>
+                <ellipse cx="10" cy="11" rx="6" ry="2" />
+                <ellipse cx="6" cy="10.4" rx="4" ry="1.5" />
+              </g>
+            </Clouds>
+            {/* Distant treeline */}
+            <path
+              d="M0 28 Q8 14 16 26 Q24 14 32 24 Q40 18 48 26 Q56 12 64 26 Q72 12 80 24 Q88 16 96 26 Q104 14 112 22 Q120 18 128 26 Q136 18 144 24 Q152 14 160 22 Q168 14 176 26 Q184 18 192 26 Q200 12 208 26 Q216 12 224 22 Q232 12 240 24 L240 60 L0 60 Z"
+              fill="var(--glade-treeline)"
+            />
+            {/* Meadow */}
+            <path
+              d="M0 34 Q60 26 120 34 Q180 42 240 32 L240 60 L0 60 Z"
+              fill="var(--glade-meadow-far)"
+            />
+            <path
+              d="M0 44 Q60 36 120 44 Q180 50 240 42 L240 60 L0 60 Z"
+              fill="var(--glade-meadow-near)"
+            />
+            {/* Pond */}
+            <ellipse
+              cx="190"
+              cy="52"
+              fill="var(--glade-pond)"
+              rx="16"
+              ry="4.5"
+            />
+            <PondShine
+              cx="190"
+              cy="51.4"
+              fill="var(--glade-pond-shine)"
+              rx="12"
+              ry="3"
+            />
+            {/* Flowers */}
+            <Blooms>
+              <circle cx="12" cy="50" fill="var(--glade-bloom-pink)" r="1" />
+              <circle cx="28" cy="55" fill="var(--glade-bloom-gold)" r="1" />
+              <circle cx="46" cy="52" fill="var(--glade-bloom-pink)" r="1" />
+              <circle cx="70" cy="56" fill="var(--glade-bloom-gold)" r="1" />
+              <circle cx="88" cy="49" fill="var(--glade-bloom-white)" r="0.8" />
+              <circle cx="110" cy="54" fill="var(--glade-bloom-pink)" r="1" />
+              <circle cx="132" cy="51" fill="var(--glade-bloom-gold)" r="1" />
+              <circle
+                cx="150"
+                cy="56"
+                fill="var(--glade-bloom-white)"
+                r="0.8"
               />
-              {/* Meadow */}
-              <path
-                d="M0 34 Q60 26 120 34 Q180 42 240 32 L240 60 L0 60 Z"
-                fill="var(--glade-meadow-far)"
-              />
-              <path
-                d="M0 44 Q60 36 120 44 Q180 50 240 42 L240 60 L0 60 Z"
-                fill="var(--glade-meadow-near)"
-              />
-              {/* Pond */}
-              <ellipse
-                cx="190"
-                cy="52"
-                fill="var(--glade-pond)"
-                rx="16"
-                ry="4.5"
-              />
-              <PondShine
-                cx="190"
-                cy="51.4"
-                fill="var(--glade-pond-shine)"
-                rx="12"
-                ry="3"
-              />
-              {/* Flowers */}
-              <Blooms>
-                <circle cx="12" cy="50" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="28" cy="55" fill="var(--glade-bloom-gold)" r="1" />
-                <circle cx="46" cy="52" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="70" cy="56" fill="var(--glade-bloom-gold)" r="1" />
-                <circle
-                  cx="88"
-                  cy="49"
-                  fill="var(--glade-bloom-white)"
-                  r="0.8"
-                />
-                <circle cx="110" cy="54" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="132" cy="51" fill="var(--glade-bloom-gold)" r="1" />
-                <circle
-                  cx="150"
-                  cy="56"
-                  fill="var(--glade-bloom-white)"
-                  r="0.8"
-                />
-                <circle cx="166" cy="50" fill="var(--glade-bloom-pink)" r="1" />
-                <circle cx="222" cy="55" fill="var(--glade-bloom-gold)" r="1" />
-              </Blooms>
-            </BackgroundSVG>
+              <circle cx="166" cy="50" fill="var(--glade-bloom-pink)" r="1" />
+              <circle cx="222" cy="55" fill="var(--glade-bloom-gold)" r="1" />
+            </Blooms>
+          </BackgroundSVG>
 
-            {/* Ahead of the residents in the DOM, so nothing drifts over a face. */}
-            <Motes aria-hidden="true">
-              {MOTES.map((mote) => (
-                <Mote
-                  key={`${mote.left}-${mote.top}`}
-                  style={
-                    {
-                      left: `${mote.left}%`,
-                      top: `${mote.top}%`,
-                      "--mote-x": `${mote.drift}px`,
-                      "--mote-duration": `${mote.duration}s`,
-                      "--mote-delay": `${mote.delay}s`,
-                    } as CSSProperties
+          {/* Ahead of the residents in the DOM, so nothing drifts over a face. */}
+          <Motes aria-hidden="true">
+            {MOTES.map((mote) => (
+              <Mote
+                key={`${mote.left}-${mote.top}`}
+                style={
+                  {
+                    left: `${mote.left}%`,
+                    top: `${mote.top}%`,
+                    "--mote-x": `${mote.drift}px`,
+                    "--mote-duration": `${mote.duration}s`,
+                    "--mote-delay": `${mote.delay}s`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </Motes>
+
+          {state.residents.map((resident) => {
+            const species = SPECIES[resident.speciesId];
+            const displayName = resident.name ?? species.name;
+            return (
+              <ResidentSpot
+                data-walking="false"
+                key={resident.id}
+                ref={spotRef(resident.id)}
+                // Home until the wander loop takes over; it writes this
+                // transform directly from then on.
+                style={{
+                  transform: `translate(${resident.position.x}%, ${resident.position.y}%)`,
+                }}
+              >
+                <ResidentAnchor
+                  data-entering={
+                    enteringId === resident.id ? "true" : undefined
                   }
-                />
-              ))}
-            </Motes>
-
-            {state.residents.map((resident) => {
-              const species = SPECIES[resident.speciesId];
-              const displayName = resident.name ?? species.name;
-              return (
-                <ResidentSpot
-                  data-walking="false"
-                  key={resident.id}
-                  ref={spotRef(resident.id)}
-                  // Home until the wander loop takes over; it writes this
-                  // transform directly from then on.
-                  style={{
-                    transform: `translate(${resident.position.x}%, ${resident.position.y}%)`,
-                  }}
                 >
-                  <ResidentAnchor
-                    data-entering={
-                      enteringId === resident.id ? "true" : undefined
+                  <ResidentButton
+                    // Nothing is written on the creature itself, so its name
+                    // and role are carried here.
+                    aria-label={`${displayName} — ${ROLE_LABELS[species.benefitRole]}`}
+                    onBlur={() =>
+                      setFocusedId((id) => (id === resident.id ? null : id))
                     }
+                    onClick={() => greetResident(resident.id)}
+                    onFocus={() => setFocusedId(resident.id)}
+                    onPointerEnter={() => setPointedId(resident.id)}
+                    onPointerLeave={() =>
+                      setPointedId((id) => (id === resident.id ? null : id))
+                    }
+                    type="button"
                   >
-                    <ResidentButton
-                      // Only referenced while open so the id always resolves.
-                      aria-controls={
-                        selectedId === resident.id ? detailId : undefined
+                    <GreetWrapper
+                      data-greeting={
+                        greetingId === resident.id ? "true" : undefined
                       }
-                      aria-expanded={selectedId === resident.id}
-                      // The badge is decorative, so the role rides along in the
-                      // accessible name (starting with the visible pill text).
-                      aria-label={`${displayName} — ${ROLE_LABELS[species.benefitRole]}`}
-                      onBlur={() =>
-                        setFocusedId((id) => (id === resident.id ? null : id))
+                      data-landing={
+                        landingId === resident.id ? "true" : undefined
                       }
-                      onClick={() => toggleResident(resident.id)}
-                      onFocus={() => setFocusedId(resident.id)}
-                      onPointerEnter={() => setPointedId(resident.id)}
-                      onPointerLeave={() =>
-                        setPointedId((id) => (id === resident.id ? null : id))
-                      }
-                      type="button"
+                      onAnimationEnd={(e) => {
+                        // The idle loop's animationend (and any future child
+                        // animation) bubbles up here; only the greet bounce
+                        // and landing settle on this element should clear
+                        // state.
+                        if (e.target !== e.currentTarget) return;
+                        setGreetingId((id) => (id === resident.id ? null : id));
+                        clearLanding(resident.id);
+                      }}
                     >
-                      <GreetWrapper
-                        data-greeting={
-                          greetingId === resident.id ? "true" : undefined
-                        }
-                        data-landing={
-                          landingId === resident.id ? "true" : undefined
-                        }
-                        onAnimationEnd={(e) => {
-                          // The idle loop's animationend (and any future child
-                          // animation) bubbles up here; only the greet bounce
-                          // and landing settle on this element should clear
-                          // state.
-                          if (e.target !== e.currentTarget) return;
-                          setGreetingId((id) =>
-                            id === resident.id ? null : id,
-                          );
-                          clearLanding(resident.id);
-                        }}
-                      >
-                        <Facing>
-                          <IdleWrapper
-                            data-motion={
-                              IDLE_MOTIONS[resident.speciesId].motion
-                            }
-                            style={idleStyle(
-                              resident.speciesId,
-                              resident.position.x,
-                            )}
-                          >
-                            <CreatureSVG
-                              size={52}
-                              speciesId={resident.speciesId}
-                            />
-                          </IdleWrapper>
-                        </Facing>
-                      </GreetWrapper>
-                      <BadgeSlot>
-                        <RoleBadge role={species.benefitRole} />
-                      </BadgeSlot>
-                      <ResidentName>{displayName}</ResidentName>
-                    </ResidentButton>
-                  </ResidentAnchor>
-                </ResidentSpot>
-              );
-            })}
-          </World>
-        </View>
+                      <Facing>
+                        <IdleWrapper
+                          data-motion={IDLE_MOTIONS[resident.speciesId].motion}
+                          style={idleStyle(
+                            resident.speciesId,
+                            resident.position.x,
+                          )}
+                        >
+                          <CreatureSVG
+                            size={52}
+                            speciesId={resident.speciesId}
+                          />
+                        </IdleWrapper>
+                      </Facing>
+                    </GreetWrapper>
+                  </ResidentButton>
+                </ResidentAnchor>
+              </ResidentSpot>
+            );
+          })}
+        </World>
+      </View>
 
-        {/* Decoration for a scroll you perform on the glade itself, so these
+      {/* Decoration for a scroll you perform on the glade itself, so these
             stay out of the tab order and out of the pointer's way. */}
-        {more.west && (
-          <WestEdge aria-hidden>
-            <ChevronLeft size={22} />
-          </WestEdge>
-        )}
-        {more.east && (
-          <EastEdge aria-hidden>
-            <ChevronRight size={22} />
-          </EastEdge>
-        )}
-
-        {state.residents.length === 0 && (
-          <EmptyMessage>
-            The glade is quiet… tame your first visitor to start the ecosystem.
-          </EmptyMessage>
-        )}
-      </Frame>
-
-      {selected !== null && (
-        <ResidentDetail
-          id={detailId}
-          key={selected.id}
-          onClose={() => setSelectedId(null)}
-          resident={selected}
-        />
+      {more.west && (
+        <WestEdge aria-hidden>
+          <ChevronLeft size={22} />
+        </WestEdge>
       )}
-    </>
+      {more.east && (
+        <EastEdge aria-hidden>
+          <ChevronRight size={22} />
+        </EastEdge>
+      )}
+
+      {state.residents.length === 0 && (
+        <EmptyMessage>
+          The glade is quiet… tame your first visitor to start the ecosystem.
+        </EmptyMessage>
+      )}
+    </Frame>
   );
 }
 
@@ -934,24 +894,4 @@ const IdleWrapper = styled.div`
       animation: none;
     }
   }
-`;
-
-const BadgeSlot = styled.span`
-  position: absolute;
-  top: -4px;
-  right: -6px;
-`;
-
-const ResidentName = styled.span`
-  font-size: 0.75rem;
-  font-weight: 600;
-  /* A light pill with dark text on the daytime scene; a dark pill with light
-     text on the dusk scene, so the label stays legible in both. */
-  color: light-dark(var(--color-grey-800), var(--color-grey-50));
-  background: light-dark(
-    color-mix(in oklch, white 70%, transparent),
-    color-mix(in oklch, black 55%, transparent)
-  );
-  padding: 0 0.4rem;
-  border-radius: 8px;
 `;
