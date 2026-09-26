@@ -3,10 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type GladeContextType, useGlade } from "@/lib/glade/context";
 import type { Resident } from "@/lib/glade/schema";
+import { playCreatureSound } from "@/lib/glade/sounds";
 import { makeGladeContext, makeGladeState } from "@/lib/glade/testFixtures";
 import { GladeScene } from "./GladeScene";
 
 vi.mock("@/lib/glade/context");
+vi.mock("@/lib/glade/sounds", () => ({ playCreatureSound: vi.fn() }));
 vi.mock("@/components/glade/CreatureSVG", () => ({
   CreatureSVG: () => null,
 }));
@@ -118,7 +120,7 @@ describe("GladeScene", () => {
     expect(region).not.toHaveTextContent("Forager");
   });
 
-  it("greeting a resident bounces it without opening anything", async () => {
+  it("greeting a resident plays its call and bounces it, opening nothing", async () => {
     const user = userEvent.setup();
     render(<GladeScene />);
 
@@ -127,6 +129,7 @@ describe("GladeScene", () => {
     });
     await user.click(rabbitButton);
 
+    expect(playCreatureSound).toHaveBeenCalledWith("rabbit");
     expect(rabbitButton).not.toHaveAttribute("aria-expanded");
     const greet = rabbitButton.querySelector('[data-greeting="true"]');
     expect(greet).not.toBeNull();

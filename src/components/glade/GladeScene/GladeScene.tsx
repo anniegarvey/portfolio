@@ -13,6 +13,7 @@ import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { SpeciesId } from "@/lib/glade/schema";
+import { playCreatureSound } from "@/lib/glade/sounds";
 import { useWander } from "./useWander";
 
 // ─── Idle Motion ──────────────────────────────────────────────────────────────
@@ -124,7 +125,8 @@ export function GladeScene() {
         : current,
     );
 
-  const greetResident = (residentId: string) => {
+  const greetResident = (residentId: string, speciesId: SpeciesId) => {
+    playCreatureSound(speciesId);
     setGreetingId(residentId);
     // Both animations live on the same element and landing is authored last,
     // so greeting a resident mid-settle would otherwise do nothing visible.
@@ -296,7 +298,9 @@ export function GladeScene() {
                     onBlur={() =>
                       setFocusedId((id) => (id === resident.id ? null : id))
                     }
-                    onClick={() => greetResident(resident.id)}
+                    onClick={() =>
+                      greetResident(resident.id, resident.speciesId)
+                    }
                     onFocus={() => setFocusedId(resident.id)}
                     onPointerEnter={() => setPointedId(resident.id)}
                     onPointerLeave={() =>

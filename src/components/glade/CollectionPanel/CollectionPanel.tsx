@@ -7,6 +7,7 @@ import { ResidentDetail } from "@/components/glade/ResidentDetail";
 import { Modal } from "@/components/Modal";
 import { ALL_SPECIES_IDS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
+import { playCreatureSound } from "@/lib/glade/sounds";
 
 const ROLE_LABELS: Record<string, string> = {
   forager: "Forager",
@@ -52,7 +53,10 @@ export function CollectionPanel() {
             <EntryButton
               data-new={isNew}
               key={speciesId}
-              onClick={() => setOpenId(resident.id)}
+              onClick={() => {
+                playCreatureSound(speciesId);
+                setOpenId(resident.id);
+              }}
               type="button"
             >
               <CreatureSVG size={56} speciesId={speciesId} />
