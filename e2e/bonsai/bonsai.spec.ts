@@ -538,7 +538,7 @@ test.describe("Bonsai Garden", () => {
   // The skeleton's dimensions are hand-tuned to the loaded page, so nothing but
   // this test stops an unrelated style tweak (a tool button's padding, a tree
   // card's font size) from reintroducing the layout jump.
-  test("loading skeleton reserves the space the loaded page uses", async ({
+  test("loading skeleton reserves the space the loaded page uses @pinned-browser", async ({
     page,
     browser,
   }) => {
