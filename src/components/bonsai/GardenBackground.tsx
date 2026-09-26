@@ -6,7 +6,6 @@ import type { BackgroundId } from "@/lib/bonsai/schema";
 
 interface GardenBackgroundProps {
   backgroundId: BackgroundId;
-  tendPos?: { x: number; y: number };
 }
 
 // ── Ambience ──────────────────────────────────────────────────────────────────
@@ -78,24 +77,6 @@ const Glimmer = styled.g`
 /** Shorthand for the CSS custom properties these three read. */
 function vars(entries: Record<string, string>): React.CSSProperties {
   return entries as React.CSSProperties;
-}
-
-function getTendViewBox(tx: number, ty: number): string {
-  const cx = (tx / 100) * 400;
-  const w = 80;
-  const h = 40;
-  // With xMidYMid slice in the tend container (~470×172px at 1280px viewport),
-  // scale = 470/80 = 5.875px/unit and only ~29 of the 40 viewBox height units
-  // are visible (the rest is clipped). Simple centering on cy always maps the
-  // tree's background-y to 50% of the container, but in garden view it sits at
-  // ty% of the garden. Shift the viewBox so that cy lands at ty% of the container.
-  const visibleH = 29; // ≈ container_h / scale = 172 / 5.875
-  const y = Math.max(
-    0,
-    Math.min((ty / 100) * (200 - visibleH) + (visibleH - h) / 2, 200 - h),
-  );
-  const x = Math.max(0, Math.min(cx - w / 2, 400 - w));
-  return `${x} ${y} ${w} ${h}`;
 }
 
 // ── Garden ────────────────────────────────────────────────────────────────────
@@ -1445,13 +1426,7 @@ function AutumnForestScene() {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 
-export function GardenBackground({
-  backgroundId,
-  tendPos,
-}: GardenBackgroundProps) {
-  const viewBox = tendPos
-    ? getTendViewBox(tendPos.x, tendPos.y)
-    : "0 0 400 200";
+export function GardenBackground({ backgroundId }: GardenBackgroundProps) {
   return (
     <svg
       aria-hidden="true"
@@ -1462,7 +1437,7 @@ export function GardenBackground({
         width: "100%",
         height: "100%",
       }}
-      viewBox={viewBox}
+      viewBox="0 0 400 200"
     >
       {backgroundId === "garden" && <GardenScene />}
       {backgroundId === "zen-garden" && <ZenGardenScene />}

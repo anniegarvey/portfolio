@@ -207,6 +207,7 @@ function MiniTree({
     >
       <MiniSVGWrapper
         data-arriving={arriving || undefined}
+        data-tree-art={tree.id}
         style={
           {
             "--glow-h": glowH,
@@ -277,9 +278,11 @@ function GardenViewSkeleton({ demoMode }: { demoMode: boolean }) {
           />
         )}
       </GardenToolbar>
-      <Garden>
-        <SkeletonBox $height="100%" $radius="14px" />
-      </Garden>
+      <Stage>
+        <Garden>
+          <SkeletonBox $height="100%" $radius="0" />
+        </Garden>
+      </Stage>
     </GardenWrapper>
   );
 }
@@ -327,11 +330,17 @@ function useJustPlanted(trees: BonsaiTree[], isLoading: boolean) {
 // ─── Garden View ──────────────────────────────────────────────────────────────
 
 interface GardenViewProps {
+  /** The garden's scene box, which the page measures to line up the tend view. */
+  gardenRef: RefObject<HTMLDivElement | null>;
   onOpenTree: (tree: BonsaiTree) => void;
   onNavigateToShop: (itemId: string) => void;
 }
 
-export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
+export function GardenView({
+  gardenRef,
+  onOpenTree,
+  onNavigateToShop,
+}: GardenViewProps) {
   const {
     state,
     isLoading,
@@ -343,7 +352,7 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     demoMode,
     growthEvents,
   } = useBonsai();
-  const gardenRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const [gardenTool, setGardenTool] = useState<GardenTool>("tend");
   const justPlanted = useJustPlanted(state.trees, isLoading);
   const ownedTools = state.inventory.ownedToolIds;
@@ -375,6 +384,14 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
     },
     [placingSpeciesId, confirmPlantAt, gardenTool, state.trees, waterTree],
   );
+
+  // Open on the middle of the garden, where the scenes are composed and new
+  // trees land; on a phone the rest is a swipe either side.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (isLoading || !stage) return;
+    stage.scrollLeft = (stage.scrollWidth - stage.clientWidth) / 2;
+  }, [isLoading]);
 
   if (isLoading) return <GardenViewSkeleton demoMode={demoMode} />;
 
@@ -451,54 +468,56 @@ export function GardenView({ onOpenTree, onNavigateToShop }: GardenViewProps) {
         )}
         {demoMode && <PushedAdvanceDay />}
       </GardenToolbar>
-      <Garden
-        data-placing={isPlacing || undefined}
-        onPointerUp={
-          isPlacing || gardenTool === "hose" ? handleGardenClick : undefined
-        }
-        ref={gardenRef}
-        style={{
-          borderColor: bgConfig.borderColor,
-          cursor: isPlacing ? "crosshair" : undefined,
-        }}
-      >
-        <GardenBackground backgroundId={bgId} />
-        {state.trees.length === 0 && !isPlacing && (
-          <EmptyGarden>
-            <EmptyEmoji aria-hidden="true">🪴</EmptyEmoji>
-            <p>
-              Your garden is empty. Buy a seed from the shop to get started!
-            </p>
-          </EmptyGarden>
-        )}
+      <Stage ref={stageRef}>
+        <Garden
+          data-placing={isPlacing || undefined}
+          onPointerUp={
+            isPlacing || gardenTool === "hose" ? handleGardenClick : undefined
+          }
+          ref={gardenRef}
+          style={{
+            borderColor: bgConfig.borderColor,
+            cursor: isPlacing ? "crosshair" : undefined,
+          }}
+        >
+          <GardenBackground backgroundId={bgId} />
+          {state.trees.length === 0 && !isPlacing && (
+            <EmptyGarden>
+              <EmptyEmoji aria-hidden="true">🪴</EmptyEmoji>
+              <p>
+                Your garden is empty. Buy a seed from the shop to get started!
+              </p>
+            </EmptyGarden>
+          )}
 
-        {state.trees.map((tree) => (
-          <MiniTree
-            arriving={tree.id === justPlanted}
-            gardenRef={gardenRef}
-            gardenTool={gardenTool}
-            growth={growthEvents.find((e) => e.treeId === tree.id) ?? null}
-            isPlacing={isPlacing}
-            key={tree.id}
-            onOpen={onOpenTree}
-            onPositionChange={updateTreePosition}
-            onWater={waterTree}
-            tree={tree}
-          />
-        ))}
+          {state.trees.map((tree) => (
+            <MiniTree
+              arriving={tree.id === justPlanted}
+              gardenRef={gardenRef}
+              gardenTool={gardenTool}
+              growth={growthEvents.find((e) => e.treeId === tree.id) ?? null}
+              isPlacing={isPlacing}
+              key={tree.id}
+              onOpen={onOpenTree}
+              onPositionChange={updateTreePosition}
+              onWater={waterTree}
+              tree={tree}
+            />
+          ))}
 
-        {isPlacing && placingSpeciesId && (
-          <PlacementOverlay>
-            <PlacementHint>
-              {SPECIES_CONFIG[placingSpeciesId].emoji} Click anywhere to place
-              your {SPECIES_CONFIG[placingSpeciesId].label}
-            </PlacementHint>
-            <CancelButton onClick={cancelPlanting} type="button">
-              Cancel
-            </CancelButton>
-          </PlacementOverlay>
-        )}
-      </Garden>
+          {isPlacing && placingSpeciesId && (
+            <PlacementOverlay>
+              <PlacementHint>
+                {SPECIES_CONFIG[placingSpeciesId].emoji} Click anywhere to place
+                your {SPECIES_CONFIG[placingSpeciesId].label}
+              </PlacementHint>
+              <CancelButton onClick={cancelPlanting} type="button">
+                Cancel
+              </CancelButton>
+            </PlacementOverlay>
+          )}
+        </Garden>
+      </Stage>
     </GardenWrapper>
   );
 }
@@ -592,18 +611,38 @@ const PushedSkeletonPill = styled(SkeletonBox)`
   margin-left: auto;
 `;
 
+/**
+ * Runs edge to edge across the viewport, out of the page's reading column, and
+ * scrolls sideways when the garden is wider than the screen. `html` clips
+ * sideways overflow, so the 100vw here never adds a page scrollbar.
+ */
+const Stage = styled.div`
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+`;
+
+/*
+ * The scenes are painted at 2:1, so the garden is never narrower than that:
+ * on a phone it keeps its whole scene and scrolls, rather than being cropped
+ * to a sliver of it. Wider screens stretch it to the edges and trim a little
+ * sky and ground instead. The height grows with the screen so the extra
+ * width is room for more trees rather than a letterbox.
+ */
 const Garden = styled.div`
+  --garden-height: clamp(440px, 45vw, 640px);
   position: relative;
   width: 100%;
-  min-height: 320px;
-  height: 420px;
-  border-radius: 16px;
-  border: 2px solid transparent;
+  min-width: calc(var(--garden-height) * 2);
+  height: var(--garden-height);
+  border-block: 2px solid transparent;
   overflow: hidden;
   user-select: none;
 
   &[data-placing] {
-    border-style: dashed;
+    border-block-style: dashed;
   }
 `;
 

@@ -21,7 +21,9 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   useCallback,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -36,6 +38,12 @@ import {
   WaterSprinkles,
   type WaterSprinklesHandle,
 } from "@/components/bonsai/WaterSprinkles";
+import {
+  type BackdropBox,
+  measureTreeFrame,
+  placeBackdrop,
+  type TreeFrame,
+} from "@/lib/bonsai/backdrop";
 import { BACKGROUND_CONFIGS } from "@/lib/bonsai/backgroundConfigs";
 import { FERTILISER_EFFECTS, SHOP_CATALOG } from "@/lib/bonsai/catalog";
 import { useBonsai } from "@/lib/bonsai/context";
@@ -85,16 +93,54 @@ function onWaterKeyDown(e: KeyboardEvent, waterFn: () => void) {
   }
 }
 
+/**
+ * Lines the garden scene up behind the tend view's tree so it stands against
+ * the same patch as in the garden (see backdrop.ts). Remeasured whenever the
+ * tree's art or the view changes size: growth, pruning and turning all
+ * reshape the art. Null until measured, or with no garden to match.
+ */
+function useBackdrop(
+  gardenFrame: TreeFrame | null,
+  boxRef: RefObject<HTMLDivElement | null>,
+  artRef: RefObject<HTMLDivElement | null>,
+  tree: BonsaiTree,
+  viewAngle: number,
+) {
+  const [backdrop, setBackdrop] = useState<BackdropBox | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tree and viewAngle reshape the art's viewBox, which the observer can't see when its size holds
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const art = artRef.current;
+    if (!(gardenFrame && box && art)) {
+      setBackdrop(null);
+      return;
+    }
+    const measure = () => {
+      const tendFrame = measureTreeFrame(box, art);
+      setBackdrop(tendFrame ? placeBackdrop(gardenFrame, tendFrame) : null);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(art);
+    return () => observer.disconnect();
+  }, [gardenFrame, boxRef, artRef, tree, viewAngle]);
+  return backdrop;
+}
+
 function WaterableSVGContainer({
   tree,
   activeTool,
   viewAngle,
   zoom,
+  gardenFrame,
 }: {
   tree: BonsaiTree;
   activeTool: ActiveTool;
   viewAngle: number;
   zoom: number;
+  gardenFrame: TreeFrame | null;
 }) {
   const { waterTree, state, growthEvents } = useBonsai();
   const isWatering = activeTool === "watering-can";
@@ -125,7 +171,9 @@ function WaterableSVGContainer({
 
   const bgId = state.inventory.equippedBackgroundId ?? DEFAULT_BACKGROUND_ID;
   const bgConfig = BACKGROUND_CONFIGS[bgId];
-  const pos = tree.gardenPosition ?? { x: 50, y: 50 };
+  const zoomRef = useRef<HTMLDivElement>(null);
+  const artRef = useRef<HTMLDivElement>(null);
+  const backdrop = useBackdrop(gardenFrame, zoomRef, artRef, tree, viewAngle);
   const growth = growthEvents.find((e) => e.treeId === tree.id) ?? null;
   return (
     <SVGContainer
@@ -144,25 +192,32 @@ function WaterableSVGContainer({
       }}
       tabIndex={isWatering ? 0 : undefined}
     >
-      <ZoomWrapper style={{ transform: `scale(${zoom})` }}>
-        <GardenBackground backgroundId={bgId} tendPos={pos} />
+      <ZoomWrapper ref={zoomRef} style={{ transform: `scale(${zoom})` }}>
+        <Backdrop style={backdrop ?? undefined}>
+          <GardenBackground backgroundId={bgId} />
+        </Backdrop>
         {/* The breeze stops while the shears are out: the branch hit targets
             are a few pixels wide, and a target that drifts under the cursor
             is a tax on exactly the people this app is for. The growth surge
             and the watered lift still move them, but each is one short pass
             rather than a loop, and both need the shears and a growth in the
             same moment. */}
-        <TreeSVGLayer data-still={activeTool === "pruning-shears" || undefined}>
-          <GrowthFlourish event={growth} variant="full">
-            <TreeSVG
-              activeTool={activeTool}
-              cropTop
-              growing={growth !== null}
-              tree={tree}
-              viewAngle={viewAngle}
-            />
-          </GrowthFlourish>
-        </TreeSVGLayer>
+        {/* Measured in place of the tree's svg, which sways inside it. */}
+        <div ref={artRef}>
+          <TreeSVGLayer
+            data-still={activeTool === "pruning-shears" || undefined}
+          >
+            <GrowthFlourish event={growth} variant="full">
+              <TreeSVG
+                activeTool={activeTool}
+                cropTop
+                growing={growth !== null}
+                tree={tree}
+                viewAngle={viewAngle}
+              />
+            </GrowthFlourish>
+          </TreeSVGLayer>
+        </div>
       </ZoomWrapper>
       <WaterSprinkles ref={sprinklesRef} />
     </SVGContainer>
@@ -563,9 +618,15 @@ function ViewControlBar({
 
 export function TreeView({
   tree,
+  gardenFrame = null,
   onNavigateToShop,
 }: {
   tree: BonsaiTree;
+  /**
+   * Where this tree stands in the garden, measured as it was opened. Without
+   * one the tend view shows the whole scene.
+   */
+  gardenFrame?: TreeFrame | null;
   onNavigateToShop: (itemId: string) => void;
 }) {
   const { state } = useBonsai();
@@ -616,6 +677,7 @@ export function TreeView({
 
       <WaterableSVGContainer
         activeTool={activeTool}
+        gardenFrame={gardenFrame}
         tree={tree}
         viewAngle={viewAngle}
         zoom={zoom}
@@ -839,6 +901,13 @@ const ZoomWrapper = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+
+/* The whole garden scene, sized and shifted by useBackdrop; until then (or
+   with no garden to match) it simply fills the view. */
+const Backdrop = styled.div`
+  position: absolute;
+  inset: 0;
 `;
 
 const breeze = keyframes`
