@@ -67,6 +67,10 @@ describe("leavesPathData", () => {
   it("draws one ring per template ring per leaf", () => {
     const tpl = LEAF_TEMPLATES.lobed;
     const d = leavesPathData([leaf(), leaf({ cx: 50 })], "lobed");
+    // Each ring opens with an absolute moveto, then relative linetos.
+    for (const sub of d.split("z").filter(Boolean)) {
+      expect(sub).toMatch(/^M[-\d.]+ [-\d.]+l[^Ml]+$/);
+    }
     expect(rings(d)).toHaveLength(2 * (tpl.solids.length + tpl.holes.length));
   });
 
@@ -83,6 +87,29 @@ describe("leavesPathData", () => {
     )[0];
     expect(turned[0]).toBeCloseTo(200 - first[0], 0);
     expect(turned[1]).toBeCloseTo(300 - first[1], 0);
+  });
+
+  it.each([
+    90, 33, -140,
+  ])("puts every point where the template says, turned %i°", (angleDeg) => {
+    const l = leaf({ cx: 37.37, cy: 81.93, rx: 12, ry: 9, angleDeg });
+    const rad = (angleDeg * Math.PI) / 180;
+    const tpl = LEAF_TEMPLATES.lobed;
+    const expected = [...tpl.solids, ...tpl.holes].map((ring) =>
+      ring.map(([x, y]) => [
+        l.cx + x * l.rx * Math.cos(rad) - y * l.ry * Math.sin(rad),
+        l.cy + x * l.rx * Math.sin(rad) + y * l.ry * Math.cos(rad),
+      ]),
+    );
+    const actual = rings(leavesPathData([l], "lobed"));
+    expect(actual).toHaveLength(expected.length);
+    actual.forEach((ring, r) => {
+      expect(ring).toHaveLength(expected[r].length);
+      ring.forEach(([x, y], i) => {
+        expect(Math.abs(x - expected[r][i][0])).toBeLessThan(0.06);
+        expect(Math.abs(y - expected[r][i][1])).toBeLessThan(0.06);
+      });
+    });
   });
 
   it("writes relative coordinates that close back without drift", () => {
