@@ -1,13 +1,22 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { keyframes, styled } from "next-yak";
-import { type CSSProperties, useId, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { ResidentDetail } from "@/components/glade/ResidentDetail";
 import { RoleBadge } from "@/components/glade/RoleBadge";
 import { ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { SpeciesId } from "@/lib/glade/schema";
+import { useWander } from "./useWander";
 
 // ─── Idle Motion ──────────────────────────────────────────────────────────────
 
@@ -64,41 +73,23 @@ function idleStyle(speciesId: SpeciesId, positionX: number): CSSProperties {
 }
 
 /**
- * A slow drift on top of the idle loop, so residents settle into the glade
- * rather than standing rooted to one pixel. Everything is derived from where
- * the resident stands, so its path is stable across renders and no two
- * neighbours trace the same one. Amplitudes stay under 10px and loops run for
- * half a minute: this should read as a living scene at a glance, never as
- * something moving while you're trying to read the page.
- *
- * Unlike the idle loop this takes no phase offset. Every drift starts from
- * where the resident stands, which is the point the tame flight aims at — a
- * resident that mounted mid-flight would otherwise have drifted several pixels
- * clear of its own landing by the time the creature got there. Direction and
- * tempo vary instead, which pulls neighbours apart within a second or two.
- */
-function wanderStyle(position: { x: number; y: number }): CSSProperties {
-  const towardsRight = Math.floor(position.y) % 2 === 0 ? 1 : -1;
-  const upFirst = Math.floor(position.x) % 2 === 0 ? 1 : -1;
-  return {
-    "--wander-duration": `${(26 + (position.x % 9)).toFixed(1)}s`,
-    "--wander-x": `${(towardsRight * (5 + (position.y % 4))).toFixed(1)}px`,
-    "--wander-y": `${(upFirst * (3 + (position.x % 3))).toFixed(1)}px`,
-  } as CSSProperties;
-}
-
-/**
  * Drifting pollen by day, fireflies at dusk (same specks, recoloured). Laid
  * out by hand rather than randomised so they spread across the scene instead
  * of clumping, and so the set is identical on every render.
  */
 const MOTES = [
-  { left: 12, top: 74, drift: 14, duration: 17, delay: 0 },
-  { left: 31, top: 88, drift: -11, duration: 21, delay: -6 },
-  { left: 48, top: 66, drift: 9, duration: 15, delay: -11 },
-  { left: 64, top: 92, drift: -15, duration: 23, delay: -3 },
-  { left: 77, top: 70, drift: 12, duration: 19, delay: -14 },
-  { left: 91, top: 84, drift: -8, duration: 16, delay: -8 },
+  { left: 6, top: 74, drift: 14, duration: 17, delay: 0 },
+  { left: 15, top: 88, drift: -11, duration: 21, delay: -6 },
+  { left: 24, top: 66, drift: 9, duration: 15, delay: -11 },
+  { left: 32, top: 92, drift: -15, duration: 23, delay: -3 },
+  { left: 39, top: 70, drift: 12, duration: 19, delay: -14 },
+  { left: 46, top: 84, drift: -8, duration: 16, delay: -8 },
+  { left: 55, top: 72, drift: 10, duration: 18, delay: -4 },
+  { left: 63, top: 90, drift: -12, duration: 22, delay: -12 },
+  { left: 71, top: 68, drift: 8, duration: 16, delay: -2 },
+  { left: 79, top: 86, drift: -14, duration: 20, delay: -9 },
+  { left: 87, top: 74, drift: 11, duration: 17, delay: -15 },
+  { left: 95, top: 90, drift: -9, duration: 19, delay: -5 },
 ];
 
 export function GladeScene() {
@@ -148,148 +139,260 @@ export function GladeScene() {
     // so greeting a resident mid-settle would otherwise do nothing visible.
     clearLanding(residentId);
   };
+  /*
+   * Who is standing still right now. A resident under the pointer or keyboard
+   * focus holds its ground so it can be pressed; the one whose card is open,
+   * or that is mid-greet, stays beside what you are reading about it; and the
+   * one arriving from a tame stays on the spot the flight is aiming at.
+   */
+  const [pointedId, setPointedId] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const heldIds = [
+    pointedId,
+    focusedId,
+    selectedId,
+    greetingId,
+    enteringId,
+    landingId,
+  ].filter((id): id is string => id !== null);
+  const spotRef = useWander(state.residents, gladeSceneRef, heldIds);
+
+  /**
+   * Which way the glade still runs on past the edge of the screen, so the
+   * edges can say there is more (the same cue as the Meadowmere map).
+   */
+  const viewRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ west: false, east: false });
+  const syncEdges = useCallback(() => {
+    const view = viewRef.current;
+    if (view === null) return;
+    const furthest = view.scrollWidth - view.clientWidth;
+    const west = view.scrollLeft > 1;
+    const east = view.scrollLeft < furthest - 1;
+    setMore((prev) =>
+      prev.west === west && prev.east === east ? prev : { west, east },
+    );
+  }, []);
+  useEffect(() => {
+    syncEdges();
+    window.addEventListener("resize", syncEdges);
+    return () => window.removeEventListener("resize", syncEdges);
+  }, [syncEdges]);
 
   return (
     <>
-      <Scene aria-label="Glade ecosystem" ref={gladeSceneRef} role="region">
-        <BackgroundSVG
-          aria-hidden="true"
-          preserveAspectRatio="none"
-          viewBox="0 0 100 60"
+      <Frame aria-label="Glade ecosystem" role="region">
+        <View
+          aria-label="Glade, scrolls sideways"
+          onScroll={syncEdges}
+          ref={viewRef}
+          role="group"
+          // Scrollable with the arrow keys even before there are residents to
+          // tab to.
+          tabIndex={0}
         >
-          {/* Sky */}
-          <rect fill="var(--glade-sky)" height="60" width="100" />
-          {/* Clouds, crossing the whole sky over a minute and a half */}
-          <Clouds>
-            <g>
-              <ellipse cx="10" cy="8" rx="7" ry="2.2" />
-              <ellipse cx="14" cy="7" rx="5" ry="1.8" />
-              <ellipse cx="6.5" cy="7.4" rx="4" ry="1.5" />
-            </g>
-            <g>
-              <ellipse cx="10" cy="16" rx="5.5" ry="1.8" />
-              <ellipse cx="13.5" cy="15.2" rx="4" ry="1.4" />
-            </g>
-          </Clouds>
-          {/* Distant treeline */}
-          <path
-            d="M0 28 Q8 18 16 26 Q22 14 30 24 Q38 12 46 22 Q54 14 62 24 Q70 12 78 22 Q86 16 94 26 Q97 22 100 26 L100 60 L0 60 Z"
-            fill="var(--glade-treeline)"
-          />
-          {/* Meadow */}
-          <path
-            d="M0 34 Q50 26 100 36 L100 60 L0 60 Z"
-            fill="var(--glade-meadow-far)"
-          />
-          <path
-            d="M0 44 Q50 36 100 46 L100 60 L0 60 Z"
-            fill="var(--glade-meadow-near)"
-          />
-          {/* Pond */}
-          <ellipse cx="80" cy="52" fill="var(--glade-pond)" rx="13" ry="4.5" />
-          <PondShine
-            cx="80"
-            cy="51.4"
-            fill="var(--glade-pond-shine)"
-            rx="10"
-            ry="3"
-          />
-          {/* Flowers */}
-          <Blooms>
-            <circle cx="12" cy="50" fill="var(--glade-bloom-pink)" r="1" />
-            <circle cx="20" cy="55" fill="var(--glade-bloom-gold)" r="1" />
-            <circle cx="34" cy="52" fill="var(--glade-bloom-pink)" r="1" />
-            <circle cx="55" cy="56" fill="var(--glade-bloom-gold)" r="1" />
-            <circle cx="45" cy="49" fill="var(--glade-bloom-white)" r="0.8" />
-          </Blooms>
-        </BackgroundSVG>
+          <World ref={gladeSceneRef}>
+            <BackgroundSVG
+              aria-hidden="true"
+              preserveAspectRatio="none"
+              viewBox="0 0 240 60"
+            >
+              {/* Sky */}
+              <rect fill="var(--glade-sky)" height="60" width="240" />
+              {/* Clouds, crossing the whole sky over a few minutes */}
+              <Clouds>
+                <g>
+                  <ellipse cx="10" cy="8" rx="7" ry="2.2" />
+                  <ellipse cx="14" cy="7" rx="5" ry="1.8" />
+                  <ellipse cx="6.5" cy="7.4" rx="4" ry="1.5" />
+                </g>
+                <g>
+                  <ellipse cx="10" cy="16" rx="5.5" ry="1.8" />
+                  <ellipse cx="13.5" cy="15.2" rx="4" ry="1.4" />
+                </g>
+                <g>
+                  <ellipse cx="10" cy="11" rx="6" ry="2" />
+                  <ellipse cx="6" cy="10.4" rx="4" ry="1.5" />
+                </g>
+              </Clouds>
+              {/* Distant treeline */}
+              <path
+                d="M0 28 Q8 14 16 26 Q24 14 32 24 Q40 18 48 26 Q56 12 64 26 Q72 12 80 24 Q88 16 96 26 Q104 14 112 22 Q120 18 128 26 Q136 18 144 24 Q152 14 160 22 Q168 14 176 26 Q184 18 192 26 Q200 12 208 26 Q216 12 224 22 Q232 12 240 24 L240 60 L0 60 Z"
+                fill="var(--glade-treeline)"
+              />
+              {/* Meadow */}
+              <path
+                d="M0 34 Q60 26 120 34 Q180 42 240 32 L240 60 L0 60 Z"
+                fill="var(--glade-meadow-far)"
+              />
+              <path
+                d="M0 44 Q60 36 120 44 Q180 50 240 42 L240 60 L0 60 Z"
+                fill="var(--glade-meadow-near)"
+              />
+              {/* Pond */}
+              <ellipse
+                cx="190"
+                cy="52"
+                fill="var(--glade-pond)"
+                rx="16"
+                ry="4.5"
+              />
+              <PondShine
+                cx="190"
+                cy="51.4"
+                fill="var(--glade-pond-shine)"
+                rx="12"
+                ry="3"
+              />
+              {/* Flowers */}
+              <Blooms>
+                <circle cx="12" cy="50" fill="var(--glade-bloom-pink)" r="1" />
+                <circle cx="28" cy="55" fill="var(--glade-bloom-gold)" r="1" />
+                <circle cx="46" cy="52" fill="var(--glade-bloom-pink)" r="1" />
+                <circle cx="70" cy="56" fill="var(--glade-bloom-gold)" r="1" />
+                <circle
+                  cx="88"
+                  cy="49"
+                  fill="var(--glade-bloom-white)"
+                  r="0.8"
+                />
+                <circle cx="110" cy="54" fill="var(--glade-bloom-pink)" r="1" />
+                <circle cx="132" cy="51" fill="var(--glade-bloom-gold)" r="1" />
+                <circle
+                  cx="150"
+                  cy="56"
+                  fill="var(--glade-bloom-white)"
+                  r="0.8"
+                />
+                <circle cx="166" cy="50" fill="var(--glade-bloom-pink)" r="1" />
+                <circle cx="222" cy="55" fill="var(--glade-bloom-gold)" r="1" />
+              </Blooms>
+            </BackgroundSVG>
 
-        {/* Ahead of the residents in the DOM, so nothing drifts over a face. */}
-        <Motes aria-hidden="true">
-          {MOTES.map((mote) => (
-            <Mote
-              key={`${mote.left}-${mote.top}`}
-              style={
-                {
-                  left: `${mote.left}%`,
-                  top: `${mote.top}%`,
-                  "--mote-x": `${mote.drift}px`,
-                  "--mote-duration": `${mote.duration}s`,
-                  "--mote-delay": `${mote.delay}s`,
-                } as CSSProperties
-              }
-            />
-          ))}
-        </Motes>
+            {/* Ahead of the residents in the DOM, so nothing drifts over a face. */}
+            <Motes aria-hidden="true">
+              {MOTES.map((mote) => (
+                <Mote
+                  key={`${mote.left}-${mote.top}`}
+                  style={
+                    {
+                      left: `${mote.left}%`,
+                      top: `${mote.top}%`,
+                      "--mote-x": `${mote.drift}px`,
+                      "--mote-duration": `${mote.duration}s`,
+                      "--mote-delay": `${mote.delay}s`,
+                    } as CSSProperties
+                  }
+                />
+              ))}
+            </Motes>
 
-        {state.residents.length === 0 ? (
+            {state.residents.map((resident) => {
+              const species = SPECIES[resident.speciesId];
+              const displayName = resident.name ?? species.name;
+              return (
+                <ResidentSpot
+                  data-walking="false"
+                  key={resident.id}
+                  ref={spotRef(resident.id)}
+                  // Home until the wander loop takes over; it writes this
+                  // transform directly from then on.
+                  style={{
+                    transform: `translate(${resident.position.x}%, ${resident.position.y}%)`,
+                  }}
+                >
+                  <ResidentAnchor
+                    data-entering={
+                      enteringId === resident.id ? "true" : undefined
+                    }
+                  >
+                    <ResidentButton
+                      // Only referenced while open so the id always resolves.
+                      aria-controls={
+                        selectedId === resident.id ? detailId : undefined
+                      }
+                      aria-expanded={selectedId === resident.id}
+                      // The badge is decorative, so the role rides along in the
+                      // accessible name (starting with the visible pill text).
+                      aria-label={`${displayName} — ${ROLE_LABELS[species.benefitRole]}`}
+                      onBlur={() =>
+                        setFocusedId((id) => (id === resident.id ? null : id))
+                      }
+                      onClick={() => toggleResident(resident.id)}
+                      onFocus={() => setFocusedId(resident.id)}
+                      onPointerEnter={() => setPointedId(resident.id)}
+                      onPointerLeave={() =>
+                        setPointedId((id) => (id === resident.id ? null : id))
+                      }
+                      type="button"
+                    >
+                      <GreetWrapper
+                        data-greeting={
+                          greetingId === resident.id ? "true" : undefined
+                        }
+                        data-landing={
+                          landingId === resident.id ? "true" : undefined
+                        }
+                        onAnimationEnd={(e) => {
+                          // The idle loop's animationend (and any future child
+                          // animation) bubbles up here; only the greet bounce
+                          // and landing settle on this element should clear
+                          // state.
+                          if (e.target !== e.currentTarget) return;
+                          setGreetingId((id) =>
+                            id === resident.id ? null : id,
+                          );
+                          clearLanding(resident.id);
+                        }}
+                      >
+                        <Facing>
+                          <IdleWrapper
+                            data-motion={
+                              IDLE_MOTIONS[resident.speciesId].motion
+                            }
+                            style={idleStyle(
+                              resident.speciesId,
+                              resident.position.x,
+                            )}
+                          >
+                            <CreatureSVG
+                              size={52}
+                              speciesId={resident.speciesId}
+                            />
+                          </IdleWrapper>
+                        </Facing>
+                      </GreetWrapper>
+                      <BadgeSlot>
+                        <RoleBadge role={species.benefitRole} />
+                      </BadgeSlot>
+                      <ResidentName>{displayName}</ResidentName>
+                    </ResidentButton>
+                  </ResidentAnchor>
+                </ResidentSpot>
+              );
+            })}
+          </World>
+        </View>
+
+        {/* Decoration for a scroll you perform on the glade itself, so these
+            stay out of the tab order and out of the pointer's way. */}
+        {more.west && (
+          <WestEdge aria-hidden>
+            <ChevronLeft size={22} />
+          </WestEdge>
+        )}
+        {more.east && (
+          <EastEdge aria-hidden>
+            <ChevronRight size={22} />
+          </EastEdge>
+        )}
+
+        {state.residents.length === 0 && (
           <EmptyMessage>
             The glade is quiet… tame your first visitor to start the ecosystem.
           </EmptyMessage>
-        ) : (
-          state.residents.map((resident) => {
-            const species = SPECIES[resident.speciesId];
-            const displayName = resident.name ?? species.name;
-            return (
-              <ResidentSpot
-                data-entering={enteringId === resident.id ? "true" : undefined}
-                key={resident.id}
-                style={{
-                  left: `${resident.position.x}%`,
-                  top: `${resident.position.y}%`,
-                  ...wanderStyle(resident.position),
-                }}
-              >
-                <ResidentButton
-                  // Only referenced while open so the id always resolves.
-                  aria-controls={
-                    selectedId === resident.id ? detailId : undefined
-                  }
-                  aria-expanded={selectedId === resident.id}
-                  // The badge is decorative, so the role rides along in the
-                  // accessible name (starting with the visible pill text).
-                  aria-label={`${displayName} — ${ROLE_LABELS[species.benefitRole]}`}
-                  onClick={() => toggleResident(resident.id)}
-                  type="button"
-                >
-                  <Wanderer>
-                    <GreetWrapper
-                      data-greeting={
-                        greetingId === resident.id ? "true" : undefined
-                      }
-                      data-landing={
-                        landingId === resident.id ? "true" : undefined
-                      }
-                      onAnimationEnd={(e) => {
-                        // The idle loop's animationend (and any future child
-                        // animation) bubbles up here; only the greet bounce and
-                        // landing settle on this element should clear state.
-                        if (e.target !== e.currentTarget) return;
-                        setGreetingId((id) => (id === resident.id ? null : id));
-                        clearLanding(resident.id);
-                      }}
-                    >
-                      <IdleWrapper
-                        data-motion={IDLE_MOTIONS[resident.speciesId].motion}
-                        style={idleStyle(
-                          resident.speciesId,
-                          resident.position.x,
-                        )}
-                      >
-                        <CreatureSVG size={52} speciesId={resident.speciesId} />
-                      </IdleWrapper>
-                    </GreetWrapper>
-                    <BadgeSlot>
-                      <RoleBadge role={species.benefitRole} />
-                    </BadgeSlot>
-                    <ResidentName>{displayName}</ResidentName>
-                  </Wanderer>
-                </ResidentButton>
-              </ResidentSpot>
-            );
-          })
         )}
-      </Scene>
+      </Frame>
 
       {selected !== null && (
         <ResidentDetail
@@ -305,7 +408,7 @@ export function GladeScene() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const Scene = styled.div`
+const Frame = styled.div`
   /* Daytime palette in light mode; a calmer dusk palette in dark mode so the
      scene doesn't glow against a dark page (light-dark follows color-scheme,
      covering both the manual theme toggle and the system default). */
@@ -323,12 +426,69 @@ const Scene = styled.div`
   --glade-mote: light-dark(#ffffff, #f2d06b);
 
   position: relative;
-  width: 100%;
-  height: 280px;
-  border-radius: 16px;
-  overflow: hidden;
+  /* Out of the page's centred column to the edges of the viewport. The page
+     clips sideways overflow at the root, so the scrollbar's few pixels of
+     100vw never turn into a page-wide sideways scroll. */
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
   box-shadow: 0 2px 12px
     color-mix(in oklch, var(--color-grey-900) 15%, transparent);
+`;
+
+/** The window onto the glade, which scrolls sideways like the Vale's map. */
+const View = styled.div`
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+
+  &:focus-visible {
+    outline: 3px solid var(--color-primary-400);
+    outline-offset: -3px;
+  }
+`;
+
+/**
+ * The whole glade: wider than any screen, so there is always somewhere to
+ * wander off to. The floor keeps a phone's glade from being a cramped strip;
+ * the multiple gives a wide screen room to scroll too.
+ */
+const World = styled.div`
+  position: relative;
+  width: max(200%, 1400px);
+  height: 320px;
+  overflow: hidden;
+`;
+
+/** Where the glade runs on past the edge of the screen. */
+const Edge = styled.div`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2rem;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: light-dark(var(--color-grey-900), #fff);
+`;
+
+const WestEdge = styled(Edge)`
+  left: 0;
+  justify-content: flex-start;
+  background: linear-gradient(
+    to right,
+    light-dark(rgb(255 255 255 / 0.7), rgb(0 0 0 / 0.55)),
+    transparent
+  );
+`;
+
+const EastEdge = styled(Edge)`
+  right: 0;
+  justify-content: flex-end;
+  background: linear-gradient(
+    to left,
+    light-dark(rgb(255 255 255 / 0.7), rgb(0 0 0 / 0.55)),
+    transparent
+  );
 `;
 
 const BackgroundSVG = styled.svg`
@@ -345,10 +505,10 @@ const BackgroundSVG = styled.svg`
 // scenery holds the position it was authored at, and the drifting specks —
 // which are transparent at rest anyway — are dropped entirely.
 
-// Crosses the full 100-unit viewBox with the cloud fully clear at both ends.
+// Crosses the full 240-unit viewBox with the cloud fully clear at both ends.
 const cloudDrift = keyframes`
   from { transform: translateX(-24px); }
-  to   { transform: translateX(126px); }
+  to   { transform: translateX(266px); }
 `;
 
 const Clouds = styled.g`
@@ -361,12 +521,16 @@ const Clouds = styled.g`
     animation-iteration-count: infinite;
   }
   & > g:nth-child(1) {
-    animation-duration: 96s;
-    animation-delay: -22s;
+    animation-duration: 230s;
+    animation-delay: -50s;
   }
   & > g:nth-child(2) {
-    animation-duration: 138s;
-    animation-delay: -80s;
+    animation-duration: 330s;
+    animation-delay: -190s;
+  }
+  & > g:nth-child(3) {
+    animation-duration: 280s;
+    animation-delay: -120s;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -417,6 +581,18 @@ const Blooms = styled.g`
   }
   & > circle:nth-child(5) {
     animation-delay: -0.7s;
+  }
+  & > circle:nth-child(6) {
+    animation-delay: -4.6s;
+  }
+  & > circle:nth-child(7) {
+    animation-delay: -2s;
+  }
+  & > circle:nth-child(8) {
+    animation-delay: -3.2s;
+  }
+  & > circle:nth-child(9) {
+    animation-delay: -5.1s;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -482,9 +658,24 @@ const EmptyMessage = styled.p`
   );
 `;
 
+/**
+ * A layer the size of the whole glade, moved by the wander loop: a translate
+ * in percent of its own box is a translate in percent of the glade, so the
+ * resident's position needs no measuring and moves on the compositor alone.
+ */
 const ResidentSpot = styled.div`
   position: absolute;
+  inset: 0;
+  pointer-events: none;
+`;
+
+/** Centres the resident on the spot's top-left corner, its position. */
+const ResidentAnchor = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
   transform: translate(-50%, -50%);
+  pointer-events: auto;
 
   /*
    * Hidden while the flying creature is still carrying it. No fade on the way
@@ -524,37 +715,6 @@ const ResidentButton = styled.button`
     &:hover {
       transform: none;
     }
-  }
-`;
-
-const wander = keyframes`
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(var(--wander-x), calc(var(--wander-y) * -1)); }
-  50% { transform: translate(calc(var(--wander-x) * 0.4), var(--wander-y)); }
-  75% { transform: translate(calc(var(--wander-x) * -1), calc(var(--wander-y) * -0.5)); }
-`;
-
-/**
- * Inside the button rather than around it, so the resident drifts but the
- * thing you are aiming at does not. A target that walks away from the cursor
- * is a tax on exactly the people this app is for, and a button whose own box
- * never moves is one that can be aimed at. The drifted creature stays
- * clickable because hit testing follows a transform, so the live target is
- * the button's box together with wherever the creature currently is; only the
- * focus ring, drawn on the untransformed box, can sit up to 9px off centre.
- */
-const Wanderer = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  animation-name: ${wander};
-  animation-duration: var(--wander-duration);
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 `;
 
@@ -640,6 +800,59 @@ const idleTwitch = keyframes`
   78% { transform: translateX(2px) rotate(2deg); }
 `;
 
+/** Turns the creature (not its name tag) to face the way it is heading. */
+const Facing = styled.div`
+  transform: scaleX(var(--facing, 1));
+  transition: transform 240ms var(--ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+// Walking gaits, swapped in for the idle loop while a resident is on the move.
+// Quicker than the idle loops, since each one is a step rather than a breath.
+const gaitHop = keyframes`
+  0%, 100% { transform: translateY(0) scale(1.04, 0.96); }
+  45%      { transform: translateY(-10px) scale(0.97, 1.04); }
+`;
+
+const gaitScurry = keyframes`
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50%      { transform: translateY(-2px) rotate(1.5deg); }
+`;
+
+const gaitWaddle = keyframes`
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(6deg); }
+`;
+
+const gaitProwl = keyframes`
+  0%, 100% { transform: translateY(1px) scaleY(0.97); }
+  50%      { transform: translateY(-1px) scaleY(1); }
+`;
+
+const gaitAmble = keyframes`
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  25%, 75% { transform: translateY(-3px) rotate(0deg); }
+  50%      { transform: translateY(0) rotate(2deg); }
+`;
+
+const gaitFlutter = keyframes`
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-6px) rotate(3deg); }
+`;
+
+const gaitDrift = keyframes`
+  0%, 100% { opacity: 1; transform: translateY(0) rotate(-4deg); }
+  50%      { opacity: 0.8; transform: translateY(-5px) rotate(4deg); }
+`;
+
+const gaitGlide = keyframes`
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-3px) scale(1.04, 0.98); }
+`;
+
 const IdleWrapper = styled.div`
   /* Ground-level pivot so sways and waddles rock on the feet, not the middle. */
   transform-origin: 50% 90%;
@@ -673,11 +886,51 @@ const IdleWrapper = styled.div`
     animation-name: ${idleTwitch};
   }
 
+  /* One gait per idle archetype, so a creature walks the way it stands. */
+  [data-walking="true"] & {
+    animation-delay: 0s;
+    animation-timing-function: ease-in-out;
+  }
+  [data-walking="true"] &[data-motion="hop"] {
+    animation-name: ${gaitHop};
+    animation-duration: 0.42s;
+  }
+  [data-walking="true"] &[data-motion="twitch"] {
+    animation-name: ${gaitScurry};
+    animation-duration: 0.2s;
+  }
+  [data-walking="true"] &[data-motion="waddle"] {
+    animation-name: ${gaitWaddle};
+    animation-duration: 0.6s;
+  }
+  [data-walking="true"] &[data-motion="prowl"] {
+    animation-name: ${gaitProwl};
+    animation-duration: 0.7s;
+  }
+  [data-walking="true"] &[data-motion="sway"] {
+    animation-name: ${gaitAmble};
+    animation-duration: 1s;
+  }
+  [data-walking="true"] &[data-motion="bob"] {
+    animation-name: ${gaitFlutter};
+    animation-duration: 0.36s;
+  }
+  [data-walking="true"] &[data-motion="shimmer"] {
+    animation-name: ${gaitDrift};
+    animation-duration: 1.8s;
+  }
+  [data-walking="true"] &[data-motion="breathe"] {
+    animation-name: ${gaitGlide};
+    animation-duration: 1.2s;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     /* Matched on the attribute, not the bare element: a media query adds no
        specificity, so a plain rule here loses to every [data-motion="…"]
-       above it and the idle loops keep running. */
-    &[data-motion] {
+       above it and the idle loops keep running. The walking rules outrank
+       even that, so they are named too, although nothing walks here. */
+    &[data-motion],
+    [data-walking] &[data-motion] {
       animation: none;
     }
   }

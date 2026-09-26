@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type GladeContextType, useGlade } from "@/lib/glade/context";
 import type { Resident } from "@/lib/glade/schema";
 import { makeGladeContext, makeGladeState } from "@/lib/glade/testFixtures";
@@ -35,9 +35,59 @@ function mockGlade(overrides: Partial<GladeContextType> = {}) {
   );
 }
 
+/** jsdom has no matchMedia; the scene only asks it about reduced motion. */
+function setReducedMotion(reduce: boolean) {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: reduce,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+}
+
+/**
+ * Hands the wander loop's frames to the test, and gives the glade a size (jsdom
+ * lays nothing out, and the loop waits for a size before moving anyone).
+ */
+function driveFrames() {
+  let pending: FrameRequestCallback[] = [];
+  let now = 0;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    pending.push(callback);
+    return pending.length;
+  });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(2000);
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(320);
+  return (count: number) =>
+    act(() => {
+      for (let i = 0; i < count; i++) {
+        const due = pending;
+        pending = [];
+        for (const callback of due) callback(now);
+        now += 100;
+      }
+    });
+}
+
+/** The layer the wander loop moves, for the resident behind this button. */
+function spotOf(button: HTMLElement) {
+  // biome-ignore lint/style/noNonNullAssertion: every resident has a spot
+  return button.closest<HTMLElement>("[data-walking]")!;
+}
+
+function xOf(spot: HTMLElement) {
+  return Number(/translate\(([\d.]+)%/.exec(spot.style.transform)?.[1]);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  setReducedMotion(false);
   mockGlade();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("GladeScene", () => {
@@ -222,5 +272,82 @@ describe("GladeScene", () => {
     });
     expect(rabbitButton.querySelector('[data-landing="true"]')).not.toBeNull();
     expect(foxButton.querySelector('[data-greeting="true"]')).toBeNull();
+  });
+
+  describe("wandering", () => {
+    it("starts each resident at its home spot", () => {
+      render(<GladeScene />);
+      const rabbitSpot = spotOf(
+        screen.getByRole("button", { name: "Rabbit — Forager" }),
+      );
+      expect(rabbitSpot.style.transform).toBe("translate(20%, 40%)");
+      expect(rabbitSpot).toHaveAttribute("data-walking", "false");
+    });
+
+    it("walks residents off after a rest, in their walking gait", () => {
+      // Every draw at 0: no rest to begin with, then the shortest rest, then
+      // an outing heading straight right.
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const runFrames = driveFrames();
+      render(<GladeScene />);
+      const rabbitSpot = spotOf(
+        screen.getByRole("button", { name: "Rabbit — Forager" }),
+      );
+
+      // The rabbit's shortest rest is 3s; frames here are 100ms apart.
+      runFrames(40);
+
+      expect(xOf(rabbitSpot)).toBeGreaterThan(20);
+      expect(rabbitSpot).toHaveAttribute("data-walking", "true");
+      expect(rabbitSpot.style.getPropertyValue("--facing")).toBe("1");
+    });
+
+    it("keeps a resident still while it is pointed at", () => {
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const runFrames = driveFrames();
+      render(<GladeScene />);
+      const foxButton = screen.getByRole("button", { name: "Rusty — Beacon" });
+
+      fireEvent.pointerEnter(foxButton);
+      runFrames(80);
+
+      expect(xOf(spotOf(foxButton))).toBe(60);
+      expect(spotOf(foxButton)).toHaveAttribute("data-walking", "false");
+
+      // Once the pointer leaves it goes on its way.
+      fireEvent.pointerLeave(foxButton);
+      runFrames(80);
+      expect(xOf(spotOf(foxButton))).toBeGreaterThan(60);
+    });
+
+    it("keeps a focused resident still", () => {
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const runFrames = driveFrames();
+      render(<GladeScene />);
+      const foxButton = screen.getByRole("button", { name: "Rusty — Beacon" });
+
+      act(() => foxButton.focus());
+      runFrames(80);
+      expect(xOf(spotOf(foxButton))).toBe(60);
+
+      act(() => foxButton.blur());
+      runFrames(80);
+      expect(xOf(spotOf(foxButton))).toBeGreaterThan(60);
+    });
+
+    it("keeps everyone at home under reduced motion", () => {
+      setReducedMotion(true);
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const runFrames = driveFrames();
+      render(<GladeScene />);
+
+      runFrames(80);
+
+      const rabbitSpot = spotOf(
+        screen.getByRole("button", { name: "Rabbit — Forager" }),
+      );
+      expect(rabbitSpot.style.transform).toBe("translate(20%, 40%)");
+      expect(rabbitSpot).toHaveAttribute("data-walking", "false");
+    });
   });
 });

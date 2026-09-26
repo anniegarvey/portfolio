@@ -91,7 +91,11 @@ export interface GladeContextType {
   clearTamedVisitor: () => void;
   /** Gives a resident a personal name. Trimmed; empty names are ignored. */
   nameResident: (residentId: string, name: string) => void;
-  /** Ref for the GladeScene container — used to calculate resident pixel positions. */
+  /**
+   * Ref for the whole glade inside GladeScene (wider than the screen; its
+   * parent is the view that scrolls it) — used to calculate resident pixel
+   * positions.
+   */
   gladeSceneRef: RefObject<HTMLDivElement | null>;
   offerTreat: (visitorId: string, treatId: TreatId, fromRect?: DOMRect) => void;
   approachVisitor: (
@@ -203,7 +207,18 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       const newResident =
         result.state.residents[result.state.residents.length - 1];
       if (!newResident) return;
-      const gladeRect = gladeSceneRef.current?.getBoundingClientRect();
+      const world = gladeSceneRef.current;
+      // The glade is wider than the screen and scrolls sideways inside its
+      // parent, so bring the landing spot to the middle of that view before
+      // measuring it; otherwise the creature could fly off to somewhere out
+      // of sight.
+      const view = world?.parentElement;
+      if (world && view) {
+        view.scrollLeft =
+          (newResident.position.x / 100) * world.offsetWidth -
+          view.clientWidth / 2;
+      }
+      const gladeRect = world?.getBoundingClientRect();
       const toX = gladeRect
         ? gladeRect.left + (newResident.position.x / 100) * gladeRect.width
         : window.innerWidth / 2;
