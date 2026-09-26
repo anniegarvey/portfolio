@@ -43,27 +43,35 @@ export function MeadowmerePage() {
   }, []);
 
   return (
-    <MaxWidthWrapper as="main">
-      <PageHeader>
-        <PageTitle>Meadowmere</PageTitle>
-      </PageHeader>
+    <Main>
+      <Column>
+        <PageHeader>
+          <PageTitle>Meadowmere</PageTitle>
+        </PageHeader>
 
-      <Layout>
-        <IntroRow>
-          <Intro>
-            A smallholding at the edge of the valley. Walk the Vale, grow what
-            you can, forage what you can&rsquo;t, and get to know the
-            neighbours.
-          </Intro>
-          <HelpTrigger onClick={() => setInstructionsOpen(true)} type="button">
-            <HelpCircle aria-hidden size={14} />
-            How to play
-          </HelpTrigger>
-        </IntroRow>
+        <Layout>
+          <IntroRow>
+            <Intro>
+              A smallholding at the edge of the valley. Walk the Vale, grow what
+              you can, forage what you can&rsquo;t, and get to know the
+              neighbours.
+            </Intro>
+            <HelpTrigger
+              onClick={() => setInstructionsOpen(true)}
+              type="button"
+            >
+              <HelpCircle aria-hidden size={14} />
+              How to play
+            </HelpTrigger>
+          </IntroRow>
 
-        <DailyDigest />
-        <ValeWorld instructionsId={instructionsId} />
-      </Layout>
+          <DailyDigest />
+        </Layout>
+      </Column>
+
+      {/* Outside the wrapper, so the map can use the whole width of the
+          window; ValeWorld keeps its own controls to the page's column. */}
+      <ValeWorld instructionsId={instructionsId} />
 
       <Modal
         description={HOW_TO_PLAY_TEXT}
@@ -79,17 +87,31 @@ export function MeadowmerePage() {
           </Button>
         </ModalActions>
       </Modal>
-    </MaxWidthWrapper>
+    </Main>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const Layout = styled.div`
+/**
+ * The page's text column. Stretched explicitly: it centres itself with auto
+ * margins, which in a flex column would otherwise shrink it to its content.
+ */
+const Column = styled(MaxWidthWrapper)`
+  width: 100%;
+`;
+
+const Main = styled.main`
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   padding-bottom: 3rem;
+`;
+
+const Layout = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 `;
 
 const IntroRow = styled.div`
