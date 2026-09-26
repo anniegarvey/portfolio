@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { Modal } from "@/components/Modal";
 import { DailyDigest } from "@/components/meadowmere/DailyDigest";
+import { ResetMeadowmere } from "@/components/meadowmere/ResetMeadowmere";
 import { HOW_TO_PLAY_TEXT, ValeWorld } from "@/components/meadowmere/ValeWorld";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import {
@@ -72,6 +73,10 @@ export function MeadowmerePage() {
       {/* Outside the wrapper, so the map can use the whole width of the
           window; ValeWorld keeps its own controls to the page's column. */}
       <ValeWorld instructionsId={instructionsId} />
+
+      <Column>
+        <ResetMeadowmere />
+      </Column>
 
       <Modal
         description={HOW_TO_PLAY_TEXT}

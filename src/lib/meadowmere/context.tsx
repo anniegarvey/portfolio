@@ -69,6 +69,8 @@ export interface MeadowmereContextType {
   claimQuest: (questId: QuestId) => void;
   /** Hands in today's errand, if it is ready. */
   claimErrand: () => void;
+  /** Wipes all progress back to a brand-new smallholding. Points are kept. */
+  resetMeadowmere: () => void;
 }
 
 const MeadowmereContext = createContext<MeadowmereContextType | undefined>(
@@ -203,6 +205,15 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     setState(() => next);
   }, [state, setState]);
 
+  // Clears in-flight notices and the report too, so nothing from the discarded
+  // save outlives it. Points are untouched: they're a currency shared across
+  // the site, not Meadowmere progress.
+  const handleResetMeadowmere = useCallback(() => {
+    setNotice(null);
+    setDailyReport(null);
+    setState(() => createInitialState());
+  }, [setState]);
+
   return (
     <MeadowmereContext.Provider
       value={{
@@ -219,6 +230,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         giveGift: handleGiveGift,
         claimQuest: handleClaimQuest,
         claimErrand: handleClaimErrand,
+        resetMeadowmere: handleResetMeadowmere,
       }}
     >
       {children}
