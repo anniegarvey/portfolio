@@ -170,7 +170,7 @@ describe("claimQuest", () => {
 
     expect(next?.seeds.cornflower).toBe(3);
     expect(next?.unlockedCropIds).toContain("cornflower");
-    expect(next?.neighbours.nessa?.friendship).toBe(10);
+    expect(next?.neighbours.nessa?.friendship).toBe(5);
   });
 
   it("unlocks a wild site", () => {
@@ -374,6 +374,22 @@ describe("the quest chain", () => {
           true,
         );
       }
+    }
+  });
+});
+
+describe("friendship from quests", () => {
+  it("never carries a neighbour far on its own, so gifts still matter", () => {
+    const byGiver = new Map<string, number>();
+    for (const id of ALL_QUEST_IDS) {
+      const { giverId, reward } = QUESTS[id];
+      byGiver.set(
+        giverId,
+        (byGiver.get(giverId) ?? 0) + (reward.friendship ?? 0),
+      );
+    }
+    for (const [giver, total] of byGiver) {
+      expect(total, `${giver} gets ${total} from quests`).toBeLessThan(40);
     }
   });
 });

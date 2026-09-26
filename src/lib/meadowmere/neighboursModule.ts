@@ -1,10 +1,4 @@
-import {
-  FRIENDSHIP_TIERS,
-  LIKED_GIFT_FRIENDSHIP,
-  MAX_FRIENDSHIP,
-  NEIGHBOURS,
-  NEUTRAL_GIFT_FRIENDSHIP,
-} from "./catalog";
+import { FRIENDSHIP_TIERS, MAX_FRIENDSHIP, NEIGHBOURS } from "./catalog";
 import { itemCount, removeItems } from "./inventory";
 import type {
   ItemId,
@@ -51,7 +45,10 @@ export function friendshipTier(friendship: number): {
 export function nextTier(
   friendship: number,
 ): { threshold: number; name: string } | null {
-  return FRIENDSHIP_TIERS.find((t) => friendship < t.threshold) ?? null;
+  const next = FRIENDSHIP_TIERS.find((t) => friendship < t.threshold);
+  return next === undefined
+    ? null
+    : { threshold: next.threshold, name: next.name };
 }
 
 export function likesItem(neighbourId: NeighbourId, itemId: ItemId): boolean {
@@ -87,6 +84,15 @@ export function addFriendship(
   };
 }
 
+/**
+ * What a gift is worth to a neighbour at this friendship: more for something
+ * they like, and less the closer they already are to you.
+ */
+export function giftWorth(liked: boolean, friendship: number): number {
+  const tier = FRIENDSHIP_TIERS[friendshipTier(friendship).index];
+  return liked ? tier.likedGift : tier.neutralGift;
+}
+
 /** How a gift landed, for the neighbour card's reaction. */
 export interface GiftResult {
   state: MeadowmereState;
@@ -119,9 +125,9 @@ export function giveGift(
   if (!canGift(state, neighbourId, itemId, today)) return null;
 
   const liked = likesItem(neighbourId, itemId);
-  const offered = liked ? LIKED_GIFT_FRIENDSHIP : NEUTRAL_GIFT_FRIENDSHIP;
   const before = friendshipOf(state, neighbourId);
   const beforeTier = friendshipTier(before).index;
+  const offered = giftWorth(liked, before);
 
   const given = addFriendship(
     removeItems(state, { [itemId]: 1 }),

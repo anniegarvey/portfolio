@@ -53,7 +53,7 @@ describe("reward wording", () => {
 
     expect(
       screen.getByText(
-        "Reward: 3 × Cornflower seeds · Cornflower unlocked · +10 friendship",
+        "Reward: 3 × Cornflower seeds · Cornflower unlocked · +5 friendship",
       ),
     ).toBeInTheDocument();
   });
@@ -67,7 +67,7 @@ describe("reward wording", () => {
     render(<QuestLog />);
 
     expect(
-      screen.getByText("Reward: The Riverbank opened · +10 friendship"),
+      screen.getByText("Reward: The Riverbank opened · +5 friendship"),
     ).toBeInTheDocument();
   });
 
@@ -161,7 +161,7 @@ describe("journal extras", () => {
 
     expect(
       screen.getByText(
-        "Reward: 3 × Parsnip seeds · a scarecrow for the farm · +8 friendship",
+        "Reward: 3 × Parsnip seeds · a scarecrow for the farm · +4 friendship",
       ),
     ).toBeInTheDocument();
   });

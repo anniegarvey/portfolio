@@ -3,9 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
-import { CROPS, FORAGES_PER_DAY } from "./catalog";
+import { CROPS, FORAGES_PER_DAY, QUESTS } from "./catalog";
 import { MeadowmereProvider, useMeadowmere } from "./context";
 import { todaysErrand } from "./errandsModule";
+import { giftWorth } from "./neighboursModule";
 import { createInitialState } from "./storage";
 
 vi.mock("@/lib/points/context", () => ({
@@ -283,7 +284,9 @@ describe("gifting", () => {
     renderProvider();
 
     await click("gift");
-    expect(screen.getByTestId("nessa")).toHaveTextContent("12");
+    expect(screen.getByTestId("nessa")).toHaveTextContent(
+      String(giftWorth(true, 0)),
+    );
     expect(screen.getByTestId("parsnip-root")).toHaveTextContent("1");
     expect(screen.getByTestId("notice")).toHaveTextContent("gift");
   });
@@ -307,7 +310,9 @@ describe("quests", () => {
     expect(screen.getByTestId("completed")).toHaveTextContent(
       "a-bed-for-parsnips",
     );
-    expect(screen.getByTestId("nessa")).toHaveTextContent("10");
+    expect(screen.getByTestId("nessa")).toHaveTextContent(
+      String(QUESTS["a-bed-for-parsnips"].reward.friendship),
+    );
     expect(screen.getByTestId("notice")).toHaveTextContent("quest");
     expect(readStored().unlockedCropIds).toContain("cornflower");
   });

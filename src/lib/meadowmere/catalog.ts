@@ -10,14 +10,10 @@ export const MAX_PLOTS = 16;
 export const FORAGES_PER_DAY = 3;
 
 /** Friendship a handed-in errand earns with whoever asked for it. */
-export const ERRAND_FRIENDSHIP = 8;
+export const ERRAND_FRIENDSHIP = 4;
 
 /** Seed packets a handed-in errand pays out. */
 export const ERRAND_SEEDS = 2;
-
-/** Friendship a gift earns: more when the neighbour likes the item. */
-export const LIKED_GIFT_FRIENDSHIP = 12;
-export const NEUTRAL_GIFT_FRIENDSHIP = 4;
 
 export const MAX_FRIENDSHIP = 100;
 
@@ -375,13 +371,19 @@ export const NEIGHBOURS: Record<NeighbourId, NeighbourConfig> = {
 
 export const ALL_NEIGHBOUR_IDS = Object.keys(NEIGHBOURS) as NeighbourId[];
 
-/** Friendship tier names, paired with the friendship value that unlocks them. */
+/**
+ * Friendship tier names, paired with the friendship value that unlocks them and
+ * what a daily gift earns while at that tier — more when the neighbour likes the
+ * item. Gifts earn less the closer a neighbour already is, so a daily favourite
+ * takes a few days to make an acquaintance and weeks to make a dear friend,
+ * pacing friendship alongside the quest chain rather than racing ahead of it.
+ */
 export const FRIENDSHIP_TIERS = [
-  { threshold: 0, name: "Stranger" },
-  { threshold: 20, name: "Acquaintance" },
-  { threshold: 40, name: "Friend" },
-  { threshold: 60, name: "Confidant" },
-  { threshold: 85, name: "Dear Friend" },
+  { threshold: 0, name: "Stranger", likedGift: 6, neutralGift: 2 },
+  { threshold: 20, name: "Acquaintance", likedGift: 5, neutralGift: 2 },
+  { threshold: 40, name: "Friend", likedGift: 4, neutralGift: 1 },
+  { threshold: 60, name: "Confidant", likedGift: 3, neutralGift: 1 },
+  { threshold: 85, name: "Dear Friend", likedGift: 2, neutralGift: 1 },
 ] as const;
 
 // ─── Keepsakes ────────────────────────────────────────────────────────────────
@@ -560,7 +562,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
     reward: {
       unlockCropId: "cornflower",
       seeds: { cornflower: 3 },
-      friendship: 10,
+      friendship: 5,
     },
     thanks:
       '"Perfect. Here — cornflower seeds. Marigold’s mad for them, if you’re looking to make friends."',
@@ -573,7 +575,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "Bram will show you the river path — once you prove you can forage the hedgerow. Bring two acorns and two bramble berries.",
     unlock: { afterQuestIds: ["a-bed-for-parsnips"] },
     requirement: { items: { acorn: 2, "bramble-berry": 2 } },
-    reward: { unlockSiteId: "riverbank", friendship: 10 },
+    reward: { unlockSiteId: "riverbank", friendship: 5 },
     thanks:
       '"You’ve a good eye. Follow the lane past the stile — the riverbank’s yours to forage now."',
   },
@@ -585,7 +587,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "Marigold is firing a batch of pots and is short on clay. Four river clay and two reeds should do it.",
     unlock: { afterQuestIds: ["down-to-the-riverbank"] },
     requirement: { items: { "river-clay": 4, reed: 2 } },
-    reward: { extraPlots: 3, friendship: 12 },
+    reward: { extraPlots: 3, friendship: 6 },
     thanks:
       '"Wonderful. And I had Bram clear the old beds behind your barn — three more plots, no arguing."',
   },
@@ -616,7 +618,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
     reward: {
       unlockCropId: "pumpkin",
       seeds: { pumpkin: 2 },
-      friendship: 12,
+      friendship: 6,
     },
     thanks:
       '"That’s the supper saved. Take these pumpkin seeds — I want the biggest one you can grow."',
@@ -653,7 +655,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "Wren has just taken on the old mill at the bottom of the lane and her pantry is bare. Two parsnips and two bramble berries would see her through the week.",
     unlock: { afterQuestIds: ["a-bed-for-parsnips"] },
     requirement: { items: { "parsnip-root": 2, "bramble-berry": 2 } },
-    reward: { unlockCropId: "wheat", seeds: { wheat: 4 }, friendship: 10 },
+    reward: { unlockCropId: "wheat", seeds: { wheat: 4 }, friendship: 5 },
     thanks:
       '"You’re a lifesaver. Here — wheat seed from the mill loft. Grow me some and I’ll show you what it’s for."',
   },
@@ -665,7 +667,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "The rooks have found your seed beds. Bram will knock up a scarecrow if you bring three feathers for its hat and two reeds for stuffing.",
     unlock: { afterQuestIds: ["down-to-the-riverbank"] },
     requirement: { items: { feather: 3, reed: 2 } },
-    reward: { keepsakeId: "scarecrow", seeds: { parsnip: 3 }, friendship: 8 },
+    reward: { keepsakeId: "scarecrow", seeds: { parsnip: 3 }, friendship: 4 },
     thanks:
       '"There. Handsome fellow, isn’t he? I’ve stood him by your beds — the rooks won’t trouble you now."',
   },
@@ -677,7 +679,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "The millstones haven’t turned in years. Wren wants four sheaves of wheat to grind the first flour and bake the first loaves.",
     unlock: { afterQuestIds: ["a-new-face-at-the-mill"] },
     requirement: { items: { "wheat-sheaf": 4 } },
-    reward: { seeds: { wheat: 3, cornflower: 2 }, friendship: 12 },
+    reward: { seeds: { wheat: 3, cornflower: 2 }, friendship: 6 },
     thanks:
       '"Listen to that — the stones are singing. The first loaf is yours. So is the second, actually."',
   },
@@ -689,7 +691,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "The inn’s tables look bare. Nessa asks for three cornflowers and two bramble berries to brighten them up.",
     unlock: { afterQuestIds: ["clay-for-the-kiln"] },
     requirement: { items: { "cornflower-bloom": 3, "bramble-berry": 2 } },
-    reward: { seeds: { parsnip: 4, cornflower: 2 }, friendship: 10 },
+    reward: { seeds: { parsnip: 4, cornflower: 2 }, friendship: 5 },
     thanks:
       '"Oh, that’s lovely. The regulars won’t say anything, but they’ll notice. Take these seeds for your trouble."',
   },
@@ -703,7 +705,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "One of Marigold’s colonies wants a new home. Bring two jars of wild honey to coax them and three cornflowers to keep them happy.",
     unlock: { afterQuestIds: ["sweet-on-you"] },
     requirement: { items: { "wild-honey": 2, "cornflower-bloom": 3 } },
-    reward: { keepsakeId: "beehive", friendship: 10 },
+    reward: { keepsakeId: "beehive", friendship: 5 },
     thanks:
       '"They’ve taken to it! The hive’s on your farm now — look after them and they’ll look after your flowers."',
   },
@@ -715,7 +717,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "Wren’s gran planted an orchard by the north hedge, and its gate has rusted shut. Two lumps of oak resin will ease the hinge; three smooth stones will prop it open.",
     unlock: { afterQuestIds: ["first-loaves", "sweet-on-you"] },
     requirement: { items: { "oak-resin": 2, "smooth-stone": 3 } },
-    reward: { unlockSiteId: "orchard", friendship: 10 },
+    reward: { unlockSiteId: "orchard", friendship: 5 },
     thanks:
       '"It moved! Gran would be so pleased. The Old Orchard’s yours to forage — mind the walnuts, they drop without warning."',
   },
@@ -729,7 +731,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
     requirement: {
       items: { "crab-apple": 3, "bramble-berry": 3, "wild-honey": 1 },
     },
-    reward: { seeds: { strawberry: 3 }, friendship: 10 },
+    reward: { seeds: { strawberry: 3 }, friendship: 5 },
     thanks:
       '"It’s setting beautifully. You’ll get the first jar — and some strawberry seed, because the next batch wants them."',
   },
@@ -744,7 +746,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
     reward: {
       unlockCropId: "sunflower",
       seeds: { sunflower: 3 },
-      friendship: 10,
+      friendship: 5,
     },
     thanks:
       '"Here’s to you. And here — sunflower seeds. Plant them where they can see you working."',
@@ -759,7 +761,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       afterQuestIds: ["a-scarecrow-for-the-field", "clay-for-the-kiln"],
     },
     requirement: { items: { "smooth-stone": 5, "river-clay": 3 } },
-    reward: { keepsakeId: "well", friendship: 10 },
+    reward: { keepsakeId: "well", friendship: 5 },
     thanks:
       '"Struck water at twelve feet. Sweetest in the valley, I reckon — don’t tell Marigold I said so."',
   },
@@ -771,7 +773,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "Wren wants to try her gran’s walnut loaf. Three walnuts from the orchard and four sheaves of wheat.",
     unlock: { afterQuestIds: ["the-orchard-gate"] },
     requirement: { items: { walnut: 3, "wheat-sheaf": 4 } },
-    reward: { extraPlots: 2, friendship: 12 },
+    reward: { extraPlots: 2, friendship: 6 },
     thanks:
       '"Just like hers. I had a word with Bram — there’s two more beds dug at the end of your rows."',
   },
@@ -783,7 +785,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "The autumn fair needs lighting, and Nessa has decided pumpkins are the answer. Three pumpkins to carve.",
     unlock: { afterQuestIds: ["the-harvest-table"] },
     requirement: { items: { pumpkin: 3 } },
-    reward: { keepsakeId: "lanterns", seeds: { pumpkin: 1 }, friendship: 10 },
+    reward: { keepsakeId: "lanterns", seeds: { pumpkin: 1 }, friendship: 5 },
     thanks:
       '"Look at their little faces! I saved the best ones for your farm. They’ll light your way home."',
   },
@@ -795,7 +797,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "With the scarecrow up, the songbirds have nowhere to go. Bram wants four feathers and two river clay to make them a bath.",
     unlock: { afterQuestIds: ["a-well-for-the-farm"] },
     requirement: { items: { feather: 4, "river-clay": 2 } },
-    reward: { keepsakeId: "birdbath", friendship: 10 },
+    reward: { keepsakeId: "birdbath", friendship: 5 },
     thanks:
       '"Fair’s fair — the rooks get a scarecrow, the sparrows get a bath. Listen to them."',
   },
@@ -809,7 +811,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "Misty Fen swallows the path after dark. Bram will take you in if you bring a moonpetal to light the way and two oak resin for torches.",
     unlock: { afterQuestIds: ["three-good-friends"] },
     requirement: { items: { "moonpetal-bloom": 1, "oak-resin": 2 } },
-    reward: { unlockSiteId: "fen", friendship: 10 },
+    reward: { unlockSiteId: "fen", friendship: 5 },
     thanks:
       '"Stay on the stones and follow the glow. The fen’s open to you now — not many can say that."',
   },
@@ -821,7 +823,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "The inn’s regulars have caught a cold, all at once, as usual. Nessa needs three sprigs of wild mint and two jars of wild honey.",
     unlock: { afterQuestIds: ["into-the-fen"] },
     requirement: { items: { "wild-mint": 3, "wild-honey": 2 } },
-    reward: { seeds: { pumpkin: 2, strawberry: 2 }, friendship: 12 },
+    reward: { seeds: { pumpkin: 2, strawberry: 2 }, friendship: 6 },
     thanks:
       '"That’ll have them back on their feet and complaining in no time. Bless you."',
   },
@@ -833,7 +835,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
       "Marigold has heard that ground glowcap makes a glaze that shines after dark. Three glowcaps and four river clay to find out.",
     unlock: { afterQuestIds: ["into-the-fen"] },
     requirement: { items: { glowcap: 3, "river-clay": 4 } },
-    reward: { keepsakeId: "urns", friendship: 10 },
+    reward: { keepsakeId: "urns", friendship: 5 },
     thanks:
       '"It works! Look at them glow. The best pair are on your farm — I couldn’t think of anyone better."',
   },
@@ -850,7 +852,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
     reward: {
       unlockCropId: "honeymelon",
       seeds: { honeymelon: 2 },
-      friendship: 12,
+      friendship: 6,
     },
     thanks:
       '"Smooth as silk. Gran kept honeymelon seed in the mill loft for a special occasion. I think this is one."',
@@ -870,7 +872,7 @@ export const QUESTS: Record<QuestId, QuestConfig> = {
         strawberry: 3,
       },
     },
-    reward: { keepsakeId: "bunting", extraPlots: 2, friendship: 15 },
+    reward: { keepsakeId: "bunting", extraPlots: 2, friendship: 5 },
     thanks:
       '"Best feast the Hollow Inn has ever put on, and half of it was yours. The bunting’s on your farm, and Bram’s cleared you two more beds."',
   },
