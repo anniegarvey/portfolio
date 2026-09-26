@@ -33,6 +33,7 @@ import {
   isTriedLogUnlocked,
   isVagueHintUnlocked,
 } from "@/lib/glade/skillsModule";
+import { playCreatureSound } from "@/lib/glade/sounds";
 
 const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
@@ -193,13 +194,14 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
               {POSTURES.map((posture) => (
                 <Button
                   key={posture}
-                  onClick={() =>
+                  onClick={() => {
+                    playCreatureSound(visitor.speciesId);
                     approachVisitor(
                       visitor.id,
                       posture,
                       portraitRef.current?.getBoundingClientRect(),
-                    )
-                  }
+                    );
+                  }}
                   size="sm"
                   variant="outline"
                 >
@@ -246,13 +248,14 @@ function PetActionGroup({
           {PET_SPOTS.map((spot) => (
             <Button
               key={spot}
-              onClick={() =>
+              onClick={() => {
+                playCreatureSound(visitor.speciesId);
                 petVisitor(
                   visitor.id,
                   spot,
                   portraitRef.current?.getBoundingClientRect(),
-                )
-              }
+                );
+              }}
               size="sm"
               variant="outline"
             >
@@ -298,13 +301,14 @@ function TreatActionGroup({
           {availableTreats.map((treatId: TreatId) => (
             <Button
               key={treatId}
-              onClick={() =>
+              onClick={() => {
+                playCreatureSound(visitor.speciesId);
                 offerTreat(
                   visitor.id,
                   treatId,
                   portraitRef.current?.getBoundingClientRect(),
-                )
-              }
+                );
+              }}
               size="sm"
               variant="outline"
             >

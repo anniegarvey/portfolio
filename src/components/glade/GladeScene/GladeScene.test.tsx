@@ -3,10 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type GladeContextType, useGlade } from "@/lib/glade/context";
 import type { Resident } from "@/lib/glade/schema";
+import { playCreatureSound } from "@/lib/glade/sounds";
 import { makeGladeContext, makeGladeState } from "@/lib/glade/testFixtures";
 import { GladeScene } from "./GladeScene";
 
 vi.mock("@/lib/glade/context");
+vi.mock("@/lib/glade/sounds", () => ({ playCreatureSound: vi.fn() }));
 vi.mock("@/components/glade/CreatureSVG", () => ({
   CreatureSVG: () => null,
 }));
@@ -110,61 +112,34 @@ describe("GladeScene", () => {
     ).toBeInTheDocument();
   });
 
-  it("greeting a resident opens its detail card and marks the button expanded", async () => {
+  it("writes no names or role badges on the scene itself", () => {
+    render(<GladeScene />);
+    const region = screen.getByRole("region", { name: "Glade ecosystem" });
+    expect(region).not.toHaveTextContent("Rabbit");
+    expect(region).not.toHaveTextContent("Rusty");
+    expect(region).not.toHaveTextContent("Forager");
+  });
+
+  it("greeting a resident plays its call and bounces it, opening nothing", async () => {
     const user = userEvent.setup();
     render(<GladeScene />);
 
     const rabbitButton = screen.getByRole("button", {
       name: "Rabbit — Forager",
     });
-    expect(rabbitButton).toHaveAttribute("aria-expanded", "false");
-
     await user.click(rabbitButton);
 
-    expect(rabbitButton).toHaveAttribute("aria-expanded", "true");
-    expect(
-      screen.getByText(/Gathers an ingredient each day/),
-    ).toBeInTheDocument();
-  });
-
-  it("greeting the open resident again closes the detail card", async () => {
-    const user = userEvent.setup();
-    render(<GladeScene />);
-
-    await user.click(screen.getByRole("button", { name: "Rabbit — Forager" }));
-    await user.click(screen.getByRole("button", { name: "Rabbit — Forager" }));
-
+    expect(playCreatureSound).toHaveBeenCalledWith("rabbit");
+    expect(rabbitButton).not.toHaveAttribute("aria-expanded");
+    const greet = rabbitButton.querySelector('[data-greeting="true"]');
+    expect(greet).not.toBeNull();
     expect(
       screen.queryByText(/Gathers an ingredient each day/),
     ).not.toBeInTheDocument();
-  });
 
-  it("greeting another resident switches the detail card", async () => {
-    const user = userEvent.setup();
-    render(<GladeScene />);
-
-    await user.click(screen.getByRole("button", { name: "Rabbit — Forager" }));
-    await user.click(screen.getByRole("button", { name: "Rusty — Beacon" }));
-
-    expect(screen.getByText(/Attracts rarer visitors/)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/Gathers an ingredient each day/),
-    ).not.toBeInTheDocument();
-  });
-
-  it("the detail card's close button closes it", async () => {
-    const user = userEvent.setup();
-    render(<GladeScene />);
-
-    await user.click(screen.getByRole("button", { name: "Rabbit — Forager" }));
-    await user.click(screen.getByRole("button", { name: "Close details" }));
-
-    expect(
-      screen.queryByText(/Gathers an ingredient each day/),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Rabbit — Forager" }),
-    ).toHaveAttribute("aria-expanded", "false");
+    // biome-ignore lint/style/noNonNullAssertion: asserted above
+    fireEvent.animationEnd(greet!);
+    expect(rabbitButton.querySelector('[data-greeting="true"]')).toBeNull();
   });
 
   it("gives each resident its species' idle motion, phase-shifted by position", () => {

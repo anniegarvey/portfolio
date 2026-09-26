@@ -59,6 +59,17 @@ describe("what the farmer is carrying", () => {
     expect(screen.getByText(/Parsnip ×1/)).toBeInTheDocument();
   });
 
+  it("lets a keyboard reach the larder row to scroll along it", () => {
+    // The row scrolls sideways and nothing in it takes focus of its own.
+    mock({ state: makeMeadowmereState({ inventory: { acorn: 3 } }) });
+    renderHUD();
+
+    expect(screen.getByRole("group", { name: "Larder" })).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
+  });
+
   it("leaves out items the player has run out of", () => {
     mock({ state: makeMeadowmereState({ inventory: { acorn: 0 } }) });
     renderHUD();

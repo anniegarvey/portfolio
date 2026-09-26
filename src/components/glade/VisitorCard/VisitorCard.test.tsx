@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GladeContextType } from "@/lib/glade/context";
 import { useGlade } from "@/lib/glade/context";
 import type { WildVisitor } from "@/lib/glade/schema";
+import { playCreatureSound } from "@/lib/glade/sounds";
 import {
   makeGladeContext,
   makeGladeState,
@@ -13,6 +14,7 @@ import {
 import { VisitorCard } from "./VisitorCard";
 
 vi.mock("@/lib/glade/context");
+vi.mock("@/lib/glade/sounds", () => ({ playCreatureSound: vi.fn() }));
 vi.mock("@/components/glade/CreatureSVG", () => ({
   CreatureSVG: () => null,
 }));
@@ -492,6 +494,7 @@ describe("VisitorCard feedback and actions", () => {
 
     await user.click(screen.getByRole("button", { name: "Crouch low" }));
 
+    expect(playCreatureSound).toHaveBeenCalledWith("rabbit");
     expect(approachVisitor).toHaveBeenCalledWith(
       rabbit.id,
       "crouch-low",
@@ -600,6 +603,7 @@ describe("VisitorCard feedback and actions", () => {
 
     await user.click(screen.getByRole("button", { name: "Berry Bites ×2" }));
 
+    expect(playCreatureSound).toHaveBeenCalledWith("rabbit");
     expect(offerTreat).toHaveBeenCalledWith(
       rabbit.id,
       "berry-bites",
@@ -666,6 +670,7 @@ describe("VisitorCard feedback and actions", () => {
 
     await user.click(screen.getByRole("button", { name: "Behind the ears" }));
 
+    expect(playCreatureSound).toHaveBeenCalledWith("rabbit");
     expect(petVisitor).toHaveBeenCalledWith(
       rabbit.id,
       "behind-ears",

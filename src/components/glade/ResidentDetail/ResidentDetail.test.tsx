@@ -20,7 +20,6 @@ const rabbit: Resident = {
 };
 
 const nameResident = vi.fn();
-const onClose = vi.fn();
 
 function mockGlade(overrides: Partial<GladeContextType> = {}) {
   vi.mocked(useGlade).mockReturnValue(
@@ -38,10 +37,9 @@ beforeEach(() => {
 });
 
 describe("ResidentDetail", () => {
-  it("shows the species name, rarity, tamed date, and benefit", () => {
-    render(<ResidentDetail onClose={onClose} resident={rabbit} />);
+  it("shows the rarity, tamed date, and benefit", () => {
+    render(<ResidentDetail resident={rabbit} />);
 
-    expect(screen.getByRole("heading", { name: "Rabbit" })).toBeInTheDocument();
     expect(
       screen.getByText(/common · tamed June 15, 2026/),
     ).toBeInTheDocument();
@@ -51,26 +49,15 @@ describe("ResidentDetail", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the personal name with the species as a note", () => {
-    render(
-      <ResidentDetail
-        onClose={onClose}
-        resident={{ ...rabbit, name: "Clover" }}
-      />,
-    );
+  it("names the species when the resident has a name of its own", () => {
+    render(<ResidentDetail resident={{ ...rabbit, name: "Clover" }} />);
 
-    const heading = screen.getByRole("heading", { name: /Clover/ });
-    expect(heading).toHaveTextContent("Clover the Rabbit");
+    expect(screen.getByText("The Rabbit")).toBeInTheDocument();
   });
 
   it("renames the resident through the rename form", async () => {
     const user = userEvent.setup();
-    render(
-      <ResidentDetail
-        onClose={onClose}
-        resident={{ ...rabbit, name: "Clover" }}
-      />,
-    );
+    render(<ResidentDetail resident={{ ...rabbit, name: "Clover" }} />);
 
     await user.click(screen.getByRole("button", { name: "Rename" }));
     const input = screen.getByLabelText("New name");
@@ -88,17 +75,9 @@ describe("ResidentDetail", () => {
 
   it("disables saving a blank name", async () => {
     const user = userEvent.setup();
-    render(<ResidentDetail onClose={onClose} resident={rabbit} />);
+    render(<ResidentDetail resident={rabbit} />);
 
     await user.click(screen.getByRole("button", { name: "Rename" }));
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-  });
-
-  it("calls onClose from the close button", async () => {
-    const user = userEvent.setup();
-    render(<ResidentDetail onClose={onClose} resident={rabbit} />);
-
-    await user.click(screen.getByRole("button", { name: "Close details" }));
-    expect(onClose).toHaveBeenCalled();
   });
 });
