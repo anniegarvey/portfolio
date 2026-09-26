@@ -3,10 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type GladeContextType, useGlade } from "@/lib/glade/context";
 import type { Resident } from "@/lib/glade/schema";
+import { playCreatureSound } from "@/lib/glade/sounds";
 import { makeGladeContext, makeGladeState } from "@/lib/glade/testFixtures";
 import { CollectionPanel } from "./CollectionPanel";
 
 vi.mock("@/lib/glade/context");
+vi.mock("@/lib/glade/sounds", () => ({ playCreatureSound: vi.fn() }));
 vi.mock("@/components/glade/CreatureSVG", () => ({
   CreatureSVG: () => null,
 }));
@@ -49,6 +51,7 @@ describe("CollectionPanel", () => {
 
     await user.click(screen.getByRole("button", { name: /Rusty/ }));
 
+    expect(playCreatureSound).toHaveBeenCalledWith("fox");
     const dialog = screen.getByRole("dialog", { name: "Rusty" });
     expect(dialog).toHaveTextContent("The Fox");
     expect(dialog).toHaveTextContent(/Attracts rarer visitors/);

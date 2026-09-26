@@ -10,6 +10,7 @@ import { KitchenPanel } from "@/components/glade/KitchenPanel";
 import { PantryPanel } from "@/components/glade/PantryPanel";
 import { ResetGlade } from "@/components/glade/ResetGlade";
 import { SkillsPanel } from "@/components/glade/SkillsPanel";
+import { SoundToggle } from "@/components/glade/SoundToggle";
 import { TameCelebration } from "@/components/glade/TameCelebration";
 import { TamedCard } from "@/components/glade/TamedCard";
 import { VisitorCard } from "@/components/glade/VisitorCard";
@@ -25,7 +26,10 @@ export function GladePage() {
   return (
     <MaxWidthWrapper as="main">
       <PageHeader>
-        <PageTitle>Creature Glade</PageTitle>
+        <TitleRow>
+          <PageTitle>Creature Glade</PageTitle>
+          <SoundToggle />
+        </TitleRow>
       </PageHeader>
 
       <TameAnnouncement aria-atomic="true" aria-live="polite">
@@ -109,6 +113,12 @@ const TameAnnouncement = styled.span`
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+`;
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const Layout = styled.div`
