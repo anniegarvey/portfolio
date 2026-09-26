@@ -5,11 +5,11 @@ export interface Leaf {
   id: string;
   cx: number;
   cy: number;
-  /** For needles: half-length. For ovals/scale: half-width. For palmate/lobed/pinnate: overall scale. */
+  /** Horizontal scale of the species' leaf silhouette (see `leafShapes.ts`). */
   rx: number;
-  /** For needles: half-thickness (always small). For ovals/scale: half-height. */
+  /** Vertical scale of the species' leaf silhouette. */
   ry: number;
-  /** Rotation in degrees — needle direction, leaf tilt, etc. */
+  /** Rotation in degrees — 0 points the leaf's tip straight up. */
   angleDeg: number;
   /** Per-leaf depth offset within its pad. The renderer adds this to the
    *  parent branch's z to z-sort every leaf globally so front pads overpaint

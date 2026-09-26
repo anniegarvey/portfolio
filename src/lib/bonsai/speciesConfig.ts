@@ -2,11 +2,13 @@
 
 export type LeafShape =
   | "needle"
-  | "oval"
+  | "blossom"
+  | "ovate"
   | "palmate"
   | "lobed"
   | "scale"
-  | "pinnate";
+  | "pinnate"
+  | "bipinnate";
 
 // ─── Phyllotaxy ───────────────────────────────────────────────────────────────
 // Arrangement of leaves (and, by extension, buds/branches) along a stem.
@@ -152,6 +154,14 @@ export interface SpeciesConfig {
   interiorPadDensity: number;
   /** [min, max] — leaves placed within each pad disc. */
   leavesPerPad: [number, number];
+  /** Foliage a species wears until `flowers.floweringAge`, for crowns drawn
+   *  as blossom (cherry): a young tree is in leaf, not in bloom. Omit when
+   *  the crown is leaves at every age. */
+  juvenileFoliage?: {
+    leafShape: LeafShape;
+    foliageColor: string;
+    foliageColorLight: string;
+  };
 
   // Per-individual variability
   /** 0–1 — scale of per-tree parameter scatter applied to any randomised
@@ -213,7 +223,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     foliageDistribution: "pad",
     padRadius: 10,
     interiorPadDensity: 0.7,
-    leavesPerPad: [10, 14],
+    leavesPerPad: [4, 6],
     individualVariability: 0.2,
     // Pine has no ornamental flowers — only inconspicuous pollen cones.
   },
@@ -252,11 +262,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.8,
     tipDroop: 0,
     leafShape: "palmate",
-    leafSize: 5.0,
+    leafSize: 7,
     foliageDistribution: "pad",
     padRadius: 8,
     interiorPadDensity: 0.4,
-    leavesPerPad: [6, 10],
+    leavesPerPad: [3, 6],
     individualVariability: 0.3,
     flowers: {
       // Small reddish-purple hanging umbel clusters, appear with the new spring leaves.
@@ -303,12 +313,18 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Slight upturn at the cherry's twig tips — keeps the canopy from feeling
     // flat without making it look like a weeping cultivar.
     tipDroop: 0.1,
-    leafShape: "oval",
-    leafSize: 4.5,
+    leafShape: "blossom",
+    leafSize: 3.8,
     foliageDistribution: "terminal",
     padRadius: 6.5,
     interiorPadDensity: 0.45,
-    leavesPerPad: [5, 9],
+    leavesPerPad: [4, 7],
+    // Seedlings and saplings are in leaf: bronze-green serrated ovals.
+    juvenileFoliage: {
+      leafShape: "ovate",
+      foliageColor: "#4f7d34",
+      foliageColorLight: "#7aa64e",
+    },
     individualVariability: 0.25,
     flowers: {
       // Iconic 5-petal blossoms in clusters; pale pink to white. Appear with leaves.
@@ -359,11 +375,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // hanging clouds rather than perfectly horizontal shelves.
     tipDroop: -0.35,
     leafShape: "scale",
-    leafSize: 2.4,
+    leafSize: 7.5,
     foliageDistribution: "pad",
     padRadius: 14,
     interiorPadDensity: 0.8,
-    leavesPerPad: [20, 28],
+    leavesPerPad: [4, 6],
     individualVariability: 0.4,
     flowers: {
       // Waxy blue-black seed cones (berry-like); ornamental once mature.
@@ -410,11 +426,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.9,
     tipDroop: 0,
     leafShape: "lobed",
-    leafSize: 6.0,
+    leafSize: 7,
     foliageDistribution: "terminal",
     padRadius: 7.5,
     interiorPadDensity: 0.45,
-    leavesPerPad: [5, 8],
+    leavesPerPad: [3, 5],
     individualVariability: 0.2,
     flowers: {
       // Pendulous yellow-green catkins; rare — reflects 20–40 year real-world maturity.
@@ -463,13 +479,13 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // ends of the racemes, complementing the pendent foliage distribution.
     tipDroop: -0.9,
     leafShape: "pinnate",
-    leafSize: 4.0,
+    leafSize: 6,
     // Pendent: hanging chains of pinnate leaf clusters below each tip — the
     // defining drape of mature wisteria.
     foliageDistribution: "pendent",
     padRadius: 5,
     interiorPadDensity: 0.1,
-    leavesPerPad: [3, 5],
+    leavesPerPad: [2, 4],
     individualVariability: 0.35,
     flowers: {
       // Drooping violet racemes, 20–30 cm in nature — the defining visual of wisteria bonsai.
@@ -486,8 +502,8 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Delonix regia — fast-growing; flat umbrella crown. Branches nearly horizontal at all heights.
     label: "Flame Tree",
     emoji: "🌺",
-    foliageColor: "#e74c3c",
-    foliageColorLight: "#ff6b47",
+    foliageColor: "#3f7a2a",
+    foliageColorLight: "#74b04a",
     trunkColor: "#3d2610",
     regrowthDays: 14,
     maxTrunkHeight: 165,
@@ -516,12 +532,12 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Mild downward tilt on tips so the umbrella canopy droops at the edges
     // rather than reading as flat-cut.
     tipDroop: -0.2,
-    leafShape: "palmate",
-    leafSize: 3.4,
+    leafShape: "bipinnate",
+    leafSize: 10,
     foliageDistribution: "pad",
     padRadius: 16,
     interiorPadDensity: 0.6,
-    leavesPerPad: [10, 15],
+    leavesPerPad: [3, 4],
     individualVariability: 0.15,
     flowers: {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.

@@ -767,6 +767,9 @@ describe("generateTree", () => {
     const SCATTERED: SpeciesConfig = {
       ...PINE,
       foliageDistribution: "scattered",
+      // Enough leaves per pad for a stable pad centroid, whatever pine's own
+      // tuft count is tuned to.
+      leavesPerPad: [10, 14],
     };
 
     function totalLeaves(data: ReturnType<typeof generateTree>) {
@@ -1059,15 +1062,14 @@ describe("generateTree", () => {
   });
 
   describe("pine — needle tufts (A3)", () => {
-    it("day 100: needle-pad angles avoid the downward-pointing arc (20°,160°)", () => {
+    it("day 100: needle tufts stand upright, within 25° of vertical", () => {
       const data = generateTree(100, PINE, [], "snapshot-pine");
       const needleLeaves = data.branches
         .filter((b) => b.isTerminal && !b.isPruned)
         .flatMap((b) => b.leaves);
       expect(needleLeaves.length).toBeGreaterThan(0);
       for (const leaf of needleLeaves) {
-        const a = ((leaf.angleDeg % 360) + 360) % 360;
-        expect(a > 20 && a < 160).toBe(false);
+        expect(Math.abs(leaf.angleDeg)).toBeLessThanOrEqual(25);
       }
     });
   });
@@ -1105,27 +1107,28 @@ describe("generateTree", () => {
       expect(SPECIES_CONFIG.juniper.tipDroop).toBeLessThan(0);
     });
 
-    it("flame tree leafSize shrank for fine bipinnate texture", () => {
-      expect(SPECIES_CONFIG["flame-tree"].leafSize).toBeLessThan(5.5);
+    it("flame tree draws bipinnate fronds", () => {
+      expect(SPECIES_CONFIG["flame-tree"].leafShape).toBe("bipinnate");
     });
   });
 
   // ─── Render-cost budgets ────────────────────────────────────────────────────
-  // Generator output size drives SVG element count directly (every leaf is at
-  // least one node), so each species gets a day-100 ceiling with ~15% headroom
+  // Generator output size drives render cost: every branch and floret is an
+  // SVG node, and every leaf adds its silhouette to the foliage paths, so
+  // each species gets a day-100 ceiling with ~15% headroom
   // over its tuned count. A failure here means a tuning change quietly blew up
   // render cost — retune density rather than raising the budget without
   // checking garden-view performance first.
 
   describe("day-100 element budgets", () => {
     const BUDGETS: Record<string, number> = {
-      pine: 3400,
-      maple: 1400,
-      "cherry-blossom": 850,
-      juniper: 4600,
-      oak: 1100,
-      wisteria: 1500,
-      "flame-tree": 3300,
+      pine: 1300,
+      maple: 1100,
+      "cherry-blossom": 640,
+      juniper: 1250,
+      oak: 870,
+      wisteria: 1030,
+      "flame-tree": 1580,
     };
 
     function totalElements(data: ReturnType<typeof generateTree>) {

@@ -190,6 +190,56 @@ describe("StaticTreeSVG — lobed leaf shape", () => {
   });
 });
 
+describe("StaticTreeSVG — foliage", () => {
+  const tree = (speciesId: BonsaiTree["speciesId"], day: number) =>
+    ({
+      id: `foliage-${speciesId}`,
+      speciesId,
+      activeDaysCount: day,
+      acquiredAt: "2024-01-01",
+      prunedBranches: [],
+    }) satisfies BonsaiTree;
+
+  it("draws a mature crown as at most six depth-band paths", () => {
+    const { container } = render(<StaticTreeSVG tree={tree("maple", 100)} />);
+    const bands = container.querySelectorAll("g.foliage > path");
+    expect(bands.length).toBeGreaterThan(1);
+    expect(bands.length).toBeLessThanOrEqual(6);
+  });
+
+  it("dresses a cherry in green leaves until it reaches flowering age", () => {
+    const cherry = SPECIES_CONFIG["cherry-blossom"];
+    const age = cherry.flowers?.floweringAge ?? 0;
+    const fills = (day: number) =>
+      Array.from(
+        render(
+          <StaticTreeSVG tree={tree("cherry-blossom", day)} />,
+        ).container.querySelectorAll("g.foliage > path"),
+        (p) => p.getAttribute("fill"),
+      );
+    // The nearest band takes the light end of the tint gradient.
+    const young = fills(age - 1);
+    const old = fills(age + 30);
+    expect(young).not.toContain(cherry.foliageColor);
+    expect(old.length).toBeGreaterThan(0);
+    const greenish = (hex: string | null) =>
+      !!hex && parseInt(hex.slice(3, 5), 16) > parseInt(hex.slice(1, 3), 16);
+    expect(young.every(greenish)).toBe(true);
+    expect(old.some(greenish)).toBe(false);
+  });
+
+  it("gives an oak seedling no seed leaves: it germinates underground", () => {
+    // Seed leaves sit in the sprout's own filled group, apart from the seed.
+    const seedLeaves = (speciesId: BonsaiTree["speciesId"]) =>
+      render(
+        <StaticTreeSVG tree={tree(speciesId, 3)} />,
+      ).container.querySelectorAll("g[fill][opacity] > ellipse").length;
+    expect(seedLeaves("oak")).toBe(0);
+    expect(seedLeaves("pine")).toBe(7);
+    expect(seedLeaves("maple")).toBe(2);
+  });
+});
+
 describe("StaticTreeSVG — expanded viewBox", () => {
   it("renders large pot + large stand without clipping (expanded viewBox)", () => {
     const tree: BonsaiTree = {

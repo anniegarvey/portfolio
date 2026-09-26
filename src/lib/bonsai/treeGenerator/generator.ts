@@ -74,46 +74,25 @@ function generatePad(
     const dy = Math.sin(angle) * dist;
     const dz = (seededVal(seed + treeId, i * 4 + 1002) - 0.5) * 2 * zSpread;
     const tilt = seededVal(seed + treeId, i * 4 + 1003) * 360;
-    const id = `${seed}-${i}`;
+    const jitter = seededVal(seed + treeId, i * 4 + 1004) - 0.5;
+    // Pine tufts and juniper sprays stand upright (within ±25°) in a pad
+    // disc compressed vertically, so pads read as horizontal clouds sitting
+    // on the branch — the classic trained-pad look. Compound leaves hang
+    // from their stalk, tip down and out (180° ± 70°). Broad leaves and
+    // blossoms face any way.
+    const upright = spec.leafShape === "needle" || spec.leafShape === "scale";
+    const hanging =
+      spec.leafShape === "pinnate" || spec.leafShape === "bipinnate";
 
-    if (spec.leafShape === "needle") {
-      // Fan needles across an upward arc (-160°..-20°, centred on straight-up
-      // -90°) instead of a full 360° "sea urchin" spread, and compress the
-      // pad disc vertically so needle pads read as horizontal tufts sitting
-      // on the branch — the classic pine-pad look.
-      const baseDeg = -160 + (i / count) * 140;
-      const jitter = (seededVal(seed + treeId, i * 4 + 1004) - 0.5) * 18;
-      leaves.push({
-        id,
-        cx: r(cx + dx),
-        cy: r(cy + dy * 0.55),
-        rx: 0.4,
-        ry: size,
-        angleDeg: baseDeg + jitter,
-        z: dz,
-      });
-    } else if (spec.leafShape === "scale") {
-      leaves.push({
-        id,
-        cx: r(cx + dx),
-        cy: r(cy + dy),
-        rx: size * 0.7,
-        ry: size * 0.7,
-        angleDeg: tilt,
-        z: dz,
-      });
-    } else {
-      // oval, palmate, lobed, pinnate
-      leaves.push({
-        id,
-        cx: r(cx + dx),
-        cy: r(cy + dy),
-        rx: size,
-        ry: size * (spec.leafShape === "oval" ? 0.6 : 1.0),
-        angleDeg: tilt,
-        z: dz,
-      });
-    }
+    leaves.push({
+      id: `${seed}-${i}`,
+      cx: r(cx + dx),
+      cy: r(cy + dy * (upright ? 0.55 : 1)),
+      rx: size,
+      ry: size,
+      angleDeg: upright ? jitter * 50 : hanging ? 180 + jitter * 140 : tilt,
+      z: dz,
+    });
   }
 
   return leaves;

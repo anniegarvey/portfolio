@@ -5,113 +5,54 @@ import type React from "react";
 import { useMemo } from "react";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { parsePotId, parseStandId } from "@/lib/bonsai/schema";
-import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
+import {
+  type LeafShape,
+  SPECIES_CONFIG,
+  type SpeciesConfig,
+} from "@/lib/bonsai/speciesConfig";
 import {
   generateTree,
   type Leaf,
   type TreeSVGData,
 } from "@/lib/bonsai/treeGenerator";
 import { clamp } from "@/lib/bonsai/treeGenerator.math";
-
-// ─── Leaf Shape Paths ─────────────────────────────────────────────────────────
-
-/** Simplified 5-lobed maple leaf. */
-const PALMATE_LEAF_PATH =
-  "M 0,-1 C -0.1,-0.7 -0.2,-0.5 -0.25,-0.3 L -0.85,-0.45 L -0.4,0.1 " +
-  "L -0.55,0.85 L 0,0.4 L 0.55,0.85 L 0.4,0.1 L 0.85,-0.45 " +
-  "L 0.25,-0.3 C 0.2,-0.5 0.1,-0.7 0,-1 Z";
-
-/** Oak-style lobed leaf with 4 pairs of rounded side lobes. */
-const LOBED_LEAF_PATH =
-  "M 0,-1 C 0.3,-0.85 0.55,-0.65 0.5,-0.45 C 0.7,-0.35 0.7,-0.15 0.5,0 " +
-  "C 0.7,0.1 0.65,0.3 0.45,0.45 C 0.6,0.6 0.5,0.8 0.25,0.9 L 0,1 L -0.25,0.9 " +
-  "C -0.5,0.8 -0.6,0.6 -0.45,0.45 C -0.65,0.3 -0.7,0.1 -0.5,0 " +
-  "C -0.7,-0.15 -0.7,-0.35 -0.5,-0.45 C -0.55,-0.65 -0.3,-0.85 0,-1 Z";
-
-/**
- * Wisteria pinnate compound leaf — a central rachis with 6 paired oval leaflets.
- * Normalised so scale(leafSize) gives the right size; the rachis runs from ~(0,-1)
- * to (0,1) and leaflets extend ±0.55 units to each side.
- */
-function PinnateLeaf({
-  cx,
-  cy,
-  scale: s,
-  angleDeg,
-  fill,
-  id,
-}: {
-  cx: number;
-  cy: number;
-  scale: number;
-  angleDeg: number;
-  fill: string;
-  id: string;
-}) {
-  // 6 leaflet pairs distributed along the rachis from -0.75 to 0.75
-  const pairs = 6;
-  const leaflets: React.ReactNode[] = [];
-  for (let i = 0; i < pairs; i++) {
-    const t = -0.72 + (i / (pairs - 1)) * 1.44; // -0.72 → +0.72 along rachis
-    const lrx = s * 0.45;
-    const lry = s * 0.18;
-    const lAngle = 15 + i * 4; // slight upward tip angle
-    for (const side of [-1, 1]) {
-      const lx = cx + side * s * 0.52;
-      const ly = cy + t * s;
-      leaflets.push(
-        <ellipse
-          cx={lx}
-          cy={ly}
-          fill={fill}
-          key={`${id}-l${i}s${side}`}
-          rx={lrx}
-          ry={lry}
-          transform={`rotate(${side * lAngle} ${lx} ${ly})`}
-        />,
-      );
-    }
-  }
-  // Terminal leaflet at the tip
-  leaflets.push(
-    <ellipse
-      cx={cx}
-      cy={cy - s * 0.82}
-      fill={fill}
-      key={`${id}-tip`}
-      rx={s * 0.28}
-      ry={s * 0.42}
-    />,
-  );
-  return (
-    <g transform={`rotate(${angleDeg} ${cx} ${cy})`}>
-      <line
-        opacity={0.6}
-        stroke={fill}
-        strokeLinecap="round"
-        strokeWidth={s * 0.08}
-        x1={cx}
-        x2={cx}
-        y1={cy - s * 0.9}
-        y2={cy + s * 0.8}
-      />
-      {leaflets}
-    </g>
-  );
-}
+import { leavesPathData } from "./leafShapes";
 
 // ─── Seed / Sprout Stage ──────────────────────────────────────────────────────
+
+/**
+ * Seed leaves as each species actually germinates, fanned from the stem top:
+ * angles in degrees from straight up, length and width at full size. A pine
+ * opens a ring of needle-like cotyledons, a juniper a narrow pair, a maple
+ * two long straps, a wisteria two fleshy rounds. An oak keeps its
+ * cotyledons in the acorn underground, so its first leaves are true ones.
+ */
+const COTYLEDONS: Record<
+  LeafShape,
+  { angles: number[]; length: number; width: number }
+> = {
+  needle: { angles: [-75, -50, -25, 0, 25, 50, 75], length: 5, width: 0.6 },
+  scale: { angles: [-35, 35], length: 5, width: 0.8 },
+  palmate: { angles: [-72, 72], length: 7.5, width: 1.7 },
+  blossom: { angles: [-62, 62], length: 6, width: 3.2 },
+  ovate: { angles: [-62, 62], length: 6, width: 3.2 },
+  lobed: { angles: [], length: 0, width: 0 },
+  pinnate: { angles: [-60, 60], length: 4.5, width: 3.8 },
+  bipinnate: { angles: [-65, 65], length: 5.5, width: 3 },
+};
 
 function SeedSprout({
   day,
   cx,
   baseY,
   foliageColor,
+  leafShape,
 }: {
   day: number;
   cx: number;
   baseY: number;
   foliageColor: string;
+  leafShape: LeafShape;
 }) {
   const seedFade = Math.max(0, 1 - day / 5);
   const crackOpen = clamp(day / 2, 0, 1);
@@ -125,8 +66,7 @@ function SeedSprout({
   const crackDepth = seedRy * 0.6 * crackOpen;
   const crackWidth = seedRx * 0.18 * crackOpen;
   const stemTop = seedY - stemGrow * 22;
-  const leafRx = leavesGrow * 6;
-  const leafRy = leavesGrow * 3.5;
+  const cotyledons = COTYLEDONS[leafShape];
 
   if (seedFade <= 0 && stemGrow <= 0) return null;
 
@@ -176,23 +116,23 @@ function SeedSprout({
         />
       )}
       {leavesGrow > 0 && (
-        <g opacity={Math.min(leavesGrow * 1.5, 1)}>
-          <ellipse
-            cx={cx - leafRx * 1.1}
-            cy={stemTop + leafRy * 0.5}
-            fill={foliageColor}
-            rx={leafRx}
-            ry={leafRy}
-            transform={`rotate(-30 ${cx - leafRx * 1.1} ${stemTop + leafRy * 0.5})`}
-          />
-          <ellipse
-            cx={cx + leafRx * 1.1}
-            cy={stemTop + leafRy * 0.5}
-            fill={foliageColor}
-            rx={leafRx}
-            ry={leafRy}
-            transform={`rotate(30 ${cx + leafRx * 1.1} ${stemTop + leafRy * 0.5})`}
-          />
+        <g fill={foliageColor} opacity={Math.min(leavesGrow * 1.5, 1)}>
+          {cotyledons.angles.map((deg) => {
+            const rad = (deg * Math.PI) / 180;
+            const half = (cotyledons.length * leavesGrow) / 2;
+            const x = cx + Math.sin(rad) * half;
+            const y = stemTop - Math.cos(rad) * half;
+            return (
+              <ellipse
+                cx={x}
+                cy={y}
+                key={deg}
+                rx={(cotyledons.width * leavesGrow) / 2}
+                ry={half}
+                transform={`rotate(${deg} ${x} ${y})`}
+              />
+            );
+          })}
         </g>
       )}
     </g>
@@ -296,52 +236,64 @@ function branchZBounds(branches: { z: number }[]): {
   return { zMin, zRange: zMax - zMin };
 }
 
-// ─── Leaf Renderer ────────────────────────────────────────────────────────────
+/** The leaves a species wears at `day`: its juvenile foliage, if it has one,
+ *  until it reaches flowering age; its crown foliage after. */
+function foliageAt(config: SpeciesConfig, day: number) {
+  const young = day < (config.flowers?.floweringAge ?? 0);
+  return (young && config.juvenileFoliage) || config;
+}
 
-function renderLeaf(leaf: Leaf, leafShape: string, foliageColor: string) {
-  if (leafShape === "palmate") {
-    return (
-      <path
-        d={PALMATE_LEAF_PATH}
-        fill={foliageColor}
-        key={leaf.id}
-        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-      />
-    );
-  }
-  if (leafShape === "lobed") {
-    return (
-      <path
-        d={LOBED_LEAF_PATH}
-        fill={foliageColor}
-        key={leaf.id}
-        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-      />
-    );
-  }
-  if (leafShape === "pinnate") {
-    return (
-      <PinnateLeaf
-        angleDeg={leaf.angleDeg}
-        cx={leaf.cx}
-        cy={leaf.cy}
-        fill={foliageColor}
-        id={leaf.id}
-        key={leaf.id}
-        scale={leaf.rx}
-      />
+// ─── Foliage Layer ────────────────────────────────────────────────────────────
+
+/** Depth bands the foliage is split into — one <path> (one colour) each. */
+const FOLIAGE_BANDS = 6;
+
+/**
+ * Draws the depth-sorted foliage as one path per depth band, back to front.
+ * Each band takes the depth tint at its middle, so the crown keeps its
+ * shadow-to-highlight gradient while a mature tree costs six nodes of
+ * foliage instead of thousands.
+ */
+function FoliageLayer({
+  leaves,
+  shape,
+  foliageColor,
+  foliageColorLight,
+}: {
+  leaves: { leaf: Leaf; absoluteZ: number }[];
+  shape: LeafShape;
+  foliageColor: string;
+  foliageColorLight: string;
+}) {
+  const { zMin, zRange } = branchZBounds(
+    leaves.map((e) => ({ z: e.absoluteZ })),
+  );
+  const bands: Leaf[][] = Array.from({ length: FOLIAGE_BANDS }, () => []);
+  for (const { leaf, absoluteZ } of leaves) {
+    const t = zRange < 1e-6 ? 0 : (absoluteZ - zMin) / zRange;
+    bands[Math.min(FOLIAGE_BANDS - 1, Math.floor(t * FOLIAGE_BANDS))].push(
+      leaf,
     );
   }
   return (
-    <ellipse
-      cx={leaf.cx}
-      cy={leaf.cy}
-      fill={foliageColor}
-      key={leaf.id}
-      rx={leaf.rx}
-      ry={leaf.ry}
-      transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}
-    />
+    <g className="foliage">
+      {bands.map((band, i) =>
+        band.length === 0 ? null : (
+          <path
+            d={leavesPathData(band, shape)}
+            fill={depthTintedColor(
+              zMin + ((i + 0.5) / FOLIAGE_BANDS) * zRange,
+              zMin,
+              zRange,
+              foliageColor,
+              foliageColorLight,
+            )}
+            // biome-ignore lint/suspicious/noArrayIndexKey: bands are fixed depth slots
+            key={i}
+          />
+        ),
+      )}
+    </g>
   );
 }
 
@@ -905,9 +857,7 @@ export function StaticTreeSVG({
   // a forward-projected pad on a back branch can still overpaint a back pad
   // on a forward branch where the two discs cross in 2D.
   const globalLeaves = collectGlobalLeaves(sortedBranches, svgData.apexLeaves);
-  const { zMin: leafZMin, zRange: leafZRange } = branchZBounds(
-    globalLeaves.map((e) => ({ z: e.absoluteZ })),
-  );
+  const foliage = foliageAt(config, tree.activeDaysCount);
 
   return (
     <svg
@@ -1004,19 +954,12 @@ export function StaticTreeSVG({
 
         {/* Foliage layer — every leaf z-sorted globally so overlapping pads
            on different branches paint in true depth order. */}
-        {globalLeaves.map(({ leaf, absoluteZ }) =>
-          renderLeaf(
-            leaf,
-            config.leafShape,
-            depthTintedColor(
-              absoluteZ,
-              leafZMin,
-              leafZRange,
-              config.foliageColor,
-              config.foliageColorLight,
-            ),
-          ),
-        )}
+        <FoliageLayer
+          foliageColor={foliage.foliageColor}
+          foliageColorLight={foliage.foliageColorLight}
+          leaves={globalLeaves}
+          shape={foliage.leafShape}
+        />
 
         <FlowerLayer flowerSpec={config.flowers} flowers={svgData.flowers} />
 
@@ -1025,7 +968,8 @@ export function StaticTreeSVG({
             baseY={svgData.trunkBaseY}
             cx={svgData.trunkX}
             day={tree.activeDaysCount}
-            foliageColor={config.foliageColor}
+            foliageColor={foliage.foliageColor}
+            leafShape={foliage.leafShape}
           />
         )}
 
