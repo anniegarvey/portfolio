@@ -17,6 +17,7 @@ export function makeMeadowmereState(
       nessa: { friendship: 0 },
       bram: { friendship: 0 },
       marigold: { friendship: 0 },
+      wren: { friendship: 0 },
     },
     unlockedCropIds: ["parsnip"],
     unlockedSiteIds: ["hedgerow"],
@@ -59,6 +60,7 @@ export function makeMeadowmereContext(
     forage: vi.fn(),
     giveGift: vi.fn(),
     claimQuest: vi.fn(),
+    claimErrand: vi.fn(),
     ...overrides,
   };
 }

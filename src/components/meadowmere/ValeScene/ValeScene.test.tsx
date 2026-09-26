@@ -53,7 +53,7 @@ describe("ValeScene", () => {
   it("gives every feature a button naming what it offers", () => {
     renderScene(stateWith(6));
 
-    expect(screen.getAllByRole("button")).toHaveLength(6 + 3 + 3 + 1);
+    expect(screen.getAllByRole("button")).toHaveLength(6 + 5 + 4 + 1);
     expect(
       screen.getByRole("button", {
         name: "Plot 1 — bare soil, needs a seed in hand",
@@ -79,7 +79,7 @@ describe("ValeScene", () => {
 
   it("adds buttons as quests hand over more land", () => {
     renderScene(stateWith(MAX_PLOTS));
-    expect(screen.getAllByRole("button")).toHaveLength(MAX_PLOTS + 3 + 3 + 1);
+    expect(screen.getAllByRole("button")).toHaveLength(MAX_PLOTS + 5 + 4 + 1);
   });
 
   it("hands the feature back when its button is used", async () => {

@@ -1,10 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ALL_NEIGHBOUR_IDS } from "@/lib/meadowmere/catalog";
 import {
   type MeadowmereContextType,
   useMeadowmere,
 } from "@/lib/meadowmere/context";
+import { todaysErrand } from "@/lib/meadowmere/errandsModule";
 import {
   makeMeadowmereContext,
   makeMeadowmereState,
@@ -14,17 +16,42 @@ import { NeighbourDialog } from "./NeighbourDialog";
 vi.mock("@/lib/meadowmere/context");
 
 const claimQuest = vi.fn();
+const claimErrand = vi.fn();
 const onClose = vi.fn();
 
 function mock(overrides: Partial<MeadowmereContextType> = {}) {
   vi.mocked(useMeadowmere).mockReturnValue(
-    makeMeadowmereContext({ claimQuest, ...overrides }),
+    makeMeadowmereContext({ claimQuest, claimErrand, ...overrides }),
   );
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date(`${ERRAND_DAY}T12:00:00`));
 });
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+const ERRAND_DAY = "2026-09-26";
+
+/** A farm past the first quest, holding whatever today's errand asks for. */
+function errandState(stocked: boolean, overrides = {}) {
+  const base = makeMeadowmereState({
+    completedQuestIds: ["a-bed-for-parsnips"],
+    ...overrides,
+  });
+  const errand = todaysErrand(base, ERRAND_DAY);
+  if (errand === null) throw new Error("no errand");
+  return {
+    errand,
+    state: stocked
+      ? { ...base, inventory: { [errand.itemId]: errand.amount } }
+      : base,
+  };
+}
 
 describe("NeighbourDialog", () => {
   it("stays shut when nobody is being called on", () => {
@@ -173,5 +200,57 @@ describe("NeighbourDialog", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Close modal" }));
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("today's errand", () => {
+  it("is asked by the neighbour whose turn it is", () => {
+    const { errand, state } = errandState(false);
+    mock({ state });
+    render(
+      <NeighbourDialog neighbourId={errand.neighbourId} onClose={onClose} />,
+    );
+
+    expect(screen.getByText("Today’s errand")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Not ready yet" }),
+    ).toBeDisabled();
+  });
+
+  it("isn't asked by anyone else", () => {
+    const { errand, state } = errandState(false);
+    const other = ALL_NEIGHBOUR_IDS.find((id) => id !== errand.neighbourId);
+    mock({ state });
+    render(<NeighbourDialog neighbourId={other ?? null} onClose={onClose} />);
+
+    expect(screen.queryByText("Today’s errand")).not.toBeInTheDocument();
+  });
+
+  it("hands in a ready errand", async () => {
+    const { errand, state } = errandState(true);
+    mock({ state });
+    render(
+      <NeighbourDialog neighbourId={errand.neighbourId} onClose={onClose} />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Hand in today’s errand" }),
+    );
+    expect(claimErrand).toHaveBeenCalledOnce();
+  });
+
+  it("says it is done once handed in today", () => {
+    const { errand, state } = errandState(true, {
+      lastErrandDate: ERRAND_DAY,
+    });
+    mock({ state });
+    render(
+      <NeighbourDialog neighbourId={errand.neighbourId} onClose={onClose} />,
+    );
+
+    expect(screen.getByText(/Done today/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Hand in today’s errand" }),
+    ).not.toBeInTheDocument();
   });
 });

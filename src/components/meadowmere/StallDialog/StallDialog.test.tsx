@@ -56,7 +56,7 @@ describe("StallDialog", () => {
     expect(screen.getByText(/Moonpetal/)).toBeInTheDocument();
     expect(
       screen.getAllByText("Locked — earned through a quest."),
-    ).toHaveLength(4);
+    ).toHaveLength(7);
   });
 
   it("shows how many packets are already in the pouch", () => {

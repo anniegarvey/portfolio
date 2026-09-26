@@ -2,13 +2,20 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
   ALL_CROP_IDS,
+  ALL_KEEPSAKE_IDS,
   ALL_NEIGHBOUR_IDS,
   ALL_SITE_IDS,
   GROWTH_STAGES,
 } from "@/lib/meadowmere/catalog";
 import type { Facing } from "@/lib/meadowmere/movement";
 import { FarmerSVG } from "./FarmerSVG";
-import { CottageArt, PlotArt, SiteArt, StallArt } from "./FeatureArt";
+import {
+  CottageArt,
+  KeepsakeArt,
+  PlotArt,
+  SiteArt,
+  StallArt,
+} from "./FeatureArt";
 import { TerrainLayer } from "./TerrainLayer";
 
 /** SVG fragments need an <svg> root to render into. */
@@ -191,5 +198,19 @@ describe("StallArt", () => {
   it("draws the stall", () => {
     const { container } = renderSvg(<StallArt />);
     expect(container.querySelectorAll("rect").length).toBeGreaterThan(3);
+  });
+});
+
+describe("KeepsakeArt", () => {
+  it.each(ALL_KEEPSAKE_IDS)("draws %s", (keepsakeId) => {
+    const { container } = renderSvg(<KeepsakeArt keepsakeId={keepsakeId} />);
+    expect(container.innerHTML).not.toBe("");
+  });
+
+  it("gives every keepsake its own look", () => {
+    const rendered = ALL_KEEPSAKE_IDS.map(
+      (id) => renderSvg(<KeepsakeArt keepsakeId={id} />).container.innerHTML,
+    );
+    expect(new Set(rendered).size).toBe(ALL_KEEPSAKE_IDS.length);
   });
 });

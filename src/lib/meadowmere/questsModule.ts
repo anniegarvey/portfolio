@@ -2,6 +2,7 @@ import {
   ALL_QUEST_IDS,
   type FriendshipCondition,
   ITEMS,
+  type KeepsakeId,
   MAX_PLOTS,
   NEIGHBOURS,
   QUESTS,
@@ -45,6 +46,17 @@ export function siteUnlockGiver(siteId: SiteId): NeighbourId | null {
     (candidate) => candidate.reward.unlockSiteId === siteId,
   );
   return quest?.giverId ?? null;
+}
+
+/**
+ * Keepsakes the farm has been given, in catalog quest order. Read off the
+ * completed quests rather than stored, so a keepsake can never exist without
+ * the quest that gave it.
+ */
+export function earnedKeepsakes(state: MeadowmereState): KeepsakeId[] {
+  return ALL_QUEST_IDS.filter((id) => state.completedQuestIds.includes(id))
+    .map((id) => QUESTS[id].reward.keepsakeId)
+    .filter((id): id is KeepsakeId => id !== undefined);
 }
 
 /** True when the quest's prerequisites are done and it should show on the board. */

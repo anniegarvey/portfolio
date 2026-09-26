@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PLOTS } from "./catalog";
+import { ALL_KEEPSAKE_IDS, ALL_QUEST_IDS, MAX_PLOTS } from "./catalog";
 import { makeMeadowmereState } from "./testFixtures";
 import {
   FARMER_START,
@@ -22,6 +22,9 @@ const stateWithPlots = (count: number, lastAdvanceDate = "2026-06-20") =>
       id: `plot-${i}`,
       planting: null,
     })),
+    // Every quest done, so every keepsake is standing too: the invariants below
+    // have to hold for the most crowded the Vale will ever be.
+    completedQuestIds: [...ALL_QUEST_IDS],
     // Set, so the cat is standing in the Vale for every invariant below — an
     // unset date is a game that hasn't opened yet, which the provider fixes on
     // mount before anything is drawn.
@@ -45,6 +48,32 @@ function everyCatTile(): Tile[] {
     if (cat !== undefined) found.set(`${cat.x},${cat.y}`, cat);
   }
   return [...found.values()];
+}
+
+/** Every tile the farmer can walk to from `start`, as "x,y" keys. */
+function reachableFrom(
+  state: ReturnType<typeof stateWithPlots>,
+  start: Tile,
+): Set<string> {
+  const seen = new Set([`${start.x},${start.y}`]);
+  const queue: Tile[] = [start];
+  while (queue.length > 0) {
+    const { x, y } = queue.shift() as Tile;
+    const next = [
+      { x, y: y - 1 },
+      { x, y: y + 1 },
+      { x: x - 1, y },
+      { x: x + 1, y },
+    ].filter(
+      (tile) =>
+        !seen.has(`${tile.x},${tile.y}`) && isWalkable(state, tile.x, tile.y),
+    );
+    for (const tile of next) {
+      seen.add(`${tile.x},${tile.y}`);
+      queue.push(tile);
+    }
+  }
+  return seen;
 }
 
 describe("valeMap", () => {
@@ -113,12 +142,12 @@ describe("valeMap", () => {
       expect(tiles.size).toBe(MAX_PLOTS);
     });
 
-    it("shows all three sites even while they are locked", () => {
+    it("shows every site even while they are locked", () => {
       const features = valeFeatures(stateWithPlots(6));
-      expect(features.filter((f) => f.kind === "site")).toHaveLength(3);
+      expect(features.filter((f) => f.kind === "site")).toHaveLength(5);
     });
 
-    it("stands a cottage for each of the three neighbours", () => {
+    it("stands a cottage for each of the four neighbours", () => {
       const cottages = valeFeatures(stateWithPlots(6)).filter(
         (f) => f.kind === "cottage",
       );
@@ -126,7 +155,34 @@ describe("valeMap", () => {
         "bram",
         "marigold",
         "nessa",
+        "wren",
       ]);
+    });
+
+    it("stands no keepsakes on a farm that has finished no quests", () => {
+      const fresh = makeMeadowmereState({ lastAdvanceDate: "2026-06-20" });
+      expect(valeFeatures(fresh).filter((f) => f.kind === "keepsake")).toEqual(
+        [],
+      );
+    });
+
+    it("stands a keepsake once the quest that gives it is done", () => {
+      const state = makeMeadowmereState({
+        completedQuestIds: ["a-scarecrow-for-the-field"],
+      });
+      const keepsakes = valeFeatures(state).filter(
+        (f) => f.kind === "keepsake",
+      );
+      expect(keepsakes).toEqual([
+        expect.objectContaining({ keepsakeId: "scarecrow" }),
+      ]);
+    });
+
+    it("stands every keepsake once every quest is done", () => {
+      const keepsakes = valeFeatures(stateWithPlots(MAX_PLOTS)).filter(
+        (f) => f.kind === "keepsake",
+      );
+      expect(keepsakes).toHaveLength(ALL_KEEPSAKE_IDS.length);
     });
 
     it("stands exactly one seed stall", () => {
@@ -311,6 +367,21 @@ describe("valeMap", () => {
   });
 
   describe("reachability", () => {
+    // Keepsakes stand on open ground, so each one is a new wall. Checked as
+    // one connected valley, not just a free tile beside each feature: a free
+    // tile the farmer can't get to is no better than none.
+    it("keeps every open tile reachable from the farmhouse door", () => {
+      const state = stateWithPlots(MAX_PLOTS);
+      const seen = reachableFrom(state, FARMER_START);
+      for (let y = 0; y < VALE_HEIGHT; y++) {
+        for (let x = 0; x < VALE_WIDTH; x++) {
+          if (isWalkable(state, x, y)) {
+            expect(seen.has(`${x},${y}`), `${x},${y} is cut off`).toBe(true);
+          }
+        }
+      }
+    });
+
     // Every feature must have somewhere to stand beside it, or the loop it
     // belongs to becomes unplayable.
     it("leaves a walkable tile beside every feature on a full farm", () => {

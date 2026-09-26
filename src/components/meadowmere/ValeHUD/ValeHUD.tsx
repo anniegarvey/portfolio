@@ -5,8 +5,10 @@ import { styled } from "next-yak";
 import { useId, useState } from "react";
 import { Modal } from "@/components/Modal";
 import { QuestLog } from "@/components/meadowmere/QuestLog";
+import { getTodayDateString } from "@/lib/date";
 import { ALL_CROP_IDS, CROPS, ITEMS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
+import { errandStatus, todaysErrand } from "@/lib/meadowmere/errandsModule";
 import { foragesLeft } from "@/lib/meadowmere/foragingModule";
 import { seedCount } from "@/lib/meadowmere/inventory";
 import { questStatus, visibleQuests } from "@/lib/meadowmere/questsModule";
@@ -52,9 +54,14 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
   const larder = Object.entries(state.inventory).filter(
     ([, count]) => (count ?? 0) > 0,
   ) as [ItemId, number][];
-  const readyQuests = visibleQuests(state).filter(
-    (quest) => questStatus(state, quest.id) === "ready",
-  ).length;
+  const today = getTodayDateString();
+  const errand = todaysErrand(state, today);
+  const errandReady =
+    errand !== null && errandStatus(state, errand, today) === "ready";
+  const readyQuests =
+    visibleQuests(state).filter(
+      (quest) => questStatus(state, quest.id) === "ready",
+    ).length + (errandReady ? 1 : 0);
   const seedsInHand =
     selectedCropId === null ? 0 : seedCount(state, selectedCropId);
 

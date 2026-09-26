@@ -87,3 +87,37 @@ describe("instructions seen", () => {
     expect(hasSeenInstructions()).toBe(true);
   });
 });
+
+describe("saves from before the orchard and the fen", () => {
+  it("still load without Wren, errands or the new unlocks", () => {
+    const old = {
+      plots: makeEmptyPlots(12),
+      seeds: { parsnip: 2, moonpetal: 1 },
+      inventory: { chanterelle: 3 },
+      neighbours: {
+        nessa: { friendship: 70 },
+        bram: { friendship: 64 },
+        marigold: { friendship: 90 },
+      },
+      unlockedCropIds: ["parsnip", "cornflower", "strawberry", "pumpkin"],
+      unlockedSiteIds: ["hedgerow", "riverbank", "stonewood"],
+      completedQuestIds: [
+        "a-bed-for-parsnips",
+        "down-to-the-riverbank",
+        "clay-for-the-kiln",
+        "sweet-on-you",
+        "the-harvest-table",
+        "three-good-friends",
+      ],
+      foragesToday: 1,
+      lastAdvanceDate: "2026-09-01",
+    };
+    localStorage.setItem(KEY, JSON.stringify(old));
+
+    expect(loadMeadowmereState()).toEqual(old);
+  });
+
+  it("starts a new farm knowing Wren", () => {
+    expect(createInitialState().neighbours.wren).toEqual({ friendship: 0 });
+  });
+});

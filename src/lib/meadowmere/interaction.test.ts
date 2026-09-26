@@ -207,3 +207,24 @@ describe("interactionFor", () => {
     }
   });
 });
+
+describe("keepsakes", () => {
+  const SCARECROW: Feature = {
+    kind: "keepsake",
+    x: 2,
+    y: 6,
+    keepsakeId: "scarecrow",
+  };
+
+  it("names the keepsake and says something about it, with nothing to do", () => {
+    const result = interactionFor(
+      makeMeadowmereState(),
+      SCARECROW,
+      null,
+      TODAY,
+    );
+    expect(result.action).toBeNull();
+    expect(result.label).toBe("Scarecrow");
+    expect(result.detail).toContain("Bram");
+  });
+});

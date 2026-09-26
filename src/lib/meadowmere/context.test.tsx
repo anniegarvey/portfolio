@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
 import { CROPS, FORAGES_PER_DAY } from "./catalog";
 import { MeadowmereProvider, useMeadowmere } from "./context";
+import { todaysErrand } from "./errandsModule";
 import { createInitialState } from "./storage";
 
 vi.mock("@/lib/points/context", () => ({
@@ -66,6 +68,9 @@ function MeadowmereDebug() {
         {ctx.state.completedQuestIds.join(",") || "none"}
       </span>
       <span data-testid="notice">{ctx.notice?.kind ?? "none"}</span>
+      <span data-testid="last-errand">
+        {ctx.state.lastErrandDate ?? "none"}
+      </span>
       <span data-testid="report-days">
         {ctx.dailyReport?.daysPassed ?? "none"}
       </span>
@@ -99,6 +104,9 @@ function MeadowmereDebug() {
         type="button"
       >
         claim
+      </button>
+      <button onClick={ctx.claimErrand} type="button">
+        errand
       </button>
       <button onClick={ctx.clearNotice} type="button">
         clear-notice
@@ -310,6 +318,41 @@ describe("quests", () => {
 
     await click("claim");
     expect(screen.getByTestId("completed")).toHaveTextContent("none");
+    expect(screen.getByTestId("notice")).toHaveTextContent("none");
+  });
+});
+
+describe("errands", () => {
+  it("hands in today's errand and says so", async () => {
+    setupMockPoints();
+    const today = getTodayDateString();
+    const base = {
+      ...createInitialState(),
+      completedQuestIds: ["a-bed-for-parsnips" as const],
+    };
+    const errand = todaysErrand(base, today);
+    if (errand === null) throw new Error("no errand");
+    seedLocalStorage({
+      completedQuestIds: base.completedQuestIds,
+      inventory: { [errand.itemId]: errand.amount },
+    });
+    renderProvider();
+
+    await click("errand");
+
+    expect(screen.getByTestId("last-errand")).toHaveTextContent(today);
+    expect(screen.getByTestId("notice")).toHaveTextContent("errand");
+    expect(readStored().lastErrandDate).toBe(today);
+  });
+
+  it("does nothing when the errand isn't ready", async () => {
+    setupMockPoints();
+    seedLocalStorage({ completedQuestIds: ["a-bed-for-parsnips"] });
+    renderProvider();
+
+    await click("errand");
+
+    expect(screen.getByTestId("last-errand")).toHaveTextContent("none");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
   });
 });

@@ -97,7 +97,9 @@ describe("friendship", () => {
     render(<NeighbourCard neighbourId="marigold" />);
 
     expect(
-      screen.getByText("Likes: Wild Honey, Cornflower, River Clay, Reed"),
+      screen.getByText(
+        "Likes: Wild Honey, Cornflower, River Clay, Reed, Sunflower, Glowcap",
+      ),
     ).toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import { FarmerSVG } from "@/components/meadowmere/ValeArt/FarmerSVG";
 import {
   CatArt,
   CottageArt,
+  KeepsakeArt,
   PlotArt,
   SiteArt,
   StallArt,
@@ -106,6 +107,8 @@ function FeatureBody({
       return <StallArt />;
     case "cat":
       return <CatArt />;
+    case "keepsake":
+      return <KeepsakeArt keepsakeId={feature.keepsakeId} />;
   }
 }
 
@@ -325,6 +328,9 @@ const Stage = styled.div`
   --vale-marigold-wall: light-dark(#dcd0e2, #766a80);
   --vale-marigold-roof: light-dark(#7a6a9c, #4c4265);
   --vale-marigold-roof-lit: light-dark(#8f7fb0, #5d5178);
+  --vale-wren-wall: light-dark(#efe4cf, #857a66);
+  --vale-wren-roof: light-dark(#4f7fa0, #33526a);
+  --vale-wren-roof-lit: light-dark(#6493b3, #41657f);
 
   /* The cat keeps one set of colours in both themes, like the farmer. Ginger
      rather than anything darker: the cat only ever sits on the hedge or the
@@ -350,6 +356,8 @@ const Stage = styled.div`
   --vale-reed: light-dark(#7fa650, #4f6a35);
   --vale-clay: light-dark(#b08968, #6f5642);
   --vale-clay-lit: light-dark(#c49a76, #806450);
+  --vale-fen-water: light-dark(#5f8a7a, #2f4a42);
+  --vale-mist: light-dark(#f4f1ea, #9aa6a2);
 `;
 
 /**
