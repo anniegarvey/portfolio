@@ -19,13 +19,25 @@ export function MobileDrawer() {
   const [playgroundOpen, setPlaygroundOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
 
+  const isCurrent = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
+
+  // Each time the menu opens, expand only the group holding the current page.
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      setPlaygroundOpen(LIVE_APPS.some((app) => isCurrent(app.href)));
+      setProjectsOpen(CASE_STUDIES.some((cs) => isCurrent(cs.href)));
+    }
+    setOpen(next);
+  };
+
   const handleLinkClick = () => setOpen(false);
 
   return (
     <MobileNav>
       <PointsDisplay />
       <SuggestionButton />
-      <Dialog.Root onOpenChange={setOpen} open={open}>
+      <Dialog.Root onOpenChange={handleOpenChange} open={open}>
         <Dialog.Trigger asChild>
           <HamburgerButton aria-label="Toggle navigation menu">
             <Menu aria-hidden="true" size={32} />
@@ -72,7 +84,7 @@ export function MobileDrawer() {
                         <li key={app.slug}>
                           <MobileSubLink
                             aria-current={
-                              pathname === app.href ? "page" : undefined
+                              isCurrent(app.href) ? "page" : undefined
                             }
                             href={app.href}
                             onClick={handleLinkClick}
@@ -108,7 +120,7 @@ export function MobileDrawer() {
                         <li key={cs.slug}>
                           <MobileSubLink
                             aria-current={
-                              pathname === cs.href ? "page" : undefined
+                              isCurrent(cs.href) ? "page" : undefined
                             }
                             href={cs.href}
                             onClick={handleLinkClick}

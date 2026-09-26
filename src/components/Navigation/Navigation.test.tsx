@@ -151,6 +151,52 @@ describe("Navigation", () => {
     expect(liveLink).not.toHaveAttribute("aria-current");
   });
 
+  it("mobile menu opens with the current page's group expanded", async () => {
+    vi.mocked(usePathname).mockReturnValue("/projects/bonsai");
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+
+    expect(
+      screen.getByRole("button", { name: /^case studies$/i }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /playground/i })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(dialog.querySelector('a[href="/projects/bonsai"]')).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("mobile menu highlights the parent app on a nested route", async () => {
+    vi.mocked(usePathname).mockReturnValue("/energy-planner/wellness");
+    const user = userEvent.setup();
+    renderWithTheme();
+
+    await user.click(
+      screen.getByRole("button", { name: "Toggle navigation menu" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+
+    expect(screen.getByRole("button", { name: /playground/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(dialog.querySelector('a[href="/energy-planner"]')).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      dialog.querySelector('a[href="/projects/energy-planner"]'),
+    ).not.toHaveAttribute("aria-current");
+  });
+
   it("Projects trigger has aria-controls referencing the panel", () => {
     renderWithTheme();
     const trigger = screen.getByRole("button", { name: /projects/i });
