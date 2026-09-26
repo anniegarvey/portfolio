@@ -1,8 +1,8 @@
-import Image from "next/image";
 import { styled } from "next-yak";
 import { FadeIn } from "@/components/FadeIn";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { QUERIES } from "@/lib/constants";
+import { AboutArt } from "./AboutArt";
 import { SectionTitle } from "./SectionTitle";
 
 export function AboutSection() {
@@ -15,20 +15,8 @@ export function AboutSection() {
         <AboutRows>
           <FadeIn>
             <AboutRow>
-              {/* Image is FIRST in DOM → LEFT on desktop */}
-              <AboutImageWrapper>
-                <Image
-                  alt="Annie — independent, curious, professional"
-                  height={400}
-                  src="/IndependentCuriousProfessional.png"
-                  style={{
-                    objectFit: "contain",
-                    width: "100%",
-                    height: "auto",
-                  }}
-                  width={400}
-                />
-              </AboutImageWrapper>
+              {/* Art is FIRST in DOM → LEFT on desktop */}
+              <AboutArt />
               <AboutText>
                 <AboutSubtitle>Building for Everyone</AboutSubtitle>
                 <p>
@@ -163,15 +151,6 @@ const AboutSubtitle = styled.h3`
   color: light-dark(var(--color-primary-800), var(--color-primary-300));
   margin-bottom: 4px;
   line-height: 1.1;
-`;
-
-const AboutImageWrapper = styled.div`
-  flex: 0 0 auto;
-  width: min(320px, 100%);
-
-  @media (${QUERIES.TABLET_UP}) {
-    width: 340px;
-  }
 `;
 
 const HobbyBoard = styled.div`
