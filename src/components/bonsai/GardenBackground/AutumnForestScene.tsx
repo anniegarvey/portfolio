@@ -1,4 +1,12 @@
-import { Bob, Falling, Glimmer, ld, Rock, vars } from "@/components/Scenery";
+import {
+  Bob,
+  Falling,
+  Glimmer,
+  ld,
+  Rock,
+  scatter,
+  vars,
+} from "@/components/Scenery";
 
 // ── Autumn Forest ─────────────────────────────────────────────────────────────
 //
@@ -29,31 +37,43 @@ const NEAR_WOOD = Array.from({ length: 14 }, (_, i) => ({
   r: 14 + ((i * 5) % 6),
 }));
 
-/** Leaves lying on the ground, scattered by a fixed rule so every render agrees. */
-const LITTER = Array.from({ length: 56 }, (_, i) => ({
-  x: (i * 71) % 400,
-  y: 134 + ((i * 37) % 64),
-  a: (i * 53) % 180,
-  c: i % LEAF_COLOURS.length,
-}));
+/**
+ * Leaves lying on the ground, strewn rather than laid out, and a little larger
+ * nearer the front so the floor has some depth.
+ */
+const LITTER = scatter(64, { x0: 0, x1: 400, y0: 134, y1: 198 }, 7).map(
+  (p) => ({
+    x: p.x,
+    y: p.y,
+    a: p.u * 360,
+    c: Math.floor(p.v * LEAF_COLOURS.length),
+    s: 0.6 + ((p.y - 134) / 64) * 0.5,
+  }),
+);
 
 /** Leaves on top of each leaf pile, by position along it. */
 const PILE_LEAVES = Array.from({ length: 10 }, (_, i) => i);
 
-const FALLING_LEAVES = [
-  { x: 88, y: 58 },
-  { x: 148, y: 44 },
-  { x: 202, y: 54 },
-  { x: 258, y: 39 },
-  { x: 318, y: 64 },
-  { x: 112, y: 84 },
-  { x: 178, y: 74 },
-  { x: 232, y: 81 },
-  { x: 292, y: 69 },
-  { x: 342, y: 57 },
-  { x: 162, y: 100 },
-  { x: 244, y: 96 },
-];
+/**
+ * Leaves letting go from under both canopies and the woods between. Every
+ * leaf gets its own drift, sway, spin and pace from the dice, so no two fall
+ * alike and none line up with their neighbours.
+ */
+const FALLING_LEAVES = scatter(
+  14,
+  { x0: 70, x1: 340, y0: 36, y1: 100 },
+  23,
+).map((p, i) => ({
+  x: p.x,
+  y: p.y,
+  c: i % LEAF_COLOURS.length,
+  tilt: p.u * 360,
+  drift: (p.u - 0.5) * 60,
+  sway: 6 + p.v * 10,
+  spin: (p.v < 0.5 ? -1 : 1) * (140 + p.u * 260),
+  period: 12 + p.v * 9,
+  offset: -((p.u * 37 + i * 5.3) % 21),
+}));
 
 const BEAMS = [
   { x: 120, w: 22, period: 9, offset: 0 },
@@ -71,13 +91,15 @@ const CANOPY = [
   { dx: 34, dy: 8, rx: 28, ry: 18, c: ld("#d4662a", "#882410") },
 ];
 
-/** Dabs of brighter and darker leaves over the canopy. */
-const CANOPY_DABS = Array.from({ length: 22 }, (_, i) => ({
-  dx: -50 + ((i * 29) % 100),
-  dy: -44 + ((i * 17) % 60),
-  c: i % LEAF_COLOURS.length,
-  a: (i * 41) % 180,
-}));
+/** Dabs of brighter and darker leaves strewn over the canopy. */
+const CANOPY_DABS = scatter(26, { x0: -58, x1: 58, y0: -50, y1: 16 }, 11).map(
+  (p) => ({
+    dx: p.x,
+    dy: p.y,
+    c: Math.floor(p.u * LEAF_COLOURS.length),
+    a: p.v * 360,
+  }),
+);
 
 function Canopy({ x, y, flip }: { x: number; y: number; flip: boolean }) {
   return (
@@ -259,7 +281,7 @@ export function AutumnForestScene({ uid }: { uid: string }) {
           d={LEAF}
           key={`${l.x}-${l.y}`}
           style={{ fill: LEAF_COLOURS[l.c] }}
-          transform={`translate(${l.x} ${l.y}) rotate(${l.a}) scale(0.9 0.6)`}
+          transform={`translate(${l.x} ${l.y}) scale(1 0.62) rotate(${l.a}) scale(${l.s})`}
         />
       ))}
 
@@ -438,24 +460,23 @@ export function AutumnForestScene({ uid }: { uid: string }) {
         />
       </g>
 
-      {/* Leaves letting go. Each drifts a different distance sideways and
-          turns at its own rate, so twelve leaves never look like one leaf
-          twelve times. */}
-      {FALLING_LEAVES.map((leaf, i) => (
+      {/* Leaves letting go, each rocking side to side as it drops. */}
+      {FALLING_LEAVES.map((leaf) => (
         <Falling
           key={`${leaf.x}-${leaf.y}`}
           style={vars({
-            "--fall-x": `${(i % 2 === 0 ? 1 : -1) * (14 + (i % 4) * 9)}px`,
+            "--fall-x": `${leaf.drift}px`,
             "--fall-y": `${150 - leaf.y}px`,
-            "--fall-spin": `${(i % 3 === 0 ? -1 : 1) * (160 + (i % 5) * 70)}deg`,
-            "--fall-period": `${11 + (i % 6) * 2.4}s`,
-            "--fall-offset": `${-(i * 2.7) % 17}s`,
+            "--fall-sway": `${leaf.sway}px`,
+            "--fall-spin": `${leaf.spin}deg`,
+            "--fall-period": `${leaf.period}s`,
+            "--fall-offset": `${leaf.offset}s`,
           })}
         >
           <path
             d={LEAF}
-            style={{ fill: LEAF_COLOURS[i % LEAF_COLOURS.length] }}
-            transform={`translate(${leaf.x} ${leaf.y}) rotate(${i * 37}) scale(1.4)`}
+            style={{ fill: LEAF_COLOURS[leaf.c] }}
+            transform={`translate(${leaf.x} ${leaf.y}) rotate(${leaf.tilt}) scale(1.4)`}
           />
         </Falling>
       ))}

@@ -203,6 +203,108 @@ function Blooms({ flowers }: { flowers: (typeof CLUMPS)[number]["flowers"] }) {
   });
 }
 
+/**
+ * A garden snail heading right: a soft foot with a silvery trail behind it, a
+ * striped spiral shell, and eye stalks that wave as it goes.
+ */
+function Snail({ uid }: { uid: string }) {
+  return (
+    <g>
+      <defs>
+        <linearGradient id={`${uid}-trail`} x1="0" x2="1" y1="0" y2="0">
+          <stop
+            offset="0"
+            style={{
+              stopColor: ld("rgba(255,255,255,0)", "rgba(200,210,240,0)"),
+            }}
+          />
+          <stop
+            offset="1"
+            style={{
+              stopColor: ld("rgba(255,255,255,0.75)", "rgba(200,210,240,0.35)"),
+            }}
+          />
+        </linearGradient>
+        <radialGradient cx="0.38" cy="0.35" id={`${uid}-shell`} r="0.7">
+          <stop offset="0" style={{ stopColor: ld("#f2c27a", "#8a6a40") }} />
+          <stop offset="0.6" style={{ stopColor: ld("#c47a3a", "#6a4424") }} />
+          <stop offset="1" style={{ stopColor: ld("#8a4a22", "#3e2614") }} />
+        </radialGradient>
+      </defs>
+      {/* Trail */}
+      <rect
+        fill={`url(#${uid}-trail)`}
+        height={1.2}
+        rx={0.6}
+        width={22}
+        x={-28}
+        y={-0.9}
+      />
+      {/* Foot and head */}
+      <path
+        d="M-8 0 Q-8.4 -1.6 -5 -1.8 L4 -2 Q7 -2.4 8.4 -4.6 Q9.8 -6.2 11 -4.6 Q11.8 -2.6 10.2 -1 Q9 0.2 6.4 0.2 L-6 0.2 Q-8 0.2 -8 0 Z"
+        style={{ fill: ld("#d8bc90", "#6a5a44") }}
+      />
+      <path
+        d="M-7 -0.2 L8 -0.2"
+        strokeLinecap="round"
+        strokeWidth={0.5}
+        style={{ stroke: ld("#b89a70", "#4e4232") }}
+      />
+      {/* Eye stalks, waving a little */}
+      <Rock
+        style={vars({
+          "--rock": "7deg",
+          "--rock-origin": "0% 100%",
+          "--rock-period": "3.2s",
+        })}
+      >
+        <path
+          d="M9.4 -5.2 Q10 -7.6 11 -9.4 M10.4 -5 Q11.8 -7 13.6 -8.2"
+          fill="none"
+          strokeLinecap="round"
+          strokeWidth={0.7}
+          style={{ stroke: ld("#c8a878", "#5e5040") }}
+        />
+        <circle
+          cx={11}
+          cy={-9.6}
+          r={0.75}
+          style={{ fill: ld("#3a2a20", "#e8dcc0") }}
+        />
+        <circle
+          cx={13.7}
+          cy={-8.4}
+          r={0.75}
+          style={{ fill: ld("#3a2a20", "#e8dcc0") }}
+        />
+      </Rock>
+      <circle
+        cx={10.8}
+        cy={-3.4}
+        r={0.35}
+        style={{ fill: ld("#3a2a20", "#1a1410") }}
+      />
+      {/* Shell, with its spiral and a glint */}
+      <circle cx={-1} cy={-5.6} fill={`url(#${uid}-shell)`} r={5.4} />
+      <path
+        d="M-1 -5.6 m0.9 0.2 a0.9 0.9 0 1 1 -0.9 -1.1 a2 2 0 1 1 -1.6 2.6 a3.2 3.2 0 1 1 4.6 -3.6 a4.4 4.4 0 1 1 -8 3.6"
+        fill="none"
+        strokeLinecap="round"
+        strokeWidth={0.7}
+        style={{ stroke: ld("#7a3e1a", "#2e1c10") }}
+      />
+      <path
+        d="M-3.8 -9 Q-2.2 -10.6 0 -10.4"
+        fill="none"
+        strokeLinecap="round"
+        strokeWidth={0.8}
+        style={{ stroke: ld("rgba(255,255,255,0.7)", "rgba(230,220,200,0.3)") }}
+      />
+    </g>
+  );
+}
+
 export function GardenScene({ uid }: { uid: string }) {
   return (
     <>
@@ -663,34 +765,16 @@ export function GardenScene({ uid }: { uid: string }) {
         </g>
       ))}
 
-      {/* A snail, taking the whole afternoon over it */}
+      {/* A snail, taking the whole afternoon over it along the lawn */}
       <Cross
         style={vars({
-          "--cross-x": "56px",
-          "--cross-period": "150s",
-          "--cross-offset": "-40s",
+          "--cross-x": "64px",
+          "--cross-period": "160s",
+          "--cross-offset": "-50s",
         })}
       >
-        <g transform="translate(252 184)">
-          <path
-            d="M-5 0 Q-2 -0.6 4 0 Q6 -0.4 6.4 -2.4 Q6.6 -3.4 7 -4.4"
-            fill="none"
-            strokeLinecap="round"
-            strokeWidth={1.4}
-            style={{ stroke: ld("#c8b08a", "#5a4c3c") }}
-          />
-          <circle
-            cx={0}
-            cy={-3}
-            r={3.4}
-            style={{ fill: ld("#b0703a", "#5a3a22") }}
-          />
-          <path
-            d="M0 -3 m-1.6 0 a1.6 1.6 0 1 1 1.6 1.6 a2.6 2.6 0 1 1 -2.6 -2.6"
-            fill="none"
-            strokeWidth={0.5}
-            style={{ stroke: ld("#e0b070", "#8a6a44") }}
-          />
+        <g transform="translate(228 134) scale(1.25)">
+          <Snail uid={uid} />
         </g>
       </Cross>
 

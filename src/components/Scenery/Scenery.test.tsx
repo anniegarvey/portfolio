@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Butterfly, Cloud, Daisy, Lavender, ld, Tulip, vars } from ".";
+import { Butterfly, Cloud, Daisy, Lavender, ld, scatter, Tulip, vars } from ".";
 
 describe("Scenery helpers", () => {
   it("ld pairs a light and a dark colour", () => {
@@ -59,5 +59,55 @@ describe("Scenery art", () => {
       "transform",
       "translate(5 6) scale(2)",
     );
+  });
+});
+
+describe("scatter", () => {
+  const box = { x0: 0, x1: 400, y0: 100, y1: 200 };
+
+  it("drops every point inside the box, with dice in [0, 1)", () => {
+    const points = scatter(40, box, 3);
+    expect(points).toHaveLength(40);
+    for (const p of points) {
+      expect(p.x).toBeGreaterThanOrEqual(0);
+      expect(p.x).toBeLessThan(400);
+      expect(p.y).toBeGreaterThanOrEqual(100);
+      expect(p.y).toBeLessThan(200);
+      for (const die of [p.u, p.v]) {
+        expect(die).toBeGreaterThanOrEqual(0);
+        expect(die).toBeLessThan(1);
+      }
+    }
+  });
+
+  it("gives the same points for the same seed, and different ones otherwise", () => {
+    expect(scatter(10, box, 5)).toEqual(scatter(10, box, 5));
+    expect(scatter(10, box, 5)).not.toEqual(scatter(10, box, 6));
+  });
+
+  it("spreads points over the whole box rather than clumping", () => {
+    const points = scatter(32, box, 9);
+    // Every quarter of the box gets its share, give or take.
+    for (const [qx, qy] of [
+      [0, 100],
+      [200, 100],
+      [0, 150],
+      [200, 150],
+    ]) {
+      const inQuarter = points.filter(
+        (p) => p.x >= qx && p.x < qx + 200 && p.y >= qy && p.y < qy + 50,
+      );
+      expect(inQuarter.length).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it("does not line points up along a diagonal", () => {
+    const points = scatter(30, box, 1);
+    // Stepping by fixed amounts puts neighbours at a constant offset from
+    // each other; strewn points vary.
+    const steps = new Set(
+      points.slice(1).map((p, i) => Math.round(p.x - points[i].x)),
+    );
+    expect(steps.size).toBeGreaterThan(20);
   });
 });

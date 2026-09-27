@@ -44,10 +44,35 @@ export const Adrift = styled.g`
   }
 `;
 
-/** Falls, turns, and fades out near the ground before restarting. */
+/**
+ * Falls, turns, and fades out near the ground before restarting. With a
+ * `--fall-sway` it rocks from side to side on the way down, the way a leaf
+ * does, rather than sliding down a straight line.
+ */
 const fall = keyframes`
   0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
   10%  { opacity: 1; }
+  25%  {
+    transform: translate(
+        calc(var(--fall-x) * 0.25 + var(--fall-sway, 0px)),
+        calc(var(--fall-y) * 0.25)
+      )
+      rotate(calc(var(--fall-spin) * 0.25));
+  }
+  50%  {
+    transform: translate(
+        calc(var(--fall-x) * 0.5 - var(--fall-sway, 0px)),
+        calc(var(--fall-y) * 0.5)
+      )
+      rotate(calc(var(--fall-spin) * 0.5));
+  }
+  75%  {
+    transform: translate(
+        calc(var(--fall-x) * 0.75 + var(--fall-sway, 0px)),
+        calc(var(--fall-y) * 0.75)
+      )
+      rotate(calc(var(--fall-spin) * 0.75));
+  }
   80%  { opacity: 1; }
   100% { opacity: 0; transform: translate(var(--fall-x), var(--fall-y)) rotate(var(--fall-spin)); }
 `;
@@ -56,7 +81,8 @@ export const Falling = styled.g`
   /* fill-box so a leaf turns about itself rather than about the scene origin. */
   transform-box: fill-box;
   transform-origin: center;
-  animation: ${fall} var(--fall-period) var(--fall-offset, 0s) linear infinite;
+  animation: ${fall} var(--fall-period) var(--fall-offset, 0s) ease-in-out
+    infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
