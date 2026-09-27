@@ -34,6 +34,12 @@ const PROJECTS = [
     description:
       "A WordPress site for a Wind Energy Storage startup — still live today",
   },
+  {
+    title: "Drift",
+    href: "/drift",
+    description:
+      "A soothing fluid simulation to stir with a pointer or fingertip, with its own palettes and flow settings",
+  },
 ];
 
 describe("ProjectsSection", () => {
