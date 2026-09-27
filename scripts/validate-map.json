@@ -51,6 +51,17 @@
     "playwright.config.ts": "e2e",
     "playwright.base.config.ts": "e2e"
   },
+  "full": [
+    ".nvmrc",
+    "biome.json",
+    "next.config.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "tsconfig.json",
+    "types/**",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ],
   "skip": [
     "*.md",
     "**/*.md",

@@ -22,6 +22,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm lint:theme
+      - run: node scripts/smart-validate.js --check-map
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
 

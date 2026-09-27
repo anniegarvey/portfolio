@@ -46,7 +46,7 @@ See `CONTEXT.md` for canonical terms (Activity, Planned instance, Projected inst
 - IndexedDB is mocked via `fake-indexeddb`; `src/lib/energy-planner/__mocks__/storage.ts` for unit tests
 - Coverage thresholds enforced per-file; see `vitest.config.ts`
 - Flaky tests tracked in `e2e/FLAKY_TESTS.md`
-- `scripts/validate-map.json` maps source globs to e2e directories for smart validation
+- `scripts/validate-map.json` maps every file to e2e directories (`areas`), the full suite (`full`) or nothing (`skip`) for smart validation. A new file outside those fails the pre-commit hook and CI until you add it
 
 ---
 

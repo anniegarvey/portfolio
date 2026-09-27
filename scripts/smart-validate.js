@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // smart-validate.js — runs only the validations relevant to staged changes.
-// Falls back to full suite for config/shared/unrecognised files.
+// Runs the full suite only for global config files.
 //
 // Mapping config: scripts/validate-map.json
 // ─────────────────────────────────────────
@@ -16,15 +16,15 @@
 // "skip": files that need no validation at all — assets, docs, design files,
 //   tooling scripts. Changes to these are silently ignored.
 //
-// Default behaviour for unrecognised files
+// "full": global config (package.json, tsconfig, ...) that can affect any
+//   test. Changing one runs the whole suite.
+//
+// Unmapped files fail the hook
 // ─────────────────────────────────────────
-// Files outside src/ and e2e/ (e.g. Playwright config) can be listed in
-// "areas" too. Any staged file that doesn't match "areas" or "skip" triggers
-// the full suite as a safe fallback — including config files, shared layouts, and
-// anything else not explicitly listed. This means adding new source
-// directories without updating "areas" will be slow but never silently skip
-// tests. Fix it by adding the new path to "areas" (or "skip" if it needs no
-// tests).
+// Every staged file except unit tests must match "areas", "full" or "skip",
+// so new directories get mapped instead of silently running everything.
+// Files outside src/ and e2e/ (e.g. Playwright config) can be in "areas" too.
+// CI runs `--check-map` to check every tracked file the same way.
 //
 // Mutation testing is not run here: CI runs it on pull requests
 // (scripts/mutate-changed.js).
@@ -104,6 +104,51 @@ function runFullValidate() {
   );
 }
 
+/** E2E dirs from every "areas" entry the file matches (empty if none). */
+function areasFor(file) {
+  return Object.entries(map.areas)
+    .filter(([pattern]) => matchGlob(pattern, file))
+    .flatMap(([, dirs]) => dirs);
+}
+
+function isUnitTest(file) {
+  return /\.test\.(ts|tsx)$/.test(file);
+}
+
+function unmappedMessage(files) {
+  return (
+    `\nThese files aren't in scripts/validate-map.json:\n` +
+    files.map((f) => `  - ${f}`).join("\n") +
+    `\n\nAdd each one to "areas" (the e2e dirs that cover it), "full" (global` +
+    ` config that can affect any test) or "skip" (needs no tests).\n`
+  );
+}
+
+// --- Map check (CI): every tracked file must be mapped ---
+
+if (process.argv.includes("--check-map")) {
+  const unmappedTracked = execSync("git ls-files", {
+    cwd: ROOT,
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")
+    .filter(
+      (f) =>
+        !(
+          matchesAny(f, map.skip) ||
+          isUnitTest(f) ||
+          matchesAny(f, map.full)
+        ) && areasFor(f).length === 0,
+    );
+  if (unmappedTracked.length > 0) {
+    console.error(unmappedMessage(unmappedTracked));
+    process.exit(1);
+  }
+  console.log("Every tracked file is in scripts/validate-map.json.");
+  process.exit(0);
+}
+
 // --- Collect staged files ---
 
 // Deletions are left out: there is nothing left to lint, and re-staging a
@@ -125,45 +170,21 @@ if (staged.length === 0) {
 
 const e2eDirs = new Set();
 const vitestFiles = [];
-const unmatchedSrc = [];
-
-/** An "areas" value is one e2e dir, or several for code shared between areas. */
-function addAreas(dirs) {
-  for (const dir of Array.isArray(dirs) ? dirs : [dirs]) e2eDirs.add(dir);
-}
+const unmapped = [];
+let needsFullSuite = false;
 
 for (const file of staged) {
   // Files that never need validation (assets, docs, design files)
   if (matchesAny(file, map.skip)) continue;
 
-  const isSrc = file.startsWith("src/");
-  const isUnitTest = /\.test\.(ts|tsx)$/.test(file);
-
-  if (isUnitTest) {
+  if (isUnitTest(file)) {
     // Changed unit test → run it directly, no e2e needed
     vitestFiles.push(file);
     continue;
   }
 
-  if (file.startsWith("e2e/")) {
-    // Changed e2e file → find its area
-    let matched = false;
-    for (const [pattern, dir] of Object.entries(map.areas)) {
-      if (matchGlob(pattern, file)) {
-        addAreas(dir);
-        matched = true;
-      }
-    }
-    if (!matched) {
-      console.log(`Unrecognised e2e file (${file}) — running full validate.`);
-      runFullValidate();
-      process.exit(0);
-    }
-    continue;
-  }
-
-  if (isSrc) {
-    // Source file → find co-located test and e2e area
+  if (file.startsWith("src/")) {
+    // Source file → also run its co-located test
     for (const ext of ["ts", "tsx"]) {
       const candidate = file.replace(/\.(ts|tsx)$/, `.test.${ext}`);
       if (
@@ -173,39 +194,28 @@ for (const file of staged) {
         vitestFiles.push(candidate);
       }
     }
+  }
 
-    let matched = false;
-    for (const [pattern, dir] of Object.entries(map.areas)) {
-      if (matchGlob(pattern, file)) {
-        addAreas(dir);
-        matched = true;
-      }
-    }
-    if (!matched) {
-      unmatchedSrc.push(file);
-    }
+  if (matchesAny(file, map.full)) {
+    needsFullSuite = true;
     continue;
   }
 
-  // Anything else outside src/ and e2e/ runs the e2e dirs it's mapped to,
-  // or the full suite if it isn't mapped (e.g. package.json, next.config.ts)
-  let matched = false;
-  for (const [pattern, dir] of Object.entries(map.areas)) {
-    if (matchGlob(pattern, file)) {
-      addAreas(dir);
-      matched = true;
-    }
+  const dirs = areasFor(file);
+  if (dirs.length === 0) {
+    unmapped.push(file);
+    continue;
   }
-  if (matched) continue;
-  console.log(`Unrecognised file (${file}) — running full validate.`);
-  runFullValidate();
-  process.exit(0);
+  for (const dir of dirs) e2eDirs.add(dir);
 }
 
-if (unmatchedSrc.length > 0) {
-  console.log(
-    `Unrecognised source file(s): ${unmatchedSrc.join(", ")} — running full validate.`,
-  );
+if (unmapped.length > 0) {
+  console.error(unmappedMessage(unmapped));
+  process.exit(1);
+}
+
+if (needsFullSuite) {
+  console.log("Global config changed — running full validate.");
   runFullValidate();
   process.exit(0);
 }
