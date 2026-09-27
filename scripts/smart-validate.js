@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // smart-validate.js — runs only the validations relevant to staged changes.
-// Falls back to full suite for config/shared/unrecognised files.
+// Runs the full suite only for global config files.
 //
 // Mapping config: scripts/validate-map.json
 // ─────────────────────────────────────────
@@ -16,39 +16,27 @@
 // "skip": files that need no validation at all — assets, docs, design files,
 //   tooling scripts. Changes to these are silently ignored.
 //
-// Default behaviour for unrecognised files
-// ─────────────────────────────────────────
-// Any staged file that doesn't match "areas" or "skip" triggers the full
-// suite as a safe fallback — including config files, shared layouts, and
-// anything else not explicitly listed. This means adding new source
-// directories without updating "areas" will be slow but never silently skip
-// tests. Fix it by adding the new path to "areas" (or "skip" if it needs no
-// tests).
+// "full": global config (package.json, tsconfig, ...) that can affect any
+//   test. Changing one runs the whole suite.
 //
-// Stryker mutation testing
+// Unmapped files fail the hook
 // ─────────────────────────────────────────
-// Runs after the main parallel suite, scoped to staged non-test src files
-// (excluding src/app/). Skipped if no mutable files are staged.
-// Config: stryker.smart.config.json (no TypeScript checker, concurrency 2).
-// Timeout: STRYKER_TIMEOUT_MINUTES env var (default 60). On timeout, warns
-// and continues — logged to reports/stryker-timeouts.log.
+// Every staged file except unit tests must match "areas", "full" or "skip",
+// so new directories get mapped instead of silently running everything.
+// Files outside src/ and e2e/ (e.g. Playwright config) can be in "areas" too.
+// CI runs `--check-map` to check every tracked file the same way.
+//
+// Mutation testing is not run here: CI runs it on pull requests
+// (scripts/mutate-changed.js).
 
-const { execSync, spawnSync } = require("node:child_process");
+const { execSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
-const { appendBuildEntry, getGitContext } = require("./build-data-utils");
 
 const ROOT = path.resolve(__dirname, "..");
 const map = JSON.parse(
   fs.readFileSync(path.join(__dirname, "validate-map.json"), "utf8"),
 );
-
-// Lazy git context — computed once on first use, reused for all sub-task entries.
-let _git;
-function git() {
-  if (!_git) _git = getGitContext(ROOT);
-  return _git;
-}
 
 /** Convert a simple glob pattern (using * and **) to a RegExp. */
 function matchGlob(pattern, file) {
@@ -93,97 +81,9 @@ function lintAndRestage(files) {
 }
 
 /**
- * Returns staged non-test src files outside src/app/ — the files Stryker
- * should mutate. These are the files that have testable logic and co-located
- * unit tests. Files without a co-located test (e.g. view-only components
- * covered by e2e) are excluded — Stryker errors out when it can't find any
- * tests for the mutated files.
- */
-function getMutableFiles(files) {
-  return files.filter(
-    (f) =>
-      f.startsWith("src/") &&
-      !f.startsWith("src/app/") &&
-      /\.(ts|tsx)$/.test(f) &&
-      !/\.test\.(ts|tsx)$/.test(f) &&
-      fs.existsSync(path.join(ROOT, f.replace(/\.(ts|tsx)$/, ".test.$1"))),
-  );
-}
-
-/**
- * Run Stryker mutation testing scoped to the given files. Uses
- * stryker.smart.config.json (no TypeScript checker, concurrency 2).
- * Exits non-zero if mutation score is below threshold. On timeout, warns and
- * returns — the commit is not blocked, but the event is logged.
- */
-function runStryker(mutableFiles) {
-  if (mutableFiles.length === 0) {
-    console.log("Stryker: no mutable source files staged — skipping.");
-    return;
-  }
-
-  const timeoutMinutes = Number(process.env.STRYKER_TIMEOUT_MINUTES ?? 60);
-  const timeoutMs = timeoutMinutes * 60 * 1000;
-  const mutatePattern = mutableFiles.join(",");
-
-  console.log(
-    `\nStryker: mutating ${mutableFiles.length} file(s) (timeout ${timeoutMinutes}min)…`,
-  );
-
-  const strykerStart = Date.now();
-  const result = spawnSync(
-    "pnpm",
-    [
-      "exec",
-      "stryker",
-      "run",
-      "stryker.smart.config.json",
-      "--mutate",
-      mutatePattern,
-    ],
-    { stdio: "inherit", cwd: ROOT, timeout: timeoutMs },
-  );
-  const strykerMs = Date.now() - strykerStart;
-
-  const timedOut =
-    result.signal === "SIGTERM" ||
-    (result.error && result.error.code === "ETIMEDOUT");
-
-  appendBuildEntry(
-    {
-      ts: new Date().toISOString(),
-      hook: "stryker",
-      command: `stryker run --mutate ${mutatePattern}`,
-      durationMs: strykerMs,
-      exitCode: timedOut ? -1 : (result.status ?? (result.signal ? 1 : 0)),
-      git: git(),
-      node: process.version,
-    },
-    ROOT,
-  );
-
-  if (timedOut) {
-    const timestamp = new Date().toISOString();
-    const logLine = `[${timestamp}] timeout=${timeoutMinutes}min files=${mutatePattern}\n`;
-    const logPath = path.join(ROOT, "reports", "stryker-timeouts.log");
-    fs.mkdirSync(path.join(ROOT, "reports"), { recursive: true });
-    fs.appendFileSync(logPath, logLine);
-    console.warn(
-      `\nWarning: Stryker timed out after ${timeoutMinutes} minutes.` +
-        ` Event logged to reports/stryker-timeouts.log. Continuing without mutation score.`,
-    );
-    return;
-  }
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
-}
-
-/**
  * Full-suite fallback: lint all files, restage touched staged files, then
  * run tsc + all tests + all e2e in parallel. Equivalent to `pnpm validate`
- * but with the restage step in between. Followed by scoped Stryker run.
+ * but with the restage step in between.
  */
 function runFullValidate() {
   run(
@@ -202,7 +102,51 @@ function runFullValidate() {
       ` "node scripts/timed-run.js vitest pnpm test"` +
       ` "node scripts/timed-run.js playwright pnpm exec playwright test"`,
   );
-  runStryker(getMutableFiles(staged));
+}
+
+/** E2E dirs from every "areas" entry the file matches (empty if none). */
+function areasFor(file) {
+  return Object.entries(map.areas)
+    .filter(([pattern]) => matchGlob(pattern, file))
+    .flatMap(([, dirs]) => dirs);
+}
+
+function isUnitTest(file) {
+  return /\.test\.(ts|tsx)$/.test(file);
+}
+
+function unmappedMessage(files) {
+  return (
+    `\nThese files aren't in scripts/validate-map.json:\n` +
+    files.map((f) => `  - ${f}`).join("\n") +
+    `\n\nAdd each one to "areas" (the e2e dirs that cover it), "full" (global` +
+    ` config that can affect any test) or "skip" (needs no tests).\n`
+  );
+}
+
+// --- Map check (CI): every tracked file must be mapped ---
+
+if (process.argv.includes("--check-map")) {
+  const unmappedTracked = execSync("git ls-files", {
+    cwd: ROOT,
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")
+    .filter(
+      (f) =>
+        !(
+          matchesAny(f, map.skip) ||
+          isUnitTest(f) ||
+          matchesAny(f, map.full)
+        ) && areasFor(f).length === 0,
+    );
+  if (unmappedTracked.length > 0) {
+    console.error(unmappedMessage(unmappedTracked));
+    process.exit(1);
+  }
+  console.log("Every tracked file is in scripts/validate-map.json.");
+  process.exit(0);
 }
 
 // --- Collect staged files ---
@@ -226,45 +170,21 @@ if (staged.length === 0) {
 
 const e2eDirs = new Set();
 const vitestFiles = [];
-const unmatchedSrc = [];
-
-/** An "areas" value is one e2e dir, or several for code shared between areas. */
-function addAreas(dirs) {
-  for (const dir of Array.isArray(dirs) ? dirs : [dirs]) e2eDirs.add(dir);
-}
+const unmapped = [];
+let needsFullSuite = false;
 
 for (const file of staged) {
   // Files that never need validation (assets, docs, design files)
   if (matchesAny(file, map.skip)) continue;
 
-  const isSrc = file.startsWith("src/");
-  const isUnitTest = /\.test\.(ts|tsx)$/.test(file);
-
-  if (isUnitTest) {
+  if (isUnitTest(file)) {
     // Changed unit test → run it directly, no e2e needed
     vitestFiles.push(file);
     continue;
   }
 
-  if (file.startsWith("e2e/")) {
-    // Changed e2e file → find its area
-    let matched = false;
-    for (const [pattern, dir] of Object.entries(map.areas)) {
-      if (matchGlob(pattern, file)) {
-        addAreas(dir);
-        matched = true;
-      }
-    }
-    if (!matched) {
-      console.log(`Unrecognised e2e file (${file}) — running full validate.`);
-      runFullValidate();
-      process.exit(0);
-    }
-    continue;
-  }
-
-  if (isSrc) {
-    // Source file → find co-located test and e2e area
+  if (file.startsWith("src/")) {
+    // Source file → also run its co-located test
     for (const ext of ["ts", "tsx"]) {
       const candidate = file.replace(/\.(ts|tsx)$/, `.test.${ext}`);
       if (
@@ -274,31 +194,28 @@ for (const file of staged) {
         vitestFiles.push(candidate);
       }
     }
+  }
 
-    let matched = false;
-    for (const [pattern, dir] of Object.entries(map.areas)) {
-      if (matchGlob(pattern, file)) {
-        addAreas(dir);
-        matched = true;
-      }
-    }
-    if (!matched) {
-      unmatchedSrc.push(file);
-    }
+  if (matchesAny(file, map.full)) {
+    needsFullSuite = true;
     continue;
   }
 
-  // Anything else outside src/ and e2e/ that isn't in skip
-  // (e.g. config files, types/, scripts/) — safe fallback
-  console.log(`Unrecognised file (${file}) — running full validate.`);
-  runFullValidate();
-  process.exit(0);
+  const dirs = areasFor(file);
+  if (dirs.length === 0) {
+    unmapped.push(file);
+    continue;
+  }
+  for (const dir of dirs) e2eDirs.add(dir);
 }
 
-if (unmatchedSrc.length > 0) {
-  console.log(
-    `Unrecognised source file(s): ${unmatchedSrc.join(", ")} — running full validate.`,
-  );
+if (unmapped.length > 0) {
+  console.error(unmappedMessage(unmapped));
+  process.exit(1);
+}
+
+if (needsFullSuite) {
+  console.log("Global config changed — running full validate.");
   runFullValidate();
   process.exit(0);
 }
@@ -344,7 +261,3 @@ if (hasE2E) {
 const names = parallel.map((p) => p.name).join(",");
 const cmds = parallel.map((p) => `"${p.cmd}"`).join(" ");
 run(`pnpm exec concurrently --kill-others-on-fail --names "${names}" ${cmds}`);
-
-// --- Stryker mutation testing (after parallel suite passes) ---
-
-runStryker(getMutableFiles(staged));
