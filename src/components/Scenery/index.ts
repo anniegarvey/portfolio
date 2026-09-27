@@ -18,3 +18,4 @@ export {
   vars,
   Wander,
 } from "./motion";
+export { type Scattered, scatter } from "./scatter";
