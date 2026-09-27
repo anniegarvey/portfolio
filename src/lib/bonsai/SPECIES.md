@@ -99,7 +99,7 @@ and fewer than ~4 nodes leaves the upper trunk bare now that trunks reach full h
 | `foliageDistribution` | enum | `terminal` / `pad` / `scattered` / `pendent` — see Foliage Distribution doc in `speciesConfig.ts`. |
 | `padRadius` | SVG units | Radius of a single foliage pad disc. Larger pads overlap their neighbours and the trunk for closed canopies. |
 | `interiorPadDensity` | 0–1 | Chance a non-terminal branch grows extra foliage beyond its tip pad. `pad` mode: a near-tip interior pad, filling the bare crown centre. `terminal` mode: a smaller spur pad partway along the branch, keeping the crown outline continuous instead of bare sticks with a puff at each tip — and, for species with `flowers` defined, spur pads also become eligible flower sites alongside terminal tips (real Prunus/Quercus flowers form on spur shoots, not only branch tips). |
-| `padAlongTwig` | 0–1, optional | How far a spur or interior pad stretches along its branch, as a fraction of the branch's length, with its leaf count scaled to match (up to double). Set it and primaries carry spur pads too. Omit for the round trained pads of pine and juniper; ~0.7–0.9 for broadleaves whose crowns should fill their outline instead of balling at the tips. |
+| `spurShoots` | count, optional | Short leafy side shoots a long non-terminal branch grows (never a primary), each a twig angled out from the branch with a small pad at its tip, spread over 40–90% of the branch and one per spur-pad width. Defaults to 1 for `terminal` species and none for `pad` species. ~3 for broadleaves whose crowns should fill their outline instead of balling at the tips, without leaves sitting straight on thick branches. |
 | `leavesPerPad` | [min, max] | Randomised leaf count placed within each pad. |
 | `juvenileFoliage` | optional | `{ leafShape, foliageColor, foliageColorLight }` worn until `flowers.floweringAge` — for crowns drawn as blossom (cherry), so a young tree is in leaf. |
 
@@ -211,7 +211,7 @@ thin petiole. Small terminal pads of 3–6 larger leaves with moderate interior 
 the maple's vase crown reads dense without losing the crossing-branch visibility. Seedlings
 show the species' long strap-shaped cotyledons. `foliageDistribution: "pad"` with
 `padRadius: 12`, `leavesPerPad: [3, 6]`, `interiorPadDensity: 0.7`, `leafSize: 8.5`,
-with `padAlongTwig: 0.8` so leaves run along the outer branches. Its flowers
+with `spurShoots: 3` so leafy side twigs run along the outer branches. Its flowers
 are the red-brown-seeded, tan-winged samaras (`flowerShape: "samara"`), which
 show against the red leaves where the tiny true flowers would not.
 
@@ -240,7 +240,7 @@ petals — but only once the tree reaches `floweringAge`. Before that it wears
 `juvenileFoliage`: green ovate leaves with a drawn-out tip and toothed margin, as a real
 young cherry does. Light terminal pads of 4–7 keep the airy, see-through canopy that
 cherries are known for, while smaller spur pads along non-terminal twigs
-(`interiorPadDensity: 0.75`, stretched along the branch by `padAlongTwig: 0.9`)
+(`interiorPadDensity: 0.75`, up to three a branch with `spurShoots: 3`)
 keep the crown outline continuous rather than a ring of isolated puffs, with
 blossom running along the branches as on a real cherry.
 `foliageDistribution: "terminal"` with `padRadius: 12`, `leavesPerPad: [4, 7]`,
@@ -320,7 +320,7 @@ an obovate leaf with four rounded lobes a side, deep sinuses, basal auricles and
 Oak germinates with its cotyledons underground, so its seedling has no seed leaves, only
 true ones. Light terminal pads of 3–5 preserve oak's coarse, irregular
 silhouette, while spur pads along non-terminal branches (`interiorPadDensity: 0.75`,
-stretched by `padAlongTwig: 0.9`) fill
+up to three a branch with `spurShoots: 3`) fill
 the crown's sky gaps without smoothing it into a solid ball. `foliageDistribution: "terminal"`
 with `padRadius: 14`, `leavesPerPad: [3, 5]`, `leafSize: 10`.
 
@@ -397,7 +397,7 @@ ferny, light texture. Rendered as hanging bipinnate fronds — a rachis with pai
 feathery, toothed pinnae — a few large ones per pad (`leafSize: 11`, `leavesPerPad: [3, 4]`)
 so the canopy reads as fern-like texture. `foliageDistribution: "pad"` with
 the largest `padRadius: 18` of any species and `interiorPadDensity: 0.6`, stretched along the
-branches by `padAlongTwig: 0.7`, for the broad umbrella canopy.
+branches by `spurShoots: 3`, for the broad umbrella canopy.
 
 **Colour**: Fresh green foliage (`#3f7a2a` / `#74b04a`), as the real tree's leaves are; the
 scarlet comes from the flower layer (`flowerShape: "corymb"`: four spoon petals and a gold-flecked

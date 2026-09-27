@@ -158,12 +158,13 @@ export interface SpeciesConfig {
    *  continuous instead of bare sticks with a puff at each tip. Ignored by
    *  `scattered`/`pendent`. */
   interiorPadDensity: number;
-  /** 0–1 — how far back down a terminal twig its tip pad stretches, as a
-   *  fraction of the twig's length. 0 (or omitted) = a round pad at the tip,
-   *  the trained-pad look of pine and juniper; ~0.6 = leaves along the outer
-   *  twig, so a broadleaf crown fills its outline instead of balling at the
-   *  tips. `terminal` and `pad` distributions only. */
-  padAlongTwig?: number;
+  /** How many short leafy side shoots (spurs) a long non-terminal branch
+   *  grows beyond primaries, each a twig with a small pad at its tip, when
+   *  its `interiorPadDensity` roll passes. Defaults to 1 for `terminal`
+   *  species and 0 for `pad` species. Higher values clothe the outer
+   *  branches so a broadleaf crown fills its outline instead of balling at
+   *  the tips. */
+  spurShoots?: number;
   /** [min, max] — leaves placed within each pad disc. */
   leavesPerPad: [number, number];
   /** Foliage a species wears until `flowers.floweringAge`, for crowns drawn
@@ -277,7 +278,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafSize: 8.5,
     foliageDistribution: "pad",
     padRadius: 12,
-    padAlongTwig: 0.8,
+    spurShoots: 3,
     interiorPadDensity: 0.7,
     leavesPerPad: [3, 6],
     individualVariability: 0.3,
@@ -332,7 +333,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafSize: 5,
     foliageDistribution: "terminal",
     padRadius: 12,
-    padAlongTwig: 0.9,
+    spurShoots: 3,
     interiorPadDensity: 0.75,
     leavesPerPad: [4, 7],
     // Seedlings and saplings are in leaf: bronze-green serrated ovals.
@@ -445,7 +446,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafSize: 10,
     foliageDistribution: "terminal",
     padRadius: 14,
-    padAlongTwig: 0.9,
+    spurShoots: 3,
     interiorPadDensity: 0.75,
     leavesPerPad: [3, 5],
     individualVariability: 0.2,
@@ -553,7 +554,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     leafSize: 11,
     foliageDistribution: "pad",
     padRadius: 18,
-    padAlongTwig: 0.7,
+    spurShoots: 3,
     interiorPadDensity: 0.6,
     leavesPerPad: [3, 4],
     individualVariability: 0.15,

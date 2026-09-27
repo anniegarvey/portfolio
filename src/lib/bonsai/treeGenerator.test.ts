@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { SpeciesId } from "./schema";
 import type { SpeciesConfig } from "./speciesConfig";
 import { SPECIES_CONFIG } from "./speciesConfig";
 import {
@@ -655,7 +656,9 @@ describe("generateTree", () => {
      *  eligible tips before density thinning is applied. */
     function eligibleTipCount(data: ReturnType<typeof generateTree>) {
       return (
-        data.branches.filter((b) => b.isTerminal && !b.isPruned).length + 1
+        data.branches.filter((b) => b.isTerminal && !b.isPruned).length +
+        data.branches.filter((b) => b.spurTip && !b.isPruned).length +
+        1
       );
     }
 
@@ -685,7 +688,7 @@ describe("generateTree", () => {
       }
     });
 
-    it("flowerDensity 1 gives every eligible tip a flower, unchanged from before", () => {
+    it("flowerDensity 1 gives every eligible tip, spur shoots included, a flower", () => {
       const maple = SPECIES_CONFIG.maple;
       const fullBloom = {
         ...maple,
@@ -855,12 +858,12 @@ describe("generateTree", () => {
         ...pick("oak"),
       ]).toMatchInlineSnapshot(`
         [
-          "107.1 225.1 3.3 3.3 -17.1",
-          "105.3 228.2 3.8 3.8 -154.4",
-          "104.9 222.4 3.5 3.5 -43.6",
           "113.8 189.1 3.7 3.7 -50.2",
           "114.6 185.7 3.0 3.0 -23.9",
           "117.2 190.3 3.6 3.6 93.6",
+          "114.3 204.1 3.1 3.1 82.0",
+          "112.7 206.3 3.2 3.2 -60.3",
+          "110.2 204.5 3.0 3.0 -145.0",
           "125.5 189.7 1.8 13.3 7.9",
           "126.9 189.7 1.8 14.0 -13.5",
           "128.3 189.7 1.8 13.3 -1.3",
@@ -889,71 +892,76 @@ describe("generateTree", () => {
 
   // ─── Canopy fill — pads stretched along branches ─────────────────────────
 
-  describe("padAlongTwig", () => {
+  describe("spur shoots", () => {
     const cherry = SPECIES_CONFIG["cherry-blossom"];
-    const bare = { ...cherry, padAlongTwig: undefined };
+    const grow = (spec: SpeciesConfig, seed = "twig-cherry") =>
+      generateTree(100, spec, [], seed);
 
-    it("clothes primary branches only for a species that sets it", () => {
-      const primaryLeaves = (spec: SpeciesConfig) =>
-        generateTree(100, spec, [], "twig-cherry")
-          .branches.filter((b) => b.depth === 0 && !b.isTerminal)
-          .reduce((n, b) => n + b.leaves.length, 0);
-      expect(primaryLeaves(cherry)).toBeGreaterThan(0);
-      expect(primaryLeaves(bare)).toBe(0);
-    });
-
-    it("spreads a spur pad's leaves farther along its branch", () => {
-      /** Summed spread of each leafy non-terminal branch's leaves, measured
-       *  along the branch's own direction. */
-      const spread = (spec: SpeciesConfig) =>
-        generateTree(100, spec, [], "twig-cherry")
-          .branches.filter((b) => b.depth >= 1 && !b.isTerminal)
-          .reduce((sum, b) => {
-            if (b.leaves.length < 2) return sum;
-            const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1) || 1;
-            const along = b.leaves.map(
-              (l) => (l.cx * (b.x2 - b.x1) + l.cy * (b.y2 - b.y1)) / len,
-            );
-            return sum + Math.max(...along) - Math.min(...along);
-          }, 0);
-      expect(spread(cherry)).toBeGreaterThan(spread(bare) * 1.3);
-    });
-
-    it.each([
-      "cherry-blossom",
-      "maple",
-    ] as const)("%s: a stretched pad spans its branch back from the tip and keeps its density", (id) => {
-      const spec = SPECIES_CONFIG[id];
-      const stretched = generateTree(100, spec, [], `span-${id}`);
-      const round = generateTree(
-        100,
-        { ...spec, padAlongTwig: undefined },
-        [],
-        `span-${id}`,
-      );
-      const leafCount = (d: ReturnType<typeof generateTree>) =>
-        d.branches
-          .filter((b) => b.depth >= 1 && !b.isTerminal)
-          .reduce((n, b) => n + b.leaves.length, 0);
-      // Longer pads carry proportionally more leaves, capped at double.
-      expect(leafCount(stretched)).toBeGreaterThan(leafCount(round));
-      expect(leafCount(stretched)).toBeLessThanOrEqual(leafCount(round) * 2);
-
-      // Leaves stay within the branch's reach plus a pad radius: the pad
-      // runs back down the branch, never out past its tip.
-      const reach = spec.padRadius * 1.15 + 1;
-      for (const b of stretched.branches.filter(
-        (x) => x.depth >= 1 && !x.isTerminal && x.leaves.length > 0,
-      )) {
-        const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
-        const ux = (b.x2 - b.x1) / len;
-        const uy = (b.y2 - b.y1) / len;
-        for (const l of b.leaves) {
-          const t = (l.cx - b.x1) * ux + (l.cy - b.y1) * uy;
-          expect(t).toBeGreaterThan(-reach);
-          expect(t).toBeLessThan(len + reach);
-        }
+    it("never puts leaves straight on a primary branch", () => {
+      for (const id of Object.keys(SPECIES_CONFIG) as SpeciesId[]) {
+        const data = grow(SPECIES_CONFIG[id], `primary-${id}`);
+        for (const b of data.branches.filter(
+          (x) => x.depth === 0 && !x.isTerminal,
+        ))
+          expect(b.leaves.filter((l) => l.id.includes("spur"))).toEqual([]);
       }
+    });
+
+    it("carries each spur pad on a twig drawn into its branch", () => {
+      const data = grow(cherry);
+      const spurred = data.branches.filter((b) => b.spurTip);
+      expect(spurred.length).toBeGreaterThan(0);
+      for (const b of spurred) {
+        const bare = grow({ ...cherry, interiorPadDensity: 0 }).branches.find(
+          (x) => x.id === b.id,
+        );
+        // The twig outlines ride on the parent's own path, not new nodes.
+        expect(b.pathData.startsWith(bare?.pathData ?? "")).toBe(true);
+        expect(b.pathData.length).toBeGreaterThan(bare?.pathData.length ?? 0);
+      }
+    });
+
+    it("sets spur pads off the branch, a short twig's length away", () => {
+      const data = grow(cherry);
+      const radius = cherry.padRadius * 1.15;
+      for (const b of data.branches.filter((x) => x.spurTip)) {
+        const tip = b.spurTip ?? { x: 0, y: 0 };
+        const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+        // Distance from the spur tip to the branch's own line.
+        const off =
+          Math.abs(
+            (b.x2 - b.x1) * (b.y1 - tip.y) - (b.x1 - tip.x) * (b.y2 - b.y1),
+          ) / len;
+        expect(off).toBeGreaterThan(radius * 0.5 * Math.sin(0.6) - 0.5);
+        expect(off).toBeLessThanOrEqual(radius * 0.9 + 0.01);
+        // Its base lies within 40–90% of the branch.
+        const along =
+          ((tip.x - b.x1) * (b.x2 - b.x1) + (tip.y - b.y1) * (b.y2 - b.y1)) /
+          len /
+          len;
+        expect(along).toBeGreaterThan(0.4 - 0.9 * (radius / len));
+        expect(along).toBeLessThan(0.9 + 0.9 * (radius / len));
+      }
+    });
+
+    it("grows up to spurShoots twigs on a long branch, alternating sides", () => {
+      const spurLeaves = (spec: SpeciesConfig) =>
+        grow(spec)
+          .branches.flatMap((b) => b.leaves)
+          .filter((l) => l.id.includes("spur"));
+      const one = spurLeaves({ ...cherry, spurShoots: 1 });
+      const three = spurLeaves({ ...cherry, spurShoots: 3 });
+      expect(three.length).toBeGreaterThan(one.length);
+      expect(one.some((l) => /spur\d-/.test(l.id))).toBe(false);
+      expect(three.some((l) => /spur2-/.test(l.id))).toBe(true);
+    });
+
+    it("only a pad species that asks for spur shoots grows them", () => {
+      const maple = SPECIES_CONFIG.maple;
+      const spurs = (spec: SpeciesConfig) =>
+        grow(spec, "pad-spurs").branches.filter((b) => b.spurTip).length;
+      expect(spurs(maple)).toBeGreaterThan(0);
+      expect(spurs({ ...maple, spurShoots: undefined })).toBe(0);
     });
   });
 
@@ -1393,9 +1401,9 @@ describe("generateTree", () => {
           "130.0 233.2 7.6 -5.3 2.2",
           "123.6 230.4 7.6 13.9 3.1",
           "128.0 225.1 7.6 -14.2 -6.9",
-          "101.8 231.3 5.0 124.2 -3.7",
-          "105.8 229.1 5.0 9.7 3.9",
-          "109.6 218.1 5.0 106.5 3.5",
+          "105.2 208.4 5.0 129.3 4.4",
+          "101.7 205.4 5.0 248.1 3.5",
+          "108.8 213.7 5.0 300.4 -4.0",
         ]
       `);
     });
