@@ -13,7 +13,6 @@ interface InterestCardProps {
   tagline: string;
   detail: string;
   accent: Accent;
-  muted: boolean;
 }
 
 /**
@@ -31,7 +30,6 @@ export function InterestCard({
   tagline,
   detail,
   accent,
-  muted,
 }: InterestCardProps) {
   const [flipped, setFlipped] = useState(false);
 
@@ -42,7 +40,7 @@ export function InterestCard({
         data-flipped={flipped || undefined}
         onClick={() => {
           setFlipped((f) => !f);
-          if (!muted) playCardFlip();
+          playCardFlip();
         }}
         style={ACCENT_VARS[accent]}
         type="button"

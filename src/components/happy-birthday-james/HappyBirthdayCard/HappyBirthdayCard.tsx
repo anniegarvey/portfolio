@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Landmark,
-  Ruler,
-  Sparkles,
-  Terminal,
-  TrendingUp,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Landmark, Ruler, Sparkles, Terminal, TrendingUp } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import type { CSSProperties } from "react";
 import { useState } from "react";
@@ -20,26 +12,10 @@ import { QUERIES } from "@/lib/constants";
 
 export function HappyBirthdayCard() {
   const [celebrated, setCelebrated] = useState(false);
-  const [muted, setMuted] = useState(false);
 
   return (
     <Page>
       <MaxWidthWrapper as="main" padding="20px">
-        <SoundToggleRow>
-          <SoundToggleButton
-            aria-label={muted ? "Unmute sound effects" : "Mute sound effects"}
-            onClick={() => setMuted((m) => !m)}
-            title={muted ? "Unmute sound effects" : "Mute sound effects"}
-            type="button"
-          >
-            {muted ? (
-              <VolumeX aria-hidden="true" size={18} />
-            ) : (
-              <Volume2 aria-hidden="true" size={18} />
-            )}
-          </SoundToggleButton>
-        </SoundToggleRow>
-
         <Hero>
           <BlueprintScene />
           <Sparkle aria-hidden="true" style={{ left: "1rem" } as CSSProperties}>
@@ -63,10 +39,7 @@ export function HappyBirthdayCard() {
         </Hero>
 
         <DialSection>
-          <CalibrationDial
-            muted={muted}
-            onCelebrate={() => setCelebrated(true)}
-          />
+          <CalibrationDial onCelebrate={() => setCelebrated(true)} />
 
           {celebrated && (
             <Message>
@@ -88,7 +61,6 @@ export function HappyBirthdayCard() {
             accent="primary"
             detail="Machine shop by 34?"
             icon={<Ruler aria-hidden="true" size={22} />}
-            muted={muted}
             tagline="Precision, always"
             title="CAD & Machining"
           />
@@ -96,7 +68,6 @@ export function HappyBirthdayCard() {
             accent="teal"
             detail="print(f&quot;Happy Birthday, {name}!&quot;) — probably still debugging a script at 2am!"
             icon={<Terminal aria-hidden="true" size={22} />}
-            muted={muted}
             tagline="Probably automating something right now"
             title="Hobby Pythonista"
           />
@@ -104,7 +75,6 @@ export function HappyBirthdayCard() {
             accent="secondary"
             detail="33 and still compounding — in birthdays and portfolio gains. May your returns always outpace your candles."
             icon={<TrendingUp aria-hidden="true" size={22} />}
-            muted={muted}
             tagline="Reads the market like a spec sheet"
             title="Investing"
           />
@@ -112,7 +82,6 @@ export function HappyBirthdayCard() {
             accent="rose"
             detail="Here's to another year of extremely well-researched opinions and debates!"
             icon={<Landmark aria-hidden="true" size={22} />}
-            muted={muted}
             tagline="Has a take, and receipts"
             title="Politics"
           />
@@ -130,44 +99,6 @@ export function HappyBirthdayCard() {
 
 const Page = styled.div`
   padding-block: 2.5rem 4rem;
-`;
-
-const SoundToggleRow = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-`;
-
-const SoundToggleButton = styled.button`
-  background: none;
-  border: 1px solid light-dark(var(--color-grey-300), var(--color-grey-600));
-  border-radius: 6px;
-  color: light-dark(var(--color-grey-700), var(--color-grey-100));
-  cursor: pointer;
-  padding: 0.5rem;
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: manipulation;
-  transition: background-color 200ms ease, color 200ms ease,
-    border-color 200ms ease;
-
-  &:hover {
-    background-color: var(--color-primary-700);
-    border-color: var(--color-primary-500);
-    color: var(--color-primary-100);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-primary-400);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
 `;
 
 const Hero = styled.div`

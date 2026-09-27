@@ -33,6 +33,7 @@
     "src/components/ThemeProvider/**": "e2e",
     "src/lib/constants.ts": "e2e",
     "src/lib/date.ts": "e2e",
+    "src/lib/sound.ts": "e2e",
     "e2e/energy-planner/**": "e2e/energy-planner",
     "e2e/bonsai/**": "e2e/bonsai",
     "e2e/glade/**": "e2e/glade",
