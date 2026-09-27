@@ -29,7 +29,13 @@ export type FoliageDistribution = "terminal" | "pad" | "scattered" | "pendent";
 
 // ─── Flower Spec ──────────────────────────────────────────────────────────────
 
-export type FlowerShape = "raceme" | "cluster" | "catkin" | "berry";
+export type FlowerShape =
+  | "blossom"
+  | "corymb"
+  | "samara"
+  | "raceme"
+  | "catkin"
+  | "berry";
 
 export interface FlowerSpec {
   /** activeDaysCount at which flowers first appear. */
@@ -152,6 +158,12 @@ export interface SpeciesConfig {
    *  continuous instead of bare sticks with a puff at each tip. Ignored by
    *  `scattered`/`pendent`. */
   interiorPadDensity: number;
+  /** 0–1 — how far back down a terminal twig its tip pad stretches, as a
+   *  fraction of the twig's length. 0 (or omitted) = a round pad at the tip,
+   *  the trained-pad look of pine and juniper; ~0.6 = leaves along the outer
+   *  twig, so a broadleaf crown fills its outline instead of balling at the
+   *  tips. `terminal` and `pad` distributions only. */
+  padAlongTwig?: number;
   /** [min, max] — leaves placed within each pad disc. */
   leavesPerPad: [number, number];
   /** Foliage a species wears until `flowers.floweringAge`, for crowns drawn
@@ -219,10 +231,10 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // Pine candles flick upward at the tip — characteristic conifer growth.
     tipDroop: 0.3,
     leafShape: "needle",
-    leafSize: 7.5,
+    leafSize: 9,
     foliageDistribution: "pad",
-    padRadius: 10,
-    interiorPadDensity: 0.7,
+    padRadius: 13,
+    interiorPadDensity: 0.85,
     leavesPerPad: [4, 6],
     individualVariability: 0.2,
     // Pine has no ornamental flowers — only inconspicuous pollen cones.
@@ -262,19 +274,22 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.8,
     tipDroop: 0,
     leafShape: "palmate",
-    leafSize: 7,
+    leafSize: 8.5,
     foliageDistribution: "pad",
-    padRadius: 8,
-    interiorPadDensity: 0.4,
+    padRadius: 12,
+    padAlongTwig: 0.8,
+    interiorPadDensity: 0.7,
     leavesPerPad: [3, 6],
     individualVariability: 0.3,
     flowers: {
-      // Small reddish-purple hanging umbel clusters, appear with the new spring leaves.
+      // The tiny spring flowers pass unseen; what a Japanese maple shows is
+      // its paired, red-winged samaras hanging among the leaves.
       floweringAge: 35,
       flowerDensity: 0.5,
-      flowerShape: "cluster",
-      flowerColor: "#a0375a",
-      flowerSize: 0.5,
+      flowerShape: "samara",
+      flowerColor: "#e8b07a",
+      flowerColorAccent: "#9a4a30",
+      flowerSize: 5,
     },
   },
   "cherry-blossom": {
@@ -314,10 +329,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // flat without making it look like a weeping cultivar.
     tipDroop: 0.1,
     leafShape: "blossom",
-    leafSize: 3.8,
+    leafSize: 5,
     foliageDistribution: "terminal",
-    padRadius: 6.5,
-    interiorPadDensity: 0.45,
+    padRadius: 12,
+    padAlongTwig: 0.9,
+    interiorPadDensity: 0.75,
     leavesPerPad: [4, 7],
     // Seedlings and saplings are in leaf: bronze-green serrated ovals.
     juvenileFoliage: {
@@ -330,7 +346,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
       // Iconic 5-petal blossoms in clusters; pale pink to white. Appear with leaves.
       floweringAge: 15,
       flowerDensity: 0.9,
-      flowerShape: "cluster",
+      flowerShape: "blossom",
       flowerColor: "#f5d0e0",
       flowerColorAccent: "#e8a0bf",
       flowerSize: 3.5,
@@ -375,9 +391,9 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // hanging clouds rather than perfectly horizontal shelves.
     tipDroop: -0.35,
     leafShape: "scale",
-    leafSize: 7.5,
+    leafSize: 8.5,
     foliageDistribution: "pad",
-    padRadius: 14,
+    padRadius: 15,
     interiorPadDensity: 0.8,
     leavesPerPad: [4, 6],
     individualVariability: 0.4,
@@ -426,10 +442,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     crownDepthFactor: 0.9,
     tipDroop: 0,
     leafShape: "lobed",
-    leafSize: 7,
+    leafSize: 10,
     foliageDistribution: "terminal",
-    padRadius: 7.5,
-    interiorPadDensity: 0.45,
+    padRadius: 14,
+    padAlongTwig: 0.9,
+    interiorPadDensity: 0.75,
     leavesPerPad: [3, 5],
     individualVariability: 0.2,
     flowers: {
@@ -479,11 +496,11 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // ends of the racemes, complementing the pendent foliage distribution.
     tipDroop: -0.9,
     leafShape: "pinnate",
-    leafSize: 6,
+    leafSize: 7,
     // Pendent: hanging chains of pinnate leaf clusters below each tip — the
     // defining drape of mature wisteria.
     foliageDistribution: "pendent",
-    padRadius: 5,
+    padRadius: 6,
     interiorPadDensity: 0.1,
     leavesPerPad: [2, 4],
     individualVariability: 0.35,
@@ -533,9 +550,10 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
     // rather than reading as flat-cut.
     tipDroop: -0.2,
     leafShape: "bipinnate",
-    leafSize: 10,
+    leafSize: 11,
     foliageDistribution: "pad",
-    padRadius: 16,
+    padRadius: 18,
+    padAlongTwig: 0.7,
     interiorPadDensity: 0.6,
     leavesPerPad: [3, 4],
     individualVariability: 0.15,
@@ -543,7 +561,7 @@ export const SPECIES_CONFIG: Record<SpeciesId, SpeciesConfig> = {
       // Large scarlet corymbs at branch tips; vivid red-orange with a streaked accent petal.
       floweringAge: 45,
       flowerDensity: 0.8,
-      flowerShape: "cluster",
+      flowerShape: "corymb",
       flowerColor: "#e8400a",
       flowerColorAccent: "#f5c030",
       flowerSize: 4.5,

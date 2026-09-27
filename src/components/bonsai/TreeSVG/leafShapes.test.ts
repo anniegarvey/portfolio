@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Leaf } from "@/lib/bonsai/treeGenerator";
-import { LEAF_TEMPLATES, leavesPathData } from "./leafShapes";
+import {
+  FLOWER_TEMPLATES,
+  LEAF_TEMPLATES,
+  leavesPathData,
+  silhouettesPathData,
+} from "./leafShapes";
 
 const leaf = (over: Partial<Leaf> = {}): Leaf => ({
   id: "l",
@@ -56,6 +61,60 @@ describe("LEAF_TEMPLATES", () => {
       0,
     );
     expect(points).toBeLessThanOrEqual(110);
+  });
+});
+
+describe("FLOWER_TEMPLATES", () => {
+  const parts = Object.entries(FLOWER_TEMPLATES).flatMap(([name, f]) =>
+    f.accent
+      ? [
+          [`${name} main`, f.main],
+          [`${name} accent`, f.accent],
+        ]
+      : [[`${name} main`, f.main]],
+  ) as [string, (typeof FLOWER_TEMPLATES)["blossom"]["main"]][];
+
+  it.each(
+    parts,
+  )("%s winds solids and holes in opposite directions", (_, tpl) => {
+    expect(tpl.solids.length).toBeGreaterThan(0);
+    for (const ring of tpl.solids) expect(area(ring)).toBeGreaterThan(0);
+    for (const ring of tpl.holes) expect(area(ring)).toBeLessThan(0);
+  });
+
+  it.each(parts)("%s stays within a lean point budget", (_, tpl) => {
+    const points = [...tpl.solids, ...tpl.holes].reduce(
+      (n, r) => n + r.length,
+      0,
+    );
+    expect(points).toBeLessThanOrEqual(80);
+  });
+
+  it.each([
+    "samara",
+    "raceme",
+    "catkin",
+  ] as const)("%s hangs below its tip", (shape) => {
+    const ys = FLOWER_TEMPLATES[shape].main.solids.flat().map(([, y]) => y);
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(-0.15);
+    expect(Math.max(...ys)).toBeGreaterThan(0.5);
+  });
+});
+
+describe("silhouettesPathData", () => {
+  it("draws one ring per template ring per item", () => {
+    const tpl = FLOWER_TEMPLATES.corymb.main;
+    const items = [leaf(), leaf({ cx: 20 }), leaf({ cy: 20 })];
+    expect(rings(silhouettesPathData(items, tpl))).toHaveLength(
+      3 * (tpl.solids.length + tpl.holes.length),
+    );
+  });
+
+  it("matches leavesPathData for a leaf template", () => {
+    const items = [leaf({ angleDeg: 70 })];
+    expect(silhouettesPathData(items, LEAF_TEMPLATES.ovate)).toBe(
+      leavesPathData(items, "ovate"),
+    );
   });
 });
 

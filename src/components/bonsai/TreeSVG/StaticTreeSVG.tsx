@@ -16,7 +16,11 @@ import {
   type TreeSVGData,
 } from "@/lib/bonsai/treeGenerator";
 import { clamp } from "@/lib/bonsai/treeGenerator.math";
-import { leavesPathData } from "./leafShapes";
+import {
+  FLOWER_TEMPLATES,
+  leavesPathData,
+  silhouettesPathData,
+} from "./leafShapes";
 
 // ─── Seed / Sprout Stage ──────────────────────────────────────────────────────
 
@@ -326,139 +330,11 @@ function collectGlobalLeaves(
 import type { FlowerSpec } from "@/lib/bonsai/speciesConfig";
 import type { Flower } from "@/lib/bonsai/treeGenerator";
 
-function RacemeFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  const last = flower.racemeFlorets[flower.racemeFlorets.length - 1];
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      <line
-        stroke={flowerColor}
-        strokeOpacity={0.4}
-        strokeWidth={0.5}
-        x1={flower.cx}
-        x2={flower.cx}
-        y1={flower.cy}
-        y2={last?.cy ?? flower.cy}
-      />
-      {flower.racemeFlorets.map((f) => (
-        <g key={f.id} transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}>
-          <ellipse
-            cx={f.cx}
-            cy={f.cy - f.ry * 0.4}
-            fill={accent ?? flowerColor}
-            opacity={0.9}
-            rx={f.rx * 0.85}
-            ry={f.ry * 0.75}
-          />
-          <ellipse
-            cx={f.cx}
-            cy={f.cy + f.ry * 0.2}
-            fill={flowerColor}
-            rx={f.rx}
-            ry={f.ry}
-          />
-        </g>
-      ))}
-    </g>
-  );
-}
-
-function ClusterFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  const centre = flower.florets[flower.florets.length - 1];
-  const petals = flower.florets.slice(0, -1);
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      {petals.map((f) => (
-        <ellipse
-          cx={f.cx}
-          cy={f.cy}
-          fill={flowerColor}
-          key={f.id}
-          rx={f.rx}
-          ry={f.ry}
-          transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}
-        />
-      ))}
-      {centre && (
-        <circle
-          cx={centre.cx}
-          cy={centre.cy}
-          fill={accent ?? flowerColor}
-          r={centre.rx}
-        />
-      )}
-    </g>
-  );
-}
-
-function CatkinFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      {flower.florets.map((f, i) => (
-        <ellipse
-          cx={f.cx}
-          cy={f.cy}
-          fill={i % 2 === 0 ? flowerColor : (accent ?? flowerColor)}
-          key={f.id}
-          rx={f.rx}
-          ry={f.ry}
-          transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}
-        />
-      ))}
-    </g>
-  );
-}
-
-function BerryFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      {flower.florets.map((f) => (
-        <g key={f.id}>
-          <circle cx={f.cx} cy={f.cy} fill={flowerColor} r={f.rx} />
-          <circle
-            cx={f.cx - f.rx * 0.28}
-            cy={f.cy - f.rx * 0.28}
-            fill={accent ?? "rgba(255,255,255,0.3)"}
-            opacity={0.55}
-            r={f.rx * 0.38}
-          />
-        </g>
-      ))}
-    </g>
-  );
-}
-
+/**
+ * Every flower on the tree as at most two paths: the silhouettes in the
+ * flower colour, then their accents (a sakura's eye, a samara's seed) on top.
+ * All flowers share one progress, so one opacity covers the layer.
+ */
 function FlowerLayer({
   flowers,
   flowerSpec,
@@ -467,46 +343,18 @@ function FlowerLayer({
   flowerSpec: FlowerSpec | undefined;
 }) {
   if (!flowerSpec || flowers.length === 0) return null;
-  const { flowerShape, flowerColor, flowerColorAccent: accent } = flowerSpec;
+  const { flowerShape, flowerColor, flowerColorAccent } = flowerSpec;
+  const { main, accent } = FLOWER_TEMPLATES[flowerShape];
+  const florets = flowers.flatMap((f) => f.florets);
   return (
-    <g className="flowers">
-      {flowers.map((flower) => {
-        if (flowerShape === "raceme")
-          return (
-            <RacemeFlower
-              accent={accent}
-              flower={flower}
-              flowerColor={flowerColor}
-              key={flower.id}
-            />
-          );
-        if (flowerShape === "cluster")
-          return (
-            <ClusterFlower
-              accent={accent}
-              flower={flower}
-              flowerColor={flowerColor}
-              key={flower.id}
-            />
-          );
-        if (flowerShape === "catkin")
-          return (
-            <CatkinFlower
-              accent={accent}
-              flower={flower}
-              flowerColor={flowerColor}
-              key={flower.id}
-            />
-          );
-        return (
-          <BerryFlower
-            accent={accent}
-            flower={flower}
-            flowerColor={flowerColor}
-            key={flower.id}
-          />
-        );
-      })}
+    <g className="flowers" opacity={flowers[0].progress}>
+      <path d={silhouettesPathData(florets, main)} fill={flowerColor} />
+      {accent && (
+        <path
+          d={silhouettesPathData(florets, accent)}
+          fill={flowerColorAccent ?? flowerColor}
+        />
+      )}
     </g>
   );
 }

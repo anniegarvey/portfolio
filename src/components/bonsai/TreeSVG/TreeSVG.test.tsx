@@ -228,6 +228,25 @@ describe("StaticTreeSVG — foliage", () => {
     expect(old.some(greenish)).toBe(false);
   });
 
+  it("draws a tree's flowers as one silhouette path plus one accent path", () => {
+    const { container } = render(
+      <StaticTreeSVG tree={tree("cherry-blossom", 100)} />,
+    );
+    const paths = container.querySelectorAll("g.flowers > path");
+    expect(paths).toHaveLength(2);
+    const { flowerColor, flowerColorAccent } =
+      SPECIES_CONFIG["cherry-blossom"].flowers ?? {};
+    expect(Array.from(paths, (p) => p.getAttribute("fill"))).toEqual([
+      flowerColor,
+      flowerColorAccent,
+    ]);
+  });
+
+  it("draws an oak's catkins with no accent path", () => {
+    const { container } = render(<StaticTreeSVG tree={tree("oak", 100)} />);
+    expect(container.querySelectorAll("g.flowers > path")).toHaveLength(1);
+  });
+
   it("gives an oak seedling no seed leaves: it germinates underground", () => {
     // Seed leaves sit in the sprout's own filled group, apart from the seed.
     const seedLeaves = (speciesId: BonsaiTree["speciesId"]) =>

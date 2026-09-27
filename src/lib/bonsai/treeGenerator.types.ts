@@ -36,10 +36,9 @@ export interface Flower {
   cy: number;
   /** [0,1] fade-in progress, same semantics as branch effectiveProg. */
   progress: number;
-  /** Pre-computed florets for cluster / catkin shapes. */
+  /** Where each flower silhouette (blossom, samara, raceme, …) is drawn —
+   *  one floret per silhouette. */
   florets: Floret[];
-  /** Pre-computed raceme florets for wisteria — empty for other shapes. */
-  racemeFlorets: Floret[];
 }
 
 export interface RenderedBranch {

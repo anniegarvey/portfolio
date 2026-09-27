@@ -61,6 +61,7 @@ function generatePad(
   spec: SpeciesConfig,
   progress: number,
   sizeMultiplier = 1.0,
+  along: { x: number; y: number } = { x: 0, y: 0 },
 ): Leaf[] {
   const leaves: Leaf[] = [];
   const size = spec.leafSize * progress * sizeMultiplier;
@@ -72,6 +73,9 @@ function generatePad(
     const dist = Math.sqrt(seededVal(seed + treeId, i * 4 + 1001)) * radius;
     const dx = Math.cos(angle) * dist;
     const dy = Math.sin(angle) * dist;
+    // Where along the branch this leaf sits, from half of `along` before
+    // the pad centre to half after — a pad stretched out along its branch.
+    const t = seededVal(seed + treeId, i * 7 + 5000) - 0.5;
     const dz = (seededVal(seed + treeId, i * 4 + 1002) - 0.5) * 2 * zSpread;
     const tilt = seededVal(seed + treeId, i * 4 + 1003) * 360;
     const jitter = seededVal(seed + treeId, i * 4 + 1004) - 0.5;
@@ -86,8 +90,8 @@ function generatePad(
 
     leaves.push({
       id: `${seed}-${i}`,
-      cx: r(cx + dx),
-      cy: r(cy + dy * (upright ? 0.55 : 1)),
+      cx: r(cx + dx + along.x * t),
+      cy: r(cy + dy * (upright ? 0.55 : 1) + along.y * t),
       rx: size,
       ry: size,
       angleDeg: upright ? jitter * 50 : hanging ? 180 + jitter * 140 : tilt,
@@ -140,6 +144,25 @@ interface FoliageResult {
   spurTip?: { x: number; y: number };
 }
 
+/** How far a spur or interior pad stretches along its branch
+ *  (`padAlongTwig` of the branch's length), and the leaf count scaled up so
+ *  the longer pad keeps the density of a round one. Clothes the outer
+ *  branches so a crown fills its outline instead of balling at the tips. */
+function branchSpan(
+  c: FoliageContext,
+  radius: number,
+  count: number,
+): { along: { x: number; y: number }; count: number } {
+  const span = c.branchLen * (c.spec.padAlongTwig ?? 0);
+  return {
+    along: {
+      x: Math.cos(c.branchAngle) * span,
+      y: Math.sin(c.branchAngle) * span,
+    },
+    count: Math.round(count * Math.min(2, 1 + span / (2 * radius))),
+  };
+}
+
 function terminalFoliage(c: FoliageContext): FoliageResult {
   const leaves: Leaf[] = [];
   let spurTip: { x: number; y: number } | undefined;
@@ -170,10 +193,11 @@ function terminalFoliage(c: FoliageContext): FoliageResult {
   // Gated stochastically per branch via `interiorPadDensity` (reused from
   // pad-mode's interior-pad chance) and only once the branch has grown in
   // and is long enough to plausibly carry a spur. Restricted to depth >= 1
-  // so primary scaffold branches stay bare, as in real trees.
+  // so primary scaffold branches stay bare, unless the species clothes its
+  // branches (`padAlongTwig`), as a young broadleaf does.
   if (
     !c.isTerminal &&
-    c.depth >= 1 &&
+    c.depth >= (c.spec.padAlongTwig ? 0 : 1) &&
     c.effectiveProg > 0.3 &&
     c.branchLen > 6 &&
     c.spec.interiorPadDensity > 0 &&
@@ -194,16 +218,20 @@ function terminalFoliage(c: FoliageContext): FoliageResult {
       ),
       c.ageFrac,
     );
+    const spurRadius = agePadRadius(c.spec.padRadius, c.ageFrac) * 0.6;
+    const { along, count } = branchSpan(c, spurRadius, spurCount);
     leaves.push(
       ...generatePad(
         `${c.branchId}spur`,
         c.treeId,
         spurX,
         spurY,
-        agePadRadius(c.spec.padRadius, c.ageFrac) * 0.6,
-        spurCount,
+        spurRadius,
+        count,
         c.spec,
         c.effectiveProg,
+        1,
+        along,
       ),
     );
   }
@@ -247,16 +275,19 @@ function padFoliage(c: FoliageContext): Leaf[] {
       ),
       c.ageFrac,
     );
+    const intRadius = agePadRadius(c.spec.padRadius, c.ageFrac) * 0.7;
+    const { along, count } = branchSpan(c, intRadius, intCount);
     return generatePad(
       `${c.branchId}i`,
       c.treeId,
-      c.tipX,
-      c.tipY,
-      agePadRadius(c.spec.padRadius, c.ageFrac) * 0.7,
-      intCount,
+      c.tipX - along.x / 2,
+      c.tipY - along.y / 2,
+      intRadius,
+      count,
       c.spec,
       c.effectiveProg,
       0.85,
+      along,
     );
   }
   return [];

@@ -1,4 +1,4 @@
-import type { LeafShape } from "@/lib/bonsai/speciesConfig";
+import type { FlowerShape, LeafShape } from "@/lib/bonsai/speciesConfig";
 import type { Leaf } from "@/lib/bonsai/treeGenerator";
 
 // ─── Leaf silhouettes ─────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ import type { Leaf } from "@/lib/bonsai/treeGenerator";
 
 type Pt = readonly [number, number];
 
-interface LeafTemplate {
+export interface LeafTemplate {
   solids: Pt[][];
   holes: Pt[][];
 }
@@ -157,7 +157,7 @@ function mapleLeaf(): LeafTemplate {
  * Flowering cherry — a five-petalled sakura blossom, each rounded petal
  * notched at its tip, with an open eye where the stamens sit.
  */
-function sakuraBlossom(): LeafTemplate {
+function sakuraOutline(): Pt[] {
   const ring: Pt[] = [];
   const centre: Pt = [0, 0];
   for (let p = 0; p < 5; p++) {
@@ -175,8 +175,12 @@ function sakuraBlossom(): LeafTemplate {
       polar(centre, mid + 31, 0.66),
     );
   }
-  const eye = [0, 72, 144, 216, 288].map((d) => polar(centre, d + 36, 0.14));
-  return template([ring], [eye]);
+  return ring;
+}
+
+function sakuraBlossom(): LeafTemplate {
+  const eye = [0, 72, 144, 216, 288].map((d) => polar([0, 0], d + 36, 0.14));
+  return template([sakuraOutline()], [eye]);
 }
 
 /**
@@ -325,6 +329,162 @@ export const LEAF_TEMPLATES: Record<LeafShape, LeafTemplate> = {
   bipinnate: flameFrond(),
 };
 
+// ─── Flower silhouettes ───────────────────────────────────────────────────────
+// Same unit space as the leaves. Hanging shapes (samara, raceme, catkin)
+// grow from their stalk at the origin toward +y, so `ry` sets their length.
+// Each has a main silhouette in the flower colour and, where the real flower
+// has one, an accent drawn over it in the accent colour.
+
+interface FlowerTemplate {
+  main: LeafTemplate;
+  accent?: LeafTemplate;
+}
+
+/** A small star of `points` spikes, radius `r` — stamens, a flower's eye. */
+function star(points: number, r: number, inner: number): Pt[] {
+  return Array.from({ length: points * 2 }, (_, i) =>
+    polar([0, 0], (i * 180) / points, i % 2 ? r * inner : r),
+  );
+}
+
+/** Flowering cherry — a sakura blossom with a rosy eye of stamens. */
+function sakuraFlower(): FlowerTemplate {
+  return {
+    main: template([sakuraOutline()]),
+    accent: template([star(5, 0.3, 0.45)]),
+  };
+}
+
+/**
+ * Flame tree (Delonix regia) — five spoon-shaped, clawed petals, the upper
+ * standard petal larger and streaked pale gold.
+ */
+function poincianaFlower(): FlowerTemplate {
+  const petal = (len: number): Pt[] => [
+    [0.04, 0],
+    [0.07, -0.3 * len],
+    [0.3 * len, -0.5 * len],
+    [0.34 * len, -0.78 * len],
+    [0.18 * len, -0.97 * len],
+    [0, -len],
+    [-0.18 * len, -0.97 * len],
+    [-0.34 * len, -0.78 * len],
+    [-0.3 * len, -0.5 * len],
+    [-0.07, -0.3 * len],
+    [-0.04, 0],
+  ];
+  return {
+    main: template(
+      [72, 144, 216, 288].map((deg) =>
+        rotateRing(petal(0.95), (deg * Math.PI) / 180),
+      ),
+    ),
+    accent: template([petal(1.05)]),
+  };
+}
+
+/**
+ * Japanese maple — a pair of red-winged samaras joined at the stalk,
+ * wings spread in a wide V, a plump seed at the base of each.
+ */
+function mapleSamara(): FlowerTemplate {
+  const wing: Pt[] = [
+    [-0.08, 0.02],
+    [0.1, 0.08],
+    [0.32, 0.5],
+    [0.36, 0.86],
+    [0.24, 1],
+    [0.1, 0.9],
+    [0.02, 0.5],
+  ];
+  const seed: Pt[] = [
+    [0, -0.02],
+    [0.13, 0.08],
+    [0.13, 0.26],
+    [0, 0.32],
+    [-0.1, 0.2],
+  ];
+  const side = (sign: number) => (ring: Pt[]) =>
+    rotateRing(
+      ring.map(([x, y]) => [x * sign, y] as Pt),
+      sign * 0.75,
+    );
+  return {
+    main: template([side(1)(wing), side(-1)(wing)]),
+    accent: template([side(1)(seed), side(-1)(seed)]),
+  };
+}
+
+/**
+ * Wisteria — a hanging raceme: broad at the stalk and tapering to a point,
+ * its edge broken into the rounded pea-flowers, with the paler just-opened
+ * flowers crowding the top.
+ */
+function wisteriaRaceme(): FlowerTemplate {
+  const bumps = 8;
+  const right: Pt[] = [];
+  for (let i = 0; i <= bumps * 2; i++) {
+    const t = i / (bumps * 2);
+    const w = 0.9 * (1 - t) ** 0.8 * (i % 2 ? 1 : 0.72);
+    right.push([w, 0.04 + t * 0.96]);
+  }
+  const left = [...right].reverse().map(([x, y]) => [-x, y] as Pt);
+  const floret = (x: number, y: number, r: number): Pt[] =>
+    Array.from(
+      { length: 6 },
+      (_, i) => polar([x, y], i * 60, i % 2 ? r * 0.75 : r) as Pt,
+    );
+  return {
+    main: template([[[0, 0], ...right, ...left.slice(1)]]),
+    accent: template([
+      floret(-0.35, 0.12, 0.14),
+      floret(0.3, 0.16, 0.14),
+      floret(-0.1, 0.28, 0.13),
+      floret(0.36, 0.34, 0.12),
+      floret(-0.38, 0.4, 0.11),
+      floret(0.08, 0.48, 0.11),
+    ]),
+  };
+}
+
+/** Oak — a pendulous catkin: a thread strung with small flower beads. */
+function oakCatkin(): FlowerTemplate {
+  const beads = 7;
+  const right: Pt[] = [[0.08, 0]];
+  for (let i = 0; i < beads; i++) {
+    const y = 0.12 + (i / beads) * 0.86;
+    right.push([0.55 - i * 0.03, y + 0.05], [0.12, y + 0.11]);
+  }
+  const left = [...right].reverse().map(([x, y]) => [-x, y] as Pt);
+  return { main: template([[...right, ...left]]) };
+}
+
+/** Juniper — a round berry-like cone with a pale, waxy bloom. */
+function juniperCone(): FlowerTemplate {
+  return {
+    main: template([
+      Array.from({ length: 10 }, (_, i) => polar([0, 0], i * 36, 1)),
+    ]),
+    accent: template([
+      [
+        polar([0, 0], -80, 0.72),
+        polar([0, 0], -50, 0.8),
+        polar([0, 0], -20, 0.7),
+        polar([-0.15, -0.15], -35, 0.35),
+      ],
+    ]),
+  };
+}
+
+export const FLOWER_TEMPLATES: Record<FlowerShape, FlowerTemplate> = {
+  blossom: sakuraFlower(),
+  corymb: poincianaFlower(),
+  samara: mapleSamara(),
+  raceme: wisteriaRaceme(),
+  catkin: oakCatkin(),
+  berry: juniperCone(),
+};
+
 // ─── Path assembly ────────────────────────────────────────────────────────────
 
 /** Tenths of a unit as the shortest SVG number: 3 → ".3", -12 → "-1.2". */
@@ -343,7 +503,7 @@ function tenths(v: number): string {
 function appendRing(
   out: string[],
   ring: Pt[],
-  leaf: Leaf,
+  leaf: Pick<Leaf, "cx" | "cy" | "rx" | "ry">,
   cos: number,
   sin: number,
 ) {
@@ -364,9 +524,16 @@ function appendRing(
 
 /** Path data drawing every leaf in `leaves` as `shape`'s silhouette. */
 export function leavesPathData(leaves: Leaf[], shape: LeafShape): string {
-  const tpl = LEAF_TEMPLATES[shape];
+  return silhouettesPathData(leaves, LEAF_TEMPLATES[shape]);
+}
+
+/** Path data drawing `tpl` once at every placement in `items`. */
+export function silhouettesPathData(
+  items: Pick<Leaf, "cx" | "cy" | "rx" | "ry" | "angleDeg">[],
+  tpl: LeafTemplate,
+): string {
   const out: string[] = [];
-  for (const leaf of leaves) {
+  for (const leaf of items) {
     const rad = (leaf.angleDeg * Math.PI) / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
