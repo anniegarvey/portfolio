@@ -956,6 +956,53 @@ describe("generateTree", () => {
       expect(three.some((l) => /spur2-/.test(l.id))).toBe(true);
     });
 
+    it("alternates a branch's spur shoots from side to side", () => {
+      const data = grow({ ...cherry, spurShoots: 3 });
+      let checked = 0;
+      for (const b of data.branches) {
+        const centre = (tag: string) => {
+          const pad = b.leaves.filter((l) => l.id.startsWith(`${b.id}${tag}-`));
+          if (pad.length === 0) return undefined;
+          return {
+            x: pad.reduce((n, l) => n + l.cx, 0) / pad.length,
+            y: pad.reduce((n, l) => n + l.cy, 0) / pad.length,
+          };
+        };
+        const a = centre("spur");
+        const c = centre("spur1");
+        if (!(a && c)) continue;
+        const side = (p: { x: number; y: number }) =>
+          Math.sign(
+            (b.x2 - b.x1) * (p.y - b.y1) - (b.y2 - b.y1) * (p.x - b.x1),
+          );
+        expect(side(a)).not.toBe(side(c));
+        checked++;
+      }
+      expect(checked).toBeGreaterThan(0);
+    });
+
+    it("draws spur twigs deterministically from the tree id", () => {
+      const data = grow(cherry, "golden-twig");
+      const bare = grow({ ...cherry, interiorPadDensity: 0 }, "golden-twig");
+      const b = data.branches.find((x) => x.spurTip);
+      const plain = bare.branches.find((x) => x.id === b?.id);
+      expect(
+        b &&
+          plain && {
+            twig: b.pathData.slice(plain.pathData.length),
+            tip: [b.spurTip?.x.toFixed(1), b.spurTip?.y.toFixed(1)],
+          },
+      ).toMatchInlineSnapshot(`
+        {
+          "tip": [
+            "15.5",
+            "193.5",
+          ],
+          "twig": " M 16.4 201.8 Q 16.2 197.6 15.8 193.5 L 15.2 193.6 Q 15.2 197.7 15.2 201.8 Z M 11.1 197.9 Q 5.3 199.3 -0.5 200.9 L -0.4 201.5 Q 5.5 200.3 11.4 199.1 Z",
+        }
+      `);
+    });
+
     it("only a pad species that asks for spur shoots grows them", () => {
       const maple = SPECIES_CONFIG.maple;
       const spurs = (spec: SpeciesConfig) =>
