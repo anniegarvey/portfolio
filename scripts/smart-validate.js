@@ -207,7 +207,9 @@ function runFullValidate() {
 
 // --- Collect staged files ---
 
-const staged = execSync("git diff --cached --name-only", {
+// Deletions are left out: there is nothing left to lint, and re-staging a
+// deleted path with `git add` fails.
+const staged = execSync("git diff --cached --name-only --diff-filter=d", {
   cwd: ROOT,
   encoding: "utf8",
 })
