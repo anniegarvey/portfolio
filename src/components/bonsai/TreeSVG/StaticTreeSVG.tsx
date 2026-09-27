@@ -5,113 +5,58 @@ import type React from "react";
 import { useMemo } from "react";
 import type { BonsaiTree } from "@/lib/bonsai/schema";
 import { parsePotId, parseStandId } from "@/lib/bonsai/schema";
-import { SPECIES_CONFIG } from "@/lib/bonsai/speciesConfig";
+import {
+  type LeafShape,
+  SPECIES_CONFIG,
+  type SpeciesConfig,
+} from "@/lib/bonsai/speciesConfig";
 import {
   generateTree,
   type Leaf,
   type TreeSVGData,
 } from "@/lib/bonsai/treeGenerator";
 import { clamp } from "@/lib/bonsai/treeGenerator.math";
-
-// ─── Leaf Shape Paths ─────────────────────────────────────────────────────────
-
-/** Simplified 5-lobed maple leaf. */
-const PALMATE_LEAF_PATH =
-  "M 0,-1 C -0.1,-0.7 -0.2,-0.5 -0.25,-0.3 L -0.85,-0.45 L -0.4,0.1 " +
-  "L -0.55,0.85 L 0,0.4 L 0.55,0.85 L 0.4,0.1 L 0.85,-0.45 " +
-  "L 0.25,-0.3 C 0.2,-0.5 0.1,-0.7 0,-1 Z";
-
-/** Oak-style lobed leaf with 4 pairs of rounded side lobes. */
-const LOBED_LEAF_PATH =
-  "M 0,-1 C 0.3,-0.85 0.55,-0.65 0.5,-0.45 C 0.7,-0.35 0.7,-0.15 0.5,0 " +
-  "C 0.7,0.1 0.65,0.3 0.45,0.45 C 0.6,0.6 0.5,0.8 0.25,0.9 L 0,1 L -0.25,0.9 " +
-  "C -0.5,0.8 -0.6,0.6 -0.45,0.45 C -0.65,0.3 -0.7,0.1 -0.5,0 " +
-  "C -0.7,-0.15 -0.7,-0.35 -0.5,-0.45 C -0.55,-0.65 -0.3,-0.85 0,-1 Z";
-
-/**
- * Wisteria pinnate compound leaf — a central rachis with 6 paired oval leaflets.
- * Normalised so scale(leafSize) gives the right size; the rachis runs from ~(0,-1)
- * to (0,1) and leaflets extend ±0.55 units to each side.
- */
-function PinnateLeaf({
-  cx,
-  cy,
-  scale: s,
-  angleDeg,
-  fill,
-  id,
-}: {
-  cx: number;
-  cy: number;
-  scale: number;
-  angleDeg: number;
-  fill: string;
-  id: string;
-}) {
-  // 6 leaflet pairs distributed along the rachis from -0.75 to 0.75
-  const pairs = 6;
-  const leaflets: React.ReactNode[] = [];
-  for (let i = 0; i < pairs; i++) {
-    const t = -0.72 + (i / (pairs - 1)) * 1.44; // -0.72 → +0.72 along rachis
-    const lrx = s * 0.45;
-    const lry = s * 0.18;
-    const lAngle = 15 + i * 4; // slight upward tip angle
-    for (const side of [-1, 1]) {
-      const lx = cx + side * s * 0.52;
-      const ly = cy + t * s;
-      leaflets.push(
-        <ellipse
-          cx={lx}
-          cy={ly}
-          fill={fill}
-          key={`${id}-l${i}s${side}`}
-          rx={lrx}
-          ry={lry}
-          transform={`rotate(${side * lAngle} ${lx} ${ly})`}
-        />,
-      );
-    }
-  }
-  // Terminal leaflet at the tip
-  leaflets.push(
-    <ellipse
-      cx={cx}
-      cy={cy - s * 0.82}
-      fill={fill}
-      key={`${id}-tip`}
-      rx={s * 0.28}
-      ry={s * 0.42}
-    />,
-  );
-  return (
-    <g transform={`rotate(${angleDeg} ${cx} ${cy})`}>
-      <line
-        opacity={0.6}
-        stroke={fill}
-        strokeLinecap="round"
-        strokeWidth={s * 0.08}
-        x1={cx}
-        x2={cx}
-        y1={cy - s * 0.9}
-        y2={cy + s * 0.8}
-      />
-      {leaflets}
-    </g>
-  );
-}
+import {
+  FLOWER_TEMPLATES,
+  leavesPathData,
+  silhouettesPathData,
+} from "./leafShapes";
 
 // ─── Seed / Sprout Stage ──────────────────────────────────────────────────────
+
+/**
+ * Seed leaves as each species actually germinates, fanned from the stem top:
+ * angles in degrees from straight up, length and width at full size. A pine
+ * opens a ring of needle-like cotyledons, a juniper a narrow pair, a maple
+ * two long straps, a wisteria two fleshy rounds. An oak keeps its
+ * cotyledons in the acorn underground, so its first leaves are true ones.
+ */
+const COTYLEDONS: Record<
+  LeafShape,
+  { angles: number[]; length: number; width: number }
+> = {
+  needle: { angles: [-75, -50, -25, 0, 25, 50, 75], length: 5, width: 0.6 },
+  scale: { angles: [-35, 35], length: 5, width: 0.8 },
+  palmate: { angles: [-72, 72], length: 7.5, width: 1.7 },
+  blossom: { angles: [-62, 62], length: 6, width: 3.2 },
+  ovate: { angles: [-62, 62], length: 6, width: 3.2 },
+  lobed: { angles: [], length: 0, width: 0 },
+  pinnate: { angles: [-60, 60], length: 4.5, width: 3.8 },
+  bipinnate: { angles: [-65, 65], length: 5.5, width: 3 },
+};
 
 function SeedSprout({
   day,
   cx,
   baseY,
   foliageColor,
+  leafShape,
 }: {
   day: number;
   cx: number;
   baseY: number;
   foliageColor: string;
+  leafShape: LeafShape;
 }) {
   const seedFade = Math.max(0, 1 - day / 5);
   const crackOpen = clamp(day / 2, 0, 1);
@@ -125,8 +70,7 @@ function SeedSprout({
   const crackDepth = seedRy * 0.6 * crackOpen;
   const crackWidth = seedRx * 0.18 * crackOpen;
   const stemTop = seedY - stemGrow * 22;
-  const leafRx = leavesGrow * 6;
-  const leafRy = leavesGrow * 3.5;
+  const cotyledons = COTYLEDONS[leafShape];
 
   if (seedFade <= 0 && stemGrow <= 0) return null;
 
@@ -176,23 +120,23 @@ function SeedSprout({
         />
       )}
       {leavesGrow > 0 && (
-        <g opacity={Math.min(leavesGrow * 1.5, 1)}>
-          <ellipse
-            cx={cx - leafRx * 1.1}
-            cy={stemTop + leafRy * 0.5}
-            fill={foliageColor}
-            rx={leafRx}
-            ry={leafRy}
-            transform={`rotate(-30 ${cx - leafRx * 1.1} ${stemTop + leafRy * 0.5})`}
-          />
-          <ellipse
-            cx={cx + leafRx * 1.1}
-            cy={stemTop + leafRy * 0.5}
-            fill={foliageColor}
-            rx={leafRx}
-            ry={leafRy}
-            transform={`rotate(30 ${cx + leafRx * 1.1} ${stemTop + leafRy * 0.5})`}
-          />
+        <g fill={foliageColor} opacity={Math.min(leavesGrow * 1.5, 1)}>
+          {cotyledons.angles.map((deg) => {
+            const rad = (deg * Math.PI) / 180;
+            const half = (cotyledons.length * leavesGrow) / 2;
+            const x = cx + Math.sin(rad) * half;
+            const y = stemTop - Math.cos(rad) * half;
+            return (
+              <ellipse
+                cx={x}
+                cy={y}
+                key={deg}
+                rx={(cotyledons.width * leavesGrow) / 2}
+                ry={half}
+                transform={`rotate(${deg} ${x} ${y})`}
+              />
+            );
+          })}
         </g>
       )}
     </g>
@@ -296,52 +240,64 @@ function branchZBounds(branches: { z: number }[]): {
   return { zMin, zRange: zMax - zMin };
 }
 
-// ─── Leaf Renderer ────────────────────────────────────────────────────────────
+/** The leaves a species wears at `day`: its juvenile foliage, if it has one,
+ *  until it reaches flowering age; its crown foliage after. */
+function foliageAt(config: SpeciesConfig, day: number) {
+  const young = day < (config.flowers?.floweringAge ?? 0);
+  return (young && config.juvenileFoliage) || config;
+}
 
-function renderLeaf(leaf: Leaf, leafShape: string, foliageColor: string) {
-  if (leafShape === "palmate") {
-    return (
-      <path
-        d={PALMATE_LEAF_PATH}
-        fill={foliageColor}
-        key={leaf.id}
-        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-      />
-    );
-  }
-  if (leafShape === "lobed") {
-    return (
-      <path
-        d={LOBED_LEAF_PATH}
-        fill={foliageColor}
-        key={leaf.id}
-        transform={`translate(${leaf.cx} ${leaf.cy}) rotate(${leaf.angleDeg}) scale(${leaf.rx})`}
-      />
-    );
-  }
-  if (leafShape === "pinnate") {
-    return (
-      <PinnateLeaf
-        angleDeg={leaf.angleDeg}
-        cx={leaf.cx}
-        cy={leaf.cy}
-        fill={foliageColor}
-        id={leaf.id}
-        key={leaf.id}
-        scale={leaf.rx}
-      />
+// ─── Foliage Layer ────────────────────────────────────────────────────────────
+
+/** Depth bands the foliage is split into — one <path> (one colour) each. */
+const FOLIAGE_BANDS = 6;
+
+/**
+ * Draws the depth-sorted foliage as one path per depth band, back to front.
+ * Each band takes the depth tint at its middle, so the crown keeps its
+ * shadow-to-highlight gradient while a mature tree costs six nodes of
+ * foliage instead of thousands.
+ */
+function FoliageLayer({
+  leaves,
+  shape,
+  foliageColor,
+  foliageColorLight,
+}: {
+  leaves: { leaf: Leaf; absoluteZ: number }[];
+  shape: LeafShape;
+  foliageColor: string;
+  foliageColorLight: string;
+}) {
+  const { zMin, zRange } = branchZBounds(
+    leaves.map((e) => ({ z: e.absoluteZ })),
+  );
+  const bands: Leaf[][] = Array.from({ length: FOLIAGE_BANDS }, () => []);
+  for (const { leaf, absoluteZ } of leaves) {
+    const t = zRange < 1e-6 ? 0 : (absoluteZ - zMin) / zRange;
+    bands[Math.min(FOLIAGE_BANDS - 1, Math.floor(t * FOLIAGE_BANDS))].push(
+      leaf,
     );
   }
   return (
-    <ellipse
-      cx={leaf.cx}
-      cy={leaf.cy}
-      fill={foliageColor}
-      key={leaf.id}
-      rx={leaf.rx}
-      ry={leaf.ry}
-      transform={`rotate(${leaf.angleDeg} ${leaf.cx} ${leaf.cy})`}
-    />
+    <g className="foliage">
+      {bands.map((band, i) =>
+        band.length === 0 ? null : (
+          <path
+            d={leavesPathData(band, shape)}
+            fill={depthTintedColor(
+              zMin + ((i + 0.5) / FOLIAGE_BANDS) * zRange,
+              zMin,
+              zRange,
+              foliageColor,
+              foliageColorLight,
+            )}
+            // biome-ignore lint/suspicious/noArrayIndexKey: bands are fixed depth slots
+            key={i}
+          />
+        ),
+      )}
+    </g>
   );
 }
 
@@ -374,139 +330,11 @@ function collectGlobalLeaves(
 import type { FlowerSpec } from "@/lib/bonsai/speciesConfig";
 import type { Flower } from "@/lib/bonsai/treeGenerator";
 
-function RacemeFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  const last = flower.racemeFlorets[flower.racemeFlorets.length - 1];
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      <line
-        stroke={flowerColor}
-        strokeOpacity={0.4}
-        strokeWidth={0.5}
-        x1={flower.cx}
-        x2={flower.cx}
-        y1={flower.cy}
-        y2={last?.cy ?? flower.cy}
-      />
-      {flower.racemeFlorets.map((f) => (
-        <g key={f.id} transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}>
-          <ellipse
-            cx={f.cx}
-            cy={f.cy - f.ry * 0.4}
-            fill={accent ?? flowerColor}
-            opacity={0.9}
-            rx={f.rx * 0.85}
-            ry={f.ry * 0.75}
-          />
-          <ellipse
-            cx={f.cx}
-            cy={f.cy + f.ry * 0.2}
-            fill={flowerColor}
-            rx={f.rx}
-            ry={f.ry}
-          />
-        </g>
-      ))}
-    </g>
-  );
-}
-
-function ClusterFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  const centre = flower.florets[flower.florets.length - 1];
-  const petals = flower.florets.slice(0, -1);
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      {petals.map((f) => (
-        <ellipse
-          cx={f.cx}
-          cy={f.cy}
-          fill={flowerColor}
-          key={f.id}
-          rx={f.rx}
-          ry={f.ry}
-          transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}
-        />
-      ))}
-      {centre && (
-        <circle
-          cx={centre.cx}
-          cy={centre.cy}
-          fill={accent ?? flowerColor}
-          r={centre.rx}
-        />
-      )}
-    </g>
-  );
-}
-
-function CatkinFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      {flower.florets.map((f, i) => (
-        <ellipse
-          cx={f.cx}
-          cy={f.cy}
-          fill={i % 2 === 0 ? flowerColor : (accent ?? flowerColor)}
-          key={f.id}
-          rx={f.rx}
-          ry={f.ry}
-          transform={`rotate(${f.angleDeg} ${f.cx} ${f.cy})`}
-        />
-      ))}
-    </g>
-  );
-}
-
-function BerryFlower({
-  flower,
-  flowerColor,
-  accent,
-}: {
-  flower: Flower;
-  flowerColor: string;
-  accent: string | undefined;
-}) {
-  return (
-    <g key={flower.id} opacity={flower.progress}>
-      {flower.florets.map((f) => (
-        <g key={f.id}>
-          <circle cx={f.cx} cy={f.cy} fill={flowerColor} r={f.rx} />
-          <circle
-            cx={f.cx - f.rx * 0.28}
-            cy={f.cy - f.rx * 0.28}
-            fill={accent ?? "rgba(255,255,255,0.3)"}
-            opacity={0.55}
-            r={f.rx * 0.38}
-          />
-        </g>
-      ))}
-    </g>
-  );
-}
-
+/**
+ * Every flower on the tree as at most two paths: the silhouettes in the
+ * flower colour, then their accents (a sakura's eye, a samara's seed) on top.
+ * All flowers share one progress, so one opacity covers the layer.
+ */
 function FlowerLayer({
   flowers,
   flowerSpec,
@@ -515,46 +343,18 @@ function FlowerLayer({
   flowerSpec: FlowerSpec | undefined;
 }) {
   if (!flowerSpec || flowers.length === 0) return null;
-  const { flowerShape, flowerColor, flowerColorAccent: accent } = flowerSpec;
+  const { flowerShape, flowerColor, flowerColorAccent } = flowerSpec;
+  const { main, accent } = FLOWER_TEMPLATES[flowerShape];
+  const florets = flowers.flatMap((f) => f.florets);
   return (
-    <g className="flowers">
-      {flowers.map((flower) => {
-        if (flowerShape === "raceme")
-          return (
-            <RacemeFlower
-              accent={accent}
-              flower={flower}
-              flowerColor={flowerColor}
-              key={flower.id}
-            />
-          );
-        if (flowerShape === "cluster")
-          return (
-            <ClusterFlower
-              accent={accent}
-              flower={flower}
-              flowerColor={flowerColor}
-              key={flower.id}
-            />
-          );
-        if (flowerShape === "catkin")
-          return (
-            <CatkinFlower
-              accent={accent}
-              flower={flower}
-              flowerColor={flowerColor}
-              key={flower.id}
-            />
-          );
-        return (
-          <BerryFlower
-            accent={accent}
-            flower={flower}
-            flowerColor={flowerColor}
-            key={flower.id}
-          />
-        );
-      })}
+    <g className="flowers" opacity={flowers[0].progress}>
+      <path d={silhouettesPathData(florets, main)} fill={flowerColor} />
+      {accent && (
+        <path
+          d={silhouettesPathData(florets, accent)}
+          fill={flowerColorAccent ?? flowerColor}
+        />
+      )}
     </g>
   );
 }
@@ -905,9 +705,7 @@ export function StaticTreeSVG({
   // a forward-projected pad on a back branch can still overpaint a back pad
   // on a forward branch where the two discs cross in 2D.
   const globalLeaves = collectGlobalLeaves(sortedBranches, svgData.apexLeaves);
-  const { zMin: leafZMin, zRange: leafZRange } = branchZBounds(
-    globalLeaves.map((e) => ({ z: e.absoluteZ })),
-  );
+  const foliage = foliageAt(config, tree.activeDaysCount);
 
   return (
     <svg
@@ -1004,19 +802,12 @@ export function StaticTreeSVG({
 
         {/* Foliage layer — every leaf z-sorted globally so overlapping pads
            on different branches paint in true depth order. */}
-        {globalLeaves.map(({ leaf, absoluteZ }) =>
-          renderLeaf(
-            leaf,
-            config.leafShape,
-            depthTintedColor(
-              absoluteZ,
-              leafZMin,
-              leafZRange,
-              config.foliageColor,
-              config.foliageColorLight,
-            ),
-          ),
-        )}
+        <FoliageLayer
+          foliageColor={foliage.foliageColor}
+          foliageColorLight={foliage.foliageColorLight}
+          leaves={globalLeaves}
+          shape={foliage.leafShape}
+        />
 
         <FlowerLayer flowerSpec={config.flowers} flowers={svgData.flowers} />
 
@@ -1025,7 +816,8 @@ export function StaticTreeSVG({
             baseY={svgData.trunkBaseY}
             cx={svgData.trunkX}
             day={tree.activeDaysCount}
-            foliageColor={config.foliageColor}
+            foliageColor={foliage.foliageColor}
+            leafShape={foliage.leafShape}
           />
         )}
 

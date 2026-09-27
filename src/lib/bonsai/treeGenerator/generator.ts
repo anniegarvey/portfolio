@@ -74,46 +74,25 @@ function generatePad(
     const dy = Math.sin(angle) * dist;
     const dz = (seededVal(seed + treeId, i * 4 + 1002) - 0.5) * 2 * zSpread;
     const tilt = seededVal(seed + treeId, i * 4 + 1003) * 360;
-    const id = `${seed}-${i}`;
+    const jitter = seededVal(seed + treeId, i * 4 + 1004) - 0.5;
+    // Pine tufts and juniper sprays stand upright (within ±25°) in a pad
+    // disc compressed vertically, so pads read as horizontal clouds sitting
+    // on the branch — the classic trained-pad look. Compound leaves hang
+    // from their stalk, tip down and out (180° ± 70°). Broad leaves and
+    // blossoms face any way.
+    const upright = spec.leafShape === "needle" || spec.leafShape === "scale";
+    const hanging =
+      spec.leafShape === "pinnate" || spec.leafShape === "bipinnate";
 
-    if (spec.leafShape === "needle") {
-      // Fan needles across an upward arc (-160°..-20°, centred on straight-up
-      // -90°) instead of a full 360° "sea urchin" spread, and compress the
-      // pad disc vertically so needle pads read as horizontal tufts sitting
-      // on the branch — the classic pine-pad look.
-      const baseDeg = -160 + (i / count) * 140;
-      const jitter = (seededVal(seed + treeId, i * 4 + 1004) - 0.5) * 18;
-      leaves.push({
-        id,
-        cx: r(cx + dx),
-        cy: r(cy + dy * 0.55),
-        rx: 0.4,
-        ry: size,
-        angleDeg: baseDeg + jitter,
-        z: dz,
-      });
-    } else if (spec.leafShape === "scale") {
-      leaves.push({
-        id,
-        cx: r(cx + dx),
-        cy: r(cy + dy),
-        rx: size * 0.7,
-        ry: size * 0.7,
-        angleDeg: tilt,
-        z: dz,
-      });
-    } else {
-      // oval, palmate, lobed, pinnate
-      leaves.push({
-        id,
-        cx: r(cx + dx),
-        cy: r(cy + dy),
-        rx: size,
-        ry: size * (spec.leafShape === "oval" ? 0.6 : 1.0),
-        angleDeg: tilt,
-        z: dz,
-      });
-    }
+    leaves.push({
+      id: `${seed}-${i}`,
+      cx: r(cx + dx),
+      cy: r(cy + dy * (upright ? 0.55 : 1)),
+      rx: size,
+      ry: size,
+      angleDeg: upright ? jitter * 50 : hanging ? 180 + jitter * 140 : tilt,
+      z: dz,
+    });
   }
 
   return leaves;
@@ -142,6 +121,12 @@ function agePadRadius(padRadius: number, ageFrac: number): number {
 
 interface FoliageContext {
   branchId: string;
+  baseX: number;
+  baseY: number;
+  /** Branch width at its base and (current) tip — side shoots taper from
+   *  about half the parent's width where they leave it. */
+  baseWidth: number;
+  tipWidth: number;
   tipX: number;
   tipY: number;
   branchAngle: number;
@@ -156,14 +141,88 @@ interface FoliageContext {
 
 interface FoliageResult {
   leaves: Leaf[];
-  /** Spur pad centre, if `terminalFoliage` rolled one for this branch/day —
-   *  plumbed out so `generateFlowers` can also site flowers on spur shoots. */
+  /** Spur pad centre, if this branch grew a spur shoot this day — plumbed
+   *  out so `generateFlowers` can also site flowers on spur shoots. */
   spurTip?: { x: number; y: number };
+  /** Tapered outlines of the spur shoots, drawn with the parent branch. */
+  twigPath?: string;
+}
+
+/**
+ * Spur shoots — real broadleaf crowns aren't bare branches with a single
+ * puff at the tip; short side shoots along the outer non-terminal branches
+ * carry foliage too, keeping the crown outline continuous. Each shoot is a
+ * short tapered twig angled out from its branch with a small pad at its tip,
+ * so leaves never sit straight on a thick branch. Gated stochastically per
+ * branch via `interiorPadDensity`, only once the branch has grown in and is
+ * long enough to carry a shoot, and never on primaries: the scaffold near
+ * the trunk stays bare, as in real trees. `spurShoots` sets how many a long
+ * branch carries (default 1), spread over 40–90% of its length.
+ */
+function spurShoots(c: FoliageContext, count: number): FoliageResult {
+  if (
+    c.isTerminal ||
+    c.depth < 1 ||
+    c.effectiveProg <= 0.3 ||
+    c.branchLen <= 6 ||
+    c.spec.interiorPadDensity <= 0 ||
+    seededVal(c.branchId + c.treeId, 78) >= c.spec.interiorPadDensity
+  )
+    return { leaves: [] };
+
+  const seed = c.branchId + c.treeId;
+  const [minL, maxL] = c.spec.leavesPerPad;
+  const padRadius = agePadRadius(c.spec.padRadius, c.ageFrac);
+  const shoots = Math.max(
+    1,
+    // One shoot per spur-pad width of branch, so pads don't pile up.
+    Math.min(count, Math.floor(c.branchLen / (padRadius * 0.6))),
+  );
+  const firstSide = seededVal(seed, 802) < 0.5 ? 1 : -1;
+  const leaves: Leaf[] = [];
+  const twigs: string[] = [];
+  let spurTip: { x: number; y: number } | undefined;
+  for (let i = 0; i < shoots; i++) {
+    const frac = 0.4 + ((i + seededVal(seed, 800 + i * 5)) / shoots) * 0.5;
+    const bx = lerp(c.baseX, c.tipX, frac);
+    const by = lerp(c.baseY, c.tipY, frac);
+    const side = i % 2 === 0 ? firstSide : -firstSide;
+    const angle =
+      c.branchAngle + side * (0.6 + seededVal(seed, 803 + i * 5) * 0.4);
+    const len =
+      padRadius * (0.5 + seededVal(seed, 804 + i * 5) * 0.4) * c.effectiveProg;
+    const tx = bx + Math.cos(angle) * len;
+    const ty = by + Math.sin(angle) * len;
+    const w = Math.max(0.6, lerp(c.baseWidth, c.tipWidth, frac) * 0.45);
+    twigs.push(taperedPath(bx, by, tx, ty, w, w * 0.5, 0));
+    spurTip ??= { x: tx, y: ty };
+    const padCount = ageDensityCount(
+      seededInt(
+        seed,
+        801 + i * 5,
+        Math.max(1, Math.floor(minL * 0.5)),
+        Math.max(2, Math.ceil(maxL * 0.5)),
+      ),
+      c.ageFrac,
+    );
+    leaves.push(
+      ...generatePad(
+        i === 0 ? `${c.branchId}spur` : `${c.branchId}spur${i}`,
+        c.treeId,
+        tx,
+        ty,
+        padRadius * 0.6,
+        padCount,
+        c.spec,
+        c.effectiveProg,
+      ),
+    );
+  }
+  return { leaves, spurTip, twigPath: twigs.join(" ") };
 }
 
 function terminalFoliage(c: FoliageContext): FoliageResult {
   const leaves: Leaf[] = [];
-  let spurTip: { x: number; y: number } | undefined;
 
   if (c.isTerminal && c.effectiveProg > 0.3) {
     const [minL, maxL] = c.spec.leavesPerPad;
@@ -185,51 +244,8 @@ function terminalFoliage(c: FoliageContext): FoliageResult {
     );
   }
 
-  // Spur pads — real broadleaf crowns aren't bare branches with a single
-  // puff at the tip; short shoots (spurs) along the outer non-terminal
-  // branches also carry foliage, keeping the crown outline continuous.
-  // Gated stochastically per branch via `interiorPadDensity` (reused from
-  // pad-mode's interior-pad chance) and only once the branch has grown in
-  // and is long enough to plausibly carry a spur. Restricted to depth >= 1
-  // so primary scaffold branches stay bare, as in real trees.
-  if (
-    !c.isTerminal &&
-    c.depth >= 1 &&
-    c.effectiveProg > 0.3 &&
-    c.branchLen > 6 &&
-    c.spec.interiorPadDensity > 0 &&
-    seededVal(c.branchId + c.treeId, 78) < c.spec.interiorPadDensity
-  ) {
-    const [minL, maxL] = c.spec.leavesPerPad;
-    // Position ~55-75% of the way from base to tip, seeded per branch.
-    const frac = 0.55 + seededVal(c.branchId + c.treeId, 800) * 0.2;
-    const spurX = c.tipX - Math.cos(c.branchAngle) * c.branchLen * (1 - frac);
-    const spurY = c.tipY - Math.sin(c.branchAngle) * c.branchLen * (1 - frac);
-    spurTip = { x: spurX, y: spurY };
-    const spurCount = ageDensityCount(
-      seededInt(
-        c.branchId + c.treeId,
-        801,
-        Math.max(1, Math.floor(minL * 0.5)),
-        Math.max(2, Math.ceil(maxL * 0.5)),
-      ),
-      c.ageFrac,
-    );
-    leaves.push(
-      ...generatePad(
-        `${c.branchId}spur`,
-        c.treeId,
-        spurX,
-        spurY,
-        agePadRadius(c.spec.padRadius, c.ageFrac) * 0.6,
-        spurCount,
-        c.spec,
-        c.effectiveProg,
-      ),
-    );
-  }
-
-  return { leaves, spurTip };
+  const spurs = spurShoots(c, c.spec.spurShoots ?? 1);
+  return { ...spurs, leaves: [...leaves, ...spurs.leaves] };
 }
 
 function padFoliage(c: FoliageContext): Leaf[] {
@@ -370,14 +386,19 @@ function pendentFoliage(c: FoliageContext): Leaf[] {
 }
 
 /** Dispatches to the per-distribution builder selected on the species spec.
- *  Only `terminalFoliage` ever produces a `spurTip` — the other three modes
- *  are wrapped so their call sites stay unchanged. */
+ *  Only `terminal` and `pad` (with `spurShoots`) grow spur shoots, so only
+ *  they produce a `spurTip` or `twigPath`. */
 function buildFoliageLeaves(c: FoliageContext): FoliageResult {
   switch (c.spec.foliageDistribution) {
     case "terminal":
       return terminalFoliage(c);
-    case "pad":
-      return { leaves: padFoliage(c) };
+    case "pad": {
+      // Pad species grow spur shoots only when they ask for them.
+      const pads = padFoliage(c);
+      if (!c.spec.spurShoots) return { leaves: pads };
+      const spurs = spurShoots(c, c.spec.spurShoots);
+      return { ...spurs, leaves: [...pads, ...spurs.leaves] };
+    }
     case "scattered":
       return { leaves: scatteredFoliage(c) };
     case "pendent":
@@ -849,8 +870,12 @@ export function generateTree(
       visibleIds.has(`${s.id}-a`) || visibleIds.has(`${s.id}-b`)
     );
 
-    const { leaves, spurTip } = buildFoliageLeaves({
+    const { leaves, spurTip, twigPath } = buildFoliageLeaves({
       branchId: s.id,
+      baseX: s.x1,
+      baseY: s.y1,
+      baseWidth: s.baseWidth,
+      tipWidth: currentTipW,
       tipX: x2,
       tipY: y2,
       branchAngle: tipAngle2D,
@@ -869,7 +894,7 @@ export function generateTree(
       y1: s.y1,
       x2,
       y2,
-      pathData: path,
+      pathData: twigPath ? `${path} ${twigPath}` : path,
       depth: s.depth,
       z: s.z,
       leaves,

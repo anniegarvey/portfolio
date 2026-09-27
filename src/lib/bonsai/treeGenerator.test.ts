@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { SpeciesId } from "./schema";
 import type { SpeciesConfig } from "./speciesConfig";
 import { SPECIES_CONFIG } from "./speciesConfig";
 import {
@@ -655,7 +656,9 @@ describe("generateTree", () => {
      *  eligible tips before density thinning is applied. */
     function eligibleTipCount(data: ReturnType<typeof generateTree>) {
       return (
-        data.branches.filter((b) => b.isTerminal && !b.isPruned).length + 1
+        data.branches.filter((b) => b.isTerminal && !b.isPruned).length +
+        data.branches.filter((b) => b.spurTip && !b.isPruned).length +
+        1
       );
     }
 
@@ -685,7 +688,7 @@ describe("generateTree", () => {
       }
     });
 
-    it("flowerDensity 1 gives every eligible tip a flower, unchanged from before", () => {
+    it("flowerDensity 1 gives every eligible tip, spur shoots included, a flower", () => {
       const maple = SPECIES_CONFIG.maple;
       const fullBloom = {
         ...maple,
@@ -693,6 +696,319 @@ describe("generateTree", () => {
       };
       const data = generateTree(60, fullBloom, [], "flower-density-full");
       expect(data.flowers.length).toBe(eligibleTipCount(data));
+    });
+  });
+
+  // ─── Flower silhouettes ────────────────────────────────────────────────
+
+  describe("flower silhouettes", () => {
+    const RANGES: Record<string, [number, number]> = {
+      blossom: [2, 4],
+      corymb: [3, 5],
+      samara: [1, 2],
+      raceme: [1, 1],
+      catkin: [1, 3],
+      berry: [1, 3],
+    };
+
+    it.each(
+      Object.entries(SPECIES_CONFIG).filter(([, spec]) => spec.flowers),
+    )("%s draws one floret per silhouette, as many as its flower shape carries", (id, spec) => {
+      const data = generateTree(100, spec, [], `silhouette-${id}`);
+      const shape = spec.flowers?.flowerShape ?? "berry";
+      const [min, max] = RANGES[shape];
+      expect(data.flowers.length).toBeGreaterThan(0);
+      for (const f of data.flowers) {
+        expect(f.florets.length).toBeGreaterThanOrEqual(min);
+        expect(f.florets.length).toBeLessThanOrEqual(max);
+      }
+    });
+
+    it("a wisteria raceme lengthens with bloom progress to racemeLength", () => {
+      const wisteria = SPECIES_CONFIG.wisteria;
+      const fs = wisteria.flowers;
+      if (!fs) throw new Error("wisteria flowers");
+      const length = fs.racemeLength ?? 0;
+      const opening = generateTree(fs.floweringAge + 2, wisteria, [], "raceme");
+      const full = generateTree(100, wisteria, [], "raceme");
+      const progress = opening.flowers[0].progress;
+      expect(progress).toBeLessThan(1);
+      const fullRy = new Map(full.flowers.map((f) => [f.id, f.florets[0].ry]));
+      for (const f of opening.flowers) {
+        const ry = fullRy.get(f.id) ?? 0;
+        // Each raceme varies ±15% about racemeLength.
+        expect(ry).toBeGreaterThanOrEqual(length * 0.85);
+        expect(ry).toBeLessThanOrEqual(length * 1.15);
+        expect(f.florets[0].ry).toBeCloseTo(ry * progress, 5);
+      }
+    });
+
+    it.each([
+      ["cherry-blossom", 1.2, 180],
+      ["flame-tree", 1.4, 35],
+      ["juniper", 2, 0],
+    ] as const)("%s clusters its flowers round the tip: the first on it, the rest %f sizes out", (id, spread, maxTilt) => {
+      const spec = SPECIES_CONFIG[id];
+      const size = spec.flowers?.flowerSize ?? 0;
+      const data = generateTree(100, spec, [], `cluster-${id}`);
+      const offsets = new Set<number>();
+      for (const f of data.flowers) {
+        f.florets.forEach((fl, i) => {
+          const dist = Math.hypot(fl.cx - f.cx, fl.cy - f.cy);
+          if (i === 0) expect(dist).toBeCloseTo(0, 6);
+          else {
+            expect(dist).toBeGreaterThanOrEqual(0.6 * size * spread - 1e-6);
+            expect(dist).toBeLessThanOrEqual(size * spread + 1e-6);
+            offsets.add(Math.round(dist * 100));
+          }
+          expect(fl.rx).toBe(fl.ry);
+          expect(fl.rx).toBeGreaterThanOrEqual(0.85 * size - 1e-6);
+          expect(fl.rx).toBeLessThanOrEqual(1.15 * size + 1e-6);
+          expect(Math.abs(fl.angleDeg)).toBeLessThanOrEqual(maxTilt);
+        });
+      }
+      // Seeded, not fixed: flowers sit at a spread of distances and angles.
+      expect(offsets.size).toBeGreaterThan(3);
+      const tilts = data.flowers.flatMap((f) =>
+        f.florets.map((x) => x.angleDeg),
+      );
+      if (maxTilt > 0) expect(Math.max(...tilts)).toBeGreaterThan(maxTilt / 3);
+      if (maxTilt > 0) expect(Math.min(...tilts)).toBeLessThan(-maxTilt / 3);
+    });
+
+    it.each([
+      ["maple", 1, 1],
+      ["oak", 1, 7],
+    ] as const)("%s hangs its flowers from the tip, side by side", (id, widthK, lengthK) => {
+      const spec = SPECIES_CONFIG[id];
+      const size = spec.flowers?.flowerSize ?? 0;
+      const data = generateTree(100, spec, [], `hang-${id}`);
+      let pairs = 0;
+      for (const f of data.flowers) {
+        const n = f.florets.length;
+        f.florets.forEach((fl, i) => {
+          expect(fl.cy).toBeCloseTo(f.cy, 6);
+          expect(fl.cx).toBeCloseTo(
+            f.cx + (i - (n - 1) / 2) * size * widthK * 0.8,
+            6,
+          );
+          expect(fl.rx).toBeCloseTo(size * widthK, 6);
+          expect(fl.ry).toBeGreaterThanOrEqual(0.85 * size * lengthK - 1e-6);
+          expect(fl.ry).toBeLessThanOrEqual(1.15 * size * lengthK + 1e-6);
+        });
+        if (n > 1) pairs++;
+      }
+      expect(pairs).toBeGreaterThan(0);
+    });
+
+    it("gives every flower and every floret within it its own id", () => {
+      for (const id of ["cherry-blossom", "maple"] as const) {
+        const data = generateTree(100, SPECIES_CONFIG[id], [], `ids-${id}`);
+        const flowerIds = data.flowers.map((f) => f.id);
+        expect(new Set(flowerIds).size).toBe(flowerIds.length);
+        expect(flowerIds.every((x) => x.startsWith("flower-"))).toBe(true);
+        for (const f of data.flowers) {
+          const ids = f.florets.map((x) => x.id);
+          expect(new Set(ids).size).toBe(ids.length);
+          expect(ids.every(Boolean)).toBe(true);
+        }
+      }
+    });
+
+    it("a wisteria raceme is 2.2 flower sizes wide", () => {
+      const spec = SPECIES_CONFIG.wisteria;
+      const data = generateTree(100, spec, [], "raceme-width");
+      for (const f of data.flowers)
+        expect(f.florets[0].rx).toBeCloseTo(
+          (spec.flowers?.flowerSize ?? 0) * 2.2,
+          6,
+        );
+    });
+
+    it("an oak's catkins lengthen as they open", () => {
+      const spec = SPECIES_CONFIG.oak;
+      const fs = spec.flowers;
+      if (!fs) throw new Error("oak flowers");
+      const data = generateTree(fs.floweringAge + 3, spec, [], "catkin-grow");
+      const { progress } = data.flowers[0];
+      expect(progress).toBeLessThan(1);
+      for (const f of data.flowers)
+        for (const c of f.florets) {
+          expect(c.ry).toBeGreaterThanOrEqual(
+            fs.flowerSize * 7 * progress * 0.85 - 1e-6,
+          );
+          expect(c.ry).toBeLessThanOrEqual(
+            fs.flowerSize * 7 * progress * 1.15 + 1e-6,
+          );
+        }
+    });
+
+    it("places flowers deterministically from the tree id", () => {
+      const pick = (id: "cherry-blossom" | "oak") =>
+        generateTree(100, SPECIES_CONFIG[id], [], `golden-${id}`)
+          .flowers.slice(0, 2)
+          .flatMap((f) => f.florets)
+          .map((x) =>
+            [x.cx, x.cy, x.rx, x.ry, x.angleDeg]
+              .map((v) => v.toFixed(1))
+              .join(" "),
+          );
+      expect([
+        ...pick("cherry-blossom"),
+        ...pick("oak"),
+      ]).toMatchInlineSnapshot(`
+        [
+          "113.8 189.1 3.7 3.7 -50.2",
+          "114.6 185.7 3.0 3.0 -23.9",
+          "117.2 190.3 3.6 3.6 93.6",
+          "114.3 204.1 3.1 3.1 82.0",
+          "112.7 206.3 3.2 3.2 -60.3",
+          "110.2 204.5 3.0 3.0 -145.0",
+          "125.5 189.7 1.8 13.3 7.9",
+          "126.9 189.7 1.8 14.0 -13.5",
+          "128.3 189.7 1.8 13.3 -1.3",
+          "131.2 193.7 1.8 13.1 14.4",
+        ]
+      `);
+    });
+
+    it("hanging flowers fan a little either way, not all dead straight", () => {
+      const data = generateTree(100, SPECIES_CONFIG.oak, [], "catkins");
+      const tilts = data.flowers.flatMap((f) =>
+        f.florets.map((x) => x.angleDeg),
+      );
+      expect(Math.max(...tilts)).toBeGreaterThan(4);
+      expect(Math.min(...tilts)).toBeLessThan(-4);
+    });
+
+    it("hanging flowers hang near straight down, not at any angle", () => {
+      const data = generateTree(100, SPECIES_CONFIG.oak, [], "catkins");
+      const florets = data.flowers.flatMap((f) => f.florets);
+      expect(florets.length).toBeGreaterThan(0);
+      for (const f of florets)
+        expect(Math.abs(f.angleDeg)).toBeLessThanOrEqual(15);
+    });
+  });
+
+  // ─── Canopy fill — pads stretched along branches ─────────────────────────
+
+  describe("spur shoots", () => {
+    const cherry = SPECIES_CONFIG["cherry-blossom"];
+    const grow = (spec: SpeciesConfig, seed = "twig-cherry") =>
+      generateTree(100, spec, [], seed);
+
+    it("never puts leaves straight on a primary branch", () => {
+      for (const id of Object.keys(SPECIES_CONFIG) as SpeciesId[]) {
+        const data = grow(SPECIES_CONFIG[id], `primary-${id}`);
+        for (const b of data.branches.filter(
+          (x) => x.depth === 0 && !x.isTerminal,
+        ))
+          expect(b.leaves.filter((l) => l.id.includes("spur"))).toEqual([]);
+      }
+    });
+
+    it("carries each spur pad on a twig drawn into its branch", () => {
+      const data = grow(cherry);
+      const spurred = data.branches.filter((b) => b.spurTip);
+      expect(spurred.length).toBeGreaterThan(0);
+      for (const b of spurred) {
+        const bare = grow({ ...cherry, interiorPadDensity: 0 }).branches.find(
+          (x) => x.id === b.id,
+        );
+        // The twig outlines ride on the parent's own path, not new nodes.
+        expect(b.pathData.startsWith(bare?.pathData ?? "")).toBe(true);
+        expect(b.pathData.length).toBeGreaterThan(bare?.pathData.length ?? 0);
+      }
+    });
+
+    it("sets spur pads off the branch, a short twig's length away", () => {
+      const data = grow(cherry);
+      const radius = cherry.padRadius * 1.15;
+      for (const b of data.branches.filter((x) => x.spurTip)) {
+        const tip = b.spurTip ?? { x: 0, y: 0 };
+        const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+        // Distance from the spur tip to the branch's own line.
+        const off =
+          Math.abs(
+            (b.x2 - b.x1) * (b.y1 - tip.y) - (b.x1 - tip.x) * (b.y2 - b.y1),
+          ) / len;
+        expect(off).toBeGreaterThan(radius * 0.5 * Math.sin(0.6) - 0.5);
+        expect(off).toBeLessThanOrEqual(radius * 0.9 + 0.01);
+        // Its base lies within 40–90% of the branch.
+        const along =
+          ((tip.x - b.x1) * (b.x2 - b.x1) + (tip.y - b.y1) * (b.y2 - b.y1)) /
+          len /
+          len;
+        expect(along).toBeGreaterThan(0.4 - 0.9 * (radius / len));
+        expect(along).toBeLessThan(0.9 + 0.9 * (radius / len));
+      }
+    });
+
+    it("grows up to spurShoots twigs on a long branch, alternating sides", () => {
+      const spurLeaves = (spec: SpeciesConfig) =>
+        grow(spec)
+          .branches.flatMap((b) => b.leaves)
+          .filter((l) => l.id.includes("spur"));
+      const one = spurLeaves({ ...cherry, spurShoots: 1 });
+      const three = spurLeaves({ ...cherry, spurShoots: 3 });
+      expect(three.length).toBeGreaterThan(one.length);
+      expect(one.some((l) => /spur\d-/.test(l.id))).toBe(false);
+      expect(three.some((l) => /spur2-/.test(l.id))).toBe(true);
+    });
+
+    it("alternates a branch's spur shoots from side to side", () => {
+      const data = grow({ ...cherry, spurShoots: 3 });
+      let checked = 0;
+      for (const b of data.branches) {
+        const centre = (tag: string) => {
+          const pad = b.leaves.filter((l) => l.id.startsWith(`${b.id}${tag}-`));
+          if (pad.length === 0) return undefined;
+          return {
+            x: pad.reduce((n, l) => n + l.cx, 0) / pad.length,
+            y: pad.reduce((n, l) => n + l.cy, 0) / pad.length,
+          };
+        };
+        const a = centre("spur");
+        const c = centre("spur1");
+        if (!(a && c)) continue;
+        const side = (p: { x: number; y: number }) =>
+          Math.sign(
+            (b.x2 - b.x1) * (p.y - b.y1) - (b.y2 - b.y1) * (p.x - b.x1),
+          );
+        expect(side(a)).not.toBe(side(c));
+        checked++;
+      }
+      expect(checked).toBeGreaterThan(0);
+    });
+
+    it("draws spur twigs deterministically from the tree id", () => {
+      const data = grow(cherry, "golden-twig");
+      const bare = grow({ ...cherry, interiorPadDensity: 0 }, "golden-twig");
+      const b = data.branches.find((x) => x.spurTip);
+      const plain = bare.branches.find((x) => x.id === b?.id);
+      expect(
+        b &&
+          plain && {
+            twig: b.pathData.slice(plain.pathData.length),
+            tip: [b.spurTip?.x.toFixed(1), b.spurTip?.y.toFixed(1)],
+          },
+      ).toMatchInlineSnapshot(`
+        {
+          "tip": [
+            "15.5",
+            "193.5",
+          ],
+          "twig": " M 16.4 201.8 Q 16.2 197.6 15.8 193.5 L 15.2 193.6 Q 15.2 197.7 15.2 201.8 Z M 11.1 197.9 Q 5.3 199.3 -0.5 200.9 L -0.4 201.5 Q 5.5 200.3 11.4 199.1 Z",
+        }
+      `);
+    });
+
+    it("only a pad species that asks for spur shoots grows them", () => {
+      const maple = SPECIES_CONFIG.maple;
+      const spurs = (spec: SpeciesConfig) =>
+        grow(spec, "pad-spurs").branches.filter((b) => b.spurTip).length;
+      expect(spurs(maple)).toBeGreaterThan(0);
+      expect(spurs({ ...maple, spurShoots: undefined })).toBe(0);
     });
   });
 
@@ -767,6 +1083,9 @@ describe("generateTree", () => {
     const SCATTERED: SpeciesConfig = {
       ...PINE,
       foliageDistribution: "scattered",
+      // Enough leaves per pad for a stable pad centroid, whatever pine's own
+      // tuft count is tuned to.
+      leavesPerPad: [10, 14],
     };
 
     function totalLeaves(data: ReturnType<typeof generateTree>) {
@@ -1059,16 +1378,81 @@ describe("generateTree", () => {
   });
 
   describe("pine — needle tufts (A3)", () => {
-    it("day 100: needle-pad angles avoid the downward-pointing arc (20°,160°)", () => {
+    it("day 100: needle tufts stand upright, within 25° of vertical", () => {
       const data = generateTree(100, PINE, [], "snapshot-pine");
       const needleLeaves = data.branches
         .filter((b) => b.isTerminal && !b.isPruned)
         .flatMap((b) => b.leaves);
       expect(needleLeaves.length).toBeGreaterThan(0);
       for (const leaf of needleLeaves) {
-        const a = ((leaf.angleDeg % 360) + 360) % 360;
-        expect(a > 20 && a < 160).toBe(false);
+        expect(Math.abs(leaf.angleDeg)).toBeLessThanOrEqual(25);
       }
+    });
+  });
+
+  describe("leaf pose by leaf shape", () => {
+    const leavesOf = (id: keyof typeof SPECIES_CONFIG) =>
+      generateTree(100, SPECIES_CONFIG[id], [], `pose-${id}`).branches.flatMap(
+        (b) => b.leaves,
+      );
+
+    it("juniper sprays stand upright, within 25° either way", () => {
+      const angles = leavesOf("juniper").map((l) => l.angleDeg);
+      expect(Math.max(...angles.map(Math.abs))).toBeLessThanOrEqual(25);
+      expect(Math.max(...angles)).toBeGreaterThan(15);
+      expect(Math.min(...angles)).toBeLessThan(-15);
+    });
+
+    it.each([
+      "wisteria",
+      "flame-tree",
+    ] as const)("%s compound leaves hang tip down, 180° ± 70°", (id) => {
+      const angles = leavesOf(id).map((l) => l.angleDeg);
+      expect(Math.min(...angles)).toBeGreaterThanOrEqual(110);
+      expect(Math.max(...angles)).toBeLessThanOrEqual(250);
+      expect(Math.min(...angles)).toBeLessThan(130);
+      expect(Math.max(...angles)).toBeGreaterThan(230);
+    });
+
+    it("oak leaves face any way", () => {
+      const angles = leavesOf("oak").map((l) => l.angleDeg);
+      expect(Math.min(...angles)).toBeLessThan(30);
+      expect(Math.max(...angles)).toBeGreaterThan(330);
+    });
+
+    it("leaves are drawn at leafSize once grown in, round (rx = ry)", () => {
+      const spec = SPECIES_CONFIG.oak;
+      const sizes = leavesOf("oak").map((l) => {
+        expect(l.rx).toBe(l.ry);
+        return l.rx;
+      });
+      expect(Math.max(...sizes)).toBeCloseTo(spec.leafSize, 1);
+    });
+
+    it("places leaves deterministically from the tree id", () => {
+      const pick = (id: "pine" | "cherry-blossom") =>
+        generateTree(100, SPECIES_CONFIG[id], [], `golden-${id}`)
+          .branches.filter((b) => b.leaves.length > 0 && !b.isTerminal)
+          .slice(0, 1)
+          .flatMap((b) => b.leaves.slice(0, 3))
+          .map((l) =>
+            [l.cx, l.cy, l.rx, l.angleDeg, l.z]
+              .map((v) => v.toFixed(1))
+              .join(" "),
+          );
+      expect([
+        ...pick("pine"),
+        ...pick("cherry-blossom"),
+      ]).toMatchInlineSnapshot(`
+        [
+          "130.0 233.2 7.6 -5.3 2.2",
+          "123.6 230.4 7.6 13.9 3.1",
+          "128.0 225.1 7.6 -14.2 -6.9",
+          "105.2 208.4 5.0 129.3 4.4",
+          "101.7 205.4 5.0 248.1 3.5",
+          "108.8 213.7 5.0 300.4 -4.0",
+        ]
+      `);
     });
   });
 
@@ -1105,34 +1489,34 @@ describe("generateTree", () => {
       expect(SPECIES_CONFIG.juniper.tipDroop).toBeLessThan(0);
     });
 
-    it("flame tree leafSize shrank for fine bipinnate texture", () => {
-      expect(SPECIES_CONFIG["flame-tree"].leafSize).toBeLessThan(5.5);
+    it("flame tree draws bipinnate fronds", () => {
+      expect(SPECIES_CONFIG["flame-tree"].leafShape).toBe("bipinnate");
     });
   });
 
   // ─── Render-cost budgets ────────────────────────────────────────────────────
-  // Generator output size drives SVG element count directly (every leaf is at
-  // least one node), so each species gets a day-100 ceiling with ~15% headroom
+  // Generator output size drives render cost: every branch and floret is an
+  // SVG node, and every leaf adds its silhouette to the foliage paths, so
+  // each species gets a day-100 ceiling with ~15% headroom
   // over its tuned count. A failure here means a tuning change quietly blew up
   // render cost — retune density rather than raising the budget without
   // checking garden-view performance first.
 
   describe("day-100 element budgets", () => {
     const BUDGETS: Record<string, number> = {
-      pine: 3400,
-      maple: 1400,
-      "cherry-blossom": 850,
-      juniper: 4600,
-      oak: 1100,
-      wisteria: 1500,
-      "flame-tree": 3300,
+      pine: 1300,
+      maple: 1100,
+      "cherry-blossom": 640,
+      juniper: 1250,
+      oak: 870,
+      wisteria: 1030,
+      "flame-tree": 1580,
     };
 
     function totalElements(data: ReturnType<typeof generateTree>) {
       let n = data.branches.length + data.apexLeaves.length;
       for (const b of data.branches) n += b.leaves.length;
-      for (const f of data.flowers)
-        n += f.florets.length + f.racemeFlorets.length;
+      for (const f of data.flowers) n += f.florets.length;
       return n;
     }
 

@@ -94,12 +94,14 @@ and fewer than ~4 nodes leaves the upper trunk bare now that trunks reach full h
 
 | Parameter | Type | Meaning |
 |---|---|---|
-| `leafShape` | enum | `needle` / `oval` / `palmate` / `lobed` / `scale` / `pinnate` — controls SVG leaf renderer |
+| `leafShape` | enum | `needle` / `blossom` / `ovate` / `palmate` / `lobed` / `scale` / `pinnate` / `bipinnate` — picks the leaf silhouette in `TreeSVG/leafShapes.ts` |
 | `leafSize` | SVG units | Base size. Interpretation varies by shape (see below). |
 | `foliageDistribution` | enum | `terminal` / `pad` / `scattered` / `pendent` — see Foliage Distribution doc in `speciesConfig.ts`. |
 | `padRadius` | SVG units | Radius of a single foliage pad disc. Larger pads overlap their neighbours and the trunk for closed canopies. |
 | `interiorPadDensity` | 0–1 | Chance a non-terminal branch grows extra foliage beyond its tip pad. `pad` mode: a near-tip interior pad, filling the bare crown centre. `terminal` mode: a smaller spur pad partway along the branch, keeping the crown outline continuous instead of bare sticks with a puff at each tip — and, for species with `flowers` defined, spur pads also become eligible flower sites alongside terminal tips (real Prunus/Quercus flowers form on spur shoots, not only branch tips). |
+| `spurShoots` | count, optional | Short leafy side shoots a long non-terminal branch grows (never a primary), each a twig angled out from the branch with a small pad at its tip, spread over 40–90% of the branch and one per spur-pad width. Defaults to 1 for `terminal` species and none for `pad` species. ~3 for broadleaves whose crowns should fill their outline instead of balling at the tips, without leaves sitting straight on thick branches. |
 | `leavesPerPad` | [min, max] | Randomised leaf count placed within each pad. |
+| `juvenileFoliage` | optional | `{ leafShape, foliageColor, foliageColorLight }` worn until `flowers.floweringAge` — for crowns drawn as blossom (cherry), so a young tree is in leaf. |
 
 ### Per-individual variation
 
@@ -113,19 +115,42 @@ and fewer than ~4 nodes leaves the upper trunk bare now that trunks reach full h
 |---|---|---|
 | `flowers.floweringAge` | days | `activeDaysCount` at which flowers first appear. |
 | `flowers.flowerDensity` | 0–1 | Fraction of eligible terminal tips that carry a flower/fruit; 1 = every tip. Keeps bloom/fruit-set sparse and scattered rather than covering the whole crown at once. |
-| `flowers.flowerShape` | enum | `raceme` / `cluster` / `catkin` / `berry` |
+| `flowers.flowerShape` | enum | `blossom` / `corymb` / `samara` / `raceme` / `catkin` / `berry` (see Flower silhouettes) |
 | `flowers.flowerColor` | hex | Primary flower colour. |
 | `flowers.flowerColorAccent` | hex | Optional accent (streaked petal, catkin bumps). |
-| `flowers.flowerSize` | SVG units | Base size of an individual floret / berry. |
-| `flowers.racemeLength` | SVG units | Wisteria-only — length of the hanging raceme stem. |
+| `flowers.flowerSize` | SVG units | Half-size of one flower silhouette: a blossom's radius, a samara's wing span, a catkin's width. |
+| `flowers.racemeLength` | SVG units | Raceme only — full length of the hanging raceme. |
 
-### `leafSize` interpretation by shape
+### Leaf silhouettes and `leafSize`
 
-- **needle** — half-length of each needle (thin radiating ellipses, rx fixed at 0.4)
-- **oval** — half-width of the ellipse (ry = leafSize × 0.6, giving a landscape oval)
-- **palmate** — overall scale applied to the normalized maple-leaf path
-- **lobed** — overall scale applied to the normalized oak-leaf path
-- **scale** — radius of each tiny circular scale
+Every shape is a detailed silhouette in unit space (tip up), scaled by
+`leafSize` on both axes — roughly its half-length. All leaves of one depth band
+are drawn as a single `<path>` (six bands a tree), so a leaf's cost is the
+points in its outline, not a DOM node: keep new silhouettes to ~25–75 points,
+and prefer fewer, larger leaves over dense pads of tiny ones.
+
+- **needle** — pine fascicle tuft: ~11 needles fanned upward from a sheath; stands upright
+- **blossom** — five-petalled sakura flower, notched petals, open eye
+- **ovate** — cherry leaf: ovate, drawn-out tip, toothed margin, midrib
+- **palmate** — Japanese maple: seven pointed, toothed lobes on a petiole
+- **lobed** — English oak: obovate, four rounded lobes a side, auricles, midrib
+- **scale** — juniper spray: flat-bottomed cloudlet with a bumpy dome; stands upright
+- **pinnate** — wisteria: rachis with five leaflet pairs and a tip leaflet; hangs
+- **bipinnate** — flame tree frond: rachis with feathery toothed pinnae; hangs
+
+### Flower silhouettes
+
+Flowers work the same way: each shape is a silhouette in unit space, and a
+tree's flowers are drawn as one path in `flowerColor` plus, where the shape has
+one, one accent path in `flowerColorAccent`. `generateFlowers` places one
+floret per silhouette at each flowering tip.
+
+- **blossom** — sakura: notched five-petal outline, star-shaped eye accent; 2–4 round a tip
+- **corymb** — poinciana: four spoon petals and a larger upright standard petal as accent; 3–5 a tip
+- **samara** — maple keys: a pair of wings hanging from the tip, seeds as accent; 1–2 a tip
+- **raceme** — wisteria: scalloped, tapering hanging cluster with florets as accent; lengthens to `racemeLength` as it opens
+- **catkin** — oak: beaded hanging strand, `flowerSize` × 7 long when open; 1–3 a tip
+- **berry** — juniper cone: round, with a pale bloom crescent as accent; 1–3 a tip
 
 ---
 
@@ -150,11 +175,12 @@ so the top whorl sits closer to the apex. `maxBranchPairs: 12` in whorls of 3 gi
 keeps the full-height trunk clothed instead of leaving a bare neck under the apex cluster.
 
 **Foliage**: Paired needles 6–12 cm long in nature, grouped in dense fascicles at each node.
-Rendered as needle pads — each terminal carries a disc of radiating needles fanned across an
-upward arc (not a full 360° spread) and compressed vertically, so pads read as horizontal
-tufts sitting on the branch rather than spherical "sea urchins"; near-tip non-terminal
-branches add interior pads to fill the conical interior. `foliageDistribution: "pad"` with
-`padRadius: 10`, `leavesPerPad: [10, 14]`, `interiorPadDensity: 0.7`, `leafSize: 7.5`.
+Rendered as pads of a few large fascicle tufts — each tuft a fan of needles standing upright
+(within ±25°) in a pad disc compressed vertically, so pads read as bristly horizontal clouds
+sitting on the branch rather than spherical "sea urchins"; near-tip non-terminal branches add
+interior pads to fill the conical interior. Seedlings open a ring of needle-like cotyledons.
+`foliageDistribution: "pad"` with `padRadius: 13`, `leavesPerPad: [4, 6]`,
+`interiorPadDensity: 0.85`, `leafSize: 9`.
 
 **Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 3` keeps pine's signature
 candle-whorl growth while yielding enough height-nodes to clothe the trunk (see above).
@@ -180,11 +206,14 @@ Upper branches angle significantly upward. `branchAngleBase: 0.62` rad ≈ 35°.
 broad, open-crowned form characteristic of the species. High `branchCurvature: 3.5`
 gives the naturally graceful arching of mature maple limbs.
 
-**Foliage**: Classic 5-lobed palmate leaf. Rendered as a normalized 5-point path.
-Small terminal pads of 6–10 leaves with moderate interior pad fill so the maple's vase
-crown reads dense without losing the crossing-branch visibility.
-`foliageDistribution: "pad"` with `padRadius: 8`, `leavesPerPad: [6, 10]`,
-`interiorPadDensity: 0.4`, `leafSize: 5.0`.
+**Foliage**: Palmate leaf with seven slender, pointed, toothed lobes cut deep toward a
+thin petiole. Small terminal pads of 3–6 larger leaves with moderate interior pad fill so
+the maple's vase crown reads dense without losing the crossing-branch visibility. Seedlings
+show the species' long strap-shaped cotyledons. `foliageDistribution: "pad"` with
+`padRadius: 12`, `leavesPerPad: [3, 6]`, `interiorPadDensity: 0.7`, `leafSize: 8.5`,
+with `spurShoots: 3` so leafy side twigs run along the outer branches. Its flowers
+are the red-brown-seeded, tan-winged samaras (`flowerShape: "samara"`), which
+show against the red leaves where the tiny true flowers would not.
 
 **Redesign params**: `phyllotaxy: "opposite"` captures maple's paired-bud habit
 (adjacent nodes rotate 90° to produce the crossing-branch look). Weak
@@ -206,12 +235,16 @@ maple or juniper. `trunkCurvature: 0.30`.
 Low `branchAngleRamp: 0.18` gives only a subtle variation across the crown height — cherry
 maintains a fairly even spreading silhouette from base to apex. `firstBranchFrac: 0.30`.
 
-**Foliage**: Oval-lanceolate leaves 6–13 cm in nature, shown as landscape ovals.
-Light terminal pads of 5–9 ovals keep the airy, see-through canopy that cherries
-are known for, while smaller spur pads along non-terminal twigs
-(`interiorPadDensity: 0.45`) keep the crown outline continuous rather than a
-ring of isolated puffs. `foliageDistribution: "terminal"` with `padRadius: 6.5`,
-`leavesPerPad: [5, 9]`, `leafSize: 4.5`.
+**Foliage**: The crown is drawn as bloom — five-petalled sakura blossoms with notched
+petals — but only once the tree reaches `floweringAge`. Before that it wears
+`juvenileFoliage`: green ovate leaves with a drawn-out tip and toothed margin, as a real
+young cherry does. Light terminal pads of 4–7 keep the airy, see-through canopy that
+cherries are known for, while smaller spur pads along non-terminal twigs
+(`interiorPadDensity: 0.75`, up to three a branch with `spurShoots: 3`)
+keep the crown outline continuous rather than a ring of isolated puffs, with
+blossom running along the branches as on a real cherry.
+`foliageDistribution: "terminal"` with `padRadius: 12`, `leavesPerPad: [4, 7]`,
+`leafSize: 5`.
 
 **Blossoms on spurs**: Real Prunus flowers form on short spur shoots along the branches, not
 only at branch tips. The same spur pads that carry foliage (above) are now also eligible
@@ -250,10 +283,11 @@ branches droop *more* than lower ones, reinforcing the cascade effect. Very high
 with compact pads. `maxBranchPairs: 8`. Foliage-bearing twig ends also droop (`tipDroop: -0.35`),
 so pads themselves hang rather than sitting perfectly horizontal.
 
-**Foliage**: Scale-like (adult foliage) or needle-like (juvenile). Modelled as dense
-overlapping pads of tiny scale ellipses — the species' signature flat foliage cloud, tuned to
-read as dense clouds rather than sparse confetti dots. `foliageDistribution: "pad"` with
-`padRadius: 14`, `leavesPerPad: [20, 28]`, `interiorPadDensity: 0.8`, `leafSize: 2.4`.
+**Foliage**: Scale-like (adult foliage) or needle-like (juvenile). Modelled as
+overlapping upright sprays — flat-bottomed cloudlets with bumpy domed tops — so pads read as
+the species' signature layered foliage clouds. Seedlings open a narrow pair of needle-like
+cotyledons. `foliageDistribution: "pad"` with `padRadius: 15`, `leavesPerPad: [4, 6]`,
+`interiorPadDensity: 0.8`, `leafSize: 8.5`.
 
 **Redesign params**: `phyllotaxy: "whorled"` with `whorlSize: 3` matches the species'
 trademark 3-leaf scale whorls. Weak `apicalDominance: 0.2` and high `branchWander: 0.7`
@@ -282,10 +316,13 @@ give the broad, rounded silhouette typical of the species. Moderate `branchCurva
 reflects oak's stiff, relatively straight limbs compared to species like maple or wisteria.
 
 **Foliage**: Deeply lobed leaves 5–15 cm in nature (much reduced on bonsai). Rendered as
-a sinuous lobed path. Light terminal pads of 5–8 preserve oak's coarse, irregular
-silhouette, while spur pads along non-terminal branches (`interiorPadDensity: 0.45`) fill
+an obovate leaf with four rounded lobes a side, deep sinuses, basal auricles and a midrib.
+Oak germinates with its cotyledons underground, so its seedling has no seed leaves, only
+true ones. Light terminal pads of 3–5 preserve oak's coarse, irregular
+silhouette, while spur pads along non-terminal branches (`interiorPadDensity: 0.75`,
+up to three a branch with `spurShoots: 3`) fill
 the crown's sky gaps without smoothing it into a solid ball. `foliageDistribution: "terminal"`
-with `padRadius: 7.5`, `leavesPerPad: [5, 8]`, `leafSize: 6.0`.
+with `padRadius: 14`, `leavesPerPad: [3, 5]`, `leafSize: 10`.
 
 **Redesign params**: `phyllotaxy: "alternate"` with strong `apicalDominance: 0.7`
 reflects oak's powerful straight-leader growth. `maxDepth: 3` with
@@ -319,8 +356,9 @@ is known for. Fast-growing; branches appear every 3 days.
 
 **Foliage**: Pinnate compound leaves in nature (7–13 leaflets per leaf), rendered with
 `foliageDistribution: "pendent"` so each terminal carries a small tip pad plus a hanging
-chain of smaller pads — the defining drape of mature wisteria. `padRadius: 5`,
-`leavesPerPad: [3, 5]`, `leafSize: 4.0`.
+chain of smaller pads — the defining drape of mature wisteria. Each leaf is a rachis with
+five leaflet pairs and a tip leaflet, hanging tip-down. Seedlings show two fleshy round
+cotyledons. `padRadius: 6`, `leavesPerPad: [2, 4]`, `leafSize: 7`.
 
 **Colour**: Lavender-purple (`#9b59b6`), representing the iconic hanging raceme flowers as
 much as the foliage — the main visual appeal of wisteria bonsai.
@@ -355,15 +393,16 @@ Low `apicalDominance: 0.2` also keeps the crown-taper ratio flat (`zoneTaper` �
 silhouette rather than tapering to a point. Fast-growing; branches appear every 3 days.
 
 **Foliage**: Bipinnate compound leaves in nature, with hundreds of tiny leaflets giving a
-ferny, light texture. Represented as palmate pads (the closest available shape to the
-fine leaflet structure) — sized down (`leafSize: 3.4`, vs an earlier 5.5) and packed denser
-(`leavesPerPad: [10, 15]`) so at this scale the pads read as fine bipinnate texture instead of
-oversized maple-star leaves poking past the canopy outline. `foliageDistribution: "pad"` with
-the largest `padRadius: 16` of any species and `interiorPadDensity: 0.6` for the broad umbrella
-canopy.
+ferny, light texture. Rendered as hanging bipinnate fronds — a rachis with pairs of
+feathery, toothed pinnae — a few large ones per pad (`leafSize: 11`, `leavesPerPad: [3, 4]`)
+so the canopy reads as fern-like texture. `foliageDistribution: "pad"` with
+the largest `padRadius: 18` of any species and `interiorPadDensity: 0.6`, stretched along the
+branches by `spurShoots: 3`, for the broad umbrella canopy.
 
-**Colour**: Vivid scarlet-orange (`#e74c3c` / `#ff6b47`), representing the mass of brilliant
-red flowers that cover the entire canopy — the species is named for this effect.
+**Colour**: Fresh green foliage (`#3f7a2a` / `#74b04a`), as the real tree's leaves are; the
+scarlet comes from the flower layer (`flowerShape: "corymb"`: four spoon petals and a gold-flecked
+standard) once it reaches flowering age, so a young flame tree is
+green and a mature one is red flowers over green fronds.
 
 **Redesign params**: Extremely low `crownDepthFactor: 0.3` captures the flat-topped
 umbrella silhouette. Weak `apicalDominance: 0.2` and near-zero `branchWander: 0.15`
@@ -429,8 +468,8 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
   crown centre.
 - Weeping species (wisteria): `foliageDistribution: "pendent"` — overrides
   `padRadius`; pair with strongly negative `tipDroop`.
-- Pick `leafShape` from the existing enum; add a renderer in `TreeView.tsx` only
-  if no existing shape fits.
+- Pick `leafShape` from the existing enum; add a silhouette (and seedling cotyledons in
+  `StaticTreeSVG.tsx`) in `TreeSVG/leafShapes.ts` only if no existing shape fits.
 
 ### 6. Per-individual variability
 
@@ -441,7 +480,8 @@ silhouette decisions (1–3) drive the parameter choices in (4–8).
 ### 7. Flowers (optional)
 
 - Skip the `flowers` field entirely for non-ornamental species (pine).
-- Otherwise pick `flowerShape` (`raceme` / `cluster` / `catkin` / `berry`),
+- Otherwise pick `flowerShape` (`blossom` / `corymb` / `samara` / `raceme` /
+  `catkin` / `berry`), or add a silhouette to `FLOWER_TEMPLATES` for a new one,
   set `floweringAge` realistically (cherry 15 days, oak 90 days, wisteria 55),
   and reuse `flowerColorAccent` for two-tone effects.
 

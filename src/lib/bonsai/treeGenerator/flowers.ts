@@ -6,110 +6,102 @@ import type { Floret, Flower, RenderedBranch } from "../treeGenerator.types";
 
 const FLOWER_FADE_DURATION = 8; // days from floweringAge to full opacity
 
-function buildRacemeFlorets(
-  tipCx: number,
-  tipCy: number,
-  seed: string,
-  flowerSize: number,
-  racemeLength: number,
-  progress: number,
-): Floret[] {
-  const floretCount = Math.round(seededInt(seed, 55, 14, 20) * progress);
-  const florets: Floret[] = [];
-  for (let i = 0; i < floretCount; i++) {
-    const t = i / Math.max(floretCount - 1, 1);
-    const rowWidth = flowerSize * 2.5 * Math.sin(t * Math.PI) * 0.9;
-    const xOff = (seededVal(seed, i * 3 + 400) - 0.5) * rowWidth * 2;
-    florets.push({
-      id: `r${i}`,
-      cx: tipCx + xOff,
-      cy: tipCy + t * racemeLength * progress,
-      rx: flowerSize * (0.8 + seededVal(seed, i * 3 + 402) * 0.4),
-      ry: flowerSize * 0.55,
-      angleDeg: seededVal(seed, i * 3 + 401) * 40 - 20,
-    });
-  }
-  return florets;
-}
-
+/**
+ * Silhouettes clustered round a tip — blossoms, poinciana flowers, cones —
+ * `min`..`max` of them within `spread` × size of the tip.
+ */
 function buildClusterFlorets(
   tipCx: number,
   tipCy: number,
   seed: string,
-  flowerSize: number,
+  size: number,
+  [min, max]: [number, number],
+  spread: number,
+  maxTiltDeg: number,
 ): Floret[] {
-  const petalCount = seededInt(seed, 66, 4, 6);
+  const count = seededInt(seed, 66, min, max);
   const florets: Floret[] = [];
-  for (let i = 0; i < petalCount; i++) {
-    const angle =
-      (i / petalCount) * Math.PI * 2 + seededVal(seed, i + 500) * 0.4;
-    const dist = flowerSize * (0.7 + seededVal(seed, i + 501) * 0.5);
+  for (let i = 0; i < count; i++) {
+    const angle = seededVal(seed, i * 4 + 500) * Math.PI * 2;
+    const dist =
+      (i === 0 ? 0 : 0.6 + seededVal(seed, i * 4 + 501) * 0.4) * size * spread;
+    const r = size * (0.85 + seededVal(seed, i * 4 + 502) * 0.3);
     florets.push({
-      id: `p${i}`,
+      id: `f${i}`,
       cx: tipCx + Math.cos(angle) * dist,
       cy: tipCy + Math.sin(angle) * dist,
-      rx: flowerSize * (0.85 + seededVal(seed, i + 502) * 0.3),
-      ry: flowerSize * (0.7 + seededVal(seed, i + 503) * 0.25),
-      angleDeg: (angle * 180) / Math.PI,
-    });
-  }
-  // Centre dot appended last — renderer slices it off separately
-  florets.push({
-    id: "centre",
-    cx: tipCx,
-    cy: tipCy,
-    rx: flowerSize * 0.35,
-    ry: flowerSize * 0.35,
-    angleDeg: 0,
-  });
-  return florets;
-}
-
-function buildCatkinFlorets(
-  tipCx: number,
-  tipCy: number,
-  flowerSize: number,
-  progress: number,
-): Floret[] {
-  const catkinLen = flowerSize * 7 * progress;
-  const bumpCount = Math.round(catkinLen / (flowerSize * 1.6));
-  const florets: Floret[] = [];
-  for (let i = 0; i < bumpCount; i++) {
-    const t = i / Math.max(bumpCount - 1, 1);
-    const xOff = Math.sin(t * Math.PI * 2.5) * flowerSize * 0.6;
-    florets.push({
-      id: `b${i}`,
-      cx: tipCx + xOff,
-      cy: tipCy + t * catkinLen,
-      rx: flowerSize * (0.55 + (1 - t) * 0.25),
-      ry: flowerSize * 0.55,
-      angleDeg: xOff * 8,
+      rx: r,
+      ry: r,
+      angleDeg: (seededVal(seed, i * 4 + 503) - 0.5) * 2 * maxTiltDeg,
     });
   }
   return florets;
 }
 
-function buildBerryFlorets(
+/**
+ * Silhouettes hanging from a tip — samaras, catkins, a raceme — `count` of
+ * them fanned a little either side of straight down, `length` long.
+ */
+function buildHangingFlorets(
   tipCx: number,
   tipCy: number,
   seed: string,
-  flowerSize: number,
+  width: number,
+  length: number,
+  count: number,
 ): Floret[] {
-  const berryCount = seededInt(seed, 77, 1, 3);
-  const florets: Floret[] = [];
-  for (let i = 0; i < berryCount; i++) {
-    const angle = seededVal(seed, i * 2 + 600) * Math.PI * 2;
-    const dist = seededVal(seed, i * 2 + 601) * flowerSize * 2.5;
-    florets.push({
-      id: `b${i}`,
-      cx: tipCx + Math.cos(angle) * dist,
-      cy: tipCy + Math.sin(angle) * dist,
-      rx: flowerSize,
-      ry: flowerSize,
-      angleDeg: 0,
-    });
+  return Array.from({ length: count }, (_, i) => ({
+    id: `h${i}`,
+    cx: tipCx + (i - (count - 1) / 2) * width * 0.8,
+    cy: tipCy,
+    rx: width,
+    ry: length * (0.85 + seededVal(seed, i * 3 + 400) * 0.3),
+    angleDeg: (seededVal(seed, i * 3 + 401) - 0.5) * 30,
+  }));
+}
+
+function buildFlorets(
+  tip: { cx: number; cy: number },
+  seed: string,
+  fs: NonNullable<SpeciesConfig["flowers"]>,
+  progress: number,
+): Floret[] {
+  const size = fs.flowerSize;
+  switch (fs.flowerShape) {
+    case "blossom":
+      return buildClusterFlorets(tip.cx, tip.cy, seed, size, [2, 4], 1.2, 180);
+    case "corymb":
+      return buildClusterFlorets(tip.cx, tip.cy, seed, size, [3, 5], 1.4, 35);
+    case "berry":
+      return buildClusterFlorets(tip.cx, tip.cy, seed, size, [1, 3], 2, 0);
+    case "samara":
+      return buildHangingFlorets(
+        tip.cx,
+        tip.cy,
+        seed,
+        size,
+        size,
+        seededInt(seed, 77, 1, 2),
+      );
+    case "catkin":
+      return buildHangingFlorets(
+        tip.cx,
+        tip.cy,
+        seed,
+        size,
+        size * 7 * progress,
+        seededInt(seed, 77, 1, 3),
+      );
+    case "raceme":
+      return buildHangingFlorets(
+        tip.cx,
+        tip.cy,
+        seed,
+        size * 2.2,
+        (fs.racemeLength ?? 24) * progress,
+        1,
+      );
   }
-  return florets;
 }
 
 export function generateFlowers(
@@ -156,41 +148,12 @@ export function generateFlowers(
 
   return floweringTips.map((tip) => {
     const seed = tip.id + treeId;
-    const base = { id: `flower-${tip.id}`, cx: tip.cx, cy: tip.cy, progress };
-
-    if (fs.flowerShape === "raceme") {
-      return {
-        ...base,
-        florets: [],
-        racemeFlorets: buildRacemeFlorets(
-          tip.cx,
-          tip.cy,
-          seed,
-          fs.flowerSize,
-          fs.racemeLength ?? 24,
-          progress,
-        ),
-      };
-    }
-    if (fs.flowerShape === "cluster") {
-      return {
-        ...base,
-        florets: buildClusterFlorets(tip.cx, tip.cy, seed, fs.flowerSize),
-        racemeFlorets: [],
-      };
-    }
-    if (fs.flowerShape === "catkin") {
-      return {
-        ...base,
-        florets: buildCatkinFlorets(tip.cx, tip.cy, fs.flowerSize, progress),
-        racemeFlorets: [],
-      };
-    }
-    // berry
     return {
-      ...base,
-      florets: buildBerryFlorets(tip.cx, tip.cy, seed, fs.flowerSize),
-      racemeFlorets: [],
+      id: `flower-${tip.id}`,
+      cx: tip.cx,
+      cy: tip.cy,
+      progress,
+      florets: buildFlorets(tip, seed, fs, progress),
     };
   });
 }
