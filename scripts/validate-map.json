@@ -58,7 +58,6 @@
     "package.json",
     "pnpm-lock.yaml",
     "tsconfig.json",
-    "types/**",
     "vitest.config.ts",
     "vitest.setup.ts"
   ],
@@ -85,6 +84,7 @@
     ".mcp.json",
     ".github/**",
     ".code-review-graphignore",
-    "temp.playwright.config.ts"
+    "temp.playwright.config.ts",
+    "types/**"
   ]
 }
