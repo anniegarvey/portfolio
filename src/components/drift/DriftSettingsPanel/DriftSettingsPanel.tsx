@@ -1,7 +1,7 @@
 "use client";
 
 import { styled } from "next-yak";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import { Button } from "@/components/Button";
 import {
   type DriftSettings,
@@ -68,6 +68,8 @@ type Props = {
   onReset: () => void;
   onClear: () => void;
   onBloom: () => void;
+  /** Extra controls, shown above Reset settings (the saved settings). */
+  children?: ReactNode;
 };
 
 export function DriftSettingsPanel({
@@ -77,6 +79,7 @@ export function DriftSettingsPanel({
   onReset,
   onClear,
   onBloom,
+  children,
 }: Props) {
   const id = useId();
 
@@ -160,6 +163,8 @@ export function DriftSettingsPanel({
           and only when you stir it.
         </Note>
       )}
+
+      {children}
 
       <Button intent="secondary" onClick={onReset} size="sm" variant="ghost">
         Reset settings

@@ -62,6 +62,21 @@ test.describe("Drift", () => {
     ).not.toBeChecked();
   });
 
+  test("saved settings come back after a reload", async ({ page }) => {
+    await page.goto("/drift");
+    await page.getByText("Rainbow", { exact: true }).click();
+    await page
+      .getByRole("textbox", { name: "Name these settings" })
+      .fill("Party");
+    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByText("Meadow", { exact: true }).click();
+    await page.reload();
+
+    await expect(page.getByRole("radio", { name: "Meadow" })).toBeChecked();
+    await page.getByRole("button", { name: "Party", exact: true }).click();
+    await expect(page.getByRole("radio", { name: "Rainbow" })).toBeChecked();
+  });
+
   test("goes calm when the reader asks for reduced motion", async ({
     page,
   }) => {

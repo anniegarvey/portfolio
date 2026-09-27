@@ -95,4 +95,38 @@ describe("DriftPage", () => {
     });
     expect(toggle).toBeDisabled();
   });
+
+  it("saves the current settings by name and switches back to them", async () => {
+    render(<DriftPage />);
+    await userEvent.click(screen.getByRole("radio", { name: "Rainbow" }));
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Name these settings" }),
+      "Party{Enter}",
+    );
+    expect(JSON.parse(localStorage.getItem("drift-presets") ?? "[]")).toEqual([
+      { name: "Party", settings: { ...DEFAULT_SETTINGS, palette: "rainbow" } },
+    ]);
+
+    await userEvent.click(screen.getByRole("radio", { name: "Meadow" }));
+    await userEvent.click(screen.getByRole("button", { name: "Party" }));
+    expect(screen.getByRole("radio", { name: "Rainbow" })).toBeChecked();
+    expect(JSON.parse(localStorage.getItem(KEY) ?? "{}").palette).toBe(
+      "rainbow",
+    );
+  });
+
+  it("restores and deletes saved settings", async () => {
+    localStorage.setItem(
+      "drift-presets",
+      JSON.stringify([{ name: "Calm", settings: DEFAULT_SETTINGS }]),
+    );
+    render(<DriftPage />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete “Calm”" }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Calm" }),
+    ).not.toBeInTheDocument();
+    expect(localStorage.getItem("drift-presets")).toBe("[]");
+  });
 });

@@ -24,7 +24,13 @@ import {
   hexToRgb,
   toStepOptions,
 } from "@/lib/drift/settings";
-import { bloom, colorAt, drift, stirWithPointer } from "@/lib/drift/stir";
+import {
+  bloom,
+  COLOR_PERIOD,
+  colorAt,
+  drift,
+  stirWithPointer,
+} from "@/lib/drift/stir";
 
 export type DriftCanvasHandle = {
   /** Empties the water. */
@@ -35,6 +41,8 @@ export type DriftCanvasHandle = {
 
 const colorsOf = (settings: DriftSettings) =>
   getPalette(settings.palette).colors.map(hexToRgb);
+const periodOf = (settings: DriftSettings) =>
+  getPalette(settings.palette).cycleSeconds ?? COLOR_PERIOD;
 const now = () => performance.now() / 1000;
 
 /** Grid cells along the canvas's longer side; phones get fewer. */
@@ -79,7 +87,11 @@ export function DriftCanvas({ settings, calm, ref }: Props) {
       if (!fluidRef.current) return;
       bloom(
         fluidRef.current,
-        colorAt(colorsOf(settingsRef.current), now()),
+        colorAt(
+          colorsOf(settingsRef.current),
+          now(),
+          periodOf(settingsRef.current),
+        ),
         brushRadius(settingsRef.current),
       );
     },
@@ -124,10 +136,17 @@ export function DriftCanvas({ settings, calm, ref }: Props) {
       if (fluid && image) {
         const current = settingsRef.current;
         if (current.drift && !calmRef.current) {
-          drift(fluid, seconds, dt, colorsOf(current), brushRadius(current));
+          drift(
+            fluid,
+            seconds,
+            dt,
+            colorsOf(current),
+            brushRadius(current),
+            periodOf(current),
+          );
         }
         step(fluid, toStepOptions(current, dt, calmRef.current));
-        paint(fluid, image.data);
+        paint(fluid, image.data, getPalette(current.palette).vivid);
         context.putImageData(image, 0, 0);
       }
       frame = requestAnimationFrame(tick);
@@ -187,7 +206,11 @@ export function DriftCanvas({ settings, calm, ref }: Props) {
         previousY: previous.y,
         dt: next.time - previous.time,
       },
-      colorAt(colorsOf(settingsRef.current), next.time),
+      colorAt(
+        colorsOf(settingsRef.current),
+        next.time,
+        periodOf(settingsRef.current),
+      ),
       brushRadius(settingsRef.current),
     );
   };
