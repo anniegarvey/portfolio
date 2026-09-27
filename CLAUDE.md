@@ -23,8 +23,8 @@ pnpm playwright test              # headless
 pnpm playwright test --ui         # interactive UI mode
 pnpm playwright show-report       # view last report
 
-# Mutation tests (run after unit test changes)
-pnpm stryker run --mutate "src/path/to/file.ts"  # 80%+ kill rate expected
+# Mutation tests: CI runs these on every PR for changed files (see the job summary)
+pnpm mutate [base-ref]  # same run locally, against origin/main by default; 80%+ target
 ```
 
 **Hooks**: pre-commit runs `validate:smart`; pre-push runs `pnpm test`.

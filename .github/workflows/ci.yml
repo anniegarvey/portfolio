@@ -24,3 +24,32 @@ jobs:
       - run: pnpm lint:theme
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
+
+  mutation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Earlier runs on this PR let Stryker skip mutants whose code and tests
+      # haven't changed since.
+      - uses: actions/cache/restore@v4
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-${{ github.head_ref }}-${{ github.sha }}
+          restore-keys: |
+            stryker-${{ github.head_ref }}-
+      - run: node scripts/mutate-changed.js origin/${{ github.base_ref }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-${{ github.head_ref }}-${{ github.sha }}
