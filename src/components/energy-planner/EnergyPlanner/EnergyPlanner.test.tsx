@@ -6,6 +6,10 @@ import type { Activity } from "@/lib/energy-planner/schema";
 import { EnergyPlanner } from ".";
 
 // Mock dependencies
+vi.mock("@/hooks/useActivityReminders", () => ({
+  useActivityReminders: vi.fn(),
+}));
+
 vi.mock("@/lib/energy-planner/context");
 vi.mock("@/components/energy-planner/ImportExport", () => ({
   ImportExport: () => <div data-testid="import-export">ImportExport</div>,

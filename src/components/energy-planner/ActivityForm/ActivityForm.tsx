@@ -16,6 +16,7 @@ import type { Activity, RepeatUnit } from "@/lib/energy-planner/schema";
 import { usePoints } from "@/lib/points/context";
 import { ActivityFactorFields } from "../ActivityFactorFields";
 import { EnergyCostFields } from "../EnergyCostFields";
+import { ReminderTimeField } from "./ReminderTimeField";
 
 interface ActivityFormProps {
   initialData?: Activity;
@@ -65,6 +66,8 @@ export function ActivityForm({
     zones,
     defaultZoneId,
     setDefaultZoneId,
+    reminderTime,
+    setReminderTime,
     suggestions,
     populateFromActivity,
   } = useActivityForm({
@@ -218,6 +221,14 @@ export function ActivityForm({
             ))}
           </SelectContent>
         </Select>
+      </Field>
+
+      <Field>
+        <ReminderTimeField
+          id={`${formId}-reminderTime`}
+          onChange={setReminderTime}
+          value={reminderTime}
+        />
       </Field>
 
       <Field>
