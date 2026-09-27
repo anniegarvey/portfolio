@@ -93,6 +93,36 @@ describe("ActivityForm", () => {
     });
   });
 
+  it("saves a reminder time with the activity", async () => {
+    render(<ActivityForm onClose={vi.fn()} />, { wrapper });
+
+    await waitFor(() => {
+      const button = screen.getByRole("button", {
+        name: /Add Activity/i,
+      }) as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
+      target: { value: "Take meds" },
+    });
+    fireEvent.change(screen.getByLabelText("Remind me at"), {
+      target: { value: "08:30" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    await waitFor(() => {
+      expect(storageMock.storeActivities).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: "Take meds",
+            reminderTime: "08:30",
+          }),
+        ]),
+      );
+    });
+  });
+
   it("updates an existing activity", async () => {
     const initialActivity: Activity = {
       id: "123",

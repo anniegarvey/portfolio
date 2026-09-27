@@ -131,3 +131,22 @@ async function trimCache(cache, maxEntries) {
     }),
   );
 }
+
+// Activity reminders: tapping one brings the planner to the front, opening it
+// if no tab has it.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      const planner = windows.find((client) =>
+        new URL(client.url).pathname.startsWith(START_URL),
+      );
+      if (planner) return planner.focus();
+      return self.clients.openWindow(START_URL);
+    })(),
+  );
+});

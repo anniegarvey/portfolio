@@ -86,6 +86,11 @@ export const ActivitySchema = z.object({
   createdAt: z.date(),
   repeatConfig: RepeatConfigSchema.optional(),
   defaultZoneId: z.string().optional(),
+  // "HH:MM" local time to send a notification on days this activity is planned
+  reminderTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
 });
 export type Activity = z.infer<typeof ActivitySchema>;
 

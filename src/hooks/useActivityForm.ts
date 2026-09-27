@@ -59,6 +59,8 @@ export function useActivityForm({
       undefined,
   );
 
+  const [reminderTime, setReminderTime] = useState(initialData?.reminderTime);
+
   // Repeating Activity State
   const [isRepeating, setIsRepeating] = useState(!!initialData?.repeatConfig);
   const [frequency, setFrequency] = useState(
@@ -100,6 +102,7 @@ export function useActivityForm({
       setDescription(activity.description || "");
       setEnergyCost(activity.energyCost);
       setFactors(activity.factors);
+      setReminderTime(activity.reminderTime);
       setDefaultZoneId(
         activity.defaultZoneId ||
           activity.repeatConfig?.defaultZoneId ||
@@ -133,6 +136,7 @@ export function useActivityForm({
       energyCost,
       factors,
       defaultZoneId,
+      reminderTime,
     };
 
     if (isRepeating) {
@@ -214,6 +218,7 @@ export function useActivityForm({
       terminationDifficulty: 0,
       isRestorative: false,
     });
+    setReminderTime(undefined);
     setIsRepeating(false);
     setFrequency(1);
     setUnit("days");
@@ -244,6 +249,8 @@ export function useActivityForm({
     zones,
     defaultZoneId,
     setDefaultZoneId,
+    reminderTime,
+    setReminderTime,
     suggestions,
     populateFromActivity,
   };

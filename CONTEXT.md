@@ -43,6 +43,9 @@ A named time-of-day slot (e.g. Morning, Afternoon, Evening). Activities and proj
 **Uncompleted activity**
 A one-off activity that was planned on a past date but never marked complete. Surfaced across all stored day plans by `fetchOneOffPlanningState`.
 
+**Reminder**
+An optional time of day (`reminderTime`) set on an **Activity**. On any day the activity is planned (concrete or projected) and not yet completed or skipped, a browser notification is sent at that time. Checked by the page while the planner is open, so it cannot fire with every tab closed (no backend to push from). Fires at most once per activity per day, and not more than an hour late.
+
 ---
 
 ## Wellness Check
