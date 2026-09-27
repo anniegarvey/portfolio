@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { getAudioContext } from "@/lib/sound";
 import type { SpeciesId } from "./schema";
 
 /**
@@ -156,23 +156,8 @@ export const CREATURE_CALLS: Record<SpeciesId, Tone[]> = {
   })),
 };
 
-let audioContext: AudioContext | null = null;
-
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!audioContext) {
-    try {
-      audioContext = new AudioContext();
-    } catch {
-      return null;
-    }
-  }
-  return audioContext;
-}
-
-/** Plays a species' call, unless Glade sounds are muted. */
+/** Plays a species' call, unless site sounds are muted. */
 export function playCreatureSound(speciesId: SpeciesId): void {
-  if (isMuted()) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
@@ -197,46 +182,4 @@ export function playCreatureSound(speciesId: SpeciesId): void {
     osc.start(t);
     osc.stop(t + tone.dur + 0.02);
   }
-}
-
-// ─── Mute setting ─────────────────────────────────────────────────────────────
-// Kept in this browser only, apart from the saved glade, so resetting the
-// glade doesn't turn the sound back on.
-
-export const GLADE_SOUND_MUTED_KEY = "glade-sound-muted";
-
-let muted: boolean | null = null;
-const listeners = new Set<() => void>();
-
-function isMuted(): boolean {
-  if (muted === null) {
-    try {
-      muted = localStorage.getItem(GLADE_SOUND_MUTED_KEY) === "true";
-    } catch {
-      muted = false;
-    }
-  }
-  return muted;
-}
-
-export function setGladeSoundMuted(next: boolean): void {
-  muted = next;
-  try {
-    localStorage.setItem(GLADE_SOUND_MUTED_KEY, String(next));
-  } catch {
-    // Storage blocked (a private window): the choice lasts until reload.
-  }
-  for (const listener of listeners) listener();
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-/** Whether Glade sounds are muted, kept in step with the toggle. */
-export function useGladeSoundMuted(): boolean {
-  return useSyncExternalStore(subscribe, isMuted, () => false);
 }

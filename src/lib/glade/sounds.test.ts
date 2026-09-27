@@ -1,7 +1,5 @@
-import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ALL_SPECIES_IDS } from "./catalog";
-import { setGladeSoundMuted, useGladeSoundMuted } from "./sounds";
 
 /** Just enough of the Web Audio API to count the tones a call schedules. */
 function stubAudio() {
@@ -73,18 +71,13 @@ describe("creature sounds", () => {
     expect(started).toHaveLength(CREATURE_CALLS.wren.length);
   });
 
-  it("stays silent when muted, and remembers that in this browser", async () => {
+  it("stays silent when site sounds are muted", async () => {
     const started = stubAudio();
     const sounds = await loadSounds();
+    const { setSoundMuted } = await import("@/lib/sound");
 
-    sounds.setGladeSoundMuted(true);
+    setSoundMuted(true);
     sounds.playCreatureSound("owl");
-    expect(started).toHaveLength(0);
-    expect(localStorage.getItem(sounds.GLADE_SOUND_MUTED_KEY)).toBe("true");
-
-    // A fresh load (the next visit) picks the setting back up.
-    const reloaded = await loadSounds();
-    reloaded.playCreatureSound("owl");
     expect(started).toHaveLength(0);
   });
 
@@ -92,18 +85,5 @@ describe("creature sounds", () => {
     const { playCreatureSound } = await loadSounds();
     // jsdom has no AudioContext.
     expect(() => playCreatureSound("fox")).not.toThrow();
-  });
-});
-
-describe("useGladeSoundMuted", () => {
-  it("follows the mute toggle", () => {
-    const { result } = renderHook(() => useGladeSoundMuted());
-    expect(result.current).toBe(false);
-
-    act(() => setGladeSoundMuted(true));
-    expect(result.current).toBe(true);
-
-    act(() => setGladeSoundMuted(false));
-    expect(result.current).toBe(false);
   });
 });

@@ -1,16 +1,4 @@
-let audioContext: AudioContext | null = null;
-
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!audioContext) {
-    try {
-      audioContext = new AudioContext();
-    } catch {
-      return null;
-    }
-  }
-  return audioContext;
-}
+import { getAudioContext } from "@/lib/sound";
 
 export function playCollectSound(): void {
   const ctx = getAudioContext();
@@ -29,7 +17,7 @@ export function playCollectSound(): void {
 
     const t = ctx.currentTime + i * 0.06;
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.12, t + 0.01);
+    gain.gain.linearRampToValueAtTime(0.05, t + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
 
     osc.start(t);
@@ -51,7 +39,7 @@ export function playDepositSound(): void {
   osc.type = "sine";
 
   const t = ctx.currentTime;
-  gain.gain.setValueAtTime(0.18, t);
+  gain.gain.setValueAtTime(0.07, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
 
   osc.start(t);

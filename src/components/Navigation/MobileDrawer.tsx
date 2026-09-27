@@ -10,6 +10,7 @@ import { useState } from "react";
 import { PointsDisplay } from "@/components/PointsDisplay";
 import { QUERIES } from "@/lib/constants";
 import { CASE_STUDIES, LIVE_APPS, PLAYGROUND_LABEL } from "./projects";
+import { SoundToggle } from "./SoundToggle";
 import { SuggestionButton } from "./SuggestionButton";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -141,6 +142,8 @@ export function MobileDrawer() {
               <MobileThemeSection>
                 <MobileThemeLabel>Theme</MobileThemeLabel>
                 <ThemeToggle />
+                <MobileThemeLabel>Sound</MobileThemeLabel>
+                <SoundToggle />
               </MobileThemeSection>
             </StyledContent>
           </Dialog.Content>
@@ -400,9 +403,11 @@ const MobileSwatch = styled.span`
 const MobileThemeSection = styled.div`
   margin-top: auto;
   width: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem 1rem;
   padding-top: 1.5rem;
 `;
 

@@ -1,16 +1,4 @@
-let audioContext: AudioContext | null = null;
-
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!audioContext) {
-    try {
-      audioContext = new AudioContext();
-    } catch {
-      return null;
-    }
-  }
-  return audioContext;
-}
+import { getAudioContext } from "@/lib/sound";
 
 function playNote(
   ctx: AudioContext,

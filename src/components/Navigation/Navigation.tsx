@@ -8,6 +8,7 @@ import { PointsDisplay } from "@/components/PointsDisplay";
 import { QUERIES } from "@/lib/constants";
 import { MobileDrawer } from "./MobileDrawer";
 import { ProjectsMenu } from "./ProjectsMenu";
+import { SoundToggle } from "./SoundToggle";
 import { SuggestionButton } from "./SuggestionButton";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -46,7 +47,10 @@ export function Navigation() {
       <DesktopSide>
         <PointsDisplay />
         <SuggestionButton />
-        <ThemeToggle />
+        <Toggles>
+          <SoundToggle />
+          <ThemeToggle />
+        </Toggles>
       </DesktopSide>
     </Header>
   );
@@ -192,4 +196,9 @@ const DesktopSide = styled.div`
   @media (${QUERIES.TABLET_UP}) {
     display: flex;
   }
+`;
+
+const Toggles = styled.div`
+  display: flex;
+  gap: 0.5rem;
 `;

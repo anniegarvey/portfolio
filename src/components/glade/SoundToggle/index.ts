@@ -1,1 +1,0 @@
-export { SoundToggle } from "./SoundToggle";

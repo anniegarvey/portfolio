@@ -44,13 +44,7 @@ const STEP_EASE = "cubic-bezier(0.3, 0, 0.2, 1)";
  * the needle's angle and the current cycle's display count are derived from
  * it rather than tracked separately, so they can never drift out of sync.
  */
-export function CalibrationDial({
-  muted,
-  onCelebrate,
-}: {
-  muted: boolean;
-  onCelebrate?: () => void;
-}) {
+export function CalibrationDial({ onCelebrate }: { onCelebrate?: () => void }) {
   const [totalFilled, setTotalFilled] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
@@ -120,14 +114,12 @@ export function CalibrationDial({
         }
       }
 
-      if (!muted) {
-        const analyser = playHappyBirthdayRiff(quarterIndex);
-        if (analyser) startGlow(analyser, getHappyBirthdayRiffMs(quarterIndex));
-      }
+      const analyser = playHappyBirthdayRiff(quarterIndex);
+      if (analyser) startGlow(analyser, getHappyBirthdayRiffMs(quarterIndex));
 
       if (isFinal) onCelebrate?.();
     },
-    [muted, onCelebrate, startGlow],
+    [onCelebrate, startGlow],
   );
 
   const handleTurn = useCallback(() => {
@@ -147,7 +139,7 @@ export function CalibrationDial({
     setIsAnimating(true);
     setIsSettling(false);
     setTotalFilled(startTotal);
-    if (!muted) playDialClick();
+    playDialClick();
 
     const settle = () => finish(endTotal, isFinal, quarterIndex);
 
@@ -166,7 +158,7 @@ export function CalibrationDial({
       }
       setTotalFilled(current);
     }, STEP_MS);
-  }, [finish, muted]);
+  }, [finish]);
 
   // The current cycle's display count: totalFilled wraps every TARGET ticks,
   // but an exact multiple should read as "33" (fully lit), not reset to 0.
