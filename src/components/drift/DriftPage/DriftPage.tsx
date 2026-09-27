@@ -6,12 +6,20 @@ import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { QUERIES } from "@/lib/constants";
 import {
+  loadPresets,
+  type Preset,
+  removePreset,
+  savePresets,
+  upsertPreset,
+} from "@/lib/drift/presets";
+import {
   DEFAULT_SETTINGS,
   type DriftSettings,
   loadSettings,
   saveSettings,
 } from "@/lib/drift/settings";
 import { DriftCanvas, type DriftCanvasHandle } from "../DriftCanvas";
+import { DriftPresets } from "../DriftPresets";
 import { DriftSettingsPanel } from "../DriftSettingsPanel";
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
@@ -34,6 +42,7 @@ export function DriftPage() {
   const [settings, setSettings] = useState<DriftSettings>({
     ...DEFAULT_SETTINGS,
   });
+  const [presets, setPresets] = useState<Preset[]>([]);
   const calm = usePrefersReducedMotion();
   const canvas = useRef<DriftCanvasHandle>(null);
 
@@ -41,11 +50,17 @@ export function DriftPage() {
   // client render agree.
   useEffect(() => {
     setSettings(loadSettings());
+    setPresets(loadPresets());
   }, []);
 
   const update = (next: DriftSettings) => {
     setSettings(next);
     saveSettings(next);
+  };
+
+  const updatePresets = (next: Preset[]) => {
+    setPresets(next);
+    savePresets(next);
   };
 
   return (
@@ -66,7 +81,16 @@ export function DriftPage() {
           onClear={() => canvas.current?.clear()}
           onReset={() => update({ ...DEFAULT_SETTINGS })}
           settings={settings}
-        />
+        >
+          <DriftPresets
+            onApply={(preset) => update({ ...preset.settings })}
+            onDelete={(name) => updatePresets(removePreset(presets, name))}
+            onSave={(name) =>
+              updatePresets(upsertPreset(presets, name, settings))
+            }
+            presets={presets}
+          />
+        </DriftSettingsPanel>
       </Layout>
     </MaxWidthWrapper>
   );

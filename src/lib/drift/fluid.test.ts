@@ -205,6 +205,25 @@ describe("paint", () => {
   });
 });
 
+describe("paint, vivid", () => {
+  it("lifts a dull mix of two colours back to full brightness", () => {
+    const fluid = createFluid(20, 20);
+    drop(fluid, { color: [1, 0, 0], amount: 1 });
+    drop(fluid, { color: [0, 1, 0], amount: 1 });
+    const dull = new Uint8ClampedArray(20 * 20 * 4);
+    const vivid = new Uint8ClampedArray(20 * 20 * 4);
+    paint(fluid, dull);
+    paint(fluid, vivid, true);
+    const centre = (10 + 10 * 20) * 4;
+    // Red and green average to olive, but read as yellow when vivid.
+    expect(dull[centre]).toBeCloseTo(127.5, -1);
+    expect(vivid[centre]).toBe(255);
+    expect(vivid[centre + 1]).toBe(255);
+    expect(vivid[centre + 2]).toBe(0);
+    expect(vivid[centre + 3]).toBe(dull[centre + 3]);
+  });
+});
+
 describe("clearFluid", () => {
   it("empties the dye and stills the water", () => {
     const fluid = createFluid(12, 12);

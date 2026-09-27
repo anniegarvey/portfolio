@@ -206,6 +206,35 @@ describe("DriftCanvas", () => {
     expect(opaquePixels(lastPaint())).toBe(0);
   });
 
+  it("paints a rainbow stroke at full brightness", () => {
+    const { ref } = renderCanvas({ drift: true, palette: "rainbow" });
+    act(() => ref.current?.clear());
+    act(() => ref.current?.bloom());
+    fireEvent.pointerMove(canvas(), {
+      clientX: 50,
+      clientY: 150,
+      pointerType: "mouse",
+    });
+    clock += 16;
+    fireEvent.pointerMove(canvas(), {
+      clientX: 350,
+      clientY: 150,
+      pointerType: "mouse",
+    });
+    flushFrames();
+    const { data } = lastPaint();
+    let brightest = 0;
+    for (let k = 0; k < data.length; k += 4) {
+      if (data[k + 3] > 10) {
+        brightest = Math.max(
+          brightest,
+          Math.min(Math.max(data[k], data[k + 1], data[k + 2]), 255),
+        );
+      }
+    }
+    expect(brightest).toBe(255);
+  });
+
   it("keeps the water moving with gentle currents", () => {
     const { ref } = renderCanvas({ drift: true });
     act(() => ref.current?.clear());

@@ -25,6 +25,13 @@ describe("colorAt", () => {
   });
 });
 
+describe("colorAt, with its own period", () => {
+  it("moves through the colours at the given pace", () => {
+    expect(colorAt([RED, BLUE], 0.5, 0.5)[2]).toBeCloseTo(1);
+    expect(colorAt([RED, BLUE], 0.5)[0]).toBeGreaterThan(0.85);
+  });
+});
+
 describe("stirWithPointer", () => {
   it("drops dye along the stroke and pushes the water its way", () => {
     const fluid = createFluid(40, 20);
@@ -74,6 +81,16 @@ describe("drift", () => {
     drift(fluid, 3, 1 / 60, [RED, BLUE], 0.05);
     expect(totalDye(fluid)).toBeGreaterThan(0);
     expect(fluid.u.some((x) => x !== 0)).toBe(true);
+  });
+
+  it("tints its wake at the palette's pace", () => {
+    const slow = createFluid(20, 20);
+    const quick = createFluid(20, 20);
+    drift(slow, 0.6, 1 / 60, [RED, BLUE], 0.05);
+    drift(quick, 0.6, 1 / 60, [RED, BLUE], 0.05, 0.6);
+    const blue = (f: typeof slow) =>
+      f.dye.reduce((sum, x, k) => (k % 4 === 2 ? sum + x : sum), 0);
+    expect(blue(quick)).toBeGreaterThan(blue(slow));
   });
 
   it("adds nothing in a zero-length frame", () => {

@@ -8,6 +8,10 @@ export type Palette = {
   colors: readonly string[];
   /** Water colour behind the dye, for light and dark themes. */
   water: { light: string; dark: string };
+  /** Seconds each colour holds while stirring; defaults to a slow drift. */
+  cycleSeconds?: number;
+  /** Keep mixed colours at full brightness instead of letting them dull. */
+  vivid?: boolean;
 };
 
 export const PALETTES = [
@@ -40,6 +44,24 @@ export const PALETTES = [
     name: "Ember",
     colors: ["#f43f5e", "#f59e0b", "#ef4444"],
     water: { light: "#fbf3ec", dark: "#160a07" },
+  },
+  {
+    id: "rainbow",
+    name: "Rainbow",
+    // The full spectrum at full brightness, cycled in order as you stir.
+    colors: [
+      "#ff1f3d",
+      "#ff8a00",
+      "#ffd600",
+      "#22e05a",
+      "#00b8ff",
+      "#3d5bff",
+      "#b04dff",
+    ],
+    water: { light: "#f6f5f8", dark: "#0b0a10" },
+    // Quick enough that one stroke paints a ribbon of the whole spectrum.
+    cycleSeconds: 0.6,
+    vivid: true,
   },
 ] as const satisfies readonly Palette[];
 

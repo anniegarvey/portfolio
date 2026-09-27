@@ -1,14 +1,18 @@
 import { type Fluid, type Rgb, splat } from "./fluid";
 
 /** Seconds each palette colour holds before blending into the next. */
-const COLOR_PERIOD = 2.5;
+export const COLOR_PERIOD = 2.5;
 
 /**
  * The dye colour at a moment in time: the palette's colours in turn, each
  * blending smoothly into the next, so a long stroke changes hue as it goes.
  */
-export function colorAt(colors: readonly Rgb[], seconds: number): Rgb {
-  const position = (seconds / COLOR_PERIOD) % colors.length;
+export function colorAt(
+  colors: readonly Rgb[],
+  seconds: number,
+  period = COLOR_PERIOD,
+): Rgb {
+  const position = (seconds / period) % colors.length;
   const index = Math.floor(position);
   const from = colors[index];
   const to = colors[(index + 1) % colors.length];
@@ -109,6 +113,7 @@ export function drift(
   dt: number,
   colors: readonly Rgb[],
   radius: number,
+  period = COLOR_PERIOD,
 ): void {
   for (let n = 0; n < 2; n++) {
     const phase = n * Math.PI;
@@ -123,7 +128,7 @@ export function drift(
       y,
       dx: vx * fluid.width * 1.5,
       dy: vy * fluid.height * 1.5,
-      color: colorAt(colors, seconds + n * 3.7),
+      color: colorAt(colors, seconds + n * 3.7, period),
       radius: radius * 1.3,
       amount: 0.9 * dt,
     });

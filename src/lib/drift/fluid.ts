@@ -150,8 +150,15 @@ export function step(fluid: Fluid, options: StepOptions): void {
  * Writes the dye into RGBA pixels (one per cell, `width * height * 4` bytes)
  * as straight, un-premultiplied colour, so the page background shows through
  * wherever the water is clear.
+ *
+ * Mixing averages colours, so red and green meet as a dull olive. `vivid`
+ * lifts each pixel back to full brightness, so they meet as yellow instead.
  */
-export function paint(fluid: Fluid, pixels: Uint8ClampedArray): void {
+export function paint(
+  fluid: Fluid,
+  pixels: Uint8ClampedArray,
+  vivid = false,
+): void {
   const { dye } = fluid;
   const cells = fluid.width * fluid.height;
   for (let k = 0; k < cells; k++) {
@@ -161,9 +168,11 @@ export function paint(fluid: Fluid, pixels: Uint8ClampedArray): void {
       pixels[p + 3] = 0;
       continue;
     }
-    pixels[p] = (dye[p] / amount) * 255;
-    pixels[p + 1] = (dye[p + 1] / amount) * 255;
-    pixels[p + 2] = (dye[p + 2] / amount) * 255;
+    const brightest = Math.max(dye[p], dye[p + 1], dye[p + 2], 1e-6);
+    const scale = (vivid ? 1 / brightest : 1 / amount) * 255;
+    pixels[p] = dye[p] * scale;
+    pixels[p + 1] = dye[p + 1] * scale;
+    pixels[p + 2] = dye[p + 2] * scale;
     // Opacity eases towards full, so thin wisps stay soft and pools go deep.
     pixels[p + 3] = (1 - Math.exp(-amount * INK_DENSITY)) * 255;
   }

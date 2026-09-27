@@ -71,6 +71,13 @@ describe("getPalette", () => {
     expect(getPalette("dusk").name).toBe("Dusk");
   });
 
+  it("has a quick, vivid rainbow running red to violet", () => {
+    const rainbow = getPalette("rainbow");
+    expect(rainbow.colors).toHaveLength(7);
+    expect(rainbow.vivid).toBe(true);
+    expect(rainbow.cycleSeconds).toBeLessThan(1);
+  });
+
   it("falls back to the first palette for an unknown id", () => {
     expect(getPalette("nope" as PaletteId)).toBe(PALETTES[0]);
   });
