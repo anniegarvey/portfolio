@@ -1,6 +1,7 @@
 "use client";
 
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { Lightbulb } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Select";
+import { Toggletip } from "@/components/Toggletip";
 import { getTodayDateString } from "@/lib/date";
 import { ITEMS, MAX_FRIENDSHIP, NEIGHBOURS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
@@ -18,6 +20,7 @@ import {
   canGift,
   friendshipOf,
   friendshipTier,
+  giftsTried,
   neighbourState,
   nextTier,
 } from "@/lib/meadowmere/neighboursModule";
@@ -93,9 +96,16 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
         neighbourName={neighbour.name}
       />
 
-      <Likes>
-        Likes: {neighbour.likedItemIds.map((id) => ITEMS[id].name).join(", ")}
-      </Likes>
+      <HintsRow>
+        {/* Aligned to the button, not centred on it: centred, it spills off
+            the left of the dialog, which clips it. */}
+        <Toggletip
+          align="start"
+          content={<GiftHints neighbourId={neighbourId} />}
+          icon={<Lightbulb aria-hidden size={16} />}
+          label="Hints"
+        />
+      </HintsRow>
 
       <GiftRow>
         <VisuallyHidden id={giftLabelId}>
@@ -155,6 +165,43 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
         {reaction}
       </Reaction>
     </Card>
+  );
+}
+
+/** Names of items, in the order given, for a line of the gift hints. */
+function itemNames(itemIds: ItemId[]): string {
+  return itemIds.map((id) => ITEMS[id].name).join(", ");
+}
+
+/**
+ * What the player has worked out about a neighbour's taste: a nudge towards
+ * it, how many favourites are found, and every gift tried so far sorted into
+ * the ones that were favourites and the ones that weren't.
+ */
+function GiftHints({ neighbourId }: { neighbourId: NeighbourId }) {
+  const { state } = useMeadowmere();
+  const neighbour = NEIGHBOURS[neighbourId];
+  const { favourites, others } = giftsTried(state, neighbourId);
+
+  return (
+    <HintsList>
+      <HintNudge>{neighbour.giftHint}</HintNudge>
+      <HintCount>
+        {favourites.length} of {neighbour.likedItemIds.length} favourites found
+      </HintCount>
+      {favourites.length === 0 && others.length === 0 ? (
+        <HintLine>No gifts tried yet.</HintLine>
+      ) : (
+        <>
+          {favourites.length > 0 && (
+            <HintLine>Favourites: {itemNames(favourites)}</HintLine>
+          )}
+          {others.length > 0 && (
+            <HintLine>Not favourites: {itemNames(others)}</HintLine>
+          )}
+        </>
+      )}
+    </HintsList>
   );
 }
 
@@ -321,8 +368,31 @@ const ToNextTier = styled.span`
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 
-const Likes = styled.span`
-  font-size: 0.78rem;
+const HintsRow = styled.div`
+  display: flex;
+`;
+
+const HintsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: left;
+`;
+
+const HintNudge = styled.span`
+  font-size: 0.85rem;
+  font-style: italic;
+`;
+
+const HintCount = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+const HintLine = styled.span`
+  font-size: 0.8rem;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 

@@ -1,4 +1,4 @@
-import { FRIENDSHIP_TIERS, MAX_FRIENDSHIP, NEIGHBOURS } from "./catalog";
+import { FRIENDSHIP_TIERS, ITEMS, MAX_FRIENDSHIP, NEIGHBOURS } from "./catalog";
 import { itemCount, removeItems } from "./inventory";
 import type {
   ItemId,
@@ -53,6 +53,25 @@ export function nextTier(
 
 export function likesItem(neighbourId: NeighbourId, itemId: ItemId): boolean {
   return NEIGHBOURS[neighbourId].likedItemIds.includes(itemId);
+}
+
+/**
+ * What the player has learnt about a neighbour's taste by giving them things:
+ * the gifts that turned out to be favourites and the ones that didn't, each in
+ * catalog order. Favourites are only ever found this way, never listed up front.
+ */
+export function giftsTried(
+  state: MeadowmereState,
+  neighbourId: NeighbourId,
+): { favourites: ItemId[]; others: ItemId[] } {
+  const given = neighbourState(state, neighbourId).giftedItemIds ?? [];
+  const tried = (Object.keys(ITEMS) as ItemId[]).filter((id) =>
+    given.includes(id),
+  );
+  return {
+    favourites: tried.filter((id) => likesItem(neighbourId, id)),
+    others: tried.filter((id) => !likesItem(neighbourId, id)),
+  };
 }
 
 export function canGift(
@@ -136,6 +155,8 @@ export function giveGift(
   );
   const after = friendshipOf(given, neighbourId);
   const afterTier = friendshipTier(after);
+  const current = neighbourState(given, neighbourId);
+  const giftedItemIds = current.giftedItemIds ?? [];
 
   return {
     state: {
@@ -143,8 +164,11 @@ export function giveGift(
       neighbours: {
         ...given.neighbours,
         [neighbourId]: {
-          ...neighbourState(given, neighbourId),
+          ...current,
           lastGiftDate: today,
+          giftedItemIds: giftedItemIds.includes(itemId)
+            ? giftedItemIds
+            : [...giftedItemIds, itemId],
         },
       },
     },

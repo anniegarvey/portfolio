@@ -5,6 +5,7 @@ import {
   canGift,
   friendshipOf,
   friendshipTier,
+  giftsTried,
   giftWorth,
   giveGift,
   likesItem,
@@ -242,5 +243,70 @@ describe("friendship pacing", () => {
 
   it("takes weeks of favourites to make a dear friend", () => {
     expect(daysOfLikedGifts(85)).toBeGreaterThanOrEqual(21);
+  });
+});
+
+describe("giftsTried", () => {
+  it("starts empty for a neighbour who has had nothing yet", () => {
+    expect(giftsTried(makeMeadowmereState(), "marigold")).toEqual({
+      favourites: [],
+      others: [],
+    });
+  });
+
+  it("remembers each gift, sorted into favourites and the rest", () => {
+    const state = makeMeadowmereState({
+      inventory: { "wild-honey": 1, pumpkin: 1 },
+    });
+    const first = giveGift(state, "marigold", "pumpkin", TODAY);
+    if (first === null) throw new Error("not given");
+    const second = giveGift(
+      first.state,
+      "marigold",
+      "wild-honey",
+      "2026-06-12",
+    );
+    if (second === null) throw new Error("not given");
+
+    expect(giftsTried(second.state, "marigold")).toEqual({
+      favourites: ["wild-honey"],
+      others: ["pumpkin"],
+    });
+  });
+
+  it("records an item once however often it is given", () => {
+    const state = makeMeadowmereState({ inventory: { "wild-honey": 2 } });
+    const first = giveGift(state, "marigold", "wild-honey", TODAY);
+    if (first === null) throw new Error("not given");
+    const second = giveGift(
+      first.state,
+      "marigold",
+      "wild-honey",
+      "2026-06-12",
+    );
+
+    expect(second?.state.neighbours.marigold?.giftedItemIds).toEqual([
+      "wild-honey",
+    ]);
+  });
+
+  it("keeps each neighbour's record to themselves", () => {
+    const state = makeMeadowmereState({ inventory: { "wild-honey": 1 } });
+    const given = giveGift(state, "marigold", "wild-honey", TODAY);
+    if (given === null) throw new Error("not given");
+
+    expect(giftsTried(given.state, "nessa").favourites).toEqual([]);
+  });
+
+  it("lists them in catalog order, not the order they were given", () => {
+    const state = makeMeadowmereState({
+      neighbours: {
+        marigold: { friendship: 0, giftedItemIds: ["reed", "wild-honey"] },
+      },
+    });
+    expect(giftsTried(state, "marigold").favourites).toEqual([
+      "reed",
+      "wild-honey",
+    ]);
   });
 });
