@@ -92,15 +92,10 @@ describe("friendship", () => {
     expect(screen.queryByText(/more to/)).not.toBeInTheDocument();
   });
 
-  it("lists what the neighbour likes", () => {
+  it("keeps a neighbour's favourites to be found rather than listed", () => {
     mock();
     render(<NeighbourCard neighbourId="marigold" />);
-
-    expect(
-      screen.getByText(
-        "Likes: Wild Honey, Cornflower, River Clay, Reed, Sunflower, Glowcap",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/Wild Honey/)).not.toBeInTheDocument();
   });
 });
 
@@ -317,5 +312,54 @@ describe("focus after giving", () => {
 
     expect(reaction).toBeInTheDocument();
     expect(reaction).not.toHaveAttribute("data-shown");
+  });
+});
+
+describe("gift hints", () => {
+  async function openHints() {
+    await userEvent.click(screen.getByRole("button", { name: "Hints" }));
+  }
+
+  it("gives a nudge towards what the neighbour might like", async () => {
+    mock();
+    render(<NeighbourCard neighbourId="marigold" />);
+    await openHints();
+
+    expect(
+      screen.getByText("Anything for her bees or her wheel."),
+    ).toBeInTheDocument();
+  });
+
+  it("says nothing has been tried before the first gift", async () => {
+    mock();
+    render(<NeighbourCard neighbourId="marigold" />);
+    await openHints();
+
+    expect(screen.getByText("0 of 6 favourites found")).toBeInTheDocument();
+    expect(screen.getByText("No gifts tried yet.")).toBeInTheDocument();
+  });
+
+  it("lists the favourites found and the gifts that weren't", async () => {
+    mock({
+      state: makeMeadowmereState({
+        neighbours: {
+          marigold: {
+            friendship: 10,
+            giftedItemIds: ["wild-honey", "pumpkin", "reed", "acorn"],
+          },
+        },
+      }),
+    });
+    render(<NeighbourCard neighbourId="marigold" />);
+    await openHints();
+
+    expect(screen.getByText("2 of 6 favourites found")).toBeInTheDocument();
+    expect(
+      screen.getByText("Favourites: Reed, Wild Honey"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Not favourites: Pumpkin, Acorn"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No gifts tried yet.")).not.toBeInTheDocument();
   });
 });

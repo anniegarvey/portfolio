@@ -302,6 +302,11 @@ export interface NeighbourConfig {
   glyph: string;
   /** Items this neighbour is especially pleased to receive. */
   likedItemIds: readonly ItemId[];
+  /**
+   * A nudge towards what they like, for the gift hints. Vague on purpose: the
+   * favourites themselves are only found by giving things.
+   */
+  giftHint: string;
 }
 
 export const NEIGHBOURS: Record<NeighbourId, NeighbourConfig> = {
@@ -311,6 +316,7 @@ export const NEIGHBOURS: Record<NeighbourId, NeighbourConfig> = {
     role: "Cook at the Hollow Inn",
     blurb: "Runs the inn kitchen and judges a valley entirely by its produce.",
     glyph: "🧑‍🍳",
+    giftHint: "Anything good enough to cook with.",
     likedItemIds: [
       "parsnip-root",
       "strawberry",
@@ -327,6 +333,7 @@ export const NEIGHBOURS: Record<NeighbourId, NeighbourConfig> = {
     blurb:
       "Knows every path in the wilds and will happily tell you all of them.",
     glyph: "🧑‍🌾",
+    giftHint: "The sort of thing you’d pocket on a walk in the woods.",
     likedItemIds: [
       "acorn",
       "oak-resin",
@@ -343,6 +350,7 @@ export const NEIGHBOURS: Record<NeighbourId, NeighbourConfig> = {
     blurb:
       "Keeps bees at the top of the lane and fires pots when the mood takes her.",
     glyph: "🧑‍🎨",
+    giftHint: "Anything for her bees or her wheel.",
     likedItemIds: [
       "wild-honey",
       "cornflower-bloom",
@@ -359,6 +367,7 @@ export const NEIGHBOURS: Record<NeighbourId, NeighbourConfig> = {
     blurb:
       "Took on the mill at the bottom of the lane and bakes whatever it grinds.",
     glyph: "👩‍🦰",
+    giftHint: "Whatever might end up in a loaf or a pudding.",
     likedItemIds: [
       "bramble-berry",
       "wheat-sheaf",

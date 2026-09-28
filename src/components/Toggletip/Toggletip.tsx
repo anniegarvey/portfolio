@@ -11,6 +11,12 @@ interface ToggletipProps {
   label?: string;
   /** Trigger button icon. Defaults to an info glyph. */
   icon?: React.ReactNode;
+  /**
+   * Where the popover sits against the trigger. "center" by default; "start"
+   * lines it up with the trigger's leading edge, for a trigger at the left of
+   * a box that clips what spills out of it, such as a dialog.
+   */
+  align?: "center" | "start";
 }
 
 const VIEWPORT_MARGIN = 8;
@@ -19,6 +25,7 @@ export function Toggletip({
   content,
   label = "About",
   icon = <Info aria-hidden size={16} />,
+  align = "center",
 }: ToggletipProps) {
   const [open, setOpen] = useState(false);
   const [shift, setShift] = useState(0);
@@ -82,13 +89,19 @@ export function Toggletip({
         {label}
       </Button>
       <Popover
+        data-align={align}
         hidden={!open}
         id={id}
         ref={popoverRef}
         role="status"
         style={
           shift !== 0
-            ? { transform: `translateX(calc(-50% + ${shift}px))` }
+            ? {
+                transform:
+                  align === "start"
+                    ? `translateX(${shift}px)`
+                    : `translateX(calc(-50% + ${shift}px))`,
+              }
             : undefined
         }
       >
@@ -120,6 +133,11 @@ const Popover = styled.div`
   background: light-dark(white, var(--color-grey-800));
   box-shadow: var(--elevation-md, 0 4px 16px rgba(0, 0, 0, 0.12));
   border: 1px solid light-dark(var(--color-grey-200), var(--color-grey-700));
+
+  &[data-align="start"] {
+    left: 0;
+    transform: none;
+  }
 
   &[hidden] {
     display: none;

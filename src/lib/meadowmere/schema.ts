@@ -119,6 +119,12 @@ export const NeighbourStateSchema = z.object({
   friendship: z.number().min(0).max(100),
   /** Local date this neighbour last received a gift; one gift per day. */
   lastGiftDate: z.string().optional(),
+  /**
+   * Every item this neighbour has ever been given, once each — what the gift
+   * hints read to show what has been tried and which turned out a favourite.
+   * Optional so saves from before it was tracked still parse.
+   */
+  giftedItemIds: z.array(ItemIdSchema).optional(),
 });
 export type NeighbourState = z.infer<typeof NeighbourStateSchema>;
 

@@ -199,6 +199,10 @@ test.describe("Meadowmere", () => {
     await door.getByRole("button", { name: "Give gift" }).click();
 
     await expect(door.getByText(/now an Acquaintance/)).toBeVisible();
+
+    // The gift hints remember it as a favourite found.
+    await door.getByRole("button", { name: "Hints" }).click();
+    await expect(door.getByText("Favourites: River Clay")).toBeVisible();
   });
 
   test("a quest is handed in at the door of whoever set it", async ({

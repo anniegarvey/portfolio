@@ -141,4 +141,35 @@ describe("Toggletip", () => {
 
     expect(popover.style.transform).toBe("translateX(calc(-50% + -48px))");
   });
+
+  it("lines the popover up with the trigger when asked to", async () => {
+    const user = userEvent.setup();
+    render(<Toggletip align="start" content={CONTENT} />);
+
+    await user.click(screen.getByRole("button", { name: "About" }));
+
+    expect(screen.getByRole("status")).toHaveAttribute("data-align", "start");
+  });
+
+  it("shifts a start-aligned popover back on screen without re-centring it", async () => {
+    const user = userEvent.setup();
+    render(<Toggletip align="start" content={CONTENT} />);
+    const popover = screen.getByRole("status", { hidden: true });
+    const innerWidth = window.innerWidth;
+    vi.spyOn(popover, "getBoundingClientRect").mockReturnValue({
+      left: innerWidth - 240,
+      right: innerWidth + 40,
+      width: 280,
+      height: 60,
+      top: 0,
+      bottom: 60,
+      x: innerWidth - 240,
+      y: 0,
+      toJSON() {},
+    });
+
+    await user.click(screen.getByRole("button", { name: "About" }));
+
+    expect(popover.style.transform).toBe("translateX(-48px)");
+  });
 });
