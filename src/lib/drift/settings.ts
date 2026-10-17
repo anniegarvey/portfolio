@@ -71,33 +71,46 @@ const PALETTE_IDS = PALETTES.map((p) => p.id) as [PaletteId, ...PaletteId[]];
 
 export const DEFAULT_SETTINGS = {
   palette: "lagoon",
-  speed: 1,
-  viscosity: 0.35,
+  speed: 0.5,
+  viscosity: 0.5,
   trail: 0.6,
   brushSize: 0.5,
-  swirl: 0.4,
-  drift: true,
+  swirl: 0.3,
+  currents: 0.3,
 } as const satisfies DriftSettings;
+
+/**
+ * Settings saved before currents had a strength stored them as an on/off
+ * `drift` flag. Off becomes no currents; on picks up the default strength.
+ */
+function migrateCurrents(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw;
+  if ("currents" in raw || !("drift" in raw)) return raw;
+  return { ...raw, currents: raw.drift === false ? 0 : undefined };
+}
 
 /**
  * Every field falls back to its own default, so one out-of-range value in
  * storage (say, from an older version) doesn't wipe the rest.
  */
-export const DriftSettingsSchema = z.object({
-  palette: z.enum(PALETTE_IDS).catch(DEFAULT_SETTINGS.palette),
-  /** Time multiplier, 0.25–2. */
-  speed: z.number().min(0.25).max(2).catch(DEFAULT_SETTINGS.speed),
-  /** 0 (thin, slippery) to 1 (thick, syrupy). */
-  viscosity: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.viscosity),
-  /** 0 (fades fast) to 1 (lingers). */
-  trail: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.trail),
-  /** 0 (fine) to 1 (broad). */
-  brushSize: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.brushSize),
-  /** 0 (smooth) to 1 (curly). */
-  swirl: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.swirl),
-  /** Gentle currents that keep the water moving on its own. */
-  drift: z.boolean().catch(DEFAULT_SETTINGS.drift),
-});
+export const DriftSettingsSchema = z.preprocess(
+  migrateCurrents,
+  z.object({
+    palette: z.enum(PALETTE_IDS).catch(DEFAULT_SETTINGS.palette),
+    /** Time multiplier, 0.1–1: even the top of the range is unhurried. */
+    speed: z.number().min(0.1).max(1).catch(DEFAULT_SETTINGS.speed),
+    /** 0 (thin, slippery) to 1 (thick, syrupy). */
+    viscosity: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.viscosity),
+    /** 0 (fades fast) to 1 (lingers). */
+    trail: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.trail),
+    /** 0 (fine) to 1 (broad). */
+    brushSize: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.brushSize),
+    /** 0 (smooth) to 1 (curly). */
+    swirl: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.swirl),
+    /** Currents that keep the water moving on its own: 0 (still) to 1. */
+    currents: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.currents),
+  }),
+);
 
 export type DriftSettings = {
   palette: PaletteId;
@@ -106,7 +119,7 @@ export type DriftSettings = {
   trail: number;
   brushSize: number;
   swirl: number;
-  drift: boolean;
+  currents: number;
 };
 
 const STORAGE_KEY = "drift-settings";
@@ -140,6 +153,9 @@ export function hexToRgb(hex: string): Rgb {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
+/** Vorticity confinement at full swirl; more than this reads as boiling. */
+export const MAX_SWIRL = 20;
+
 /** How much slower everything runs when the device asks for reduced motion. */
 export const CALM_SPEED = 0.15;
 
@@ -151,11 +167,11 @@ export function toStepOptions(
 ): StepOptions {
   return {
     dt: dt * settings.speed * (calm ? CALM_SPEED : 1),
-    // Thin water keeps ~80% of its momentum a second; syrup keeps ~5%.
-    velocityKeep: lerp(0.8, 0.05, settings.viscosity),
+    // Thin water keeps ~70% of its momentum a second; syrup keeps ~2%.
+    velocityKeep: lerp(0.7, 0.02, settings.viscosity),
     // Short trails keep ~40% of their dye a second; long ones ~98%.
     dyeKeep: lerp(0.4, 0.98, settings.trail),
-    swirl: settings.swirl * 30,
+    swirl: settings.swirl * MAX_SWIRL,
   };
 }
 

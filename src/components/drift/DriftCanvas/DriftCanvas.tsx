@@ -135,13 +135,14 @@ export function DriftCanvas({ settings, calm, ref }: Props) {
       const fluid = fluidRef.current;
       if (fluid && image) {
         const current = settingsRef.current;
-        if (current.drift && !calmRef.current) {
+        if (current.currents > 0 && !calmRef.current) {
           drift(
             fluid,
             seconds,
             dt,
             colorsOf(current),
             brushRadius(current),
+            current.currents,
             periodOf(current),
           );
         }

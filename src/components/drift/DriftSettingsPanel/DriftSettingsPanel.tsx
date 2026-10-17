@@ -9,7 +9,13 @@ import {
   type PaletteId,
 } from "@/lib/drift/settings";
 
-type SliderKey = "speed" | "viscosity" | "trail" | "brushSize" | "swirl";
+type SliderKey =
+  | "speed"
+  | "viscosity"
+  | "trail"
+  | "brushSize"
+  | "swirl"
+  | "currents";
 
 const SLIDERS: readonly {
   key: SliderKey;
@@ -22,8 +28,8 @@ const SLIDERS: readonly {
   {
     key: "speed",
     label: "Flow speed",
-    min: 0.25,
-    max: 2,
+    min: 0.1,
+    max: 1,
     step: 0.05,
     ends: ["Slow", "Quick"],
   },
@@ -58,6 +64,14 @@ const SLIDERS: readonly {
     max: 1,
     step: 0.05,
     ends: ["Smooth", "Curly"],
+  },
+  {
+    key: "currents",
+    label: "Currents",
+    min: 0,
+    max: 1,
+    step: 0.05,
+    ends: ["Still", "Flowing"],
   },
 ];
 
@@ -131,9 +145,11 @@ export function DriftSettingsPanel({
             {slider.label}
           </FieldLabel>
           <Range
+            disabled={calm && slider.key === "currents"}
             id={`${id}-${slider.key}`}
             max={slider.max}
             min={slider.min}
+            // Under reduced motion the currents stay still (see the note).
             onChange={(event) =>
               onChange({ [slider.key]: Number(event.target.value) })
             }
@@ -148,19 +164,10 @@ export function DriftSettingsPanel({
         </Field>
       ))}
 
-      <Toggle>
-        <input
-          checked={settings.drift && !calm}
-          disabled={calm}
-          onChange={(event) => onChange({ drift: event.target.checked })}
-          type="checkbox"
-        />
-        Gentle currents
-      </Toggle>
       {calm && (
         <Note>
-          Your device asks for reduced motion, so the water moves very slowly
-          and only when you stir it.
+          Your device asks for reduced motion, so the water moves very slowly,
+          the currents stay still, and it only moves when you stir it.
         </Note>
       )}
 
@@ -265,6 +272,11 @@ const Range = styled.input`
   width: 100%;
   min-height: 32px;
   accent-color: light-dark(var(--color-primary-600), var(--color-primary-400));
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 `;
 
 const Ends = styled.div`
@@ -272,27 +284,6 @@ const Ends = styled.div`
   justify-content: space-between;
   font-size: 0.75rem;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
-`;
-
-const Toggle = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-
-  & input {
-    width: 20px;
-    height: 20px;
-    accent-color: light-dark(var(--color-primary-600), var(--color-primary-400));
-  }
-
-  &:has(input:disabled) {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
 `;
 
 const Note = styled.p`

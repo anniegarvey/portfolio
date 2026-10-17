@@ -6,6 +6,7 @@ import {
   getPalette,
   hexToRgb,
   loadSettings,
+  MAX_SWIRL,
   PALETTES,
   type PaletteId,
   saveSettings,
@@ -27,8 +28,8 @@ describe("loadSettings", () => {
     const settings = {
       ...DEFAULT_SETTINGS,
       palette: "ember" as const,
-      speed: 1.5,
-      drift: false,
+      speed: 0.8,
+      currents: 0.75,
     };
     saveSettings(settings);
     expect(loadSettings()).toEqual(settings);
@@ -47,6 +48,34 @@ describe("loadSettings", () => {
       JSON.stringify({ palette: "plaid", speed: 99, trail: 0.9 }),
     );
     expect(loadSettings()).toEqual({ ...DEFAULT_SETTINGS, trail: 0.9 });
+  });
+
+  it("keeps settings from before currents had a strength", () => {
+    const old = { palette: "dusk", speed: 0.5, trail: 0.9 };
+    localStorage.setItem(KEY, JSON.stringify({ ...old, drift: false }));
+    expect(loadSettings()).toMatchObject({ ...old, currents: 0 });
+    localStorage.setItem(KEY, JSON.stringify({ ...old, drift: true }));
+    expect(loadSettings()).toMatchObject({
+      ...old,
+      currents: DEFAULT_SETTINGS.currents,
+    });
+    expect(loadSettings()).not.toHaveProperty("drift");
+  });
+
+  it("prefers a stored strength over an old on/off flag", () => {
+    localStorage.setItem(KEY, JSON.stringify({ currents: 0.8, drift: false }));
+    expect(loadSettings().currents).toBe(0.8);
+  });
+
+  it("resets a speed from the old, faster range", () => {
+    localStorage.setItem(KEY, JSON.stringify({ speed: 1.6 }));
+    expect(loadSettings().speed).toBe(DEFAULT_SETTINGS.speed);
+  });
+
+  it("starts unhurried: slowish, fairly thick, with faint currents", () => {
+    expect(DEFAULT_SETTINGS.speed).toBeLessThanOrEqual(0.5);
+    expect(DEFAULT_SETTINGS.viscosity).toBeGreaterThanOrEqual(0.5);
+    expect(DEFAULT_SETTINGS.currents).toBeLessThanOrEqual(0.3);
   });
 
   it("falls back to the defaults when storage throws", () => {
@@ -120,8 +149,8 @@ describe("toStepOptions", () => {
       1,
       false,
     );
-    expect(thin.velocityKeep).toBeCloseTo(0.8);
-    expect(thick.velocityKeep).toBeCloseTo(0.05);
+    expect(thin.velocityKeep).toBeCloseTo(0.7);
+    expect(thick.velocityKeep).toBeCloseTo(0.02);
   });
 
   it("keeps more dye the longer the trail", () => {
@@ -137,7 +166,7 @@ describe("toStepOptions", () => {
     ).toBe(0);
     expect(
       toStepOptions({ ...DEFAULT_SETTINGS, swirl: 1 }, 1, false).swirl,
-    ).toBe(30);
+    ).toBe(MAX_SWIRL);
   });
 });
 

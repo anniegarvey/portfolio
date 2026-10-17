@@ -59,8 +59,22 @@ describe("stirWithPointer", () => {
       0.05,
     );
     const fastest = fluid.v.reduce((max, x) => Math.max(max, Math.abs(x)), 0);
-    expect(fastest).toBeLessThanOrEqual(400);
+    expect(fastest).toBeLessThanOrEqual(150);
     expect(fastest).toBeGreaterThan(0);
+  });
+
+  it("moves the water much more lazily than the pointer", () => {
+    const fluid = createFluid(40, 40);
+    // Half the canvas in half a second: one canvas width a second.
+    stirWithPointer(
+      fluid,
+      { previousX: 0.25, previousY: 0.5, x: 0.75, y: 0.5, dt: 0.5 },
+      RED,
+      0.03,
+    );
+    const fastest = fluid.u.reduce((max, x) => Math.max(max, x), 0);
+    expect(fastest).toBeGreaterThan(0);
+    expect(fastest).toBeLessThan(40 * 0.5);
   });
 });
 
@@ -78,7 +92,7 @@ describe("bloom", () => {
 describe("drift", () => {
   it("adds a little dye and movement over time", () => {
     const fluid = createFluid(20, 20);
-    drift(fluid, 3, 1 / 60, [RED, BLUE], 0.05);
+    drift(fluid, 3, 1 / 60, [RED, BLUE], 0.05, 0.5);
     expect(totalDye(fluid)).toBeGreaterThan(0);
     expect(fluid.u.some((x) => x !== 0)).toBe(true);
   });
@@ -86,16 +100,38 @@ describe("drift", () => {
   it("tints its wake at the palette's pace", () => {
     const slow = createFluid(20, 20);
     const quick = createFluid(20, 20);
-    drift(slow, 0.6, 1 / 60, [RED, BLUE], 0.05);
-    drift(quick, 0.6, 1 / 60, [RED, BLUE], 0.05, 0.6);
+    drift(slow, 0.6, 1 / 60, [RED, BLUE], 0.05, 0.5);
+    drift(quick, 0.6, 1 / 60, [RED, BLUE], 0.05, 0.5, 0.6);
     const blue = (f: typeof slow) =>
       f.dye.reduce((sum, x, k) => (k % 4 === 2 ? sum + x : sum), 0);
     expect(blue(quick)).toBeGreaterThan(blue(slow));
   });
 
+  it("pushes harder the stronger it is, and only a little each frame", () => {
+    const speed = (strength: number) => {
+      const fluid = createFluid(20, 20);
+      drift(fluid, 3, 1 / 60, [RED, BLUE], 0.05, strength);
+      return fluid.u.reduce((max, x) => Math.max(max, Math.abs(x)), 0);
+    };
+    expect(speed(0)).toBe(0);
+    expect(speed(1)).toBeGreaterThan(speed(0.3));
+    // One frame at full strength nudges the water by well under a cell a
+    // second; the currents build up gently rather than landing all at once.
+    expect(speed(1)).toBeLessThan(1);
+  });
+
+  it("leaves a stronger wake the stronger it is", () => {
+    const faint = createFluid(20, 20);
+    const strong = createFluid(20, 20);
+    drift(faint, 3, 1 / 60, [RED, BLUE], 0.05, 0);
+    drift(strong, 3, 1 / 60, [RED, BLUE], 0.05, 1);
+    expect(totalDye(faint)).toBeGreaterThan(0);
+    expect(totalDye(strong)).toBeGreaterThan(totalDye(faint));
+  });
+
   it("adds nothing in a zero-length frame", () => {
     const fluid = createFluid(20, 20);
-    drift(fluid, 3, 0, [RED, BLUE], 0.05);
+    drift(fluid, 3, 0, [RED, BLUE], 0.05, 0.5);
     expect(totalDye(fluid)).toBe(0);
   });
 });
