@@ -37,7 +37,8 @@ test.describe("Drift", () => {
     page,
   }) => {
     await page.goto("/drift");
-    await page.getByRole("checkbox", { name: "Gentle currents" }).uncheck();
+    // Home moves a range input to its minimum: no currents.
+    await page.getByRole("slider", { name: "Currents" }).press("Home");
     await page.getByRole("button", { name: "Clear water" }).click();
     await expect.poll(() => inkedPixels(page)).toBe(0);
 
@@ -53,13 +54,14 @@ test.describe("Drift", () => {
   test("remembers settings across a reload", async ({ page }) => {
     await page.goto("/drift");
     await page.getByText("Ember", { exact: true }).click();
-    await page.getByRole("checkbox", { name: "Gentle currents" }).uncheck();
+    // Range inputs ignore fill(); End moves this one to full strength.
+    await page.getByRole("slider", { name: "Currents" }).press("End");
     await page.reload();
 
     await expect(page.getByRole("radio", { name: "Ember" })).toBeChecked();
-    await expect(
-      page.getByRole("checkbox", { name: "Gentle currents" }),
-    ).not.toBeChecked();
+    await expect(page.getByRole("slider", { name: "Currents" })).toHaveValue(
+      "1",
+    );
   });
 
   test("saved settings come back after a reload", async ({ page }) => {
@@ -82,9 +84,7 @@ test.describe("Drift", () => {
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/drift");
-    await expect(
-      page.getByRole("checkbox", { name: "Gentle currents" }),
-    ).toBeDisabled();
+    await expect(page.getByRole("slider", { name: "Currents" })).toBeDisabled();
     await expect(page.getByText(/asks for reduced motion/)).toBeVisible();
   });
 

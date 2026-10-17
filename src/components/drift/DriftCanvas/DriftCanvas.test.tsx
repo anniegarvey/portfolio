@@ -137,7 +137,7 @@ describe("DriftCanvas", () => {
   });
 
   it("stirs dye in where a mouse passes over", () => {
-    const { ref } = renderCanvas({ drift: false });
+    const { ref } = renderCanvas({ currents: 0 });
     act(() => ref.current?.clear());
     fireEvent.pointerMove(canvas(), {
       clientX: 50,
@@ -155,7 +155,7 @@ describe("DriftCanvas", () => {
   });
 
   it("only stirs for a finger once it touches down", () => {
-    const { ref } = renderCanvas({ drift: false });
+    const { ref } = renderCanvas({ currents: 0 });
     act(() => ref.current?.clear());
     // Pen or touch hovering, with no buttons pressed, does nothing.
     fireEvent.pointerMove(canvas(), {
@@ -188,7 +188,7 @@ describe("DriftCanvas", () => {
   });
 
   it("starts a fresh stroke after the pointer lifts", () => {
-    const { ref } = renderCanvas({ drift: false });
+    const { ref } = renderCanvas({ currents: 0 });
     fireEvent.pointerMove(canvas(), {
       clientX: 50,
       clientY: 150,
@@ -207,7 +207,7 @@ describe("DriftCanvas", () => {
   });
 
   it("paints a rainbow stroke at full brightness", () => {
-    const { ref } = renderCanvas({ drift: true, palette: "rainbow" });
+    const { ref } = renderCanvas({ palette: "rainbow" });
     act(() => ref.current?.clear());
     act(() => ref.current?.bloom());
     fireEvent.pointerMove(canvas(), {
@@ -236,14 +236,14 @@ describe("DriftCanvas", () => {
   });
 
   it("keeps the water moving with gentle currents", () => {
-    const { ref } = renderCanvas({ drift: true });
+    const { ref } = renderCanvas({ currents: 1 });
     act(() => ref.current?.clear());
     flushFrames(3);
     expect(opaquePixels(lastPaint())).toBeGreaterThan(0);
   });
 
   it("stops the currents in calm mode", () => {
-    const { ref } = renderCanvas({ drift: true }, true);
+    const { ref } = renderCanvas({ currents: 1 }, true);
     act(() => ref.current?.clear());
     flushFrames(3);
     expect(opaquePixels(lastPaint())).toBe(0);

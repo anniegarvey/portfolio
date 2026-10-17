@@ -41,9 +41,9 @@ describe("DriftSettingsPanel", () => {
   });
 
   it("reflects and changes each slider", () => {
-    const { onChange } = renderPanel({ speed: 1.5, trail: 0.2 });
+    const { onChange } = renderPanel({ speed: 0.75, trail: 0.2 });
     expect(screen.getByRole("slider", { name: "Flow speed" })).toHaveValue(
-      "1.5",
+      "0.75",
     );
     expect(screen.getByRole("slider", { name: "Trail length" })).toHaveValue(
       "0.2",
@@ -55,6 +55,7 @@ describe("DriftSettingsPanel", () => {
       ["Trail length", "trail", "0.9"],
       ["Brush size", "brushSize", "0.1"],
       ["Swirl", "swirl", "1"],
+      ["Currents", "currents", "0.6"],
     ] as const) {
       fireEvent.change(screen.getByRole("slider", { name }), {
         target: { value },
@@ -63,19 +64,26 @@ describe("DriftSettingsPanel", () => {
     }
   });
 
-  it("turns the gentle currents off and on", async () => {
-    const { onChange } = renderPanel({ drift: true });
-    const toggle = screen.getByRole("checkbox", { name: "Gentle currents" });
-    expect(toggle).toBeChecked();
-    await userEvent.click(toggle);
-    expect(onChange).toHaveBeenCalledWith({ drift: false });
+  it("offers flow speed only within its calm range", () => {
+    renderPanel();
+    const speed = screen.getByRole("slider", { name: "Flow speed" });
+    expect(speed).toHaveAttribute("min", "0.1");
+    expect(speed).toHaveAttribute("max", "1");
+  });
+
+  it("sets the currents' strength, down to still", () => {
+    const { onChange } = renderPanel({ currents: 0.3 });
+    const currents = screen.getByRole("slider", { name: "Currents" });
+    expect(currents).toHaveValue("0.3");
+    expect(currents).toBeEnabled();
+    fireEvent.change(currents, { target: { value: "0" } });
+    expect(onChange).toHaveBeenLastCalledWith({ currents: 0 });
   });
 
   it("explains and disables the currents under reduced motion", () => {
-    renderPanel({ drift: true }, true);
-    const toggle = screen.getByRole("checkbox", { name: "Gentle currents" });
-    expect(toggle).toBeDisabled();
-    expect(toggle).not.toBeChecked();
+    renderPanel({ currents: 0.3 }, true);
+    expect(screen.getByRole("slider", { name: "Currents" })).toBeDisabled();
+    expect(screen.getByRole("slider", { name: "Swirl" })).toBeEnabled();
     expect(screen.getByText(/asks for reduced motion/)).toBeInTheDocument();
   });
 

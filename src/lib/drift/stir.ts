@@ -35,10 +35,15 @@ export type PointerStir = {
   dt: number;
 };
 
-/** Grid cells per second a full-canvas-per-second sweep of the pointer maps to. */
-const POINTER_FORCE = 0.6;
+/**
+ * How much of the pointer's speed the water picks up. Well under 1, so the
+ * water follows a stroke lazily rather than being flung along with it.
+ */
+const POINTER_FORCE = 0.15;
 /** Cap on the push from one move, so a flick doesn't blow the water apart. */
-const MAX_PUSH = 400;
+const MAX_PUSH = 150;
+/** Push from currents at full strength, in grid widths per second squared. */
+const CURRENT_FORCE = 1.5;
 
 /** Drops dye and pushes the water along a pointer's movement. */
 export function stirWithPointer(
@@ -105,7 +110,9 @@ export function bloom(
 
 /**
  * Two slow, invisible currents that trace lazy loops across the water and
- * leave a faint wake, so it keeps moving when no one is stirring.
+ * leave a faint wake, so it keeps moving when no one is stirring. `strength`
+ * (0–1) scales how hard they push; the push builds up over time rather than
+ * landing whole each frame, so the water eases into motion.
  */
 export function drift(
   fluid: Fluid,
@@ -113,8 +120,10 @@ export function drift(
   dt: number,
   colors: readonly Rgb[],
   radius: number,
+  strength: number,
   period = COLOR_PERIOD,
 ): void {
+  const push = CURRENT_FORCE * strength * dt;
   for (let n = 0; n < 2; n++) {
     const phase = n * Math.PI;
     const t = seconds * 0.11 + phase;
@@ -126,11 +135,13 @@ export function drift(
     splat(fluid, {
       x,
       y,
-      dx: vx * fluid.width * 1.5,
-      dy: vy * fluid.height * 1.5,
+      dx: vx * fluid.width * push,
+      dy: vy * fluid.height * push,
       color: colorAt(colors, seconds + n * 3.7, period),
       radius: radius * 1.3,
-      amount: 0.9 * dt,
+      // Stronger currents carry a little more colour, but even faint ones
+      // leave a visible wake.
+      amount: (0.4 + 0.5 * strength) * dt,
     });
   }
 }

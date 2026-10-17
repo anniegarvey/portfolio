@@ -86,7 +86,7 @@ describe("DriftPage", () => {
 
   it("goes calm when the device asks for reduced motion", () => {
     render(<DriftPage />);
-    const toggle = screen.getByRole("checkbox", { name: "Gentle currents" });
+    const toggle = screen.getByRole("slider", { name: "Currents" });
     expect(toggle).toBeEnabled();
 
     reduce = true;
