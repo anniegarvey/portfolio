@@ -85,7 +85,6 @@
     ".mcp.json",
     ".github/**",
     ".code-review-graphignore",
-    "temp.playwright.config.ts",
-    "types/**"
+    "temp.playwright.config.ts"
   ]
 }
