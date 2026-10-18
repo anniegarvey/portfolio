@@ -17,8 +17,6 @@
       "!.next",
       "!dist",
       "!build",
-      "!types/routes.d.ts",
-      "!types/validator.ts",
       "!next-env.d.ts",
       "!.stryker-tmp",
       "!public",
