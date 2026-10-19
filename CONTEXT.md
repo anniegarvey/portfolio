@@ -50,7 +50,7 @@ An **Activity** whose start difficulty (`factors.initiationDifficulty`) is 6 or 
 A one-off activity that was planned on a past date but never marked complete. Surfaced across all stored day plans by `fetchOneOffPlanningState`.
 
 **Reminder**
-An optional time of day (`reminderTime`) set on an **Activity**. On any day the activity is planned (concrete or projected) and not yet completed or skipped, a browser notification is sent at that time. Checked by the page while the planner is open, so it cannot fire with every tab closed (no backend to push from). Fires at most once per activity per day, and not more than an hour late.
+An optional time of day (`reminderTime`) set on an **Activity**. On any day the activity is planned (concrete or projected) and not yet completed or skipped, a notification is sent at that time, at most once per activity per day and not more than an hour late. While the planner is open the page sends it itself. On a device subscribed to push, the planner also hands the server its upcoming reminders (as fixed times, for the next 30 days), and a scheduled job sends them while the planner is closed; reopening the planner refreshes that list.
 
 ---
 

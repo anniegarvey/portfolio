@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getDueReminders,
+  getUpcomingReminders,
   markRemindersSent,
+  nextDates,
   readSentReminders,
   showReminder,
 } from "./reminders";
@@ -125,6 +127,90 @@ describe("getDueReminders", () => {
     expect(
       getDueReminders([activity], planWith("r", true), AT_0915, []),
     ).toEqual([]);
+  });
+});
+
+describe("getUpcomingReminders", () => {
+  const TOMORROW = "2026-09-28";
+  const at = (date: string, time: string) =>
+    new Date(`${date}T${time}:00`).getTime();
+
+  it("lists each future day a repeating activity is due, at its time, without its description", () => {
+    const activity = makeActivity("r", {
+      description: "Stretch first",
+      repeatConfig: { ...dailyRepeat, nextDueDate: TODAY },
+    });
+    const plans = new Map([
+      [TODAY, null],
+      [TOMORROW, null],
+    ]);
+    expect(getUpcomingReminders([activity], plans, AT_0915)).toEqual([
+      {
+        at: at(TOMORROW, "09:00"),
+        title: "Activity r",
+        body: "Time for this activity.",
+        tag: "activity-reminder-r",
+      },
+    ]);
+  });
+
+  it("includes today's reminders that are still to come, in time order", () => {
+    const early = makeActivity("a", { reminderTime: "08:00" });
+    const late = makeActivity("b", { reminderTime: "17:30" });
+    const plan = makePlan({
+      plannedInstances: [
+        { id: "1", sourceActivityId: "b", completed: false },
+        { id: "2", sourceActivityId: "a", completed: false },
+      ],
+    });
+    const plans = new Map([
+      [TODAY, plan],
+      [
+        TOMORROW,
+        makePlan({ date: TOMORROW, plannedInstances: plan.plannedInstances }),
+      ],
+    ]);
+    expect(
+      getUpcomingReminders([early, late], plans, AT_0915).map((r) => r.at),
+    ).toEqual([
+      at(TODAY, "17:30"),
+      at(TOMORROW, "08:00"),
+      at(TOMORROW, "17:30"),
+    ]);
+  });
+
+  it("leaves out completed, skipped, unplanned and reminder-less activities", () => {
+    const done = makeActivity("done", { reminderTime: "18:00" });
+    const skipped = makeActivity("skip", {
+      reminderTime: "18:00",
+      repeatConfig: { ...dailyRepeat, nextDueDate: TODAY },
+    });
+    const unplanned = makeActivity("none", { reminderTime: "18:00" });
+    const silent = makeActivity("quiet", { reminderTime: undefined });
+    const plan = makePlan({
+      plannedInstances: [
+        { id: "1", sourceActivityId: "done", completed: true },
+        { id: "2", sourceActivityId: "quiet", completed: false },
+      ],
+      skippedSourceActivityIds: ["skip"],
+    });
+    expect(
+      getUpcomingReminders(
+        [done, skipped, unplanned, silent],
+        new Map([[TODAY, plan]]),
+        AT_0915,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("nextDates", () => {
+  it("lists consecutive dates starting from the given one", () => {
+    expect(nextDates("2026-09-30", 3)).toEqual([
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+    ]);
   });
 });
 

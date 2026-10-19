@@ -1,5 +1,5 @@
 import { checkIsActivityDue } from "@/hooks/dayPlanUtils";
-import { toLocalDateString } from "@/lib/date";
+import { getNextDay, toLocalDateString } from "@/lib/date";
 import type { Activity, DayPlan } from "./schema";
 
 // A reminder still fires if the planner opens (or the device wakes) up to an
@@ -50,6 +50,59 @@ export function getDueReminders(
   });
 }
 
+export interface UpcomingReminder {
+  at: number; // epoch milliseconds
+  title: string;
+  body: string;
+  tag: string;
+}
+
+const GENERIC_BODY = "Time for this activity.";
+
+export function reminderBody(activity: Activity): string {
+  return activity.description || GENERIC_BODY;
+}
+
+// Same tag as the in-page reminder, so if both arrive the second replaces the
+// first instead of showing twice.
+export const reminderTag = (activityId: string) =>
+  `activity-reminder-${activityId}`;
+
+/**
+ * Every reminder still to come over the given dates (today first), for the
+ * server to send while the planner is closed. Uses the same planned-and-open
+ * rule as the in-page check, against each date's stored plan.
+ */
+export function getUpcomingReminders(
+  activities: Activity[],
+  plansByDate: Map<string, DayPlan | null>,
+  now: Date,
+): UpcomingReminder[] {
+  const upcoming: UpcomingReminder[] = [];
+  for (const [date, plan] of plansByDate) {
+    for (const activity of activities) {
+      if (!activity.reminderTime) continue;
+      const at = new Date(`${date}T${activity.reminderTime}:00`).getTime();
+      if (at <= now.getTime()) continue;
+      if (!isPlannedAndOpen(activity, plan, date)) continue;
+      upcoming.push({
+        at,
+        title: activity.title,
+        // Descriptions stay on the device: the server only needs a title.
+        body: GENERIC_BODY,
+        tag: reminderTag(activity.id),
+      });
+    }
+  }
+  return upcoming.sort((a, b) => a.at - b.at);
+}
+
+export function nextDates(from: string, count: number): string[] {
+  const dates = [from];
+  while (dates.length < count) dates.push(getNextDay(dates[dates.length - 1]));
+  return dates;
+}
+
 // Which reminders have fired today, kept across reloads so a refresh doesn't
 // repeat them. Resets itself when the date changes.
 export function readSentReminders(today: string): string[] {
@@ -78,9 +131,9 @@ export function canNotify(): boolean {
 // the registered one when there is one and fall back to the page API.
 export async function showReminder(activity: Activity): Promise<void> {
   const options: NotificationOptions = {
-    body: activity.description || "Time for this activity.",
+    body: reminderBody(activity),
     icon: "/icon-192.png",
-    tag: `activity-reminder-${activity.id}`,
+    tag: reminderTag(activity.id),
   };
   const registration = await navigator.serviceWorker?.getRegistration();
   if (registration) {
