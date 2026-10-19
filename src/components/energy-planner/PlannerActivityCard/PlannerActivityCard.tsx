@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Check,
   CopyPlus,
+  Footprints,
   GripVertical,
   RotateCw,
   Trash2,
@@ -23,6 +24,7 @@ import type {
   Activity,
   PlannedInstance,
 } from "../../../lib/energy-planner/schema";
+import { isHardToStart } from "../../../lib/energy-planner/utils";
 import { usePoints } from "../../../lib/points/context";
 
 type DragHandleProps = {
@@ -85,6 +87,12 @@ export function PlannedActivityCard({
             {activity.description}
           </ActivityDescription>
         ) : null}
+        <GettingStartedHelp
+          activity={activity}
+          completed={completed}
+          isPast={isPast}
+          onEdit={onEdit}
+        />
         <EnergyBadges>
           {energyTypes.map((type) => {
             const value = activity.energyCost[type.id] || 0;
@@ -138,6 +146,45 @@ export function PlannedActivityCard({
         ) : null}
       </Actions>
     </Card>
+  );
+}
+
+// Hard-to-start activities get one nudge at a time: a tiny first step makes
+// starting smaller, then a set time turns it into an if-then plan.
+function getStartHint(activity: Activity, done: boolean) {
+  if (done || !isHardToStart(activity)) return null;
+  if (!activity.firstStep) return "Hard to start? Add a tiny first step";
+  if (!activity.reminderTime) return "Hard to start? Pick a time to begin";
+  return null;
+}
+
+function GettingStartedHelp({
+  activity,
+  completed,
+  isPast,
+  onEdit,
+}: {
+  activity: Activity;
+  completed?: boolean;
+  isPast: boolean;
+  onEdit: (activity: Activity) => void;
+}) {
+  const done = completed || isPast;
+  const startHint = getStartHint(activity, done);
+  return (
+    <>
+      {activity.firstStep && !done ? (
+        <FirstStep>
+          <Footprints aria-hidden size={14} />
+          <span>First step: {activity.firstStep}</span>
+        </FirstStep>
+      ) : null}
+      {startHint ? (
+        <StartHint onClick={() => onEdit(activity)} type="button">
+          {startHint}
+        </StartHint>
+      ) : null}
+    </>
   );
 }
 
@@ -393,6 +440,42 @@ const ActivityTitle = styled.button`
 
   &:focus-visible {
     outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+`;
+
+const FirstStep = styled.p`
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: light-dark(var(--color-primary-700), var(--color-primary-300));
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+`;
+
+const StartHint = styled.button`
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8rem;
+  color: light-dark(var(--color-primary-600), var(--color-primary-400));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
     outline-offset: 2px;
     border-radius: 2px;
   }

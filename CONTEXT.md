@@ -40,6 +40,12 @@ A user-configurable dimension of energy cost (e.g. Physical, Social, Executive).
 **Zone**
 A named time-of-day slot (e.g. Morning, Afternoon, Evening). Activities and projected instances can be assigned a default zone; users can reassign zones per instance.
 
+**First step**
+An optional `firstStep` on an **Activity**: the smallest action that counts as starting it (e.g. "Open the folder"). Shown on the activity's card in the day plan until it is completed.
+
+**Hard to start**
+An **Activity** whose start difficulty (`factors.initiationDifficulty`) is 6 or more (`isHardToStart`). Its card nudges the user to add a **First step**, then a **Reminder** time, and moving it to another day shows a kind note instead of nothing.
+
 **Uncompleted activity**
 A one-off activity that was planned on a past date but never marked complete. Surfaced across all stored day plans by `fetchOneOffPlanningState`.
 

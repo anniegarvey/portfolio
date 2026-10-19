@@ -10,6 +10,7 @@ import { WellnessConfigModal } from "@/components/energy-planner/WellnessConfigM
 import { QUERIES } from "@/lib/constants";
 import { WellnessCheckContext } from "@/lib/wellness/context";
 import type { Activity } from "../../../lib/energy-planner/schema";
+import { isHardToStart } from "../../../lib/energy-planner/utils";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
 import { DayPlannerSkeleton } from "../DayPlannerSkeleton";
@@ -101,6 +102,48 @@ function WellnessSection({ onOpenConfig }: { onOpenConfig: () => void }) {
   return null;
 }
 
+// Self-forgiveness after putting something off predicts less procrastination
+// next time, so moving a hard-to-start activity gets a kind word, not silence.
+function MovedKindlyBanner({
+  activity,
+  onEditActivity,
+  onDismiss,
+}: {
+  activity: Activity;
+  onEditActivity: (activity: Activity) => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <WellnessUndoBanner role="status">
+      <span>
+        Moved &ldquo;{activity.title}&rdquo;. That&apos;s okay: putting things
+        off happens. A smaller first step can make it easier next time.
+      </span>
+      <WellnessUndoActions>
+        <Button
+          onClick={() => {
+            onEditActivity(activity);
+            onDismiss();
+          }}
+          size="sm"
+          variant="outline"
+        >
+          Shrink first step
+        </Button>
+        <Button
+          aria-label="Dismiss"
+          intent="secondary"
+          onClick={onDismiss}
+          size="icon"
+          variant="ghost"
+        >
+          <XIcon size={14} />
+        </Button>
+      </WellnessUndoActions>
+    </WellnessUndoBanner>
+  );
+}
+
 function RewardDestinationsTip() {
   return (
     <TipRoot>
@@ -189,6 +232,15 @@ export function DayPlanner({
   } = useDayPlannerState({ onOpenCreateActivity });
 
   const [isWellnessConfigOpen, setIsWellnessConfigOpen] = useState(false);
+  const [movedActivity, setMovedActivity] = useState<Activity | null>(null);
+
+  const handleMove = (instanceId: string, date: string) => {
+    const moved = resolvedActivities.find((r) => r.instance.id === instanceId);
+    moveActivityToDate(instanceId, date);
+    setMovedActivity(
+      moved && isHardToStart(moved.activity) ? moved.activity : null,
+    );
+  };
 
   if (isLoading) {
     return <DayPlannerSkeleton />;
@@ -245,6 +297,14 @@ export function DayPlanner({
 
       <RestorativeNudge onOpenManageActivities={handleOpenManageActivities} />
 
+      {movedActivity ? (
+        <MovedKindlyBanner
+          activity={movedActivity}
+          onDismiss={() => setMovedActivity(null)}
+          onEditActivity={onEditActivity}
+        />
+      ) : null}
+
       <PlannedActivitiesDndSection
         activeResolved={activeResolved}
         activitiesByZone={activitiesByZone}
@@ -254,7 +314,7 @@ export function DayPlanner({
         onDragStart={handleDragStart}
         onEditActivity={onEditActivity}
         onManageZones={handleManageZones}
-        onMove={moveActivityToDate}
+        onMove={handleMove}
         onRemove={removeFromPlan}
         onToggleCompletion={toggleActivityCompletion}
         sensors={sensors}

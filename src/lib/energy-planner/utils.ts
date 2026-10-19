@@ -149,3 +149,10 @@ export function applyRepeatingDrag(
       : a,
   );
 }
+
+// Start difficulty (0-10) at or above which the planner offers getting-started help
+export const HARD_TO_START_THRESHOLD = 6;
+
+export function isHardToStart(activity: Activity): boolean {
+  return activity.factors.initiationDifficulty >= HARD_TO_START_THRESHOLD;
+}
