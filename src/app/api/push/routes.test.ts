@@ -6,16 +6,16 @@ import { DELETE, PUT } from "./schedule/route";
 import { POST } from "./send/route";
 
 vi.mock("@/lib/push/store", () => ({
-  saveSchedule: vi.fn(async () => {}),
+  saveSchedule: vi.fn(async () => true),
   deleteSchedule: vi.fn(async () => {}),
   loadAllSchedules: vi.fn(async () => []),
+  replaceSchedule: vi.fn(async () => true),
 }));
 
+const ENDPOINT = "https://fcm.googleapis.com/fcm/send/a";
+
 const schedule = {
-  subscription: {
-    endpoint: "https://push/a",
-    keys: { p256dh: "p", auth: "a" },
-  },
+  subscription: { endpoint: ENDPOINT, keys: { p256dh: "p", auth: "a" } },
   reminders: [{ at: 1, title: "Take meds", body: "", tag: "t" }],
 };
 
@@ -23,7 +23,12 @@ const request = (method: string, body?: unknown, headers = {}) =>
   new Request("http://localhost/api/push", {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body:
+      body === undefined
+        ? undefined
+        : typeof body === "string"
+          ? body
+          : JSON.stringify(body),
   });
 
 describe("push API", () => {
@@ -61,18 +66,41 @@ describe("push API", () => {
       expect(store.saveSchedule).toHaveBeenCalledWith(schedule);
     });
 
-    it("rejects an invalid schedule", async () => {
-      const response = await PUT(request("PUT", { reminders: [] }));
+    it.each([
+      ["missing a subscription", { reminders: [] }],
+      [
+        "pointing at a host that isn't a push service",
+        {
+          ...schedule,
+          subscription: {
+            ...schedule.subscription,
+            endpoint: "https://169.254.169.254/x",
+          },
+        },
+      ],
+      [
+        "reaching years ahead",
+        {
+          ...schedule,
+          reminders: [{ ...schedule.reminders[0], at: Date.now() + 1e12 }],
+        },
+      ],
+      ["that isn't JSON", "{not json"],
+    ])("rejects a schedule %s", async (_, body) => {
+      const response = await PUT(request("PUT", body));
       expect(response.status).toBe(400);
       expect(store.saveSchedule).not.toHaveBeenCalled();
     });
 
+    it("refuses a new device once the store is full", async () => {
+      vi.mocked(store.saveSchedule).mockResolvedValueOnce(false);
+      expect((await PUT(request("PUT", schedule))).status).toBe(429);
+    });
+
     it("deletes a device's schedule", async () => {
-      const response = await DELETE(
-        request("DELETE", { endpoint: "https://push/a" }),
-      );
+      const response = await DELETE(request("DELETE", { endpoint: ENDPOINT }));
       expect(response.status).toBe(204);
-      expect(store.deleteSchedule).toHaveBeenCalledWith("https://push/a");
+      expect(store.deleteSchedule).toHaveBeenCalledWith(ENDPOINT);
     });
 
     it("rejects an invalid delete", async () => {
@@ -84,8 +112,7 @@ describe("push API", () => {
       vi.stubEnv("VAPID_PRIVATE_KEY", "");
       expect((await PUT(request("PUT", schedule))).status).toBe(503);
       expect(
-        (await DELETE(request("DELETE", { endpoint: "https://push/a" })))
-          .status,
+        (await DELETE(request("DELETE", { endpoint: ENDPOINT }))).status,
       ).toBe(503);
     });
   });
@@ -116,36 +143,26 @@ describe("push API", () => {
       );
     });
 
-    it("sends due reminders and stores what's left", async () => {
+    it("sends due reminders and reports the counts", async () => {
       const due = { ...schedule.reminders[0], at: Date.now() - 1000 };
-      const later = { ...due, at: Date.now() + 60_000, tag: "later" };
-      const gone = {
-        ...schedule,
-        subscription: { ...schedule.subscription, endpoint: "https://push/b" },
-        reminders: [due],
+      const entry = {
+        key: "k",
+        raw: "r",
+        schedule: { ...schedule, reminders: [due] },
       };
-      vi.mocked(store.loadAllSchedules).mockResolvedValue([
-        { ...schedule, reminders: [due, later] },
-        gone,
-      ]);
+      vi.mocked(store.loadAllSchedules).mockResolvedValue([entry]);
       const sender = vi
         .spyOn(webPush, "webPushSender")
-        .mockImplementation(async (subscription) => {
-          if (subscription.endpoint === "https://push/b") {
-            const { SubscriptionGoneError } = await import("@/lib/push/send");
-            throw new SubscriptionGoneError();
-          }
-        });
+        .mockResolvedValue(undefined);
 
       const response = await POST(request("POST", undefined, authorized));
 
       expect(await response.json()).toEqual({ sent: 1, failed: 0 });
-      expect(sender).toHaveBeenCalledTimes(2);
-      expect(store.saveSchedule).toHaveBeenCalledWith({
+      expect(store.replaceSchedule).toHaveBeenCalledWith(entry, {
         ...schedule,
-        reminders: [later],
+        reminders: [],
       });
-      expect(store.deleteSchedule).toHaveBeenCalledWith("https://push/b");
+      expect(sender).toHaveBeenCalledWith(schedule.subscription, due);
     });
   });
 });

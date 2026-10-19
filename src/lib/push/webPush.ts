@@ -27,6 +27,9 @@ export const webPushSender: Sender = async (subscription, reminder) => {
         },
         // Worth delivering a little late if the phone was offline, not later.
         TTL: 60 * 60,
+        // Push services answer in well under a second; don't let one that
+        // hangs hold up the run.
+        timeout: 10_000,
       },
     );
   } catch (error) {

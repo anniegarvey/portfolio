@@ -10,6 +10,9 @@ on:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
+# Only calls the site; needs nothing from the repository.
+permissions: {}
+
 jobs:
   send:
     runs-on: ubuntu-latest

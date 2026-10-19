@@ -34,6 +34,7 @@ describe("web push", () => {
       subscription,
       JSON.stringify({ title: "Take meds", body: "With water", tag: "t" }),
       expect.objectContaining({
+        timeout: 10_000,
         vapidDetails: expect.objectContaining({
           publicKey: "public",
           privateKey: "private",
