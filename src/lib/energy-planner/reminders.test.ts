@@ -135,7 +135,7 @@ describe("getUpcomingReminders", () => {
   const at = (date: string, time: string) =>
     new Date(`${date}T${time}:00`).getTime();
 
-  it("lists each future day a repeating activity is due, at its time", () => {
+  it("lists each future day a repeating activity is due, at its time, without its description", () => {
     const activity = makeActivity("r", {
       description: "Stretch first",
       repeatConfig: { ...dailyRepeat, nextDueDate: TODAY },
@@ -148,7 +148,7 @@ describe("getUpcomingReminders", () => {
       {
         at: at(TOMORROW, "09:00"),
         title: "Activity r",
-        body: "Stretch first",
+        body: "Time for this activity.",
         tag: "activity-reminder-r",
       },
     ]);

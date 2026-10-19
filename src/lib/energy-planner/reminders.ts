@@ -57,8 +57,10 @@ export interface UpcomingReminder {
   tag: string;
 }
 
+const GENERIC_BODY = "Time for this activity.";
+
 export function reminderBody(activity: Activity): string {
-  return activity.description || "Time for this activity.";
+  return activity.description || GENERIC_BODY;
 }
 
 // Same tag as the in-page reminder, so if both arrive the second replaces the
@@ -86,7 +88,8 @@ export function getUpcomingReminders(
       upcoming.push({
         at,
         title: activity.title,
-        body: reminderBody(activity),
+        // Descriptions stay on the device: the server only needs a title.
+        body: GENERIC_BODY,
         tag: reminderTag(activity.id),
       });
     }
