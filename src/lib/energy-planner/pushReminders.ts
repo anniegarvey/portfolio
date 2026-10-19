@@ -39,24 +39,32 @@ export async function enablePush(): Promise<boolean> {
   const publicKey = await fetchPublicKey();
   if (!publicKey) return false;
   try {
-    await registration.pushManager.subscribe({
+    const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: publicKey,
     });
-    return true;
+    // Register with the server now: if it won't take this device (it holds a
+    // limited number), say so rather than look as if push is on.
+    if (await syncPushReminders(subscription, [])) return true;
+    await subscription.unsubscribe();
+    return false;
   } catch {
     return false;
   }
 }
 
-/** Replaces the server's copy of this device's upcoming reminders. */
+/**
+ * Replaces the server's copy of this device's upcoming reminders, returning
+ * whether the server accepted them.
+ */
 export async function syncPushReminders(
   subscription: PushSubscription,
   reminders: UpcomingReminder[],
-): Promise<void> {
-  await fetch("/api/push/schedule", {
+): Promise<boolean> {
+  const response = await fetch("/api/push/schedule", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ subscription: subscription.toJSON(), reminders }),
   });
+  return response.ok;
 }

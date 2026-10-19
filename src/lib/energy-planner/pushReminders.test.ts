@@ -5,10 +5,19 @@ import {
   syncPushReminders,
 } from "./pushReminders";
 
+const unsubscribe = vi.fn(async () => true);
+
+function newSubscription() {
+  return {
+    toJSON: () => ({ endpoint: "https://fcm.googleapis.com/fcm/send/a" }),
+    unsubscribe,
+  } as unknown as PushSubscription;
+}
+
 function stubBrowser({
   subscription = null as PushSubscription | null,
   registered = true,
-  subscribe = vi.fn(async () => ({}) as PushSubscription),
+  subscribe = vi.fn(async () => newSubscription()),
 } = {}) {
   const pushManager = {
     getSubscription: vi.fn(async () => subscription),
@@ -22,8 +31,12 @@ function stubBrowser({
   return pushManager;
 }
 
-function stubConfig(config: object) {
-  const fetchMock = vi.fn(async () => new Response(JSON.stringify(config)));
+function stubConfig(config: object, scheduleStatus = 204) {
+  const fetchMock = vi.fn(async (url: string) =>
+    url === "/api/push/config"
+      ? new Response(JSON.stringify(config))
+      : new Response(null, { status: scheduleStatus }),
+  );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
@@ -35,6 +48,7 @@ describe("push reminders client", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    unsubscribe.mockClear();
     // biome-ignore lint/suspicious/noExplicitAny: removing a test stub
     delete (window as any).PushManager;
   });
@@ -59,14 +73,26 @@ describe("push reminders client", () => {
   });
 
   describe("enablePush", () => {
-    it("subscribes with the server's public key", async () => {
+    it("subscribes with the server's public key and registers the device", async () => {
       const pushManager = stubBrowser();
-      stubConfig({ enabled: true, publicKey: "public" });
+      const fetchMock = stubConfig({ enabled: true, publicKey: "public" });
       expect(await enablePush()).toBe(true);
       expect(pushManager.subscribe).toHaveBeenCalledWith({
         userVisibleOnly: true,
         applicationServerKey: "public",
       });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/push/schedule",
+        expect.objectContaining({ method: "PUT" }),
+      );
+      expect(unsubscribe).not.toHaveBeenCalled();
+    });
+
+    it("backs out when the server won't take another device", async () => {
+      stubBrowser();
+      stubConfig({ enabled: true, publicKey: "public" }, 429);
+      expect(await enablePush()).toBe(false);
+      expect(unsubscribe).toHaveBeenCalled();
     });
 
     it("keeps an existing subscription", async () => {
@@ -117,7 +143,7 @@ describe("push reminders client", () => {
     } as PushSubscription;
     const reminders = [{ at: 1, title: "Take meds", body: "", tag: "t" }];
 
-    await syncPushReminders(subscription, reminders);
+    expect(await syncPushReminders(subscription, reminders)).toBe(true);
 
     expect(fetchMock).toHaveBeenCalledWith("/api/push/schedule", {
       method: "PUT",

@@ -36,7 +36,7 @@ describe("usePushReminderSync", () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     vi.setSystemTime(new Date(2026, 8, 27, 8, 0));
     vi.spyOn(push, "getPushSubscription").mockResolvedValue(subscription);
-    sync = vi.spyOn(push, "syncPushReminders").mockResolvedValue(undefined);
+    sync = vi.spyOn(push, "syncPushReminders").mockResolvedValue(true);
   });
 
   afterEach(() => vi.useRealTimers());
