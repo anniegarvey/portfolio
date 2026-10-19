@@ -1340,4 +1340,79 @@ describe("DayPlanner – wellness integration", () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe("moving a hard-to-start activity", () => {
+    async function renderWithActivity(initiationDifficulty: number) {
+      const today = new Date().toISOString().split("T")[0];
+      await storeActivities([
+        {
+          id: "hard-1",
+          title: "Tax return",
+          energyCost: { physical: 0, social: 0, executive: 5 },
+          factors: {
+            initiationDifficulty,
+            terminationDifficulty: 0,
+            isRestorative: false,
+          },
+          createdAt: new Date(),
+        },
+      ]);
+      await storeDayPlan(today, {
+        date: today,
+        plannedInstances: [
+          { id: "inst-hard-1", sourceActivityId: "hard-1", completed: false },
+        ],
+        dailyCapacity: { physical: 50, social: 50, executive: 50 },
+      });
+
+      const onEditActivity = vi.fn();
+      render(
+        <PointsProvider>
+          <EnergyPlannerProvider>
+            <DayPlanner
+              onEditActivity={onEditActivity}
+              onOpenCreateActivity={vi.fn()}
+            />
+          </EnergyPlannerProvider>
+        </PointsProvider>,
+      );
+      await screen.findByText("Tax return");
+
+      const user = userEvent.setup();
+      await user.click(screen.getByLabelText("Move activity"));
+      await user.click(screen.getByText("Tomorrow"));
+      return { user, onEditActivity };
+    }
+
+    it("shows a kind note offering to shrink the first step", async () => {
+      const { user, onEditActivity } = await renderWithActivity(8);
+
+      expect(
+        await screen.findByText(/Moved \u201cTax return\u201d/),
+      ).toBeInTheDocument();
+      await user.click(
+        screen.getByRole("button", { name: "Shrink first step" }),
+      );
+
+      expect(onEditActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "hard-1" }),
+      );
+      expect(screen.queryByText(/Moved/)).not.toBeInTheDocument();
+    });
+
+    it("can be dismissed", async () => {
+      const { user } = await renderWithActivity(8);
+      await screen.findByText(/Moved/);
+      await user.click(screen.getByRole("button", { name: "Dismiss" }));
+      expect(screen.queryByText(/Moved/)).not.toBeInTheDocument();
+    });
+
+    it("stays quiet for an easy activity", async () => {
+      await renderWithActivity(2);
+      await waitFor(() => {
+        expect(screen.queryByText("Tax return")).not.toBeInTheDocument();
+      });
+      expect(screen.queryByText(/Moved/)).not.toBeInTheDocument();
+    });
+  });
 });

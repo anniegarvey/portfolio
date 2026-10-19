@@ -91,6 +91,8 @@ export const ActivitySchema = z.object({
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
     .optional(),
+  // The smallest action that counts as starting, e.g. "Open the laptop"
+  firstStep: z.string().optional(),
 });
 export type Activity = z.infer<typeof ActivitySchema>;
 

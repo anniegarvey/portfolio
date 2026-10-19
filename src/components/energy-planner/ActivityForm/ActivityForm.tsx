@@ -68,6 +68,8 @@ export function ActivityForm({
     setDefaultZoneId,
     reminderTime,
     setReminderTime,
+    firstStep,
+    setFirstStep,
     suggestions,
     populateFromActivity,
   } = useActivityForm({
@@ -197,6 +199,21 @@ export function ActivityForm({
           placeholder="Optional details…"
           value={description}
         />
+      </Field>
+
+      <Field>
+        <Label htmlFor={`${formId}-firstStep`}>First tiny step</Label>
+        <TextInput
+          aria-describedby={`${formId}-firstStep-hint`}
+          autoComplete="off"
+          id={`${formId}-firstStep`}
+          onChange={(e) => setFirstStep(e.target.value)}
+          placeholder="e.g., Open the laptop"
+          value={firstStep}
+        />
+        <Hint id={`${formId}-firstStep-hint`}>
+          The smallest thing that counts as starting. Doing just this is a win.
+        </Hint>
       </Field>
 
       <EnergyCostFields energyCost={energyCost} onChange={setEnergyCost} />
@@ -396,6 +413,12 @@ const Label = styled.label`
     text-transform: capitalize;
     font-size: 0.875rem;
     font-weight: 500;
+`;
+
+const Hint = styled.p`
+  margin: 0;
+  font-size: 0.75rem;
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
 `;
 
 const TitleWrapper = styled.div`
