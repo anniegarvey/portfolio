@@ -132,6 +132,21 @@ async function trimCache(cache, maxEntries) {
   );
 }
 
+// Activity reminders sent by the server while the planner is closed. The
+// payload is { title, body, tag }; the tag matches the in-page reminder's, so
+// one replaces the other if both arrive.
+self.addEventListener("push", (event) => {
+  const { title, body, tag } = event.data?.json() ?? {};
+  if (!title) return;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      icon: "/icon-192.png",
+    }),
+  );
+});
+
 // Activity reminders: tapping one brings the planner to the front, opening it
 // if no tab has it.
 self.addEventListener("notificationclick", (event) => {

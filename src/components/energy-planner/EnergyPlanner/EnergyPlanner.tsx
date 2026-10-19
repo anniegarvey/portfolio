@@ -12,6 +12,7 @@ import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { Toggletip } from "@/components/Toggletip";
 import { useActivityReminders } from "@/hooks/useActivityReminders";
+import { usePushReminderSync } from "@/hooks/usePushReminderSync";
 import { isToday } from "@/lib/date";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
@@ -20,11 +21,13 @@ export function EnergyPlanner() {
   const {
     currentDate,
     dailyCapacity,
+    dayPlan,
     isLoading,
     oneOffActivities,
     repeatingActivities,
   } = useEnergyPlanner();
   useActivityReminders(oneOffActivities, repeatingActivities);
+  usePushReminderSync(oneOffActivities, repeatingActivities, dayPlan);
 
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | undefined>(
