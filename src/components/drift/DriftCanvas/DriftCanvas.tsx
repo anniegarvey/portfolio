@@ -112,6 +112,9 @@ export function DriftCanvas({ settings, calm, ref }: Props) {
       const size = gridSize(rect.width, rect.height, long);
       const current = fluidRef.current;
       if (current?.width === size.width && current.height === size.height) {
+        // A remount (Strict Mode runs effects twice) keeps the fluid but
+        // starts with no image buffer, so the loop would never paint.
+        image ??= context.createImageData(size.width, size.height);
         return;
       }
       const fluid = createFluid(size.width, size.height);

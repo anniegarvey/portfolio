@@ -37,7 +37,7 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      act(() => {
+      await act(async () => {
         result.current.addActivity({
           title: "Test Activity",
           description: "Description",
@@ -61,7 +61,7 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      act(() => {
+      await act(async () => {
         result.current.addActivity({
           title: "Activity to Remove",
           energyCost: { physical: 10, social: 10, executive: 10 },
@@ -111,7 +111,7 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      act(() => {
+      await act(async () => {
         result.current.addActivity({
           title: "Heavy Activity",
           description: "",
@@ -153,7 +153,7 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      act(() => {
+      await act(async () => {
         result.current.setDailyCapacity({
           physical: 20,
           social: 20,
@@ -161,7 +161,7 @@ describe("EnergyPlannerContext", () => {
         });
       });
 
-      act(() => {
+      await act(async () => {
         result.current.addActivity({
           title: "Too Heavy",
           description: "",
@@ -197,7 +197,7 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      act(() => {
+      await act(async () => {
         result.current.setDailyCapacity({
           physical: 10,
           social: 10,
@@ -235,7 +235,7 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      act(() => {
+      await act(async () => {
         result.current.addActivity({
           title: "Activity",
           energyCost: { physical: 10, social: 10, executive: 10 },
@@ -273,7 +273,7 @@ describe("EnergyPlannerContext", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      act(() => {
+      await act(async () => {
         result.current.addActivity({
           title: "Activity",
           energyCost: { physical: 10, social: 10, executive: 10 },
