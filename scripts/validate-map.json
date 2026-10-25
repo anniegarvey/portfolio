@@ -16,6 +16,7 @@
     "src/components/Skeleton/**": ["e2e/energy-planner", "e2e/bonsai"],
     "src/components/Scenery/**": ["e2e/bonsai", "e2e/glade"],
     "src/components/happy-birthday-james/**": "e2e/navigation",
+    "src/components/happy-birthday-mum/**": "e2e/navigation",
     "src/components/FadeIn/**": "e2e/navigation",
     "src/components/ProjectPage/**": "e2e/navigation",
     "src/components/ServiceWorkerRegistration/**": "e2e/navigation",
