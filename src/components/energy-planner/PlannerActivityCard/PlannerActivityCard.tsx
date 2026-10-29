@@ -407,6 +407,9 @@ const Card = styled.article<{
 
 const ActivityContent = styled.div<{ $completed?: boolean }>`
   flex: 1;
+  /* Let long unbroken words wrap instead of pushing the actions off screen. */
+  min-width: 0;
+  overflow-wrap: anywhere;
   ${({ $completed }) =>
     $completed &&
     css`
