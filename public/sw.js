@@ -10,8 +10,8 @@ const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Best-effort precache of the PWA start page: the page the user is on when
 // the SW first installs was fetched before the SW controlled it, so it isn't
-// cached yet. (Its hashed chunks aren't precached, so full offline support
-// still needs one online visit.)
+// cached yet. Its assets are cached when the page posts a "precache" message
+// (see ServiceWorkerRegistration).
 const START_URL = "/energy-planner";
 
 self.addEventListener("install", (event) => {
@@ -56,21 +56,63 @@ self.addEventListener("fetch", (event) => {
   // Images (including next/image optimizer output, keyed by query string)
   // and fonts can change without their URL changing, so serve from cache
   // but refresh the copy in the background.
-  if (
-    url.pathname.startsWith("/_next/image") ||
-    /\.(png|jpe?g|svg|ico|webp|woff2?)$/.test(url.pathname)
-  ) {
-    event.respondWith(staleWhileRevalidate(event, request));
+  if (isRevalidatedAsset(url)) {
+    event.respondWith(staleWhileRevalidate(event, request, STATIC_CACHE));
     return;
   }
 
-  // Page navigations always try the network so fresh deploys show up,
-  // falling back to the last cached copy when offline. Everything else
-  // (RSC payloads, prefetches) goes straight to the network untouched.
+  // Page navigations are served from cache when possible so the app opens
+  // instantly offline or on a slow connection, never waiting on the network.
+  // The copy refreshes in the background, so a deploy shows on the next
+  // launch. Everything else (RSC payloads, prefetches) goes straight to the
+  // network untouched.
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(event, request));
+    event.respondWith(staleWhileRevalidate(event, request, PAGE_CACHE));
   }
 });
+
+function isRevalidatedAsset(url) {
+  return (
+    url.pathname.startsWith("/_next/image") ||
+    /\.(png|jpe?g|svg|ico|webp|woff2?)$/.test(url.pathname)
+  );
+}
+
+// The page's own HTML and assets load before this SW controls it, so on
+// first visit nothing is cached. The page posts what it loaded; cache any
+// of it that's missing so the next launch works offline.
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "precache") return;
+  event.waitUntil(precache(event.data.page, event.data.assets));
+});
+
+async function precache(page, assets) {
+  const toUrl = (href) => new URL(href, self.location.origin);
+  const sameOrigin = (url) => url.origin === self.location.origin;
+  const pages = [page].filter(Boolean).map(toUrl).filter(sameOrigin);
+  const statics = (Array.isArray(assets) ? assets : [])
+    .map(toUrl)
+    .filter(sameOrigin)
+    .filter(
+      (url) =>
+        url.pathname.startsWith("/_next/static/") || isRevalidatedAsset(url),
+    );
+  await Promise.all([
+    addMissing(PAGE_CACHE, pages),
+    addMissing(STATIC_CACHE, statics),
+  ]);
+}
+
+async function addMissing(cacheName, urls) {
+  const cache = await caches.open(cacheName);
+  await Promise.all(
+    urls.map(async (url) => {
+      if (await cache.match(url)) return;
+      await cache.add(url).catch(() => undefined);
+    }),
+  );
+  await trimCache(cache, capFor(cacheName));
+}
 
 async function cacheFirst(event, request) {
   const cached = await caches.match(request);
@@ -84,14 +126,14 @@ async function cacheFirst(event, request) {
   return response;
 }
 
-async function staleWhileRevalidate(event, request) {
-  const cache = await caches.open(STATIC_CACHE);
+async function staleWhileRevalidate(event, request, cacheName) {
+  const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   const refresh = fetch(request)
     .then(async (response) => {
       if (response.ok) {
         await cache.put(request, response.clone());
-        await trimCache(cache, STATIC_CACHE_MAX_ENTRIES);
+        await trimCache(cache, capFor(cacheName));
       }
       return response;
     })
@@ -106,20 +148,10 @@ async function staleWhileRevalidate(event, request) {
   return response;
 }
 
-async function networkFirst(event, request) {
-  const cache = await caches.open(PAGE_CACHE);
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      await cache.put(request, response.clone());
-      event.waitUntil(trimCache(cache, PAGE_CACHE_MAX_ENTRIES));
-    }
-    return response;
-  } catch (error) {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    throw error;
-  }
+function capFor(cacheName) {
+  return cacheName === PAGE_CACHE
+    ? PAGE_CACHE_MAX_ENTRIES
+    : STATIC_CACHE_MAX_ENTRIES;
 }
 
 async function trimCache(cache, maxEntries) {
