@@ -10,9 +10,23 @@ export function ServiceWorkerRegistration() {
     if (!("serviceWorker" in navigator)) return;
 
     const register = () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        // Registration failing just means no offline support; the app still works.
-      });
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => navigator.serviceWorker.ready)
+        .then((registration) => {
+          // This page and its assets may have loaded before the SW took
+          // control, so hand it the list to cache for offline launches.
+          registration.active?.postMessage({
+            type: "precache",
+            page: location.pathname,
+            assets: performance
+              .getEntriesByType("resource")
+              .map((entry) => entry.name),
+          });
+        })
+        .catch(() => {
+          // Registration failing just means no offline support; the app still works.
+        });
     };
 
     // Wait for the load event so registration (and the SW's install fetch)
