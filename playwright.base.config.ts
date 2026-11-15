@@ -16,8 +16,13 @@ const PREINSTALLED_CHROMIUM = "/opt/pw-browsers/chromium";
 export const usePreinstalledChromium =
   !existsSync(chromium.executablePath()) && existsSync(PREINSTALLED_CHROMIUM);
 
+// Screenshots only match inside the official Playwright image for the pinned
+// version, so the visual specs run only there (via `pnpm snapshots`).
+const inPinnedImage = !!process.env.PLAYWRIGHT_PINNED_IMAGE;
+
 export function baseConfig(port: string) {
   return {
+    ...(!inPinnedImage && { testIgnore: "**/visual/**" }),
     // Screenshots and text-width checks are tuned to the pinned browser's
     // rendering, which the preinstalled one doesn't reproduce.
     ...(usePreinstalledChromium && {
