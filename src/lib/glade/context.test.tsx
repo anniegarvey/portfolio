@@ -6,6 +6,13 @@ import { usePoints } from "@/lib/points/context";
 import { LESSON_COSTS, XP_THRESHOLDS } from "./catalog";
 import { GladeProvider, useGlade } from "./context";
 import type { GladeState } from "./schema";
+import {
+  playBuySound,
+  playCookSound,
+  playLessonSound,
+  playTameSound,
+  playTrustSound,
+} from "./sounds";
 import { createInitialState, loadGladeState } from "./storage";
 import { makeVisitor } from "./testFixtures";
 
@@ -19,6 +26,8 @@ vi.mock("./storage", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./storage")>();
   return { ...actual, loadGladeState: vi.fn(actual.loadGladeState) };
 });
+
+vi.mock("./sounds");
 
 const GLADE_KEY = "glade-game-state";
 const TODAY = new Date().toISOString().split("T")[0];
@@ -606,6 +615,113 @@ describe("GladeProvider", () => {
     const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "{}");
     expect(stored.residents).toEqual([]);
     expect(stored.skills["treat-cooking"]).toEqual({ tier: 1, xp: 0 });
+  });
+
+  describe("reward sounds", () => {
+    it("chimes for a matched action, pitched by how close the visitor is to tame", async () => {
+      seedLocalStorage({
+        visitors: [makeVisitor({ speciesId: "robin", trust: 20 })],
+      });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("trust");
+
+      // Robin likes its back stroked.
+      await user.click(screen.getByRole("button", { name: "Pet Back" }));
+
+      const trust = Number(screen.getByTestId("trust").textContent);
+      expect(trust).toBeGreaterThan(20);
+      expect(playTrustSound).toHaveBeenCalledExactlyOnceWith(true, trust / 60);
+      expect(playTameSound).not.toHaveBeenCalled();
+    });
+
+    it("plays the fanfare instead when the action tames, timed to the flight", async () => {
+      seedLocalStorage({
+        visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+      });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("trust");
+
+      await user.click(screen.getByRole("button", { name: "Pet Back" }));
+
+      expect(playTameSound).toHaveBeenCalledExactlyOnceWith(1.3);
+      expect(playTrustSound).not.toHaveBeenCalled();
+    });
+
+    it("stays quiet for an action that could not be taken", async () => {
+      seedLocalStorage();
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("trust");
+
+      // No berry bites cooked, so there is nothing to offer.
+      await user.click(screen.getByRole("button", { name: "Offer" }));
+
+      expect(screen.getByTestId("trust")).toHaveTextContent("0");
+      expect(playTrustSound).not.toHaveBeenCalled();
+    });
+
+    it("sounds a cooked treat, but not a recipe the pantry cannot cover", async () => {
+      seedLocalStorage({ pantry: { ingredients: { berries: 2 }, treats: {} } });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("berries");
+
+      await user.click(screen.getByRole("button", { name: "Cook" }));
+      expect(playCookSound).toHaveBeenCalledTimes(1);
+
+      await user.click(screen.getByRole("button", { name: "Cook" }));
+      expect(screen.getByTestId("berry-bites")).toHaveTextContent("1");
+      expect(playCookSound).toHaveBeenCalledTimes(1);
+    });
+
+    it("sounds a purchase only when the points were there to spend", async () => {
+      seedLocalStorage();
+      setupMockPoints(false);
+      const user = userEvent.setup();
+      const { unmount } = renderGlade();
+      await screen.findByTestId("berries");
+      await user.click(screen.getByRole("button", { name: "Buy Berries" }));
+      await user.click(
+        screen.getByRole("button", { name: "Buy Missing Honey Drops" }),
+      );
+      expect(playBuySound).not.toHaveBeenCalled();
+      unmount();
+
+      setupMockPoints(true);
+      renderGlade();
+      await screen.findByTestId("berries");
+      await user.click(screen.getByRole("button", { name: "Buy Berries" }));
+      expect(playBuySound).toHaveBeenCalledTimes(1);
+      await user.click(
+        screen.getByRole("button", { name: "Buy Missing Honey Drops" }),
+      );
+      expect(playBuySound).toHaveBeenCalledTimes(2);
+    });
+
+    it("sounds a lesson only when one was bought", async () => {
+      seedLocalStorage();
+      setupMockPoints();
+      const user = userEvent.setup();
+      const { unmount } = renderGlade();
+      await screen.findByTestId("trust");
+      await user.click(screen.getByRole("button", { name: "Buy Lesson" }));
+      expect(playLessonSound).not.toHaveBeenCalled();
+      unmount();
+
+      seedLocalStorage({
+        skills: {
+          "treat-cooking": { tier: 1, xp: 0 },
+          "body-language": { tier: 2, xp: 0 },
+          "petting-technique": { tier: 1, xp: XP_THRESHOLDS[0] },
+        },
+      });
+      renderGlade();
+      await screen.findByTestId("trust");
+      await user.click(screen.getByRole("button", { name: "Buy Lesson" }));
+      expect(playLessonSound).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("useGlade throws outside the provider", () => {

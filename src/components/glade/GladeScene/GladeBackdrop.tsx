@@ -11,6 +11,7 @@ import {
   ld,
   Ripple,
   Rock,
+  Shoot,
   Spin,
   Tulip,
   vars,
@@ -22,7 +23,9 @@ import {
 // Nothing here reports state; it exists so the glade looks like somewhere a
 // creature would want to live, with a little life of its own: a fairy door in
 // a stump that lights up at dusk, bees about the hive, a frog on a lily pad,
-// butterflies, and flowers nodding in the breeze.
+// butterflies, and flowers nodding in the breeze. And a little magic: a
+// rainbow by day and an aurora at dusk, a shooting star, a toadstool ring and
+// a crop of crystals that glow after dark, and wisps drifting about.
 //
 // The glade is far wider than it is tall, and how much wider depends on the
 // screen, so the land (sky, hills, meadow) is one SVG stretched to fit, which
@@ -46,6 +49,27 @@ export function GladeBackdrop() {
           </linearGradient>
         </defs>
         <rect fill={`url(#${skyId})`} height="60" width="240" />
+        {/* Aurora: ribbons of light in the dusk sky, not there by day */}
+        <Glimmer
+          style={vars({ "--glimmer-low": "0.4", "--glimmer-period": "13s" })}
+        >
+          <path
+            d="M0 9 Q30 2 60 8 Q90 15 120 6 Q150 0 180 7 Q210 13 240 5 L240 11 Q210 20 180 13 Q150 6 120 12 Q90 22 60 14 Q30 8 0 15 Z"
+            style={{ fill: ld("transparent", "rgba(120,235,190,0.2)") }}
+          />
+        </Glimmer>
+        <Glimmer
+          style={vars({
+            "--glimmer-low": "0.3",
+            "--glimmer-period": "17s",
+            "--glimmer-offset": "-6s",
+          })}
+        >
+          <path
+            d="M0 4 Q40 10 80 3 Q120 -2 160 5 Q200 11 240 2 L240 7 Q200 17 160 10 Q120 4 80 9 Q40 16 0 10 Z"
+            style={{ fill: ld("transparent", "rgba(190,150,255,0.16)") }}
+          />
+        </Glimmer>
         {/* Far hills, blue with distance */}
         <path
           d="M0 24 Q20 12 44 20 Q70 8 100 18 Q126 10 150 19 Q178 8 206 18 Q224 12 240 16 L240 60 L0 60 Z"
@@ -72,12 +96,26 @@ export function GladeBackdrop() {
         />
       </Land>
 
-      {STARS.map((s) => (
+      {STARS.map((s, i) => (
         <Star
           key={`${s.left}-${s.top}`}
-          style={{ left: `${s.left}%`, top: s.top }}
+          style={
+            {
+              left: `${s.left}%`,
+              top: s.top,
+              "--twinkle-period": `${3 + (i % 5) * 0.9}s`,
+              "--twinkle-delay": `${-i * 0.7}s`,
+            } as CSSProperties
+          }
         />
       ))}
+
+      <Prop left={57} top={172} width={300}>
+        <Rainbow />
+      </Prop>
+      <Prop left={70} top={40} width={64}>
+        <ShootingStar />
+      </Prop>
 
       <Prop left={9} top={96} width={96}>
         <SunOrMoon />
@@ -132,6 +170,9 @@ export function GladeBackdrop() {
       <Prop left={36} top={246} width={84}>
         <FairyStump />
       </Prop>
+      <Prop left={56.5} top={258} width={50}>
+        <Crystals />
+      </Prop>
       <Prop left={63} top={232} width={54}>
         <Beehive />
       </Prop>
@@ -153,6 +194,12 @@ export function GladeBackdrop() {
       {FLOWER_CLUMPS.map((c, i) => (
         <Prop key={c.left} left={c.left} top={c.top} width={74}>
           <FlowerClump index={i} />
+        </Prop>
+      ))}
+
+      {WISPS.map((w) => (
+        <Prop key={w.left} left={w.left} top={w.top} width={40}>
+          <Wisp {...w} />
         </Prop>
       ))}
 
@@ -227,6 +274,11 @@ const PropBox = styled.div`
 `;
 
 /** Stars come out at dusk; by day they are simply not there. */
+const starTwinkle = keyframes`
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.3); }
+`;
+
 const Star = styled.span`
   position: absolute;
   width: 2px;
@@ -234,6 +286,12 @@ const Star = styled.span`
   border-radius: 50%;
   background: light-dark(transparent, #f4f0dc);
   box-shadow: 0 0 3px light-dark(transparent, #f4f0dc);
+  animation: ${starTwinkle} var(--twinkle-period) var(--twinkle-delay)
+    ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const STARS = [
@@ -339,6 +397,76 @@ function SunOrMoon() {
 }
 
 const RAY_ANGLES = Array.from({ length: 12 }, (_, i) => i * 30);
+
+const RAINBOW = [
+  { r: 96, light: "rgba(240,120,130,0.34)" },
+  { r: 91, light: "rgba(245,180,110,0.34)" },
+  { r: 86, light: "rgba(245,225,130,0.34)" },
+  { r: 81, light: "rgba(140,215,160,0.34)" },
+  { r: 76, light: "rgba(130,180,235,0.34)" },
+  { r: 71, light: "rgba(180,150,230,0.34)" },
+];
+
+/** A faint daytime rainbow over the far hills, fading out before it lands.
+ * At dusk the aurora takes its place. */
+function Rainbow() {
+  const fadeId = useId();
+  const maskId = useId();
+  return (
+    <svg aria-hidden="true" viewBox="0 0 200 100">
+      <defs>
+        <linearGradient id={fadeId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0.35" stopColor="#fff" />
+          <stop offset="0.95" stopColor="#000" />
+        </linearGradient>
+        <mask id={maskId}>
+          <rect fill={`url(#${fadeId})`} height="100" width="200" />
+        </mask>
+      </defs>
+      <g fill="none" mask={`url(#${maskId})`} strokeWidth={5}>
+        {RAINBOW.map((band) => (
+          <circle
+            cx={100}
+            cy={100}
+            key={band.r}
+            r={band.r}
+            style={{ stroke: ld(band.light, "transparent") }}
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+/** Now and then at dusk, a star falls. Never by day, and never under reduced
+ * motion, where it stays hidden. */
+function ShootingStar() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 30 16">
+      <Shoot
+        style={vars({
+          "--cross-x": "-120px",
+          "--cross-y": "46px",
+          "--cross-period": "23s",
+          "--cross-offset": "-9s",
+        })}
+      >
+        <path
+          d="M30 0 L16 5.6"
+          strokeLinecap="round"
+          strokeWidth={0.8}
+          style={{ stroke: ld("transparent", "rgba(244,240,220,0.5)") }}
+        />
+        <circle
+          cx={16}
+          cy={5.6}
+          r={1.2}
+          style={{ fill: ld("transparent", "#fffbe6") }}
+        />
+      </Shoot>
+    </svg>
+  );
+}
 
 // ─── Trees ────────────────────────────────────────────────────────────────────
 
@@ -561,9 +689,49 @@ const RING = [
   { x: 52, y: 22, h: 6, r: 5 },
 ];
 
+const RING_SPARKS = [
+  { x: 12, y: 4, size: 2, period: 3.4, offset: 0 },
+  { x: 27, y: -1, size: 2.6, period: 4.2, offset: -1.6 },
+  { x: 42, y: 2, size: 1.8, period: 3.8, offset: -2.7 },
+  { x: 57, y: 5, size: 2.2, period: 4.6, offset: -0.9 },
+];
+
+/** A four-pointed twinkle centred on (x, y). */
+function twinklePath(x: number, y: number, size: number): string {
+  const k = size * 0.28;
+  return `M${x} ${y - size} L${x + k} ${y - k} L${x + size} ${y} L${x + k} ${y + k} L${x} ${y + size} L${x - k} ${y + k} L${x - size} ${y} L${x - k} ${y - k} Z`;
+}
+
 function ToadstoolRing() {
   return (
     <svg aria-hidden="true" viewBox="0 0 68 26">
+      {/* The ring's own light, which only shows once the sun is down */}
+      <Glimmer
+        style={vars({ "--glimmer-low": "0.5", "--glimmer-period": "5s" })}
+      >
+        <ellipse
+          cx={34}
+          cy={17}
+          rx={31}
+          ry={9}
+          style={{ fill: ld("transparent", "rgba(150,255,205,0.16)") }}
+        />
+      </Glimmer>
+      {RING_SPARKS.map((spark) => (
+        <Glimmer
+          key={spark.x}
+          style={vars({
+            "--glimmer-low": "0",
+            "--glimmer-period": `${spark.period}s`,
+            "--glimmer-offset": `${spark.offset}s`,
+          })}
+        >
+          <path
+            d={twinklePath(spark.x, spark.y, spark.size)}
+            style={{ fill: ld("#fff6c4", "#c8ffe4") }}
+          />
+        </Glimmer>
+      ))}
       {RING.map((m) => (
         <g key={`${m.x}-${m.y}`}>
           <rect
@@ -582,13 +750,13 @@ function ToadstoolRing() {
             cx={m.x - m.r * 0.35}
             cy={m.y - m.h - m.r * 0.45}
             r={0.7}
-            style={{ fill: ld("#ffffff", "#c8c0b8") }}
+            style={{ fill: ld("#ffffff", "#c8ffe4") }}
           />
           <circle
             cx={m.x + m.r * 0.35}
             cy={m.y - m.h - m.r * 0.6}
             r={0.55}
-            style={{ fill: ld("#ffffff", "#c8c0b8") }}
+            style={{ fill: ld("#ffffff", "#c8ffe4") }}
           />
         </g>
       ))}
@@ -971,6 +1139,181 @@ function Pond() {
           />
         </Wander>
       </g>
+    </svg>
+  );
+}
+
+const SHARDS = [
+  {
+    d: "M8 30 L5 14 L10 9 L15 15 L14 30 Z",
+    face: "M10 9 L15 15 L14 30 L10 30 Z",
+    light: ["#f3b8d8", "#d98fbe"],
+    dark: ["#b06a98", "#8a4a78"],
+  },
+  {
+    d: "M14 30 L15 6 L20 0 L26 7 L25 30 Z",
+    face: "M20 0 L26 7 L25 30 L20 30 Z",
+    light: ["#b8dcf6", "#8cbce6"],
+    dark: ["#5a9ad0", "#3a78b0"],
+  },
+  {
+    d: "M25 30 L26 16 L31 11 L35 17 L33 30 Z",
+    face: "M31 11 L35 17 L33 30 L31 30 Z",
+    light: ["#d6c4f4", "#b49ae0"],
+    dark: ["#8a6ac8", "#6a4aa8"],
+  },
+];
+
+/** A crop of crystals pushing up through the meadow. They catch the light by
+ * day and give off their own at dusk. */
+function Crystals() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 40 32">
+      <Glimmer
+        style={vars({ "--glimmer-low": "0.45", "--glimmer-period": "4.6s" })}
+      >
+        <ellipse
+          cx={20}
+          cy={18}
+          rx={20}
+          ry={16}
+          style={{ fill: ld("transparent", "rgba(170,200,255,0.2)") }}
+        />
+      </Glimmer>
+      {SHARDS.map((shard) => (
+        <g key={shard.d}>
+          <path
+            d={shard.d}
+            style={{ fill: ld(shard.light[0], shard.dark[0]) }}
+          />
+          <path
+            d={shard.face}
+            style={{ fill: ld(shard.light[1], shard.dark[1]) }}
+          />
+        </g>
+      ))}
+      <ellipse
+        cx={20}
+        cy={30.4}
+        rx={17}
+        ry={2.4}
+        style={{ fill: ld("#6a9a4e", "#3a4c34") }}
+      />
+      {CRYSTAL_GLINTS.map((glint) => (
+        <Glimmer
+          key={glint.x}
+          style={vars({
+            "--glimmer-low": "0",
+            "--glimmer-period": `${glint.period}s`,
+            "--glimmer-offset": `${glint.offset}s`,
+          })}
+        >
+          <path
+            d={twinklePath(glint.x, glint.y, glint.size)}
+            style={{ fill: "#ffffff" }}
+          />
+        </Glimmer>
+      ))}
+    </svg>
+  );
+}
+
+const CRYSTAL_GLINTS = [
+  { x: 9, y: 8, size: 2.6, period: 3.6, offset: 0 },
+  { x: 22, y: -1, size: 3.2, period: 4.4, offset: -1.8 },
+  { x: 33, y: 10, size: 2.2, period: 3.9, offset: -2.9 },
+];
+
+/** `path` is three stops of a loop, as x/y pairs in px from where it starts. */
+const WISPS = [
+  {
+    left: 13,
+    top: 214,
+    light: "#ffffff",
+    dark: "#ffd6f5",
+    path: [14, -10, 26, 4, 8, 10],
+    period: 19,
+    offset: 0,
+  },
+  {
+    left: 41,
+    top: 208,
+    light: "#fff6c4",
+    dark: "#c8ffe4",
+    path: [-12, -8, -20, 6, -6, 12],
+    period: 23,
+    offset: -7,
+  },
+  {
+    left: 74,
+    top: 236,
+    light: "#ffffff",
+    dark: "#bfe4ff",
+    path: [16, -12, 30, -2, 12, 8],
+    period: 21,
+    offset: -12,
+  },
+  {
+    left: 91,
+    top: 204,
+    light: "#fff6c4",
+    dark: "#e0ccff",
+    path: [-10, -12, -24, 2, -8, 10],
+    period: 26,
+    offset: -4,
+  },
+] as const;
+
+/** A will-o'-the-wisp: a mote of white light by day, a coloured lantern-glow
+ * at dusk, wandering a slow loop of its own. */
+function Wisp({
+  light,
+  dark,
+  path,
+  period,
+  offset,
+}: {
+  light: string;
+  dark: string;
+  path: readonly number[];
+  period: number;
+  offset: number;
+}) {
+  return (
+    <svg aria-hidden="true" viewBox="-10 -10 20 20">
+      <Wander
+        style={vars({
+          "--w1x": `${path[0]}px`,
+          "--w1y": `${path[1]}px`,
+          "--w2x": `${path[2]}px`,
+          "--w2y": `${path[3]}px`,
+          "--w3x": `${path[4]}px`,
+          "--w3y": `${path[5]}px`,
+          "--wander-period": `${period}s`,
+          "--wander-offset": `${offset}s`,
+        })}
+      >
+        <Glimmer
+          style={vars({
+            "--glimmer-low": "0.35",
+            "--glimmer-period": "3.2s",
+            "--glimmer-offset": `${offset}s`,
+          })}
+        >
+          <circle
+            cx={0}
+            cy={0}
+            r={5}
+            style={{
+              fill: ld(
+                "transparent",
+                `color-mix(in srgb, ${dark} 28%, transparent)`,
+              ),
+            }}
+          />
+          <path d={twinklePath(0, 0, 2.6)} style={{ fill: ld(light, dark) }} />
+        </Glimmer>
+      </Wander>
     </svg>
   );
 }

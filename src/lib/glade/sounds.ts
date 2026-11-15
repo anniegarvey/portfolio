@@ -1,12 +1,13 @@
 import { getAudioContext } from "@/lib/sound";
+import { SPECIES } from "./catalog";
 import type { SpeciesId } from "./schema";
 
 /**
- * One tone in a creature's call: a pitch that may slide to another over its
- * length, with a quick attack and a soft decay so nothing clicks.
+ * One tone in a sound: a pitch that may slide to another over its length,
+ * with a quick attack and a soft decay so nothing clicks.
  */
-interface Tone {
-  /** Seconds after the call starts. */
+export interface Tone {
+  /** Seconds after the sound starts. */
   at: number;
   /** Seconds the tone lasts. */
   dur: number;
@@ -17,169 +18,429 @@ interface Tone {
   wave: OscillatorType;
   /** Peak volume; defaults to a gentle 0.08. */
   gain?: number;
+  /** Wobbles the pitch this many times a second: a warble, a purr, a bleat. */
+  vibrato?: number;
+}
+
+/** A run of tones, one per pitch, `gap` seconds apart. */
+function run(
+  pitches: number[],
+  gap: number,
+  tone: Omit<Tone, "at" | "from">,
+  at = 0,
+): Tone[] {
+  return pitches.map((from, i) => ({ ...tone, at: at + i * gap, from }));
 }
 
 /**
  * Each species' call, synthesised rather than recorded so it ships no audio
- * files. Every call is well under a second and quiet: it answers a tap, and
- * a tap can come often.
+ * files. Every call is under a second and quiet: it answers a tap, and a tap
+ * can come often. Each is written from the creature's description: the robin
+ * and wren sing phrases, the Puffloaf bleats in its sleep, the Mirewing rings
+ * like struck crystal.
  */
 export const CREATURE_CALLS: Record<SpeciesId, Tone[]> = {
-  // Two bright rising chirps.
+  // A liquid, warbling phrase: the morning tune.
   robin: [
-    { at: 0, dur: 0.09, from: 2000, to: 2800, wave: "sine" },
-    { at: 0.13, dur: 0.1, from: 2100, to: 3000, wave: "sine" },
+    { at: 0, dur: 0.1, from: 2300, to: 3000, wave: "sine" },
+    { at: 0.12, dur: 0.09, from: 3100, to: 2500, wave: "sine" },
+    { at: 0.24, dur: 0.16, from: 2700, wave: "sine", vibrato: 28 },
+    { at: 0.43, dur: 0.12, from: 2400, to: 3300, wave: "sine" },
   ],
-  // A soft double thump of a hind foot.
+  // A double thump of a hind foot, then a contented little honk.
   rabbit: [
-    { at: 0, dur: 0.1, from: 180, to: 110, wave: "triangle", gain: 0.14 },
-    { at: 0.14, dur: 0.1, from: 170, to: 105, wave: "triangle", gain: 0.12 },
+    { at: 0, dur: 0.09, from: 180, to: 110, wave: "triangle", gain: 0.14 },
+    { at: 0.13, dur: 0.09, from: 170, to: 105, wave: "triangle", gain: 0.12 },
+    { at: 0.3, dur: 0.12, from: 620, to: 760, wave: "sine", gain: 0.05 },
   ],
-  // A quick chitter.
-  squirrel: [0, 0.05, 0.1, 0.15].map((at) => ({
-    at,
-    dur: 0.035,
-    from: 1800,
-    to: 1600,
-    wave: "square" as const,
-    gain: 0.035,
-  })),
-  // Three little snuffles.
-  hedgehog: [0, 0.09, 0.18].map((at) => ({
-    at,
-    dur: 0.06,
-    from: 320,
-    to: 260,
-    wave: "triangle" as const,
-    gain: 0.1,
-  })),
-  // A tiny squeak, twice.
+  // A quick chitter, ending on a bright "kuk".
+  squirrel: [
+    ...[0, 0.05, 0.1, 0.15].map((at) => ({
+      at,
+      dur: 0.035,
+      from: 1800,
+      to: 1600,
+      wave: "square" as const,
+      gain: 0.03,
+    })),
+    { at: 0.23, dur: 0.08, from: 1500, to: 2200, wave: "triangle", gain: 0.06 },
+  ],
+  // Three little snuffles and a happy squeak.
+  hedgehog: [
+    ...[0, 0.09, 0.18].map((at) => ({
+      at,
+      dur: 0.06,
+      from: 320,
+      to: 260,
+      wave: "triangle" as const,
+      gain: 0.1,
+    })),
+    { at: 0.3, dur: 0.09, from: 1400, to: 1900, wave: "sine", gain: 0.05 },
+  ],
+  // Two squeaks: each leaps up and falls away, with a rasp no bird has.
   mouse: [
-    { at: 0, dur: 0.05, from: 3000, to: 3500, wave: "sine", gain: 0.05 },
-    { at: 0.08, dur: 0.05, from: 3100, to: 3600, wave: "sine", gain: 0.05 },
+    { at: 0, dur: 0.03, from: 2400, to: 4400, wave: "sawtooth", gain: 0.03 },
+    {
+      at: 0.03,
+      dur: 0.09,
+      from: 4400,
+      to: 3000,
+      wave: "sawtooth",
+      gain: 0.03,
+      vibrato: 55,
+    },
+    { at: 0.2, dur: 0.025, from: 2600, to: 4700, wave: "sawtooth", gain: 0.03 },
+    {
+      at: 0.225,
+      dur: 0.07,
+      from: 4700,
+      to: 3300,
+      wave: "sawtooth",
+      gain: 0.03,
+      vibrato: 55,
+    },
   ],
-  // A fast trill.
-  wren: [0, 1, 2, 3, 4, 5].map((i) => ({
-    at: i * 0.04,
-    dur: 0.035,
-    from: i % 2 === 0 ? 3200 : 3700,
-    wave: "sine" as const,
-    gain: 0.05,
-  })),
-  // A low, sleepy grumble.
-  mole: [{ at: 0, dur: 0.28, from: 120, to: 90, wave: "sawtooth", gain: 0.04 }],
+  // A song far too big for the bird: a rattling trill and a flourish.
+  wren: [
+    ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({
+      at: i * 0.04,
+      dur: 0.035,
+      from: i % 2 === 0 ? 3200 : 3800,
+      wave: "sine" as const,
+      gain: 0.07,
+    })),
+    { at: 0.34, dur: 0.1, from: 3000, to: 4300, wave: "sine", gain: 0.08 },
+    { at: 0.46, dur: 0.14, from: 4000, wave: "sine", gain: 0.08, vibrato: 34 },
+  ],
+  // A low, velvety "mrrp" from under the soil.
+  mole: [
+    { at: 0, dur: 0.2, from: 120, to: 170, wave: "triangle", gain: 0.12 },
+    { at: 0.2, dur: 0.16, from: 170, to: 140, wave: "triangle", gain: 0.1 },
+  ],
   // A yip that jumps up and falls away.
   fox: [
     { at: 0, dur: 0.07, from: 700, to: 1250, wave: "triangle" },
     { at: 0.07, dur: 0.12, from: 1250, to: 600, wave: "triangle" },
+    { at: 0.26, dur: 0.1, from: 800, to: 1100, wave: "triangle", gain: 0.05 },
   ],
   // A soft, wavering bleat.
   deer: [
     { at: 0, dur: 0.12, from: 500, to: 570, wave: "sine" },
-    { at: 0.12, dur: 0.16, from: 570, to: 470, wave: "sine" },
+    { at: 0.12, dur: 0.24, from: 570, to: 470, wave: "sine", vibrato: 9 },
   ],
-  // Hoo-hoo.
+  // Hoo-hoo, hoo.
   owl: [
-    { at: 0, dur: 0.22, from: 390, to: 370, wave: "sine", gain: 0.12 },
-    { at: 0.3, dur: 0.34, from: 370, to: 340, wave: "sine", gain: 0.12 },
+    { at: 0, dur: 0.2, from: 390, to: 370, wave: "sine", gain: 0.12 },
+    { at: 0.27, dur: 0.14, from: 380, to: 370, wave: "sine", gain: 0.1 },
+    {
+      at: 0.47,
+      dur: 0.4,
+      from: 370,
+      to: 335,
+      wave: "sine",
+      gain: 0.12,
+      vibrato: 6,
+    },
   ],
-  // Two gruff grunts.
+  // Two gruff, good-natured grunts.
   badger: [
     { at: 0, dur: 0.12, from: 150, to: 105, wave: "sawtooth", gain: 0.04 },
-    { at: 0.17, dur: 0.12, from: 140, to: 100, wave: "sawtooth", gain: 0.04 },
+    { at: 0.17, dur: 0.14, from: 140, to: 175, wave: "sawtooth", gain: 0.04 },
   ],
-  // A small mew.
+  // A small mew that settles into a purr.
   mosskit: [
     { at: 0, dur: 0.08, from: 800, to: 1050, wave: "triangle" },
     { at: 0.08, dur: 0.14, from: 1050, to: 720, wave: "triangle" },
+    { at: 0.28, dur: 0.4, from: 95, wave: "triangle", gain: 0.12, vibrato: 24 },
   ],
-  // Bright squeaky chirps.
+  // A tumble of squeaky chirps.
   otter: [
     { at: 0, dur: 0.07, from: 1400, to: 1900, wave: "sine" },
-    { at: 0.1, dur: 0.08, from: 1600, to: 2100, wave: "sine" },
+    { at: 0.1, dur: 0.07, from: 1600, to: 2100, wave: "sine" },
+    { at: 0.2, dur: 0.07, from: 1500, to: 2000, wave: "sine" },
+    { at: 0.3, dur: 0.1, from: 1800, to: 2500, wave: "sine" },
   ],
-  // One quick, high squeal.
-  hare: [{ at: 0, dur: 0.1, from: 1200, to: 1550, wave: "sine" }],
-  // An airy sparkle drifting upward.
-  thistledown: [2400, 3000, 3600].map((from, i) => ({
-    at: i * 0.07,
-    dur: 0.18,
-    from,
-    wave: "sine" as const,
-    gain: 0.04,
-  })),
-  // A fluttering chime (G6, B6, D7).
-  glimmerwing: [1568, 1976, 2349].map((from, i) => ({
-    at: i * 0.05,
-    dur: 0.14,
-    from,
-    wave: "sine" as const,
-    gain: 0.06,
-  })),
-  // A soft, slow puff.
+  // A drum of the hind feet and one high squeal.
+  hare: [
+    { at: 0, dur: 0.06, from: 200, to: 120, wave: "triangle", gain: 0.12 },
+    { at: 0.08, dur: 0.06, from: 200, to: 120, wave: "triangle", gain: 0.12 },
+    { at: 0.2, dur: 0.12, from: 1200, to: 1650, wave: "sine" },
+  ],
+  // An airy sparkle drifting upward (a rising whole-tone run).
+  thistledown: run([2093, 2349, 2637, 2960, 3322], 0.09, {
+    dur: 0.3,
+    wave: "sine",
+    gain: 0.035,
+  }),
+  // The blur of its wings, then a lantern-bright chime (G6, B6, D7, G7).
+  glimmerwing: [
+    { at: 0, dur: 0.2, from: 190, wave: "triangle", gain: 0.05, vibrato: 40 },
+    ...run(
+      [1568, 1976, 2349, 3136],
+      0.06,
+      { dur: 0.3, wave: "sine", gain: 0.05 },
+      0.1,
+    ),
+  ],
+  // A drowsy little baa, trailing off into a sigh.
   puffloaf: [
-    { at: 0, dur: 0.35, from: 260, to: 190, wave: "triangle", gain: 0.1 },
+    {
+      at: 0,
+      dur: 0.3,
+      from: 420,
+      to: 380,
+      wave: "triangle",
+      gain: 0.09,
+      vibrato: 11,
+    },
+    { at: 0.36, dur: 0.4, from: 300, to: 190, wave: "sine", gain: 0.07 },
   ],
-  // Two falling droplets.
+  // Three falling droplets and the ring they leave.
   dewsprite: [
-    { at: 0, dur: 0.09, from: 1300, to: 650, wave: "sine" },
-    { at: 0.12, dur: 0.09, from: 1100, to: 550, wave: "sine" },
+    { at: 0, dur: 0.09, from: 1500, to: 750, wave: "sine" },
+    { at: 0.12, dur: 0.09, from: 1300, to: 650, wave: "sine" },
+    { at: 0.24, dur: 0.09, from: 1700, to: 850, wave: "sine" },
+    { at: 0.34, dur: 0.4, from: 2637, wave: "sine", gain: 0.04 },
   ],
-  // A few crackling sparks.
-  emberveil: [900, 1300, 1100].map((from, i) => ({
-    at: i * 0.05,
-    dur: 0.03,
-    from,
-    wave: "square" as const,
-    gain: 0.03,
-  })),
-  // A slow, quiet, rustling rise and fall.
+  // Crackling sparks over a deep, warm glow.
+  emberveil: [
+    { at: 0, dur: 0.7, from: 147, wave: "triangle", gain: 0.1, vibrato: 5 },
+    { at: 0, dur: 0.7, from: 220, wave: "sine", gain: 0.06 },
+    ...[900, 1300, 1100, 1500, 1000].map((from, i) => ({
+      at: 0.05 + i * 0.09,
+      dur: 0.03,
+      from,
+      wave: "square" as const,
+      gain: 0.025,
+    })),
+  ],
+  // Old wood knocking, then a slow, rustling rise and fall.
   thornwhisper: [
-    { at: 0, dur: 0.25, from: 220, to: 270, wave: "triangle", gain: 0.06 },
-    { at: 0.25, dur: 0.3, from: 270, to: 200, wave: "triangle", gain: 0.06 },
+    { at: 0, dur: 0.05, from: 420, to: 260, wave: "triangle", gain: 0.12 },
+    { at: 0.09, dur: 0.05, from: 380, to: 240, wave: "triangle", gain: 0.1 },
+    { at: 0.2, dur: 0.3, from: 196, to: 262, wave: "triangle", gain: 0.08 },
+    {
+      at: 0.5,
+      dur: 0.4,
+      from: 262,
+      to: 196,
+      wave: "triangle",
+      gain: 0.08,
+      vibrato: 5,
+    },
   ],
-  // Bubbles rising from the marsh.
-  mirewing: [0, 0.09, 0.18].map((at, i) => ({
-    at,
-    dur: 0.07,
-    from: 600 + i * 80,
-    to: 900 + i * 80,
-    wave: "sine" as const,
-  })),
-  // A warm, unhurried chord (C4, E4, G4).
-  fernmother: [262, 330, 392].map((from, i) => ({
-    at: i * 0.08,
-    dur: 0.6,
-    from,
-    wave: "sine" as const,
-    gain: 0.05,
-  })),
+  // Struck crystal: a slow, glassy peal (C7, E7, G7, C8).
+  mirewing: run([2093, 2637, 3136, 4186], 0.13, {
+    dur: 0.55,
+    wave: "sine",
+    gain: 0.045,
+  }),
+  // A warm chord that blooms from the roots up (C3, G3, C4, E4, G4).
+  fernmother: run([131, 196, 262, 330, 392], 0.07, {
+    dur: 0.65,
+    wave: "sine",
+    gain: 0.07,
+    vibrato: 4,
+  }),
 };
 
-/** Plays a species' call, unless site sounds are muted. */
-export function playCreatureSound(speciesId: SpeciesId): void {
+// ─── Rewards ──────────────────────────────────────────────────────────────────
+// The sounds of things going well. All in C major pentatonic, so whichever
+// follows whichever, nothing clashes.
+
+const PENTATONIC = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568];
+
+/**
+ * A matched taming action: two rising chimes. They start higher the closer
+ * the visitor is to tame, so a taming is heard as a climb.
+ */
+export function trustChime(progress: number): Tone[] {
+  const step = Math.round(
+    Math.min(1, Math.max(0, progress)) * (PENTATONIC.length - 3),
+  );
+  return [
+    { at: 0, dur: 0.22, from: PENTATONIC[step], wave: "sine", gain: 0.07 },
+    { at: 0.1, dur: 0.3, from: PENTATONIC[step + 2], wave: "sine", gain: 0.07 },
+    {
+      at: 0.1,
+      dur: 0.3,
+      from: PENTATONIC[step + 2] * 2,
+      wave: "sine",
+      gain: 0.02,
+    },
+  ];
+}
+
+/** An action that missed the visitor's preference: a soft, unbothered "hm". */
+const NEAR_MISS: Tone[] = [
+  { at: 0, dur: 0.16, from: 440, to: 392, wave: "triangle", gain: 0.05 },
+];
+
+/**
+ * A new resident: a rising flourish while the creature flies to the glade,
+ * and a bright chord for the moment it lands, `landAt` seconds later.
+ */
+export function tameFanfare(landAt: number): Tone[] {
+  return [
+    ...run([523, 659, 784, 1047], 0.11, {
+      dur: 0.3,
+      wave: "triangle",
+      gain: 0.07,
+    }),
+    ...run(
+      [1047, 1319, 1568],
+      0,
+      { dur: 0.9, wave: "sine", gain: 0.06 },
+      landAt,
+    ),
+    ...run(
+      [2093, 2637, 3136, 4186],
+      0.07,
+      { dur: 0.4, wave: "sine", gain: 0.03 },
+      landAt + 0.05,
+    ),
+  ];
+}
+
+/** A treat coming out of the pot: three bubbles and a ding. */
+const COOKED: Tone[] = [
+  { at: 0, dur: 0.07, from: 300, to: 620, wave: "sine", gain: 0.09 },
+  { at: 0.09, dur: 0.07, from: 360, to: 740, wave: "sine", gain: 0.09 },
+  { at: 0.18, dur: 0.07, from: 420, to: 860, wave: "sine", gain: 0.09 },
+  { at: 0.3, dur: 0.5, from: 1319, wave: "sine", gain: 0.06 },
+  { at: 0.3, dur: 0.5, from: 1976, wave: "sine", gain: 0.03 },
+];
+
+/** Something dropping into the pantry basket. */
+const BOUGHT: Tone[] = [
+  { at: 0, dur: 0.1, from: 988, wave: "sine", gain: 0.06 },
+  { at: 0.07, dur: 0.25, from: 1319, wave: "sine", gain: 0.06 },
+];
+
+/** A lesson learnt: up the scale to a held top note. */
+const LESSON: Tone[] = [
+  ...run([523, 659, 784], 0.09, { dur: 0.18, wave: "triangle", gain: 0.07 }),
+  { at: 0.27, dur: 0.6, from: 1047, wave: "triangle", gain: 0.07, vibrato: 6 },
+  { at: 0.27, dur: 0.6, from: 1568, wave: "sine", gain: 0.03 },
+];
+
+// ─── Playing ──────────────────────────────────────────────────────────────────
+
+const echoes = new WeakMap<AudioContext, AudioNode>();
+
+/**
+ * A soft repeating echo, as if the sound hung in the air a moment: what
+ * separates a magical creature's call from an everyday one's.
+ */
+function echoInput(ctx: AudioContext): AudioNode {
+  let input = echoes.get(ctx);
+  if (!input) {
+    const dry = ctx.createGain();
+    const delay = ctx.createDelay(0.5);
+    const feedback = ctx.createGain();
+    delay.delayTime.value = 0.17;
+    feedback.gain.value = 0.32;
+    dry.connect(ctx.destination);
+    dry.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    feedback.connect(ctx.destination);
+    input = dry;
+    echoes.set(ctx, input);
+  }
+  return input;
+}
+
+interface PlayOptions {
+  /** Seconds to wait before the first tone. */
+  delay?: number;
+  /** Lets the sound ring on in an echo. */
+  echo?: boolean;
+  /** Multiplies every pitch. */
+  pitch?: number;
+}
+
+/** Plays a run of tones, unless site sounds are muted. */
+function play(
+  tones: Tone[],
+  { delay = 0, echo = false, pitch = 1 }: PlayOptions = {},
+): void {
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  const start = ctx.currentTime;
-  for (const tone of CREATURE_CALLS[speciesId]) {
+  const out = echo ? echoInput(ctx) : ctx.destination;
+  const start = ctx.currentTime + delay;
+  for (const tone of tones) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(out);
 
     const t = start + tone.at;
+    const end = t + tone.dur;
     osc.type = tone.wave;
-    osc.frequency.setValueAtTime(tone.from, t);
+    osc.frequency.setValueAtTime(tone.from * pitch, t);
     if (tone.to !== undefined) {
-      osc.frequency.exponentialRampToValueAtTime(tone.to, t + tone.dur);
+      osc.frequency.exponentialRampToValueAtTime(tone.to * pitch, end);
+    }
+
+    if (tone.vibrato !== undefined) {
+      const wobble = ctx.createOscillator();
+      const depth = ctx.createGain();
+      wobble.frequency.value = tone.vibrato;
+      depth.gain.value = tone.from * pitch * 0.03;
+      wobble.connect(depth);
+      depth.connect(osc.frequency);
+      wobble.start(t);
+      wobble.stop(end + 0.02);
     }
 
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(tone.gain ?? 0.08, t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + tone.dur);
+    gain.gain.exponentialRampToValueAtTime(0.001, end);
 
     osc.start(t);
-    osc.stop(t + tone.dur + 0.02);
+    osc.stop(end + 0.02);
   }
+}
+
+/**
+ * Plays a species' call. No two calls come out quite the same: each is
+ * nudged up or down by a few percent, the way a real animal never repeats
+ * itself exactly. Fantastical creatures' calls hang in the air.
+ */
+export function playCreatureSound(speciesId: SpeciesId): void {
+  play(CREATURE_CALLS[speciesId], {
+    echo: SPECIES[speciesId].kind === "fantastical",
+    pitch: 0.96 + Math.random() * 0.08,
+  });
+}
+
+/**
+ * Answers a taming action, a beat after the creature's own call so the two
+ * read as call and reward. `progress` is the visitor's trust as a fraction
+ * of what it takes to tame.
+ */
+export function playTrustSound(matched: boolean, progress: number): void {
+  play(matched ? trustChime(progress) : NEAR_MISS, {
+    delay: 0.22,
+    echo: matched,
+  });
+}
+
+/** Celebrates a tame; `landAt` is how long the flight to the glade lasts. */
+export function playTameSound(landAt: number): void {
+  play(tameFanfare(landAt), { delay: 0.22, echo: true });
+}
+
+export function playCookSound(): void {
+  play(COOKED);
+}
+
+export function playBuySound(): void {
+  play(BOUGHT);
+}
+
+export function playLessonSound(): void {
+  play(LESSON, { echo: true });
 }

@@ -142,6 +142,60 @@ describe("GladeScene", () => {
     expect(rabbitButton.querySelector('[data-greeting="true"]')).toBeNull();
   });
 
+  it("throws a burst of hearts and twinkles off a greeted resident, and again on the next tap", async () => {
+    const user = userEvent.setup();
+    render(<GladeScene />);
+    const rabbitButton = screen.getByRole("button", {
+      name: "Rabbit — Forager",
+    });
+    const pieces = () => [...rabbitButton.querySelectorAll("[data-kind]")];
+    expect(pieces()).toHaveLength(0);
+
+    await user.click(rabbitButton);
+
+    const first = pieces();
+    expect(first.filter((p) => p.matches('[data-kind="heart"]'))).toHaveLength(
+      3,
+    );
+    expect(first.filter((p) => p.matches('[data-kind="spark"]'))).toHaveLength(
+      3,
+    );
+    // Decoration only, and only on the one that was greeted.
+    expect(first[0].parentElement).toHaveAttribute("aria-hidden", "true");
+    const foxButton = screen.getByRole("button", { name: "Rusty — Beacon" });
+    expect(foxButton.querySelector("[data-kind]")).toBeNull();
+
+    // A second tap swaps in fresh pieces, so the burst plays from the start.
+    await user.click(rabbitButton);
+    expect(pieces()).toHaveLength(6);
+    expect(pieces()[0]).not.toBe(first[0]);
+  });
+
+  it("throws a burst off a resident as it lands from a tame", () => {
+    const celebration = {
+      speciesId: "rabbit" as const,
+      creatureName: "Rabbit",
+      fromRect: new DOMRect(0, 0, 10, 10),
+      toX: 0,
+      toY: 0,
+      scrollX: 0,
+      scrollY: 0,
+      newResidentId: rabbit.id,
+    };
+    mockGlade({ celebration });
+    const { rerender } = render(<GladeScene />);
+    const rabbitButton = () =>
+      screen.getByRole("button", { name: "Rabbit — Forager" });
+    expect(rabbitButton().querySelector("[data-kind]")).toBeNull();
+
+    mockGlade({ celebration: null });
+    rerender(<GladeScene />);
+
+    expect(rabbitButton().querySelectorAll("[data-kind]")).toHaveLength(6);
+    const foxButton = screen.getByRole("button", { name: "Rusty — Beacon" });
+    expect(foxButton.querySelector("[data-kind]")).toBeNull();
+  });
+
   it("gives each resident its species' idle motion, phase-shifted by position", () => {
     render(<GladeScene />);
 
