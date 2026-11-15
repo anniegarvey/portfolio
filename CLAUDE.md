@@ -23,6 +23,11 @@ pnpm playwright test              # headless
 pnpm playwright test --ui         # interactive UI mode
 pnpm playwright show-report       # view last report
 
+# Visual snapshots (e2e/visual): run only inside the pinned Playwright Docker image,
+# so they match everywhere, including cloud sessions. Skipped by plain `playwright test`.
+pnpm snapshots                      # compare (CI runs this on every PR)
+pnpm snapshots --update-snapshots   # regenerate after a visual change, then commit the PNGs
+
 # Mutation tests: CI runs these on every PR for changed files (see the job summary)
 pnpm mutate [base-ref]  # same run locally, against origin/main by default; 80%+ target
 ```
