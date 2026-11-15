@@ -59,9 +59,36 @@ export function TameCelebration() {
       }
     >
       <CreatureSVG size={72} speciesId={speciesId} />
+      {TRAIL.map((spark) => (
+        <TrailSpark
+          key={`${spark.left}-${spark.top}`}
+          style={
+            {
+              left: `${spark.left}%`,
+              top: `${spark.top}%`,
+              width: spark.size,
+              height: spark.size,
+              "--spark-delay": `${spark.delay}ms`,
+            } as CSSProperties
+          }
+          viewBox="0 0 10 10"
+        >
+          <path d="M5 0.5 L6.1 3.9 L9.5 5 L6.1 6.1 L5 9.5 L3.9 6.1 L0.5 5 L3.9 3.9 Z" />
+        </TrailSpark>
+      ))}
     </FlyingCreature>
   );
 }
+
+/** Twinkles carried along with the flying creature, like a wake of stardust. */
+const TRAIL = [
+  { left: -18, top: 10, size: 14, delay: 0 },
+  { left: 102, top: -4, size: 11, delay: 180 },
+  { left: -8, top: 84, size: 10, delay: 320 },
+  { left: 96, top: 72, size: 15, delay: 90 },
+  { left: 40, top: -22, size: 12, delay: 250 },
+  { left: 50, top: 108, size: 9, delay: 400 },
+];
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -115,4 +142,15 @@ const FlyingCreature = styled.div`
   @media (prefers-reduced-motion: reduce) {
     display: none;
   }
+`;
+
+const trailTwinkle = keyframes`
+  0%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  50%      { opacity: 1; transform: scale(1) rotate(45deg); }
+`;
+
+const TrailSpark = styled.svg`
+  position: absolute;
+  fill: light-dark(#f2b632, #ffe08a);
+  animation: ${trailTwinkle} 520ms var(--spark-delay) ease-in-out infinite;
 `;
