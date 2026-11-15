@@ -77,11 +77,28 @@ export const CREATURE_CALLS: Record<SpeciesId, Tone[]> = {
     })),
     { at: 0.3, dur: 0.09, from: 1400, to: 1900, wave: "sine", gain: 0.05 },
   ],
-  // Tiny squeaks, each a little higher.
+  // Two squeaks: each leaps up and falls away, with a rasp no bird has.
   mouse: [
-    { at: 0, dur: 0.05, from: 3000, to: 3500, wave: "sine", gain: 0.05 },
-    { at: 0.08, dur: 0.05, from: 3200, to: 3700, wave: "sine", gain: 0.05 },
-    { at: 0.16, dur: 0.07, from: 3400, to: 4100, wave: "sine", gain: 0.05 },
+    { at: 0, dur: 0.03, from: 2400, to: 4400, wave: "sawtooth", gain: 0.03 },
+    {
+      at: 0.03,
+      dur: 0.09,
+      from: 4400,
+      to: 3000,
+      wave: "sawtooth",
+      gain: 0.03,
+      vibrato: 55,
+    },
+    { at: 0.2, dur: 0.025, from: 2600, to: 4700, wave: "sawtooth", gain: 0.03 },
+    {
+      at: 0.225,
+      dur: 0.07,
+      from: 4700,
+      to: 3300,
+      wave: "sawtooth",
+      gain: 0.03,
+      vibrato: 55,
+    },
   ],
   // A song far too big for the bird: a rattling trill and a flourish.
   wren: [
