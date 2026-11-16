@@ -17,6 +17,16 @@ export const ERRAND_SEEDS = 2;
 
 export const MAX_FRIENDSHIP = 100;
 
+/**
+ * Points prices of the extras, each climbing with every one bought that day
+ * so a big day in the planner goes further without buying the game out. A
+ * day's last price is its cap: no more of that extra until tomorrow.
+ */
+export const EXTRA_TRIP_COSTS = [20, 30, 45, 65, 90] as const;
+export const GROW_TONIC_COSTS = [25, 40, 60] as const;
+/** One extra gift per neighbour per day, at a flat price. */
+export const EXTRA_GIFT_COST = 25;
+
 // ─── Items ────────────────────────────────────────────────────────────────────
 
 export interface ItemConfig {

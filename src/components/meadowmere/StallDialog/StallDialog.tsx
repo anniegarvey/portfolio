@@ -4,8 +4,10 @@ import { Coins } from "lucide-react";
 import { styled } from "next-yak";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
+import { getTodayDateString } from "@/lib/date";
 import { ALL_CROP_IDS, CROPS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
+import { canBuyGrowTonic, growTonicCost } from "@/lib/meadowmere/extrasModule";
 import { seedCount } from "@/lib/meadowmere/inventory";
 import { usePoints } from "@/lib/points/context";
 
@@ -21,12 +23,14 @@ export function StallDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { state, buySeed } = useMeadowmere();
+  const { state, buySeed, buyGrowTonic } = useMeadowmere();
   const { points } = usePoints();
+  const today = getTodayDateString();
+  const tonicCost = growTonicCost(state, today);
 
   return (
     <Modal
-      description="Seeds are bought with points earned in the Energy Planner. Nothing here pays points back."
+      description="Seeds and grow tonic are bought with points earned in the Energy Planner. Nothing here pays points back."
       isOpen={open}
       onClose={onClose}
       showDescription
@@ -64,6 +68,31 @@ export function StallDialog({
             </Item>
           );
         })}
+        <Item>
+          <Name>
+            <span aria-hidden>🧪</span> Grow tonic
+          </Name>
+          <Meta>Every growing crop · a day further along</Meta>
+          <Blurb>
+            A splash for the whole farm. Ripe crops don’t need it, and the price
+            climbs with each bottle bought today.
+          </Blurb>
+          {tonicCost === null ? (
+            <Meta>Sold out for today — back tomorrow.</Meta>
+          ) : canBuyGrowTonic(state, today) ? (
+            <Button
+              aria-label={`Buy grow tonic for ${tonicCost} points`}
+              disabled={points < tonicCost}
+              onClick={buyGrowTonic}
+              size="sm"
+              variant="outline"
+            >
+              Buy tonic <Coins aria-hidden size={13} /> {tonicCost}
+            </Button>
+          ) : (
+            <Meta>Nothing is growing right now.</Meta>
+          )}
+        </Item>
       </Grid>
     </Modal>
   );

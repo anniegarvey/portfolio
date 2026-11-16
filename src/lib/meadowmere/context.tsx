@@ -11,8 +11,15 @@ import {
 } from "react";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
-import { CROPS } from "./catalog";
+import { CROPS, EXTRA_GIFT_COST } from "./catalog";
 import { claimErrand, todaysErrand } from "./errandsModule";
+import {
+  buyExtraGift,
+  buyExtraTrip,
+  buyGrowTonic,
+  extraTripCost,
+  growTonicCost,
+} from "./extrasModule";
 import * as farming from "./farmingModule";
 import { forageSite } from "./foragingModule";
 import { addSeeds } from "./inventory";
@@ -69,6 +76,12 @@ export interface MeadowmereContextType {
   clearDailyReport: () => void;
   /** Spends points on a seed packet. False when the player can't afford it. */
   buySeed: (cropId: CropId) => boolean;
+  /** Spends points on another forage trip today. False if not allowed or affordable. */
+  buyExtraTrip: () => boolean;
+  /** Spends points moving every growing planting a day along. */
+  buyGrowTonic: () => boolean;
+  /** Spends points letting a neighbour take another gift today. */
+  buyExtraGift: (neighbourId: NeighbourId) => boolean;
   plantSeed: (plotId: string, cropId: CropId) => void;
   waterPlot: (plotId: string) => void;
   harvestPlot: (plotId: string) => void;
@@ -128,6 +141,37 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
       return true;
     },
     [setState, spendPoints],
+  );
+
+  // Each extra checks it is allowed before spending, so a refused purchase
+  // never costs points.
+  const buyExtra = useCallback(
+    (cost: number | null, next: MeadowmereState | null): boolean => {
+      if (cost === null || next === null || !spendPoints(cost)) return false;
+      setState(() => next);
+      playBuySound();
+      return true;
+    },
+    [setState, spendPoints],
+  );
+
+  const handleBuyExtraTrip = useCallback(() => {
+    const today = getTodayDateString();
+    return buyExtra(extraTripCost(state, today), buyExtraTrip(state, today));
+  }, [state, buyExtra]);
+
+  const handleBuyGrowTonic = useCallback(() => {
+    const today = getTodayDateString();
+    return buyExtra(growTonicCost(state, today), buyGrowTonic(state, today));
+  }, [state, buyExtra]);
+
+  const handleBuyExtraGift = useCallback(
+    (neighbourId: NeighbourId) =>
+      buyExtra(
+        EXTRA_GIFT_COST,
+        buyExtraGift(state, neighbourId, getTodayDateString()),
+      ),
+    [state, buyExtra],
   );
 
   const handlePlantSeed = useCallback(
@@ -237,6 +281,9 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         dailyReport,
         clearDailyReport,
         buySeed: handleBuySeed,
+        buyExtraTrip: handleBuyExtraTrip,
+        buyGrowTonic: handleBuyGrowTonic,
+        buyExtraGift: handleBuyExtraGift,
         plantSeed: handlePlantSeed,
         waterPlot: handleWaterPlot,
         harvestPlot: handleHarvestPlot,
