@@ -22,6 +22,7 @@ import {
   missingIngredients,
   missingIngredientsCost,
 } from "./cookingModule";
+import * as extras from "./extrasModule";
 import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
 import type {
   GladeState,
@@ -118,6 +119,10 @@ export interface GladeContextType {
   /** Buys every ingredient still missing for a recipe in one purchase. */
   buyMissingIngredients: (treatId: TreatId) => boolean;
   buyLesson: (skillId: SkillId) => boolean;
+  /** Spends points letting a visitor take every taming action again today. */
+  buyExtraRound: (visitorId: string) => boolean;
+  /** Spends points bringing one more wild visitor for today. */
+  inviteVisitor: () => boolean;
   /** Wipes all glade progress back to a fresh start. Does not touch points. */
   resetGlade: () => void;
 }
@@ -384,6 +389,37 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [state, setState, spendPoints],
   );
 
+  // Each extra checks it is allowed before spending, so a refused purchase
+  // never costs points.
+  const buyExtra = useCallback(
+    (cost: number | null, next: GladeState | null): boolean => {
+      if (cost === null || next === null || !spendPoints(cost)) return false;
+      setState(() => next);
+      playBuySound();
+      return true;
+    },
+    [setState, spendPoints],
+  );
+
+  const handleBuyExtraRound = useCallback(
+    (visitorId: string) => {
+      const today = getTodayDateString();
+      return buyExtra(
+        extras.extraRoundCost(state, today),
+        extras.buyExtraRound(state, visitorId, today),
+      );
+    },
+    [state, buyExtra],
+  );
+
+  const handleInviteVisitor = useCallback(() => {
+    const today = getTodayDateString();
+    return buyExtra(
+      extras.inviteCost(state, today),
+      extras.inviteVisitor(state, today),
+    );
+  }, [state, buyExtra]);
+
   // Wipes persisted and in-flight session state alike so no stale
   // celebration/report can outlive the reset. Points are untouched — they're
   // a currency shared with Bonsai, not part of glade progress.
@@ -417,6 +453,8 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         buyIngredient: handleBuyIngredient,
         buyMissingIngredients: handleBuyMissingIngredients,
         buyLesson: handleBuyLesson,
+        buyExtraRound: handleBuyExtraRound,
+        inviteVisitor: handleInviteVisitor,
         resetGlade: handleResetGlade,
       }}
     >

@@ -1,7 +1,10 @@
 "use client";
 
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getTodayDateString } from "@/lib/date";
+import { INVITE_COSTS } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
 import type { WildVisitor } from "@/lib/glade/schema";
 import {
@@ -142,5 +145,47 @@ describe("GladePage visitor list ordering", () => {
     render(<GladePage />);
 
     expect(screen.getByText(/No wild creatures right now/)).toBeInTheDocument();
+  });
+});
+
+describe("GladePage inviting a visitor", () => {
+  const inviteButton = () =>
+    screen.queryByRole("button", { name: /invite another visitor/i });
+
+  it("can't be bought without the points", () => {
+    render(<GladePage />);
+    expect(inviteButton()).toBeDisabled();
+  });
+
+  it("buys an invitation", async () => {
+    vi.mocked(usePoints).mockReturnValue({
+      points: 500,
+      spendPoints: vi.fn().mockReturnValue(true),
+      awardPoints: vi.fn(),
+    });
+    const inviteVisitor = vi.fn();
+    mockGlade({ inviteVisitor });
+    render(<GladePage />);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: `Invite another visitor today for ${INVITE_COSTS[0]} points`,
+      }),
+    );
+    expect(inviteVisitor).toHaveBeenCalled();
+  });
+
+  it("goes away once the day's invitations are used", () => {
+    mockGlade({
+      state: makeGladeState({
+        extrasBought: {
+          date: getTodayDateString(),
+          rounds: 0,
+          invites: INVITE_COSTS.length,
+        },
+      }),
+    });
+    render(<GladePage />);
+    expect(inviteButton()).not.toBeInTheDocument();
   });
 });

@@ -62,19 +62,15 @@ function visitableSpecies(state: GladeState): SpeciesId[] {
 }
 
 /**
- * Draws today's set of wild visitors: between one and MAX_VISITORS distinct
- * species, weighted without replacement. Each rarity's weight (beacon
+ * How likely each untamed species is to visit. Each rarity's weight (beacon
  * residents shift weight from common to rare) is shared evenly among its
  * untamed species, then scaled up by that species' banked taming progress —
  * so part-tamed creatures tend to come back.
  */
-export function pickDailyVisitors(
+function visitWeights(
   state: GladeState,
-  rng: () => number,
-): SpeciesId[] {
-  const candidates = visitableSpecies(state);
-  if (candidates.length === 0) return [];
-
+  candidates: SpeciesId[],
+): (id: SpeciesId) => number {
   const beacons = countRole(state, "beacon");
   const shift = Math.min(beacons * BEACON_RARE_BONUS, RARITY_WEIGHTS.common);
   const rarityWeights: Record<Rarity, number> = {
@@ -89,12 +85,43 @@ export function pickDailyVisitors(
     const rarity = SPECIES[id].rarity;
     rarityCounts.set(rarity, (rarityCounts.get(rarity) ?? 0) + 1);
   }
-  const weightFor = (id: SpeciesId): number => {
+  return (id: SpeciesId): number => {
     const { rarity } = SPECIES[id];
     const share = rarityWeights[rarity] / (rarityCounts.get(rarity) ?? 1);
     const progress = (state.speciesTrust[id] ?? 0) / tameThresholdFor(id);
     return share * (1 + TRUST_VISIT_BONUS * progress);
   };
+}
+
+/** Index of one weighted pick from the pool. */
+function drawIndex(
+  pool: SpeciesId[],
+  weightFor: (id: SpeciesId) => number,
+  rng: () => number,
+): number {
+  const weights = pool.map(weightFor);
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  // Every remaining candidate is in a zero-weight rarity — pick uniformly.
+  if (total <= 0) return Math.floor(rng() * pool.length);
+  let roll = rng() * total;
+  for (let i = 0; i < pool.length; i++) {
+    roll -= weights[i];
+    if (roll < 0) return i;
+  }
+  return pool.length - 1;
+}
+
+/**
+ * Draws today's set of wild visitors: between one and MAX_VISITORS distinct
+ * species, weighted without replacement (see `visitWeights`).
+ */
+export function pickDailyVisitors(
+  state: GladeState,
+  rng: () => number,
+): SpeciesId[] {
+  const candidates = visitableSpecies(state);
+  if (candidates.length === 0) return [];
+  const weightFor = visitWeights(state, candidates);
 
   const count = Math.min(
     1 + Math.floor(rng() * MAX_VISITORS),
@@ -103,24 +130,27 @@ export function pickDailyVisitors(
   const pool = [...candidates];
   const picked: SpeciesId[] = [];
   while (picked.length < count) {
-    const weights = pool.map(weightFor);
-    const total = weights.reduce((sum, w) => sum + w, 0);
-    // Every remaining candidate is in a zero-weight rarity — pick uniformly.
-    let index = total <= 0 ? Math.floor(rng() * pool.length) : pool.length - 1;
-    if (total > 0) {
-      let roll = rng() * total;
-      for (let i = 0; i < pool.length; i++) {
-        roll -= weights[i];
-        if (roll < 0) {
-          index = i;
-          break;
-        }
-      }
-    }
+    const index = drawIndex(pool, weightFor, rng);
     picked.push(pool[index]);
     pool.splice(index, 1);
   }
   return picked;
+}
+
+/**
+ * One more visitor for today, drawn with the same weights as the morning's
+ * but never a species already here. Null when every untamed species is
+ * already visiting.
+ */
+export function pickExtraVisitor(
+  state: GladeState,
+  rng: () => number,
+): SpeciesId | null {
+  const here = new Set(state.visitors.map((v) => v.speciesId));
+  const candidates = visitableSpecies(state);
+  const pool = candidates.filter((id) => !here.has(id));
+  if (pool.length === 0) return null;
+  return pool[drawIndex(pool, visitWeights(state, candidates), rng)];
 }
 
 /**

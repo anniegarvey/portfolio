@@ -667,6 +667,15 @@ export const PET_SPOT_LABELS: Record<PetSpot, string> = {
 
 export const MAX_VISITORS = 3;
 
+/**
+ * Points prices of the extras, each climbing with every one bought that day.
+ * A day's last price is its cap: no more of that extra until tomorrow.
+ * Another round lets a visitor accept all three taming actions again;
+ * an invitation brings one more visitor for the day.
+ */
+export const EXTRA_ROUND_COSTS = [30, 60, 100] as const;
+export const INVITE_COSTS = [40, 80] as const;
+
 /** Relative spawn weight per rarity, before beacon bonuses. */
 export const RARITY_WEIGHTS: Record<Rarity, number> = {
   common: 70,
