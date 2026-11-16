@@ -636,8 +636,13 @@ export const MAX_TIER = 5;
  */
 export const XP_THRESHOLDS = [5, 12, 25, 45] as const;
 
-/** Points cost of the lesson advancing to each tier (index = current tier - 1). */
-export const LESSON_COSTS = [15, 30, 60, 100] as const;
+/**
+ * Points cost of the lesson advancing to each tier (index = current tier - 1).
+ * Doubled from 15/30/60/100 when restarts arrived: a full tree came to under
+ * a week of real planner points, and a restart now means buying it again
+ * (ADR 0009).
+ */
+export const LESSON_COSTS = [30, 60, 120, 200] as const;
 
 /** XP needed to complete the given tier's bar, or null at max tier. */
 export function xpThresholdFor(tier: number): number | null {
