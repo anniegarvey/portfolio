@@ -65,6 +65,7 @@ export function makeMeadowmereContext(
     claimQuest: vi.fn(),
     claimErrand: vi.fn(),
     resetMeadowmere: vi.fn(),
+    restartMeadowmere: vi.fn(),
     ...overrides,
   };
 }

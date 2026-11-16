@@ -4,9 +4,11 @@ import { Coins } from "lucide-react";
 import { styled } from "next-yak";
 import { useEffect, useRef } from "react";
 import { usePoints } from "@/lib/points/context";
+import { formatMultiplier, usePointsMultiplier } from "@/lib/points/prestige";
 
 export function PointsDisplay() {
   const { points } = usePoints();
+  const multiplier = usePointsMultiplier();
   const prevRef = useRef(points);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +31,11 @@ export function PointsDisplay() {
     <Wrapper data-points-display ref={wrapperRef}>
       <Coins size={15} />
       <Count>{points}</Count>
+      {multiplier > 1 && (
+        <Multiplier title="Every point you earn is multiplied by your restarts">
+          {formatMultiplier(multiplier)}
+        </Multiplier>
+      )}
     </Wrapper>
   );
 }
@@ -51,4 +58,10 @@ const Wrapper = styled.div`
 const Count = styled.span`
   font-variant-numeric: tabular-nums;
   min-width: 2ch;
+`;
+
+const Multiplier = styled.span`
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.85;
 `;

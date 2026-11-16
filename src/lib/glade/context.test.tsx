@@ -3,10 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { useLayoutEffect, useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePoints } from "@/lib/points/context";
+import { loadPrestigeState } from "@/lib/points/prestige";
 import {
   EXTRA_ROUND_COSTS,
   INVITE_COSTS,
   LESSON_COSTS,
+  RESTART_MIN_RESIDENTS,
   XP_THRESHOLDS,
 } from "./catalog";
 import { GladeProvider, useGlade } from "./context";
@@ -201,6 +203,9 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.inviteVisitor()} type="button">
         Invite
+      </button>
+      <button onClick={() => ctx.restartGlade()} type="button">
+        Restart Glade
       </button>
       <button onClick={() => ctx.resetGlade()} type="button">
         Reset Glade
@@ -814,5 +819,59 @@ describe("extras", () => {
 
     await user.click(screen.getByRole("button", { name: "Invite" }));
     expect(screen.getByTestId("visitor-count")).toHaveTextContent("1");
+  });
+});
+
+describe("restart", () => {
+  const COMMONS = [
+    "robin",
+    "rabbit",
+    "squirrel",
+    "hedgehog",
+    "mouse",
+    "wren",
+    "mole",
+  ];
+  const UNCOMMONS = ["fox", "deer", "owl", "badger"];
+  const residents = [...COMMONS, ...UNCOMMONS]
+    .slice(0, RESTART_MIN_RESIDENTS)
+    .map((speciesId, i) => ({
+      id: `00000000-0000-4000-8000-${String(i + 10).padStart(12, "0")}`,
+      speciesId,
+      tamedDate: "2026-06-01",
+      position: { x: 50, y: 50 },
+    }));
+
+  it("banks the bonus and starts a fresh glade that remembers preferences", async () => {
+    seedLocalStorage({
+      residents,
+      discoveredPreferences: { robin: { treat: true } },
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("resident-count");
+
+    await user.click(screen.getByRole("button", { name: "Restart Glade" }));
+    expect(screen.getByTestId("resident-count")).toHaveTextContent("0");
+    const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "null");
+    expect(stored.discoveredPreferences).toEqual({ robin: { treat: true } });
+    // Seven commons at 3% and four uncommons at 5%.
+    expect(loadPrestigeState().glade).toEqual({
+      restarts: 1,
+      bonusPercent: 41,
+    });
+  });
+
+  it("does nothing before half the species have settled", async () => {
+    seedLocalStorage({ residents: residents.slice(1) });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("resident-count");
+
+    await user.click(screen.getByRole("button", { name: "Restart Glade" }));
+    expect(screen.getByTestId("resident-count")).toHaveTextContent(
+      String(RESTART_MIN_RESIDENTS - 1),
+    );
+    expect(loadPrestigeState().glade.restarts).toBe(0);
   });
 });

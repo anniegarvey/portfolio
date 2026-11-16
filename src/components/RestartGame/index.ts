@@ -1,0 +1,1 @@
+export { RestartGame } from "./RestartGame";

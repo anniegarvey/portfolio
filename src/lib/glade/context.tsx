@@ -13,6 +13,7 @@ import {
 import { FLIGHT_MS } from "@/components/glade/TameCelebration/timing";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
+import { recordRestart } from "@/lib/points/prestige";
 import { INGREDIENTS, SPECIES, tameThresholdFor } from "./catalog";
 import {
   addIngredient,
@@ -24,6 +25,11 @@ import {
 } from "./cookingModule";
 import * as extras from "./extrasModule";
 import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
+import {
+  canRestart,
+  restartBonusPercent,
+  restartedState,
+} from "./restartModule";
 import type {
   GladeState,
   IngredientId,
@@ -125,6 +131,12 @@ export interface GladeContextType {
   inviteVisitor: () => boolean;
   /** Wipes all glade progress back to a fresh start. Does not touch points. */
   resetGlade: () => void;
+  /**
+   * Trades the glade's progress for a lasting bonus on Energy Planner points.
+   * Preferences found and points are kept. Does nothing until a restart is
+   * offered.
+   */
+  restartGlade: () => void;
 }
 
 const GladeContext = createContext<GladeContextType | undefined>(undefined);
@@ -431,6 +443,16 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     setState(() => createInitialState());
   }, [setState, clearCelebration, clearDailyReport, clearTamedVisitor]);
 
+  const handleRestartGlade = useCallback(() => {
+    if (!canRestart(state)) return;
+    recordRestart("glade", restartBonusPercent(state));
+    setLastAction(null);
+    clearCelebration();
+    clearDailyReport();
+    clearTamedVisitor();
+    setState(() => restartedState(state, createInitialState()));
+  }, [state, setState, clearCelebration, clearDailyReport, clearTamedVisitor]);
+
   return (
     <GladeContext.Provider
       value={{
@@ -456,6 +478,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         buyExtraRound: handleBuyExtraRound,
         inviteVisitor: handleInviteVisitor,
         resetGlade: handleResetGlade,
+        restartGlade: handleRestartGlade,
       }}
     >
       {children}

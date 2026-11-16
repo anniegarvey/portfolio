@@ -676,6 +676,23 @@ export const MAX_VISITORS = 3;
 export const EXTRA_ROUND_COSTS = [30, 60, 100] as const;
 export const INVITE_COSTS = [40, 80] as const;
 
+// ─── Restarts ─────────────────────────────────────────────────────────────────
+
+/** Residents needed before the glade can be restarted: half the species. */
+export const RESTART_MIN_RESIDENTS = 11;
+
+/**
+ * What each resident adds to the points multiplier on a restart, in percent.
+ * Weighted by rarity, so the long tames are worth staying for (ADR 0009).
+ */
+export const RESTART_BONUS_BY_RARITY: Record<Rarity, number> = {
+  common: 3,
+  uncommon: 5,
+  rare: 10,
+  legendary: 15,
+  mythic: 25,
+};
+
 /** Relative spawn weight per rarity, before beacon bonuses. */
 export const RARITY_WEIGHTS: Record<Rarity, number> = {
   common: 70,

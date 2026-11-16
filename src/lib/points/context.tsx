@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import { getTodayDateString } from "@/lib/date";
 import { LAST_ACTIVE_DATE_KEY, POINTS_STORAGE_KEY } from "./keys";
+import { loadPointsMultiplier, multiplyAward } from "./prestige";
 import { playCollectSound, playDepositSound } from "./sounds";
 
 const MAX_PARTICLE_COUNT = 50;
@@ -176,8 +177,11 @@ export function PointsProvider({ children }: { children: ReactNode }) {
     [points],
   );
 
-  const awardPoints = useCallback((amount: number, rect: DOMRect) => {
+  // Every award is scaled by the restart multiplier, read fresh each time so
+  // a restart in another tab or game counts straight away (ADR 0009).
+  const awardPoints = useCallback((baseAmount: number, rect: DOMRect) => {
     if (typeof window === "undefined") return;
+    const amount = multiplyAward(baseAmount, loadPointsMultiplier());
     localStorage.setItem(LAST_ACTIVE_DATE_KEY, getTodayDateString());
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
+import { loadPrestigeState } from "@/lib/points/prestige";
 import {
   CROPS,
   EXTRA_GIFT_COST,
@@ -10,6 +11,8 @@ import {
   FORAGES_PER_DAY,
   GROW_TONIC_COSTS,
   QUESTS,
+  RESTART_BONUS_PER_QUEST,
+  RESTART_MIN_QUESTS,
 } from "./catalog";
 import { MeadowmereProvider, useMeadowmere } from "./context";
 import { todaysErrand } from "./errandsModule";
@@ -140,6 +143,9 @@ function MeadowmereDebug() {
       </button>
       <button onClick={ctx.clearDailyReport} type="button">
         clear-report
+      </button>
+      <button onClick={ctx.restartMeadowmere} type="button">
+        restart
       </button>
       <button onClick={ctx.resetMeadowmere} type="button">
         reset
@@ -537,5 +543,40 @@ describe("extras", () => {
     expect(spend).toHaveBeenCalledWith(EXTRA_GIFT_COST);
     await click("gift");
     expect(screen.getByTestId("parsnip-root")).toHaveTextContent("1");
+  });
+});
+
+describe("restart", () => {
+  const halfway = Object.keys(QUESTS).slice(0, RESTART_MIN_QUESTS);
+
+  it("banks the bonus and starts a fresh farm that remembers gifts", async () => {
+    seedLocalStorage({
+      completedQuestIds: halfway,
+      neighbours: {
+        ...createInitialState().neighbours,
+        nessa: { friendship: 70, giftedItemIds: ["parsnip-root"] },
+      },
+    });
+    renderProvider();
+
+    await click("restart");
+    expect(screen.getByTestId("completed")).toHaveTextContent("none");
+    expect(screen.getByTestId("nessa")).toHaveTextContent("0");
+    expect(readStored().neighbours.nessa.giftedItemIds).toEqual([
+      "parsnip-root",
+    ]);
+    expect(loadPrestigeState().meadowmere).toEqual({
+      restarts: 1,
+      bonusPercent: RESTART_MIN_QUESTS * RESTART_BONUS_PER_QUEST,
+    });
+  });
+
+  it("does nothing before half the quests are done", async () => {
+    seedLocalStorage({ completedQuestIds: halfway.slice(1) });
+    renderProvider();
+
+    await click("restart");
+    expect(screen.getByTestId("completed")).not.toHaveTextContent("none");
+    expect(loadPrestigeState().meadowmere.restarts).toBe(0);
   });
 });

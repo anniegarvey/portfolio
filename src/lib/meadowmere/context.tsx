@@ -11,6 +11,7 @@ import {
 } from "react";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
+import { recordRestart } from "@/lib/points/prestige";
 import { CROPS, EXTRA_GIFT_COST } from "./catalog";
 import { claimErrand, todaysErrand } from "./errandsModule";
 import {
@@ -26,6 +27,11 @@ import { addSeeds } from "./inventory";
 import { advanceMeadowmereDay, type DailyFarmReport } from "./meadowmereEngine";
 import { giveGift } from "./neighboursModule";
 import { claimQuest } from "./questsModule";
+import {
+  canRestart,
+  restartBonusPercent,
+  restartedState,
+} from "./restartModule";
 import type {
   CropId,
   ItemId,
@@ -92,6 +98,11 @@ export interface MeadowmereContextType {
   claimErrand: () => void;
   /** Wipes all progress back to a brand-new smallholding. Points are kept. */
   resetMeadowmere: () => void;
+  /**
+   * Trades the farm's progress for a lasting bonus on Energy Planner points.
+   * Gift hints and points are kept. Does nothing until a restart is offered.
+   */
+  restartMeadowmere: () => void;
 }
 
 const MeadowmereContext = createContext<MeadowmereContextType | undefined>(
@@ -272,6 +283,14 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     setState(() => createInitialState());
   }, [setState]);
 
+  const handleRestartMeadowmere = useCallback(() => {
+    if (!canRestart(state)) return;
+    recordRestart("meadowmere", restartBonusPercent(state));
+    setNotice(null);
+    setDailyReport(null);
+    setState(() => restartedState(state, createInitialState()));
+  }, [state, setState]);
+
   return (
     <MeadowmereContext.Provider
       value={{
@@ -292,6 +311,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         claimQuest: handleClaimQuest,
         claimErrand: handleClaimErrand,
         resetMeadowmere: handleResetMeadowmere,
+        restartMeadowmere: handleRestartMeadowmere,
       }}
     >
       {children}
