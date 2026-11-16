@@ -82,6 +82,11 @@ export interface Tone {
   wave: OscillatorType | "noise";
   /** Peak volume; defaults to a gentle 0.08. */
   gain?: number;
+  /**
+   * Seconds it takes to swell to full volume; 0.01 if omitted, a quick start
+   * that doesn't click. Longer for a sound that builds, like a purr.
+   */
+  attack?: number;
   /** Wobbles the pitch this many times a second: a warble, a purr, a bleat. */
   vibrato?: number;
   /** How far the vibrato swings, as a fraction of the pitch; 0.03 if omitted. */
@@ -240,7 +245,10 @@ export function play(
     source.connect(band ?? gain);
 
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(tone.gain ?? 0.08, t + 0.01);
+    gain.gain.linearRampToValueAtTime(
+      tone.gain ?? 0.08,
+      t + (tone.attack ?? 0.01),
+    );
     gain.gain.exponentialRampToValueAtTime(0.001, end);
 
     source.start(t);

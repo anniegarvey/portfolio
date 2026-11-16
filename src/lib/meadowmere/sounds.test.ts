@@ -197,14 +197,25 @@ describe("the farm's sounds", () => {
 });
 
 describe("textured sounds", () => {
-  it("rustles with noise rather than a pitch", async () => {
+  it("rustles with soft, swelling noise rather than a pitch", async () => {
     const audio = stubAudio();
-    const { playForageSound, RUSTLE } = await loadSounds();
+    const { playForageSound, rustle } = await loadSounds();
+    const leaves = rustle();
+    expect(leaves.every((tone) => tone.wave === "noise")).toBe(true);
+    // A sharp start is what makes a burst of noise sound like a drum.
+    expect(leaves.every((tone) => (tone.attack ?? 0) > 0.03)).toBe(true);
+
     playForageSound();
-    const rustle = audio.voices.slice(0, RUSTLE.length);
-    expect(rustle.every((voice) => voice.pitch === 0)).toBe(true);
+    const hisses = audio.voices.filter((voice) => voice.pitch === 0);
+    expect(hisses).toHaveLength(leaves.length);
     // Every hiss is narrowed to a band, or it would be a radio between stations.
-    expect(audio.bandCount()).toBeGreaterThanOrEqual(RUSTLE.length);
+    expect(audio.bandCount()).toBeGreaterThanOrEqual(leaves.length);
+  });
+
+  it("never rustles quite the same way twice", async () => {
+    const { rustle } = await loadSounds();
+    expect(rustle(() => 0)).not.toEqual(rustle(() => 0.9));
+    expect(rustle(() => 0.3)).toEqual(rustle(() => 0.3));
   });
 
   it("glugs: every bubble rises, and the water ends in a splash", async () => {
@@ -225,6 +236,14 @@ describe("textured sounds", () => {
     const { CAT_SOUNDS } = await loadSounds();
     const purr = CAT_SOUNDS[2];
     expect(purr.every((tone) => tone.from >= 20 && tone.from <= 30)).toBe(true);
+  });
+
+  it("purrs in one long breath that builds before it fades", async () => {
+    const { CAT_SOUNDS } = await loadSounds();
+    const [breath, ...rest] = CAT_SOUNDS[2];
+    expect(rest).toHaveLength(0);
+    expect(breath.dur).toBeGreaterThanOrEqual(1.5);
+    expect(breath.attack ?? 0).toBeGreaterThan(0.3);
   });
 });
 

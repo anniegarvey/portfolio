@@ -72,19 +72,30 @@ export function haulChime(streak: number): Tone[] {
 }
 
 /**
- * Leaves parting before a find: little overlapping hisses of rustle, each a
- * different size and pitch, the way a hand pushes into a hedge.
+ * Leaves parting before a find: a dozen soft wisps of hiss, each swelling in
+ * rather than starting sharp (a sharp start is what makes noise a drum), each
+ * a different size and brightness. `random` picks them, so no two rustles are
+ * quite the same.
  */
-export const RUSTLE: Tone[] = [
-  { at: 0, dur: 0.09, from: 3200, to: 2400, gain: 0.06 },
-  { at: 0.05, dur: 0.06, from: 4600, to: 3600, gain: 0.045 },
-  { at: 0.1, dur: 0.11, from: 2800, to: 2000, gain: 0.07 },
-  { at: 0.17, dur: 0.05, from: 5000, to: 4000, gain: 0.04 },
-  { at: 0.21, dur: 0.1, from: 3600, to: 2600, gain: 0.05 },
-].map((tone) => ({ ...tone, wave: "noise" as const, q: 0.7 }));
+export function rustle(random: () => number = Math.random): Tone[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const dur = 0.1 + random() * 0.12;
+    const from = 3500 + random() * 4000;
+    return {
+      at: i * 0.035 + random() * 0.03,
+      dur,
+      from,
+      to: from * (0.8 + random() * 0.3),
+      wave: "noise" as const,
+      gain: 0.02 + random() * 0.03,
+      attack: dur * 0.45,
+      q: 0.6,
+    };
+  });
+}
 
-/** How long the rustle runs before the find chimes. */
-const RUSTLE_LENGTH = 0.3;
+/** How long the rustle runs before the find chimes over its tail. */
+const RUSTLE_LENGTH = 0.45;
 
 /** Nothing to do there: a soft, unbothered "hm". */
 export const NOTHING: Tone[] = [
@@ -95,28 +106,25 @@ export const NOTHING: Tone[] = [
 
 /**
  * A purr: a low buzz pulsing about 25 times a second, which is roughly a real
- * cat's rate, shaped to a rumble. Breathing in, then out a touch lower.
+ * cat's rate, shaped to a rumble. One long breath out that swells up and then
+ * slowly settles, easing a touch lower as it goes.
  */
-const PURR: Tone[] = [
-  {
+function purr(dur: number): Tone {
+  return {
     at: 0,
-    dur: 0.55,
-    from: 26,
+    dur,
+    from: 25,
+    to: 22,
     wave: "sawtooth",
     gain: 0.28,
+    attack: dur * 0.35,
     filter: 220,
+    filterTo: 180,
     q: 1.2,
-  },
-  {
-    at: 0.6,
-    dur: 0.5,
-    from: 22,
-    wave: "sawtooth",
-    gain: 0.22,
-    filter: 180,
-    q: 1.2,
-  },
-];
+  };
+}
+
+const PURR: Tone[] = [purr(1.2)];
 
 /** Shifts a sound later by `by` seconds. */
 const after = (by: number, tones: Tone[]): Tone[] =>
@@ -172,7 +180,7 @@ export const CAT_SOUNDS: Tone[][] = [
     ...after(0.48, PURR),
   ],
   // Just the purr, long and pleased with itself.
-  [...PURR, ...after(1.15, PURR)],
+  [purr(2)],
 ];
 
 // ─── Neighbours ───────────────────────────────────────────────────────────────
@@ -343,7 +351,7 @@ export function playHarvestSound(): void {
 
 /** Foraging: a rustle in the leaves first, then the same climbing find. */
 export function playForageSound(): void {
-  play(RUSTLE);
+  play(rustle());
   play(haulChime(nextStreak(Date.now())), {
     delay: RUSTLE_LENGTH,
     echo: true,
