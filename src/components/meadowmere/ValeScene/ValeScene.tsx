@@ -11,6 +11,7 @@ import {
   StallArt,
 } from "@/components/meadowmere/ValeArt/FeatureArt";
 import { TerrainLayer } from "@/components/meadowmere/ValeArt/TerrainLayer";
+import { ValeMagic } from "@/components/meadowmere/ValeArt/ValeMagic";
 import { growthStageOf } from "@/lib/meadowmere/farmingModule";
 import { interactionFor } from "@/lib/meadowmere/interaction";
 import type { FarmerPose } from "@/lib/meadowmere/movement";
@@ -24,6 +25,7 @@ import {
   VALE_WIDTH,
   valeFeatures,
 } from "@/lib/meadowmere/valeMap";
+import { ActionBurst, type TouchKind } from "./ActionBurst";
 
 /**
  * The Vale, drawn. Everything visible is derived from game state and the
@@ -68,6 +70,14 @@ function tileTop(x: number, y: number) {
   return {
     left: `${((x + 0.5) / VALE_WIDTH) * 100}%`,
     top: `${(y / VALE_HEIGHT) * 100}%`,
+  };
+}
+
+/** The middle of a tile, where a burst is thrown from. */
+function tileCentre(x: number, y: number) {
+  return {
+    left: `${((x + 0.5) / VALE_WIDTH) * 100}%`,
+    top: `${((y + 0.4) / VALE_HEIGHT) * 100}%`,
   };
 }
 
@@ -135,6 +145,8 @@ export interface Haul {
 export interface Touched {
   x: number;
   y: number;
+  /** What was done there, which picks the burst it throws off. */
+  kind: TouchKind;
   /** Watering the same bed twice over is two actions on one tile. */
   tick: number;
 }
@@ -229,6 +241,8 @@ export function ValeScene({
           );
         })}
 
+        <ValeMagic />
+
         {/*
           Drawn last, so the farmer is never hidden by scenery. Positioned with
           a CSS transform rather than the transform attribute so a step can be
@@ -273,6 +287,16 @@ export function ValeScene({
           than leaving the first note sitting there. Silent: the world already
           announces every haul, and a note that rises and goes has nothing to
           add for anyone who isn't watching it. */}
+      {/* Keyed on the tick for the same reason as the haul note: a second
+          go at the same tile throws a fresh burst. */}
+      {touched !== null && (
+        <ActionBurst
+          key={touched.tick}
+          kind={touched.kind}
+          style={tileCentre(touched.x, touched.y)}
+        />
+      )}
+
       {haul !== null && (
         <HaulNote aria-hidden key={haul.tick} style={tileTop(haul.x, haul.y)}>
           <span>{haul.glyph}</span> {haul.amount}
@@ -305,6 +329,7 @@ const Stage = styled.div`
   --vale-soil: light-dark(#9b7350, #4f3a29);
   --vale-soil-dark: light-dark(#7a5739, #3a2a1d);
   --vale-fallow: light-dark(#8aab68, #3d5738);
+  --vale-wet: light-dark(#bfe6f5, #8fc4d8);
 
   /* Buildings get their own dusk values rather than staying daylight-bright
      against a darkened valley. The farmer keeps fixed colours: the one thing

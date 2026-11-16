@@ -14,6 +14,14 @@ import {
 import { STEP_MS } from "@/lib/meadowmere/movement";
 import type { MeadowmereState } from "@/lib/meadowmere/schema";
 import {
+  playCatSound,
+  playDoorSound,
+  playNothingSound,
+  playShopSound,
+  playSowSound,
+  playWaterSound,
+} from "@/lib/meadowmere/sounds";
+import {
   makeMeadowmereContext,
   makeMeadowmereState,
   makePlanting,
@@ -21,6 +29,7 @@ import {
 import { ValeWorld } from "./ValeWorld";
 
 vi.mock("@/lib/meadowmere/context");
+vi.mock("@/lib/meadowmere/sounds");
 vi.mock("@/lib/points/context", () => ({
   usePoints: () => ({ points: 50, spendPoints: vi.fn() }),
 }));
@@ -353,6 +362,7 @@ describe("acting on what the farmer faces", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowRight}e");
 
     expect(plantSeed).toHaveBeenCalledWith("plot-0", "parsnip");
+    expect(playSowSound).toHaveBeenCalledOnce();
   });
 
   it("waters a growing plot", async () => {
@@ -372,6 +382,7 @@ describe("acting on what the farmer faces", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowRight}e");
 
     expect(waterPlot).toHaveBeenCalledWith("plot-0");
+    expect(playWaterSound).toHaveBeenCalledOnce();
   });
 
   it("acts on a space press when the map itself has focus", async () => {
@@ -646,6 +657,7 @@ describe("clicking a place on the map", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Cook at the Hollow Inn")).toBeInTheDocument();
+    expect(playDoorSound).toHaveBeenCalledWith("nessa");
   });
 
   it("opens the stall when the stall is used", async () => {
@@ -658,6 +670,7 @@ describe("clicking a place on the map", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("The seed stall")).toBeInTheDocument();
+    expect(playShopSound).toHaveBeenCalledOnce();
   });
 
   it("abandons the walk when the player takes the reins back", async () => {
@@ -710,6 +723,8 @@ describe("what the valley says back", () => {
     await userEvent.click(cat);
 
     expect(prompt()?.textContent).not.toBe(first);
+    // And something new to hear: the cat's sounds take turns too.
+    expect(vi.mocked(playCatSound).mock.calls).toEqual([[0], [1]]);
   });
 
   it("has something new to say for a double-tap, not just a slow second go", () => {
@@ -825,6 +840,7 @@ describe("announcements", () => {
     expect(liveRegion()).toHaveTextContent(
       "Plot 1 — bare soil, needs a seed in hand",
     );
+    expect(playNothingSound).toHaveBeenCalledOnce();
   });
 
   it("announces what a harvest turned up", () => {

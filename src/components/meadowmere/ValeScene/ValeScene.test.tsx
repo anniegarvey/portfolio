@@ -155,7 +155,7 @@ describe("ValeScene", () => {
     const state = stateWith(6);
     const [first] = valeFeatures(state);
     const { container } = renderScene(state, {
-      touched: { x: first.x, y: first.y, tick: 1 },
+      touched: { x: first.x, y: first.y, kind: "sow", tick: 1 },
     });
 
     expect(container.querySelectorAll("[data-settling]")).toHaveLength(1);
@@ -169,7 +169,7 @@ describe("ValeScene", () => {
     const state = stateWith(6);
     const [first] = valeFeatures(state);
     const { container, rerender } = renderScene(state, {
-      touched: { x: first.x, y: first.y, tick: 1 },
+      touched: { x: first.x, y: first.y, kind: "sow", tick: 1 },
     });
     const before = container.querySelector("[data-settling]");
     const firstTurn = before?.getAttribute("data-settling");
@@ -183,7 +183,7 @@ describe("ValeScene", () => {
         selectedCropId={null}
         state={state}
         today={TODAY}
-        touched={{ x: first.x, y: first.y, tick: 2 }}
+        touched={{ x: first.x, y: first.y, kind: "water", tick: 2 }}
         walking={false}
       />,
     );
@@ -199,6 +199,37 @@ describe("ValeScene", () => {
     const { container } = renderScene(stateWith(6));
 
     expect(container.querySelectorAll("[data-settling]")).toHaveLength(0);
+    expect(container.querySelector("[data-kind]")).toBeNull();
+  });
+
+  it("throws a burst off the tile in the shape of what was done", () => {
+    const state = stateWith(6);
+    const [first] = valeFeatures(state);
+    const { container, rerender } = renderScene(state, {
+      touched: { x: first.x, y: first.y, kind: "water", tick: 1 },
+    });
+    const water = container.querySelector("[data-kind]");
+    expect(water).toHaveAttribute("data-kind", "water");
+    expect(water?.querySelector("[data-shape='drop']")).not.toBeNull();
+
+    // A second go at the same tile is a fresh burst, not the old one left over.
+    rerender(
+      <ValeScene
+        haul={null}
+        onActivateFeature={vi.fn()}
+        onFocusFeature={vi.fn()}
+        pose={POSE}
+        selectedCropId={null}
+        state={state}
+        today={TODAY}
+        touched={{ x: first.x, y: first.y, kind: "pet", tick: 2 }}
+        walking={false}
+      />,
+    );
+    const hearts = container.querySelector("[data-kind]");
+    expect(hearts).not.toBe(water);
+    expect(hearts).toHaveAttribute("data-kind", "pet");
+    expect(hearts?.querySelector("[data-shape='heart']")).not.toBeNull();
   });
 
   it("floats a haul off the tile it came from", () => {

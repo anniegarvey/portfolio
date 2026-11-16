@@ -1,36 +1,6 @@
-import { getAudioContext } from "@/lib/sound";
+import { play, run, type Tone } from "@/lib/sound";
 import { SPECIES } from "./catalog";
 import type { SpeciesId } from "./schema";
-
-/**
- * One tone in a sound: a pitch that may slide to another over its length,
- * with a quick attack and a soft decay so nothing clicks.
- */
-export interface Tone {
-  /** Seconds after the sound starts. */
-  at: number;
-  /** Seconds the tone lasts. */
-  dur: number;
-  /** Starting pitch, in Hz. */
-  from: number;
-  /** Pitch it slides to by the end, in Hz. Holds `from` when omitted. */
-  to?: number;
-  wave: OscillatorType;
-  /** Peak volume; defaults to a gentle 0.08. */
-  gain?: number;
-  /** Wobbles the pitch this many times a second: a warble, a purr, a bleat. */
-  vibrato?: number;
-}
-
-/** A run of tones, one per pitch, `gap` seconds apart. */
-function run(
-  pitches: number[],
-  gap: number,
-  tone: Omit<Tone, "at" | "from">,
-  at = 0,
-): Tone[] {
-  return pitches.map((from, i) => ({ ...tone, at: at + i * gap, from }));
-}
 
 /**
  * Each species' call, synthesised rather than recorded so it ships no audio
@@ -323,86 +293,6 @@ const LESSON: Tone[] = [
   { at: 0.27, dur: 0.6, from: 1047, wave: "triangle", gain: 0.07, vibrato: 6 },
   { at: 0.27, dur: 0.6, from: 1568, wave: "sine", gain: 0.03 },
 ];
-
-// ─── Playing ──────────────────────────────────────────────────────────────────
-
-const echoes = new WeakMap<AudioContext, AudioNode>();
-
-/**
- * A soft repeating echo, as if the sound hung in the air a moment: what
- * separates a magical creature's call from an everyday one's.
- */
-function echoInput(ctx: AudioContext): AudioNode {
-  let input = echoes.get(ctx);
-  if (!input) {
-    const dry = ctx.createGain();
-    const delay = ctx.createDelay(0.5);
-    const feedback = ctx.createGain();
-    delay.delayTime.value = 0.17;
-    feedback.gain.value = 0.32;
-    dry.connect(ctx.destination);
-    dry.connect(delay);
-    delay.connect(feedback);
-    feedback.connect(delay);
-    feedback.connect(ctx.destination);
-    input = dry;
-    echoes.set(ctx, input);
-  }
-  return input;
-}
-
-interface PlayOptions {
-  /** Seconds to wait before the first tone. */
-  delay?: number;
-  /** Lets the sound ring on in an echo. */
-  echo?: boolean;
-  /** Multiplies every pitch. */
-  pitch?: number;
-}
-
-/** Plays a run of tones, unless site sounds are muted. */
-function play(
-  tones: Tone[],
-  { delay = 0, echo = false, pitch = 1 }: PlayOptions = {},
-): void {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  const out = echo ? echoInput(ctx) : ctx.destination;
-  const start = ctx.currentTime + delay;
-  for (const tone of tones) {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(out);
-
-    const t = start + tone.at;
-    const end = t + tone.dur;
-    osc.type = tone.wave;
-    osc.frequency.setValueAtTime(tone.from * pitch, t);
-    if (tone.to !== undefined) {
-      osc.frequency.exponentialRampToValueAtTime(tone.to * pitch, end);
-    }
-
-    if (tone.vibrato !== undefined) {
-      const wobble = ctx.createOscillator();
-      const depth = ctx.createGain();
-      wobble.frequency.value = tone.vibrato;
-      depth.gain.value = tone.from * pitch * 0.03;
-      wobble.connect(depth);
-      depth.connect(osc.frequency);
-      wobble.start(t);
-      wobble.stop(end + 0.02);
-    }
-
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(tone.gain ?? 0.08, t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, end);
-
-    osc.start(t);
-    osc.stop(end + 0.02);
-  }
-}
 
 /**
  * Plays a species' call. No two calls come out quite the same: each is

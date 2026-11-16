@@ -74,15 +74,43 @@ function FlowerTile({ x, y }: { x: number; y: number }) {
         [20, 9],
         [15, 22],
         [24, 21],
-      ].map(([cx, cy]) => (
-        <g key={`${cx}-${cy}`}>
-          <circle cx={cx} cy={cy} fill={petal} r="2.4" />
-          <circle cx={cx} cy={cy} fill="#fff6db" r="0.9" />
-        </g>
+      ].map(([cx, cy], i) => (
+        <FlowerHead
+          key={`${cx}-${cy}`}
+          style={{ animationDelay: `${(x + y + i) * -0.6}s` }}
+        >
+          {[0, 72, 144, 216, 288].map((angle) => (
+            <circle
+              cx={cx}
+              cy={cy - 1.7}
+              fill={petal}
+              key={angle}
+              r="1.35"
+              transform={`rotate(${angle} ${cx} ${cy})`}
+            />
+          ))}
+          <circle cx={cx} cy={cy} fill="#fff6db" r="1" />
+        </FlowerHead>
       ))}
     </>
   );
 }
+
+const nod = keyframes`
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(6deg); }
+`;
+
+/** Wildflowers nodding in the breeze, each on its own beat. */
+const FlowerHead = styled.g`
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ${nod} 5s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
 
 function WaterTile({ x, y }: { x: number; y: number }) {
   const variant = tileVariant(x, y, 3);

@@ -7,11 +7,20 @@ import { CROPS, FORAGES_PER_DAY, QUESTS } from "./catalog";
 import { MeadowmereProvider, useMeadowmere } from "./context";
 import { todaysErrand } from "./errandsModule";
 import { giftWorth } from "./neighboursModule";
+import {
+  playBuySound,
+  playErrandSound,
+  playForageSound,
+  playGiftSound,
+  playHarvestSound,
+  playQuestSound,
+} from "./sounds";
 import { createInitialState } from "./storage";
 
 vi.mock("@/lib/points/context", () => ({
   usePoints: vi.fn(),
 }));
+vi.mock("./sounds");
 
 const MEADOWMERE_KEY = "meadowmere-game-state";
 const TODAY = new Date().toISOString().split("T")[0];
@@ -190,6 +199,7 @@ describe("seeds and plots", () => {
     await click("buy");
     expect(spend).toHaveBeenCalledWith(CROPS.parsnip.seedCost);
     expect(screen.getByTestId("parsnip-seeds")).toHaveTextContent("2");
+    expect(playBuySound).toHaveBeenCalledOnce();
   });
 
   it("does not add a seed when points fall short", async () => {
@@ -199,6 +209,7 @@ describe("seeds and plots", () => {
 
     await click("buy");
     expect(screen.getByTestId("parsnip-seeds")).toHaveTextContent("1");
+    expect(playBuySound).not.toHaveBeenCalled();
   });
 
   it("plants, waters and harvests, persisting each step", async () => {
@@ -238,6 +249,7 @@ describe("seeds and plots", () => {
     expect(screen.getByTestId("parsnip-root")).toHaveTextContent("2");
     expect(screen.getByTestId("plot-crop")).toHaveTextContent("empty");
     expect(screen.getByTestId("notice")).toHaveTextContent("harvest");
+    expect(playHarvestSound).toHaveBeenCalledOnce();
   });
 
   it("ignores a harvest on an unripe planting", async () => {
@@ -255,6 +267,7 @@ describe("seeds and plots", () => {
 
     await click("harvest");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playHarvestSound).not.toHaveBeenCalled();
     expect(screen.getByTestId("plot-crop")).toHaveTextContent("pumpkin");
   });
 });
@@ -267,6 +280,7 @@ describe("foraging", () => {
     await click("forage");
     expect(screen.getByTestId("forages")).toHaveTextContent("1");
     expect(screen.getByTestId("notice")).toHaveTextContent("forage");
+    expect(playForageSound).toHaveBeenCalledOnce();
   });
 
   it("does nothing once the day's trips are spent", async () => {
@@ -278,6 +292,7 @@ describe("foraging", () => {
       String(FORAGES_PER_DAY),
     );
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playForageSound).not.toHaveBeenCalled();
   });
 });
 
@@ -292,6 +307,19 @@ describe("gifting", () => {
     );
     expect(screen.getByTestId("parsnip-root")).toHaveTextContent("1");
     expect(screen.getByTestId("notice")).toHaveTextContent("gift");
+    // Nessa loves parsnips, and a first favourite isn't yet a new tier.
+    expect(playGiftSound).toHaveBeenCalledWith(true, false);
+  });
+
+  it("makes the most of a gift that reaches a new friendship tier", async () => {
+    seedLocalStorage({
+      inventory: { "parsnip-root": 1 },
+      neighbours: { nessa: { friendship: 18 } },
+    });
+    renderProvider();
+
+    await click("gift");
+    expect(playGiftSound).toHaveBeenCalledWith(true, true);
   });
 
   it("does nothing without the item", async () => {
@@ -301,6 +329,7 @@ describe("gifting", () => {
     await click("gift");
     expect(screen.getByTestId("nessa")).toHaveTextContent("0");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playGiftSound).not.toHaveBeenCalled();
   });
 });
 
@@ -317,6 +346,7 @@ describe("quests", () => {
       String(QUESTS["a-bed-for-parsnips"].reward.friendship),
     );
     expect(screen.getByTestId("notice")).toHaveTextContent("quest");
+    expect(playQuestSound).toHaveBeenCalledOnce();
     expect(readStored().unlockedCropIds).toContain("cornflower");
   });
 
@@ -326,6 +356,7 @@ describe("quests", () => {
 
     await click("claim");
     expect(screen.getByTestId("completed")).toHaveTextContent("none");
+    expect(playQuestSound).not.toHaveBeenCalled();
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
   });
 });
@@ -350,6 +381,7 @@ describe("errands", () => {
 
     expect(screen.getByTestId("last-errand")).toHaveTextContent(today);
     expect(screen.getByTestId("notice")).toHaveTextContent("errand");
+    expect(playErrandSound).toHaveBeenCalledOnce();
     expect(readStored().lastErrandDate).toBe(today);
   });
 
@@ -362,6 +394,7 @@ describe("errands", () => {
 
     expect(screen.getByTestId("last-errand")).toHaveTextContent("none");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playErrandSound).not.toHaveBeenCalled();
   });
 });
 
