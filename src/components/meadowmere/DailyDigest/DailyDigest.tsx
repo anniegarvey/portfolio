@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { CROPS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
 import type { RipenedEntry } from "@/lib/meadowmere/meadowmereEngine";
+import { playMorningSound } from "@/lib/meadowmere/sounds";
 
 /** "Strawberry" → "Strawberries"; everything else in the catalog takes an s. */
 function pluralise(name: string): string {
@@ -70,7 +71,16 @@ export function DailyDigest() {
           <li key={line.key}>{line.text}</li>
         ))}
       </EventList>
-      <Button onClick={clearDailyReport} size="sm" variant="ghost">
+      <Button
+        onClick={() => {
+          // A good morning, on the tap that starts the day: a browser only
+          // lets a page make a sound once the player has touched it.
+          playMorningSound();
+          clearDailyReport();
+        }}
+        size="sm"
+        variant="ghost"
+      >
         Dismiss
       </Button>
     </Panel>

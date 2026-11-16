@@ -28,6 +28,14 @@ import type {
   SiteId,
 } from "./schema";
 import {
+  playBuySound,
+  playErrandSound,
+  playForageSound,
+  playGiftSound,
+  playHarvestSound,
+  playQuestSound,
+} from "./sounds";
+import {
   createInitialState,
   EMPTY_STATE,
   loadMeadowmereState,
@@ -116,6 +124,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     (cropId: CropId): boolean => {
       if (!spendPoints(CROPS[cropId].seedCost)) return false;
       setState((prev) => addSeeds(prev, { [cropId]: 1 }));
+      playBuySound();
       return true;
     },
     [setState, spendPoints],
@@ -150,6 +159,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         amount: result.amount,
       });
       setState(() => result.state);
+      playHarvestSound();
     },
     [state, setState],
   );
@@ -165,6 +175,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         amount: result.amount,
       });
       setState(() => result.state);
+      playForageSound();
     },
     [state, setState],
   );
@@ -182,6 +193,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         newTierName: result.newTierName,
       });
       setState(() => result.state);
+      playGiftSound(result.liked, result.newTierName !== null);
     },
     [state, setState],
   );
@@ -192,6 +204,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
       if (next === null) return;
       setNotice({ kind: "quest", questId });
       setState(() => next);
+      playQuestSound();
     },
     [state, setState],
   );
@@ -203,6 +216,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     if (errand === null || next === null) return;
     setNotice({ kind: "errand", neighbourId: errand.neighbourId });
     setState(() => next);
+    playErrandSound();
   }, [state, setState]);
 
   // Clears in-flight notices and the report too, so nothing from the discarded

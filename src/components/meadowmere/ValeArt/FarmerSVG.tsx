@@ -18,6 +18,8 @@ const TROUSERS = "#5d6f8f";
 const BOOT = "#6d4c41";
 const HAIR = "#7a5333";
 const INK = "#2d2a26";
+const BLUSH = "#f19a9a";
+const SPARKLE = "#ffffff";
 
 /** Legs and boots — identical from every angle, so drawn once. */
 function Legs() {
@@ -49,9 +51,35 @@ function FacingDown() {
         d="M9.9 6.6 Q16 5.4 22.1 6.6 L22.2 7.6 Q16 6.4 9.8 7.6 Z"
         fill={HAT_BAND}
       />
-      <circle cx="13.2" cy="11.4" fill={INK} r="1.15" />
-      <circle cx="18.8" cy="11.4" fill={INK} r="1.15" />
-      <ellipse cx="16" cy="13.6" fill={SKIN_SHADE} rx="1.4" ry="0.8" />
+      <ellipse
+        cx="11.6"
+        cy="13.2"
+        fill={BLUSH}
+        opacity="0.75"
+        rx="1.6"
+        ry="1"
+      />
+      <ellipse
+        cx="20.4"
+        cy="13.2"
+        fill={BLUSH}
+        opacity="0.75"
+        rx="1.6"
+        ry="1"
+      />
+      <Blink>
+        <ellipse cx="13.2" cy="11.2" fill={INK} rx="1.3" ry="1.6" />
+        <ellipse cx="18.8" cy="11.2" fill={INK} rx="1.3" ry="1.6" />
+        <circle cx="13.7" cy="10.6" fill={SPARKLE} r="0.5" />
+        <circle cx="19.3" cy="10.6" fill={SPARKLE} r="0.5" />
+      </Blink>
+      <path
+        d="M14.8 14 Q16 15.2 17.2 14"
+        fill="none"
+        stroke={INK}
+        strokeLinecap="round"
+        strokeWidth="0.7"
+      />
     </>
   );
 }
@@ -103,8 +131,26 @@ function FacingRight() {
         d="M10.7 6.6 Q16.6 5.4 22.5 6.6 L22.6 7.6 Q16.6 6.4 10.6 7.6 Z"
         fill={HAT_BAND}
       />
-      <circle cx="19.4" cy="11.2" fill={INK} r="1.15" />
+      <ellipse
+        cx="20.2"
+        cy="13.4"
+        fill={BLUSH}
+        opacity="0.75"
+        rx="1.5"
+        ry="1"
+      />
+      <Blink>
+        <ellipse cx="19.4" cy="11" fill={INK} rx="1.2" ry="1.6" />
+        <circle cx="19.8" cy="10.4" fill={SPARKLE} r="0.5" />
+      </Blink>
       <path d="M21.8 10.6 L23.6 12 L21.8 12.8 Z" fill={SKIN_SHADE} />
+      <path
+        d="M19.6 14.4 Q20.8 15.2 21.8 14.4"
+        fill="none"
+        stroke={INK}
+        strokeLinecap="round"
+        strokeWidth="0.7"
+      />
     </>
   );
 }
@@ -155,12 +201,34 @@ const Sprite = styled.svg`
   overflow: visible;
 `;
 
+/* Standing still is still alive: a slow breath, the body rising a hair. */
+const breathe = keyframes`
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.025); }
+`;
+
+/* Eyes open for a long while, then a quick blink, now and again a double. */
+const blink = keyframes`
+  0%, 44%, 48%, 92%, 95%, 98%, 100% { transform: scaleY(1); }
+  46%, 93.5%, 96.5% { transform: scaleY(0.1); }
+`;
+
+const Blink = styled.g`
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ${blink} 5.5s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
 const Body = styled.g<{ $facing: Facing; $walking: boolean }>`
   transform-box: fill-box;
   transform-origin: center bottom;
   scale: ${({ $facing }) => ($facing === "left" ? "-1 1" : "1 1")};
-  animation: ${({ $walking }) => ($walking ? bob : "none")} 320ms ease-in-out
-    infinite;
+  animation: ${({ $walking }) => ($walking ? bob : breathe)}
+    ${({ $walking }) => ($walking ? "320ms" : "3.2s")} ease-in-out infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

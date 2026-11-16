@@ -6,10 +6,12 @@ import {
   useMeadowmere,
 } from "@/lib/meadowmere/context";
 import type { DailyFarmReport } from "@/lib/meadowmere/meadowmereEngine";
+import { playMorningSound } from "@/lib/meadowmere/sounds";
 import { makeMeadowmereContext } from "@/lib/meadowmere/testFixtures";
 import { DailyDigest } from "./DailyDigest";
 
 vi.mock("@/lib/meadowmere/context");
+vi.mock("@/lib/meadowmere/sounds");
 
 const clearDailyReport = vi.fn();
 
@@ -129,5 +131,7 @@ describe("DailyDigest", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(clearDailyReport).toHaveBeenCalled();
+    // Good morning: the tap that starts the day is allowed to make a sound.
+    expect(playMorningSound).toHaveBeenCalledOnce();
   });
 });
