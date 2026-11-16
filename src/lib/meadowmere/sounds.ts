@@ -20,17 +20,38 @@ export const SOW: Tone[] = [
   { at: 0.09, dur: 0.12, from: 520, to: 880, wave: "sine", gain: 0.06 },
 ];
 
-/** Three drops off the can's rose, then the shimmer of wet soil. */
+/**
+ * The can tipping: a run of glugs, each a bubble that bloops up and then
+ * gulps lower, uneven the way water leaves a can, then the splash on the soil.
+ */
+function glug(at: number, f: number): Tone[] {
+  return [
+    { at, dur: 0.05, from: f, to: f * 1.9, wave: "sine", gain: 0.16 },
+    {
+      at: at + 0.05,
+      dur: 0.07,
+      from: f * 0.85,
+      to: f * 1.5,
+      wave: "sine",
+      gain: 0.12,
+    },
+  ];
+}
+
 export const WATER: Tone[] = [
-  { at: 0, dur: 0.08, from: 1400, to: 700, wave: "sine", gain: 0.06 },
-  { at: 0.07, dur: 0.08, from: 1700, to: 850, wave: "sine", gain: 0.06 },
-  { at: 0.14, dur: 0.08, from: 1250, to: 620, wave: "sine", gain: 0.06 },
-  ...run(
-    [2093, 2637, 3136],
-    0.05,
-    { dur: 0.3, wave: "sine", gain: 0.02 },
-    0.24,
-  ),
+  ...glug(0, 190),
+  ...glug(0.15, 240),
+  ...glug(0.28, 170),
+  ...glug(0.44, 220),
+  {
+    at: 0.52,
+    dur: 0.4,
+    from: 1600,
+    to: 700,
+    wave: "noise",
+    gain: 0.06,
+    q: 0.8,
+  },
 ];
 
 /**
@@ -50,15 +71,20 @@ export function haulChime(streak: number): Tone[] {
   ];
 }
 
-/** Leaves parting before a find: a few dry ticks. */
-const RUSTLE: Tone[] = [0, 0.04, 0.09, 0.13].map((at, i) => ({
-  at,
-  dur: 0.03,
-  from: 900 + i * 150,
-  to: 600,
-  wave: "square" as const,
-  gain: 0.02,
-}));
+/**
+ * Leaves parting before a find: little overlapping hisses of rustle, each a
+ * different size and pitch, the way a hand pushes into a hedge.
+ */
+export const RUSTLE: Tone[] = [
+  { at: 0, dur: 0.09, from: 3200, to: 2400, gain: 0.06 },
+  { at: 0.05, dur: 0.06, from: 4600, to: 3600, gain: 0.045 },
+  { at: 0.1, dur: 0.11, from: 2800, to: 2000, gain: 0.07 },
+  { at: 0.17, dur: 0.05, from: 5000, to: 4000, gain: 0.04 },
+  { at: 0.21, dur: 0.1, from: 3600, to: 2600, gain: 0.05 },
+].map((tone) => ({ ...tone, wave: "noise" as const, q: 0.7 }));
+
+/** How long the rustle runs before the find chimes. */
+const RUSTLE_LENGTH = 0.3;
 
 /** Nothing to do there: a soft, unbothered "hm". */
 export const NOTHING: Tone[] = [
@@ -68,31 +94,85 @@ export const NOTHING: Tone[] = [
 // ─── The cat ──────────────────────────────────────────────────────────────────
 
 /**
- * What the cat says, taking turns like the purrs written for it: a chirpy
- * "mrrp", a mew, and a slow rumble, each ending in a purr.
+ * A purr: a low buzz pulsing about 25 times a second, which is roughly a real
+ * cat's rate, shaped to a rumble. Breathing in, then out a touch lower.
+ */
+const PURR: Tone[] = [
+  {
+    at: 0,
+    dur: 0.55,
+    from: 26,
+    wave: "sawtooth",
+    gain: 0.28,
+    filter: 220,
+    q: 1.2,
+  },
+  {
+    at: 0.6,
+    dur: 0.5,
+    from: 22,
+    wave: "sawtooth",
+    gain: 0.22,
+    filter: 180,
+    q: 1.2,
+  },
+];
+
+/** Shifts a sound later by `by` seconds. */
+const after = (by: number, tones: Tone[]): Tone[] =>
+  tones.map((tone) => ({ ...tone, at: tone.at + by }));
+
+/**
+ * What the cat says, taking turns like the purrs written for it. Voiced
+ * through a moving filter, which is what makes a "mew" sound like a mouth
+ * rather than a whistle.
  */
 export const CAT_SOUNDS: Tone[][] = [
-  // Mrrp?
+  // Mrrp? A rolled trill that rises like a question.
   [
-    { at: 0, dur: 0.08, from: 500, to: 900, wave: "triangle", gain: 0.08 },
-    { at: 0.08, dur: 0.1, from: 900, to: 760, wave: "triangle", gain: 0.07 },
-    { at: 0.22, dur: 0.5, from: 90, wave: "triangle", gain: 0.12, vibrato: 24 },
-  ],
-  // Mew.
-  [
-    { at: 0, dur: 0.1, from: 760, to: 1100, wave: "triangle", gain: 0.07 },
-    { at: 0.1, dur: 0.18, from: 1100, to: 700, wave: "triangle", gain: 0.06 },
     {
-      at: 0.32,
-      dur: 0.45,
-      from: 95,
-      wave: "triangle",
-      gain: 0.12,
-      vibrato: 22,
+      at: 0,
+      dur: 0.2,
+      from: 420,
+      to: 680,
+      wave: "sawtooth",
+      gain: 0.06,
+      vibrato: 30,
+      vibratoDepth: 0.12,
+      filter: 1200,
+      filterTo: 1800,
+      q: 2,
     },
+    ...after(0.28, PURR),
+  ],
+  // Mew: "mi" up to the top, then "aow" sliding down as the mouth opens.
+  [
+    {
+      at: 0,
+      dur: 0.12,
+      from: 700,
+      to: 980,
+      wave: "sawtooth",
+      gain: 0.08,
+      filter: 2400,
+      filterTo: 1600,
+      q: 3,
+    },
+    {
+      at: 0.12,
+      dur: 0.28,
+      from: 980,
+      to: 620,
+      wave: "sawtooth",
+      gain: 0.08,
+      filter: 1600,
+      filterTo: 850,
+      q: 3,
+    },
+    ...after(0.48, PURR),
   ],
   // Just the purr, long and pleased with itself.
-  [{ at: 0, dur: 0.8, from: 88, wave: "triangle", gain: 0.13, vibrato: 25 }],
+  [...PURR, ...after(1.15, PURR)],
 ];
 
 // ─── Neighbours ───────────────────────────────────────────────────────────────
@@ -122,10 +202,35 @@ export const DOOR_SOUNDS: Record<NeighbourId, Tone[]> = {
       0.2,
     ),
   ],
+  // The mill wheel: two long wooden creaks, a stick-and-slip judder of a
+  // buzz rung through a hollow, then Wren's whistle.
   wren: [
-    { at: 0, dur: 0.18, from: 180, to: 140, wave: "triangle", gain: 0.08 },
-    { at: 0.22, dur: 0.12, from: 1568, to: 2093, wave: "sine", gain: 0.05 },
-    { at: 0.36, dur: 0.2, from: 2093, to: 1760, wave: "sine", gain: 0.05 },
+    {
+      at: 0,
+      dur: 0.45,
+      from: 70,
+      to: 110,
+      wave: "sawtooth",
+      gain: 0.2,
+      vibrato: 19,
+      vibratoDepth: 0.4,
+      filter: 900,
+      q: 3,
+    },
+    {
+      at: 0.5,
+      dur: 0.35,
+      from: 120,
+      to: 80,
+      wave: "sawtooth",
+      gain: 0.18,
+      vibrato: 23,
+      vibratoDepth: 0.4,
+      filter: 1100,
+      q: 3,
+    },
+    { at: 0.95, dur: 0.12, from: 1568, to: 2093, wave: "sine", gain: 0.05 },
+    { at: 1.09, dur: 0.2, from: 2093, to: 1760, wave: "sine", gain: 0.05 },
   ],
 };
 
@@ -239,7 +344,10 @@ export function playHarvestSound(): void {
 /** Foraging: a rustle in the leaves first, then the same climbing find. */
 export function playForageSound(): void {
   play(RUSTLE);
-  play(haulChime(nextStreak(Date.now())), { delay: 0.16, echo: true });
+  play(haulChime(nextStreak(Date.now())), {
+    delay: RUSTLE_LENGTH,
+    echo: true,
+  });
 }
 
 export function playNothingSound(): void {

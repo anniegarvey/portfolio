@@ -7,6 +7,7 @@ import { ALL_NEIGHBOUR_IDS } from "./catalog";
  */
 function stubAudio() {
   const voices: { at: number; pitch: number }[] = [];
+  const bands: number[] = [];
   let echoes = 0;
   const param = () => ({
     value: 0,
@@ -33,13 +34,36 @@ function stubAudio() {
     createGain() {
       return { gain: param(), connect: vi.fn() };
     }
+    sampleRate = 8;
+    createBuffer(_channels: number, length: number) {
+      const data = new Float32Array(length);
+      return { getChannelData: () => data };
+    }
+    createBufferSource() {
+      // Noise has no pitch of its own: recorded as 0.
+      return {
+        connect: vi.fn(),
+        start: (at: number) => voices.push({ at, pitch: 0 }),
+        stop: vi.fn(),
+      };
+    }
+    createBiquadFilter() {
+      const frequency = param();
+      bands.push(0);
+      return {
+        type: "",
+        Q: param(),
+        frequency,
+        connect: vi.fn(),
+      };
+    }
     createDelay() {
       echoes += 1;
       return { delayTime: param(), connect: vi.fn() };
     }
   }
   vi.stubGlobal("AudioContext", FakeAudioContext);
-  return { voices, echoCount: () => echoes };
+  return { voices, bandCount: () => bands.length, echoCount: () => echoes };
 }
 
 // The module keeps its streak, AudioContext and mute setting once read, so
@@ -169,6 +193,38 @@ describe("the farm's sounds", () => {
         sounds.SHOP_BELL.length +
         sounds.SEED_BOUGHT.length,
     );
+  });
+});
+
+describe("textured sounds", () => {
+  it("rustles with noise rather than a pitch", async () => {
+    const audio = stubAudio();
+    const { playForageSound, RUSTLE } = await loadSounds();
+    playForageSound();
+    const rustle = audio.voices.slice(0, RUSTLE.length);
+    expect(rustle.every((voice) => voice.pitch === 0)).toBe(true);
+    // Every hiss is narrowed to a band, or it would be a radio between stations.
+    expect(audio.bandCount()).toBeGreaterThanOrEqual(RUSTLE.length);
+  });
+
+  it("glugs: every bubble rises, and the water ends in a splash", async () => {
+    const { WATER } = await loadSounds();
+    const bubbles = WATER.filter((tone) => tone.wave !== "noise");
+    expect(bubbles.every((tone) => (tone.to ?? 0) > tone.from)).toBe(true);
+    expect(WATER.at(-1)?.wave).toBe("noise");
+  });
+
+  it("creaks the mill wheel through a hollow with a judder", async () => {
+    const { DOOR_SOUNDS } = await loadSounds();
+    const creaks = DOOR_SOUNDS.wren.filter((tone) => tone.filter !== undefined);
+    expect(creaks.length).toBeGreaterThanOrEqual(2);
+    expect(creaks.every((tone) => (tone.vibratoDepth ?? 0) > 0.1)).toBe(true);
+  });
+
+  it("purrs at about a real cat's rate", async () => {
+    const { CAT_SOUNDS } = await loadSounds();
+    const purr = CAT_SOUNDS[2];
+    expect(purr.every((tone) => tone.from >= 20 && tone.from <= 30)).toBe(true);
   });
 });
 
