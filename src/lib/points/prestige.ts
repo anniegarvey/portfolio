@@ -67,7 +67,12 @@ export function recordRestart(game: RestartGame, bonusPercent: number): void {
       bonusPercent: state[game].bonusPercent + bonusPercent,
     },
   };
-  localStorage.setItem(PRESTIGE_STORAGE_KEY, JSON.stringify(next));
+  savePrestigeState(next);
+}
+
+/** Replaces every banked restart, as restoring a backup does. */
+export function savePrestigeState(state: PrestigeState): void {
+  localStorage.setItem(PRESTIGE_STORAGE_KEY, JSON.stringify(state));
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 

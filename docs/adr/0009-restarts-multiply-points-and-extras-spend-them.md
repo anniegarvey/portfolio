@@ -16,4 +16,4 @@ The bonus grows with how far the game got, so staying longer is always worth som
 
 What resets is the game's progress. What the player has learned stays, so a second run is quicker without being a different game: Meadowmere keeps every neighbour's gift hints, Glade keeps every discovered and tried preference. Points are never touched.
 
-The multiplier lives in its own localStorage record beside the points (`points-prestige`), not in either game's save, so resetting or restarting one game can never lose the other's bonus. The points provider reads it on every award.
+The multiplier lives in its own localStorage record beside the points (`points-prestige`), not in either game's save, so resetting or restarting one game can never lose the other's bonus. The points provider reads it on every award. Energy Planner backups carry it from v8 (`pointsPrestige`).

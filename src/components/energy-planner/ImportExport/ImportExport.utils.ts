@@ -23,7 +23,13 @@ import {
 } from "@/lib/energy-planner/storage";
 import { type GladeState, GladeStateSchema } from "@/lib/glade/schema";
 import { loadGladeState, saveGladeState } from "@/lib/glade/storage";
-import { POINTS_STORAGE_KEY } from "@/lib/points/keys";
+import { POINTS_STORAGE_KEY, PRESTIGE_STORAGE_KEY } from "@/lib/points/keys";
+import {
+  loadPrestigeState,
+  type PrestigeState,
+  PrestigeStateSchema,
+  savePrestigeState,
+} from "@/lib/points/prestige";
 import type { WellnessConfig, WellnessEntry } from "@/lib/wellness/schema";
 import {
   WellnessConfigSchema,
@@ -50,10 +56,12 @@ export interface EnergyPlannerExportData {
     points: number | null;
     bonsaiGameState: BonsaiGameState | null;
     gladeGameState: GladeState | null;
+    /** Restart bonuses behind the points multiplier (v8+). */
+    pointsPrestige: PrestigeState | null;
   };
 }
 
-const EXPORT_VERSION = "7.0.0"; // Added points and game state (Bonsai, Glade)
+const EXPORT_VERSION = "8.0.0"; // Added restart bonuses (points multiplier)
 
 function loadPoints(): number | null {
   const stored = localStorage.getItem(POINTS_STORAGE_KEY);
@@ -100,6 +108,10 @@ export async function exportEnergyPlannerData(): Promise<void> {
       points: loadPoints(),
       bonsaiGameState: loadBonsaiState(),
       gladeGameState: loadGladeState(),
+      pointsPrestige:
+        localStorage.getItem(PRESTIGE_STORAGE_KEY) === null
+          ? null
+          : loadPrestigeState(),
     },
   };
 
@@ -143,7 +155,8 @@ async function importWellnessData(
 
 /**
  * Validates and stores the points balance and game states from imported
- * data. Backups older than v7 simply don't carry these fields.
+ * data. Backups older than v7 simply don't carry these fields, and those
+ * older than v8 carry no restart bonuses.
  * @throws Error if a game state fails schema validation
  */
 function importGameData(data: EnergyPlannerExportData["data"]): void {
@@ -163,6 +176,13 @@ function importGameData(data: EnergyPlannerExportData["data"]): void {
       throw new Error("Invalid glade game state in backup file.");
     }
     saveGladeState(result.data);
+  }
+  if (data.pointsPrestige) {
+    const result = PrestigeStateSchema.safeParse(data.pointsPrestige);
+    if (!result.success) {
+      throw new Error("Invalid points multiplier in backup file.");
+    }
+    savePrestigeState(result.data);
   }
 }
 
