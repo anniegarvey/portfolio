@@ -21,3 +21,5 @@ Points therefore buy seed packets and nothing pays them back. Harvested produce 
 Foraging the wilds is free and yields materials, so a player with no points can still progress the quest chain — the shop is an accelerator, not a gate. This mirrors how Glade's resident foragers keep the kitchen stocked without minting points.
 
 ADR 0003 names only Bonsai Garden and Creature Glade. Read it as the general rule for the Playground: Meadowmere is bound by it too.
+
+_The "only thing points are spent on" part is superseded by ADR 0009, which adds Extras._

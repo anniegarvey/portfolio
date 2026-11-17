@@ -130,6 +130,19 @@ export type NeighbourState = z.infer<typeof NeighbourStateSchema>;
 
 // ─── Game State ───────────────────────────────────────────────────────────────
 
+/**
+ * The extras bought on one calendar day, so each one's price can climb with
+ * every purchase that day. A record from an earlier day counts as nothing.
+ */
+export const ExtrasBoughtSchema = z.object({
+  date: z.string(),
+  trips: z.number().int().min(0),
+  tonics: z.number().int().min(0),
+  /** Neighbours already given an extra gift today: one each per day. */
+  giftNeighbourIds: z.array(NeighbourIdSchema),
+});
+export type ExtrasBought = z.infer<typeof ExtrasBoughtSchema>;
+
 export const MeadowmereStateSchema = z.object({
   plots: z.array(PlotSchema),
   /** Unplanted seed packets, bought with points or given as quest rewards. */
@@ -152,5 +165,7 @@ export const MeadowmereStateSchema = z.object({
    * Optional so saves written before errands existed still parse.
    */
   lastErrandDate: z.string().optional(),
+  /** Extras bought with points today. Optional so older saves still parse. */
+  extrasBought: ExtrasBoughtSchema.optional(),
 });
 export type MeadowmereState = z.infer<typeof MeadowmereStateSchema>;

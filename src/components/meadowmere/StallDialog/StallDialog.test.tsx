@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getTodayDateString } from "@/lib/date";
+import { GROW_TONIC_COSTS } from "@/lib/meadowmere/catalog";
 import {
   type MeadowmereContextType,
   useMeadowmere,
@@ -8,6 +10,8 @@ import {
 import {
   makeMeadowmereContext,
   makeMeadowmereState,
+  makePlanting,
+  makePlot,
 } from "@/lib/meadowmere/testFixtures";
 import { StallDialog } from "./StallDialog";
 
@@ -109,5 +113,53 @@ describe("StallDialog", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Close modal" }));
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("grow tonic", () => {
+  const growing = () =>
+    makeMeadowmereState({
+      plots: [
+        makePlot({
+          planting: makePlanting({ plantedDate: getTodayDateString() }),
+        }),
+      ],
+    });
+
+  it("is sold while something is growing", async () => {
+    const buyGrowTonic = vi.fn();
+    mock({ buyGrowTonic, state: growing() });
+    render(<StallDialog onClose={onClose} open />);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: `Buy grow tonic for ${GROW_TONIC_COSTS[0]} points`,
+      }),
+    );
+    expect(buyGrowTonic).toHaveBeenCalled();
+  });
+
+  it("says so when nothing is growing", () => {
+    mock({ state: makeMeadowmereState() });
+    render(<StallDialog onClose={onClose} open />);
+    expect(screen.getByText("Nothing is growing right now.")).toBeVisible();
+  });
+
+  it("sells out for the day", () => {
+    mock({
+      state: {
+        ...growing(),
+        extrasBought: {
+          date: getTodayDateString(),
+          trips: 0,
+          tonics: GROW_TONIC_COSTS.length,
+          giftNeighbourIds: [],
+        },
+      },
+    });
+    render(<StallDialog onClose={onClose} open />);
+    expect(
+      screen.getByText("Sold out for today — back tomorrow."),
+    ).toBeVisible();
   });
 });

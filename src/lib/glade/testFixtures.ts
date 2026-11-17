@@ -68,7 +68,10 @@ export function makeGladeContext(
     buyIngredient: vi.fn().mockReturnValue(false),
     buyMissingIngredients: vi.fn().mockReturnValue(false),
     buyLesson: vi.fn().mockReturnValue(false),
+    buyExtraRound: vi.fn().mockReturnValue(false),
+    inviteVisitor: vi.fn().mockReturnValue(false),
     resetGlade: vi.fn(),
+    restartGlade: vi.fn(),
     ...overrides,
   };
 }

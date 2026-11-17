@@ -17,6 +17,24 @@ export const ERRAND_SEEDS = 2;
 
 export const MAX_FRIENDSHIP = 100;
 
+/**
+ * Points prices of the extras, each climbing with every one bought that day
+ * so a big day in the planner goes further without buying the game out. A
+ * day's last price is its cap: no more of that extra until tomorrow.
+ */
+export const EXTRA_TRIP_COSTS = [20, 30, 45, 65, 90] as const;
+export const GROW_TONIC_COSTS = [25, 40, 60] as const;
+/** One extra gift per neighbour per day, at a flat price. */
+export const EXTRA_GIFT_COST = 25;
+
+/**
+ * A restart is offered once half the quest chain is done, and adds this much
+ * to the points multiplier, in percent, for every quest completed — so
+ * finishing the chain first is worth a whole extra ×1 (ADR 0009).
+ */
+export const RESTART_MIN_QUESTS = 13;
+export const RESTART_BONUS_PER_QUEST = 4;
+
 // ─── Items ────────────────────────────────────────────────────────────────────
 
 export interface ItemConfig {

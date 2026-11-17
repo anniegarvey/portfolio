@@ -1,12 +1,13 @@
 "use client";
 
-import { Lightbulb } from "lucide-react";
+import { Coins, Lightbulb } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { type RefObject, useId, useRef } from "react";
 import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { UnlockNotice } from "@/components/glade/UnlockNotice";
 import { Toggletip } from "@/components/Toggletip";
+import { getTodayDateString } from "@/lib/date";
 import {
   ALL_TREAT_IDS,
   PET_SPOT_LABELS,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/glade/catalog";
 import type { ActionKind, VisitorActionResult } from "@/lib/glade/context";
 import { useGlade } from "@/lib/glade/context";
+import { canBuyExtraRound, extraRoundCost } from "@/lib/glade/extrasModule";
 import type {
   GladeState,
   PetSpot,
@@ -34,6 +36,7 @@ import {
   isVagueHintUnlocked,
 } from "@/lib/glade/skillsModule";
 import { playCreatureSound } from "@/lib/glade/sounds";
+import { usePoints } from "@/lib/points/context";
 
 const POSTURES = Object.keys(POSTURE_LABELS) as Posture[];
 const PET_SPOTS = Object.keys(PET_SPOT_LABELS) as PetSpot[];
@@ -216,7 +219,34 @@ export function VisitorCard({ visitor }: { visitor: WildVisitor }) {
 
         <TreatActionGroup portraitRef={portraitRef} visitor={visitor} />
       </Actions>
+
+      <ExtraRoundButton visitor={visitor} />
     </Card>
+  );
+}
+
+/**
+ * Another round of taming actions with this visitor today, offered once every
+ * action the player can do has been done.
+ */
+function ExtraRoundButton({ visitor }: { visitor: WildVisitor }) {
+  const { state, buyExtraRound } = useGlade();
+  const { points } = usePoints();
+  const today = getTodayDateString();
+  const cost = extraRoundCost(state, today);
+  if (cost === null || !canBuyExtraRound(state, visitor.id, today)) {
+    return null;
+  }
+  return (
+    <Button
+      aria-label={`Spend another round with the ${SPECIES[visitor.speciesId].name} for ${cost} points`}
+      disabled={points < cost}
+      onClick={() => buyExtraRound(visitor.id)}
+      size="sm"
+      variant="outline"
+    >
+      Another round <Coins aria-hidden size={13} /> {cost}
+    </Button>
   );
 }
 

@@ -13,6 +13,7 @@ import {
 import { FLIGHT_MS } from "@/components/glade/TameCelebration/timing";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
+import { recordRestart } from "@/lib/points/prestige";
 import { INGREDIENTS, SPECIES, tameThresholdFor } from "./catalog";
 import {
   addIngredient,
@@ -22,7 +23,13 @@ import {
   missingIngredients,
   missingIngredientsCost,
 } from "./cookingModule";
+import * as extras from "./extrasModule";
 import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
+import {
+  canRestart,
+  restartBonusPercent,
+  restartedState,
+} from "./restartModule";
 import type {
   GladeState,
   IngredientId,
@@ -118,8 +125,18 @@ export interface GladeContextType {
   /** Buys every ingredient still missing for a recipe in one purchase. */
   buyMissingIngredients: (treatId: TreatId) => boolean;
   buyLesson: (skillId: SkillId) => boolean;
+  /** Spends points letting a visitor take every taming action again today. */
+  buyExtraRound: (visitorId: string) => boolean;
+  /** Spends points bringing one more wild visitor for today. */
+  inviteVisitor: () => boolean;
   /** Wipes all glade progress back to a fresh start. Does not touch points. */
   resetGlade: () => void;
+  /**
+   * Trades the glade's progress for a lasting bonus on Energy Planner points.
+   * Preferences found and points are kept. Does nothing until a restart is
+   * offered.
+   */
+  restartGlade: () => void;
 }
 
 const GladeContext = createContext<GladeContextType | undefined>(undefined);
@@ -384,6 +401,37 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [state, setState, spendPoints],
   );
 
+  // Each extra checks it is allowed before spending, so a refused purchase
+  // never costs points.
+  const buyExtra = useCallback(
+    (cost: number | null, next: GladeState | null): boolean => {
+      if (cost === null || next === null || !spendPoints(cost)) return false;
+      setState(() => next);
+      playBuySound();
+      return true;
+    },
+    [setState, spendPoints],
+  );
+
+  const handleBuyExtraRound = useCallback(
+    (visitorId: string) => {
+      const today = getTodayDateString();
+      return buyExtra(
+        extras.extraRoundCost(state, today),
+        extras.buyExtraRound(state, visitorId, today),
+      );
+    },
+    [state, buyExtra],
+  );
+
+  const handleInviteVisitor = useCallback(() => {
+    const today = getTodayDateString();
+    return buyExtra(
+      extras.inviteCost(state, today),
+      extras.inviteVisitor(state, today),
+    );
+  }, [state, buyExtra]);
+
   // Wipes persisted and in-flight session state alike so no stale
   // celebration/report can outlive the reset. Points are untouched — they're
   // a currency shared with Bonsai, not part of glade progress.
@@ -394,6 +442,16 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     clearTamedVisitor();
     setState(() => createInitialState());
   }, [setState, clearCelebration, clearDailyReport, clearTamedVisitor]);
+
+  const handleRestartGlade = useCallback(() => {
+    if (!canRestart(state)) return;
+    recordRestart("glade", restartBonusPercent(state));
+    setLastAction(null);
+    clearCelebration();
+    clearDailyReport();
+    clearTamedVisitor();
+    setState(() => restartedState(state, createInitialState()));
+  }, [state, setState, clearCelebration, clearDailyReport, clearTamedVisitor]);
 
   return (
     <GladeContext.Provider
@@ -417,7 +475,10 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         buyIngredient: handleBuyIngredient,
         buyMissingIngredients: handleBuyMissingIngredients,
         buyLesson: handleBuyLesson,
+        buyExtraRound: handleBuyExtraRound,
+        inviteVisitor: handleInviteVisitor,
         resetGlade: handleResetGlade,
+        restartGlade: handleRestartGlade,
       }}
     >
       {children}

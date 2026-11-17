@@ -165,6 +165,17 @@ export type TriedPreference = z.infer<typeof TriedPreferenceSchema>;
 
 // ─── Game State ───────────────────────────────────────────────────────────────
 
+/**
+ * The extras bought on one calendar day, so each one's price can climb with
+ * every purchase that day. A record from an earlier day counts as nothing.
+ */
+export const GladeExtrasBoughtSchema = z.object({
+  date: z.string(),
+  rounds: z.number().int().min(0),
+  invites: z.number().int().min(0),
+});
+export type GladeExtrasBought = z.infer<typeof GladeExtrasBoughtSchema>;
+
 export const GladeStateSchema = z.object({
   visitors: z.array(WildVisitorSchema),
   residents: z.array(ResidentSchema),
@@ -198,5 +209,7 @@ export const GladeStateSchema = z.object({
     .partialRecord(SpeciesIdSchema, TriedPreferenceSchema)
     .default(() => ({})),
   lastAdvanceDate: z.string().optional(),
+  /** Extras bought with points today. Optional so older saves still parse. */
+  extrasBought: GladeExtrasBoughtSchema.optional(),
 });
 export type GladeState = z.infer<typeof GladeStateSchema>;

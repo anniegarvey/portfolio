@@ -141,6 +141,12 @@ A cooked consumable offered to a wild visitor for trust. A species' **favourite 
 **Benefit role**
 The daily contribution a species makes as a resident: _Forager_ (gathers ingredients), _Soother_ (passively builds trust with wild visitors), _Beacon_ (attracts rarer visitors), or _Muse_ (boosts skill XP gains).
 
+**Another round**
+An **Extra** that lets a **Wild visitor** accept all three **Taming actions** again today. Offered once every action the player has unlocked has been taken.
+
+**Invitation**
+An **Extra** that brings one more **Wild visitor** for today, drawn with the same weights as the morning's visitors but never a species already here.
+
 **Daily glade advance**
 The once-per-calendar-day tick: yesterday's wild visitors depart (banking trust), a fresh set of one to three visitors is drawn, and resident benefits apply. Mirrors the Bonsai **Daily advance** pattern.
 
@@ -171,7 +177,7 @@ Something standing on a tile that the farmer can act on: a **Plot**, a **Site**,
 Where a **Neighbour** lives. Calling on one is how gifts are given and quests handed in.
 
 **Seed stall**
-Where seed packets are bought with points. The only thing points are spent on in Meadowmere (see ADR 0007).
+Where seed packets and **Grow tonic** are bought with points (see ADR 0007, ADR 0009).
 
 **Barn cat**
 A cat that takes a different perch each day, there to be found and petted. Its perch is derived from the date of the last **Daily Meadowmere advance**, and only ever falls on hedge or rock — ground the farmer could never stand on — so a feature that moves every morning can never wall off a loop.
@@ -253,12 +259,33 @@ What a quest pays out: seeds, items, a crop unlock, a site unlock, extra plots, 
 **Errand**
 A small repeatable ask, one a day once the first quest is done: one neighbour wants two or three of something the player can already grow or forage, preferring something they like. Handed in at their **Cottage** for seeds and friendship. Derived from the date and what is unlocked; only `lastErrandDate` is stored, to allow one hand-in a day. Keeps something to aim for after the quest chain runs out.
 
+**Extra trip**
+A forage trip bought with points once the day's free trips are spent. Its price climbs with each one bought that day, up to a daily cap. An **Extra** (see Shared Infrastructure).
+
+**Grow tonic**
+An **Extra** from the **Seed stall** that moves every growing planting a day further along, by moving its `plantedDate` a day earlier. Only sold while something is growing.
+
+**Extra gift**
+An **Extra** that lets a neighbour already given today's **Gift** take one more. Once per neighbour per day.
+
 **Daily Meadowmere advance**
 The once-per-calendar-day tick: forage trips refill and the digest reports what ripened while the player was away. Growth needs no work here because it is derived. Watering and gifting limits expire on their own, being date-stamped. Mirrors the Bonsai **Daily advance** and **Daily glade advance** pattern.
 
 ---
 
 ## Shared Infrastructure
+
+**Extra**
+A speedup bought with points inside a Playground game. Its price climbs with each one bought that day and stops at a daily cap; the record of what was bought (`extrasBought`) counts as nothing once its date has passed (see ADR 0009).
+
+**Restart**
+Trading a Meadowmere or Creature Glade game's progress for a **Restart bonus**. Offered from halfway (13 quests, or 11 residents). What was learned stays: Meadowmere's gift hints, Glade's discovered and tried preferences. Points are never touched.
+
+**Restart bonus**
+What a **Restart** adds to the **Points multiplier**, in whole percent: 4 per Meadowmere quest completed; 3, 5, 10, 15 or 25 per Glade resident by rarity.
+
+**Points multiplier**
+One plus every **Restart bonus** from both games. Scales every points award from the Energy Planner, so a restart in either game speeds up every game. Stored on its own (`points-prestige`), never in a game's save.
 
 **Points system**
 The cross-cutting module that manages the points currency shared between the Energy Planner and the Playground games (Bonsai Garden, Creature Glade, Meadowmere). Handles awarding, spending, particle animations, and localStorage persistence.

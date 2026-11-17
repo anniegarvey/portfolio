@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PointsProvider, usePoints } from "@/lib/points/context";
+import { recordRestart } from "@/lib/points/prestige";
 import { PointsDisplay } from "./PointsDisplay";
 
 vi.mock("@/lib/points/sounds", () => ({
@@ -67,5 +68,30 @@ describe("PointsDisplay", () => {
     await waitFor(() => expect(animateMock).toHaveBeenCalled());
 
     animateMock.mockRestore();
+  });
+});
+
+describe("PointsDisplay multiplier", () => {
+  afterEach(() => {
+    localStorage.removeItem("points-prestige");
+  });
+
+  it("stays out of the way before any restart", () => {
+    render(
+      <PointsProvider>
+        <PointsDisplay />
+      </PointsProvider>,
+    );
+    expect(screen.queryByText(/^×/)).not.toBeInTheDocument();
+  });
+
+  it("shows the multiplier once a game has been restarted", () => {
+    recordRestart("meadowmere", 52);
+    render(
+      <PointsProvider>
+        <PointsDisplay />
+      </PointsProvider>,
+    );
+    expect(screen.getByText("×1.52")).toBeVisible();
   });
 });

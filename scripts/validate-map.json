@@ -26,6 +26,7 @@
       "e2e/meadowmere"
     ],
     "src/components/ResetProgress/**": ["e2e/glade", "e2e/meadowmere"],
+    "src/components/RestartGame/**": ["e2e/glade", "e2e/meadowmere"],
     "src/components/Select/**": ["e2e/energy-planner", "e2e/meadowmere"],
     "src/components/Toggletip/**": ["e2e/energy-planner", "e2e/glade"],
     "src/components/Button/**": "e2e",

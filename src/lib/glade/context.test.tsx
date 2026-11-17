@@ -3,7 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { useLayoutEffect, useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePoints } from "@/lib/points/context";
-import { LESSON_COSTS, XP_THRESHOLDS } from "./catalog";
+import { loadPrestigeState } from "@/lib/points/prestige";
+import {
+  EXTRA_ROUND_COSTS,
+  INVITE_COSTS,
+  LESSON_COSTS,
+  RESTART_MIN_RESIDENTS,
+  XP_THRESHOLDS,
+} from "./catalog";
 import { GladeProvider, useGlade } from "./context";
 import type { GladeState } from "./schema";
 import {
@@ -187,6 +194,18 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.buyLesson("petting-technique")} type="button">
         Buy Lesson
+      </button>
+      <button
+        onClick={() => visitor && ctx.buyExtraRound(visitor.id)}
+        type="button"
+      >
+        Another Round
+      </button>
+      <button onClick={() => ctx.inviteVisitor()} type="button">
+        Invite
+      </button>
+      <button onClick={() => ctx.restartGlade()} type="button">
+        Restart Glade
       </button>
       <button onClick={() => ctx.resetGlade()} type="button">
         Reset Glade
@@ -730,5 +749,129 @@ describe("GladeProvider", () => {
       "useGlade must be used within a GladeProvider",
     );
     spy.mockRestore();
+  });
+});
+
+describe("extras", () => {
+  const spentRobin = {
+    id: "00000000-0000-4000-8000-000000000001",
+    speciesId: "robin",
+    trust: 0,
+    arrivedDate: TODAY,
+    actionsToday: { treat: true, approach: true, pet: true },
+  };
+
+  it("buys another round with a visitor who has had every action", async () => {
+    seedLocalStorage({ visitors: [spentRobin] });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Another Round" }));
+    expect(mockSpend).toHaveBeenCalledWith(EXTRA_ROUND_COSTS[0]);
+    expect(
+      JSON.parse(localStorage.getItem(GLADE_KEY) ?? "null").visitors[0]
+        .actionsToday,
+    ).toEqual({
+      treat: false,
+      approach: false,
+      pet: false,
+    });
+  });
+
+  it("charges nothing for a round that isn't for sale", async () => {
+    seedLocalStorage({
+      visitors: [
+        {
+          ...spentRobin,
+          actionsToday: { treat: false, approach: false, pet: false },
+        },
+      ],
+    });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Another Round" }));
+    expect(mockSpend).not.toHaveBeenCalled();
+  });
+
+  it("invites one more visitor", async () => {
+    seedLocalStorage({ visitors: [spentRobin] });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Invite" }));
+    expect(mockSpend).toHaveBeenCalledWith(INVITE_COSTS[0]);
+    expect(screen.getByTestId("visitor-count")).toHaveTextContent("2");
+  });
+
+  it("keeps the invitation when the points fall short", async () => {
+    seedLocalStorage({ visitors: [spentRobin] });
+    setupMockPoints(false);
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Invite" }));
+    expect(screen.getByTestId("visitor-count")).toHaveTextContent("1");
+  });
+});
+
+describe("restart", () => {
+  const COMMONS = [
+    "robin",
+    "rabbit",
+    "squirrel",
+    "hedgehog",
+    "mouse",
+    "wren",
+    "mole",
+  ];
+  const UNCOMMONS = ["fox", "deer", "owl", "badger"];
+  const residents = [...COMMONS, ...UNCOMMONS]
+    .slice(0, RESTART_MIN_RESIDENTS)
+    .map((speciesId, i) => ({
+      id: `00000000-0000-4000-8000-${String(i + 10).padStart(12, "0")}`,
+      speciesId,
+      tamedDate: "2026-06-01",
+      position: { x: 50, y: 50 },
+    }));
+
+  it("banks the bonus and starts a fresh glade that remembers preferences", async () => {
+    seedLocalStorage({
+      residents,
+      discoveredPreferences: { robin: { treat: true } },
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("resident-count");
+
+    await user.click(screen.getByRole("button", { name: "Restart Glade" }));
+    expect(screen.getByTestId("resident-count")).toHaveTextContent("0");
+    const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "null");
+    expect(stored.discoveredPreferences).toEqual({ robin: { treat: true } });
+    // Seven commons at 3% and four uncommons at 5%.
+    expect(loadPrestigeState().glade).toEqual({
+      restarts: 1,
+      bonusPercent: 41,
+    });
+  });
+
+  it("does nothing before half the species have settled", async () => {
+    seedLocalStorage({ residents: residents.slice(1) });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("resident-count");
+
+    await user.click(screen.getByRole("button", { name: "Restart Glade" }));
+    expect(screen.getByTestId("resident-count")).toHaveTextContent(
+      String(RESTART_MIN_RESIDENTS - 1),
+    );
+    expect(loadPrestigeState().glade.restarts).toBe(0);
   });
 });

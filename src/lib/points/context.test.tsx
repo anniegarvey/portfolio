@@ -176,3 +176,32 @@ describe("usePoints", () => {
     );
   });
 });
+
+describe("PointsProvider restart multiplier", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it("multiplies every award by the banked restart bonus", async () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    localStorage.setItem(
+      "points-prestige",
+      JSON.stringify({
+        meadowmere: { restarts: 1, bonusPercent: 50 },
+        glade: { restarts: 0, bonusPercent: 0 },
+      }),
+    );
+    render(
+      <PointsProvider>
+        <PointsReadout />
+        <AwardButton amount={10} />
+      </PointsProvider>,
+    );
+
+    act(() => screen.getByRole("button", { name: "Award" }).click());
+    await waitFor(() =>
+      expect(screen.getByTestId("points")).toHaveTextContent("15"),
+    );
+  });
+});

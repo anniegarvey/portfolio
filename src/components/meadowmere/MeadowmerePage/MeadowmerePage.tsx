@@ -8,6 +8,7 @@ import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { Modal } from "@/components/Modal";
 import { DailyDigest } from "@/components/meadowmere/DailyDigest";
 import { ResetMeadowmere } from "@/components/meadowmere/ResetMeadowmere";
+import { RestartMeadowmere } from "@/components/meadowmere/RestartMeadowmere";
 import { HOW_TO_PLAY_TEXT, ValeWorld } from "@/components/meadowmere/ValeWorld";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import {
@@ -75,6 +76,7 @@ export function MeadowmerePage() {
       <ValeWorld instructionsId={instructionsId} />
 
       <Column>
+        <RestartMeadowmere />
         <ResetMeadowmere />
       </Column>
 
@@ -104,6 +106,9 @@ export function MeadowmerePage() {
  */
 const Column = styled(MaxWidthWrapper)`
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 const Main = styled.main`

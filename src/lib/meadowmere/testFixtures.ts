@@ -54,6 +54,9 @@ export function makeMeadowmereContext(
     dailyReport: null,
     clearDailyReport: vi.fn(),
     buySeed: vi.fn().mockReturnValue(false),
+    buyExtraTrip: vi.fn().mockReturnValue(false),
+    buyGrowTonic: vi.fn().mockReturnValue(false),
+    buyExtraGift: vi.fn().mockReturnValue(false),
     plantSeed: vi.fn(),
     waterPlot: vi.fn(),
     harvestPlot: vi.fn(),
@@ -62,6 +65,7 @@ export function makeMeadowmereContext(
     claimQuest: vi.fn(),
     claimErrand: vi.fn(),
     resetMeadowmere: vi.fn(),
+    restartMeadowmere: vi.fn(),
     ...overrides,
   };
 }
