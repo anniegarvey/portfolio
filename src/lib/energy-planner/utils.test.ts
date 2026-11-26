@@ -9,6 +9,7 @@ import {
   applyRepeatingDrag,
   filterActivities,
   getReorderedItems,
+  isHardToStart,
   sortRepeatingByZone,
   validateEnergyCapacity,
 } from "./utils";
@@ -424,5 +425,22 @@ describe("applyRepeatingDrag", () => {
       zones,
     );
     expect(updated).toBeNull();
+  });
+});
+
+describe("isHardToStart", () => {
+  const withDifficulty = (initiationDifficulty: number) =>
+    ({
+      factors: {
+        initiationDifficulty,
+        terminationDifficulty: 0,
+        isRestorative: false,
+      },
+    }) as Activity;
+
+  it("is true from a start difficulty of 6", () => {
+    expect(isHardToStart(withDifficulty(5))).toBe(false);
+    expect(isHardToStart(withDifficulty(6))).toBe(true);
+    expect(isHardToStart(withDifficulty(10))).toBe(true);
   });
 });

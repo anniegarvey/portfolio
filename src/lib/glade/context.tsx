@@ -10,17 +10,26 @@ import {
   useRef,
   useState,
 } from "react";
+import { FLIGHT_MS } from "@/components/glade/TameCelebration/timing";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
-import { INGREDIENTS, SPECIES } from "./catalog";
+import { recordRestart } from "@/lib/points/prestige";
+import { INGREDIENTS, SPECIES, tameThresholdFor } from "./catalog";
 import {
   addIngredient,
   addIngredients,
+  canCook,
   cookTreat,
   missingIngredients,
   missingIngredientsCost,
 } from "./cookingModule";
+import * as extras from "./extrasModule";
 import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
+import {
+  canRestart,
+  restartBonusPercent,
+  restartedState,
+} from "./restartModule";
 import type {
   GladeState,
   IngredientId,
@@ -32,6 +41,13 @@ import type {
   WildVisitor,
 } from "./schema";
 import { buyLesson, canBuyLesson, nextLessonCost } from "./skillsModule";
+import {
+  playBuySound,
+  playCookSound,
+  playLessonSound,
+  playTameSound,
+  playTrustSound,
+} from "./sounds";
 import { createInitialState, loadGladeState, saveGladeState } from "./storage";
 import {
   type ActionResult,
@@ -109,8 +125,18 @@ export interface GladeContextType {
   /** Buys every ingredient still missing for a recipe in one purchase. */
   buyMissingIngredients: (treatId: TreatId) => boolean;
   buyLesson: (skillId: SkillId) => boolean;
+  /** Spends points letting a visitor take every taming action again today. */
+  buyExtraRound: (visitorId: string) => boolean;
+  /** Spends points bringing one more wild visitor for today. */
+  inviteVisitor: () => boolean;
   /** Wipes all glade progress back to a fresh start. Does not touch points. */
   resetGlade: () => void;
+  /**
+   * Trades the glade's progress for a lasting bonus on Energy Planner points.
+   * Preferences found and points are kept. Does nothing until a restart is
+   * offered.
+   */
+  restartGlade: () => void;
 }
 
 const GladeContext = createContext<GladeContextType | undefined>(undefined);
@@ -242,6 +268,25 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // The sound of how an action went: a fanfare timed to the tame flight, or a
+  // chime that climbs as the visitor's trust does.
+  const celebrateAction = useCallback(
+    (result: ActionResult, visitorId: string) => {
+      if (result.trustGained === null) return;
+      if (result.tamed) {
+        playTameSound(FLIGHT_MS / 1000);
+        return;
+      }
+      const visitor = result.state.visitors.find((v) => v.id === visitorId);
+      if (!visitor) return;
+      playTrustSound(
+        result.matched,
+        visitor.trust / tameThresholdFor(visitor.speciesId),
+      );
+    },
+    [],
+  );
+
   // Taming handlers compute from the current state value (not a functional
   // updater) so the ActionResult can be stored for feedback UI without side
   // effects inside the updater.
@@ -258,10 +303,11 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       );
       setLastAction({ ...result, visitorId, kind: "treat" });
       setState(() => result.state);
+      celebrateAction(result, visitorId);
       if (result.tamed && fromRect && visitor)
         onTamed(visitor, visitorIndex, result, fromRect);
     },
-    [state, setState, onTamed],
+    [state, setState, onTamed, celebrateAction],
   );
 
   const handleApproachVisitor = useCallback(
@@ -277,10 +323,11 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       );
       setLastAction({ ...result, visitorId, kind: "approach" });
       setState(() => result.state);
+      celebrateAction(result, visitorId);
       if (result.tamed && fromRect && visitor)
         onTamed(visitor, visitorIndex, result, fromRect);
     },
-    [state, setState, onTamed],
+    [state, setState, onTamed, celebrateAction],
   );
 
   const handlePetVisitor = useCallback(
@@ -291,23 +338,26 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       const result = petVisitor(state, visitorId, spot, getTodayDateString());
       setLastAction({ ...result, visitorId, kind: "pet" });
       setState(() => result.state);
+      celebrateAction(result, visitorId);
       if (result.tamed && fromRect && visitor)
         onTamed(visitor, visitorIndex, result, fromRect);
     },
-    [state, setState, onTamed],
+    [state, setState, onTamed, celebrateAction],
   );
 
   const handleCookTreat = useCallback(
     (treatId: TreatId) => {
+      if (canCook(state, treatId)) playCookSound();
       setState((prev) => cookTreat(prev, treatId));
     },
-    [setState],
+    [state, setState],
   );
 
   const handleBuyIngredient = useCallback(
     (ingredientId: IngredientId): boolean => {
       if (!spendPoints(INGREDIENTS[ingredientId].cost)) return false;
       setState((prev) => addIngredient(prev, ingredientId));
+      playBuySound();
       return true;
     },
     [setState, spendPoints],
@@ -319,6 +369,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       if (Object.keys(missing).length === 0) return false;
       if (!spendPoints(missingIngredientsCost(missing))) return false;
       setState((prev) => addIngredients(prev, missing));
+      playBuySound();
       return true;
     },
     [state, setState, spendPoints],
@@ -344,10 +395,42 @@ export function GladeProvider({ children }: { children: ReactNode }) {
       const cost = nextLessonCost(state, skillId);
       if (cost === null || !spendPoints(cost)) return false;
       setState((prev) => buyLesson(prev, skillId));
+      playLessonSound();
       return true;
     },
     [state, setState, spendPoints],
   );
+
+  // Each extra checks it is allowed before spending, so a refused purchase
+  // never costs points.
+  const buyExtra = useCallback(
+    (cost: number | null, next: GladeState | null): boolean => {
+      if (cost === null || next === null || !spendPoints(cost)) return false;
+      setState(() => next);
+      playBuySound();
+      return true;
+    },
+    [setState, spendPoints],
+  );
+
+  const handleBuyExtraRound = useCallback(
+    (visitorId: string) => {
+      const today = getTodayDateString();
+      return buyExtra(
+        extras.extraRoundCost(state, today),
+        extras.buyExtraRound(state, visitorId, today),
+      );
+    },
+    [state, buyExtra],
+  );
+
+  const handleInviteVisitor = useCallback(() => {
+    const today = getTodayDateString();
+    return buyExtra(
+      extras.inviteCost(state, today),
+      extras.inviteVisitor(state, today),
+    );
+  }, [state, buyExtra]);
 
   // Wipes persisted and in-flight session state alike so no stale
   // celebration/report can outlive the reset. Points are untouched — they're
@@ -359,6 +442,16 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     clearTamedVisitor();
     setState(() => createInitialState());
   }, [setState, clearCelebration, clearDailyReport, clearTamedVisitor]);
+
+  const handleRestartGlade = useCallback(() => {
+    if (!canRestart(state)) return;
+    recordRestart("glade", restartBonusPercent(state));
+    setLastAction(null);
+    clearCelebration();
+    clearDailyReport();
+    clearTamedVisitor();
+    setState(() => restartedState(state, createInitialState()));
+  }, [state, setState, clearCelebration, clearDailyReport, clearTamedVisitor]);
 
   return (
     <GladeContext.Provider
@@ -382,7 +475,10 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         buyIngredient: handleBuyIngredient,
         buyMissingIngredients: handleBuyMissingIngredients,
         buyLesson: handleBuyLesson,
+        buyExtraRound: handleBuyExtraRound,
+        inviteVisitor: handleInviteVisitor,
         resetGlade: handleResetGlade,
+        restartGlade: handleRestartGlade,
       }}
     >
       {children}

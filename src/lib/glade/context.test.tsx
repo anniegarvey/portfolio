@@ -3,9 +3,23 @@ import userEvent from "@testing-library/user-event";
 import { useLayoutEffect, useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePoints } from "@/lib/points/context";
-import { LESSON_COSTS, XP_THRESHOLDS } from "./catalog";
+import { loadPrestigeState } from "@/lib/points/prestige";
+import {
+  EXTRA_ROUND_COSTS,
+  INVITE_COSTS,
+  LESSON_COSTS,
+  RESTART_MIN_RESIDENTS,
+  XP_THRESHOLDS,
+} from "./catalog";
 import { GladeProvider, useGlade } from "./context";
 import type { GladeState } from "./schema";
+import {
+  playBuySound,
+  playCookSound,
+  playLessonSound,
+  playTameSound,
+  playTrustSound,
+} from "./sounds";
 import { createInitialState, loadGladeState } from "./storage";
 import { makeVisitor } from "./testFixtures";
 
@@ -19,6 +33,8 @@ vi.mock("./storage", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./storage")>();
   return { ...actual, loadGladeState: vi.fn(actual.loadGladeState) };
 });
+
+vi.mock("./sounds");
 
 const GLADE_KEY = "glade-game-state";
 const TODAY = new Date().toISOString().split("T")[0];
@@ -178,6 +194,18 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.buyLesson("petting-technique")} type="button">
         Buy Lesson
+      </button>
+      <button
+        onClick={() => visitor && ctx.buyExtraRound(visitor.id)}
+        type="button"
+      >
+        Another Round
+      </button>
+      <button onClick={() => ctx.inviteVisitor()} type="button">
+        Invite
+      </button>
+      <button onClick={() => ctx.restartGlade()} type="button">
+        Restart Glade
       </button>
       <button onClick={() => ctx.resetGlade()} type="button">
         Reset Glade
@@ -608,11 +636,242 @@ describe("GladeProvider", () => {
     expect(stored.skills["treat-cooking"]).toEqual({ tier: 1, xp: 0 });
   });
 
+  describe("reward sounds", () => {
+    it("chimes for a matched action, pitched by how close the visitor is to tame", async () => {
+      seedLocalStorage({
+        visitors: [makeVisitor({ speciesId: "robin", trust: 20 })],
+      });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("trust");
+
+      // Robin likes its back stroked.
+      await user.click(screen.getByRole("button", { name: "Pet Back" }));
+
+      const trust = Number(screen.getByTestId("trust").textContent);
+      expect(trust).toBeGreaterThan(20);
+      expect(playTrustSound).toHaveBeenCalledExactlyOnceWith(true, trust / 60);
+      expect(playTameSound).not.toHaveBeenCalled();
+    });
+
+    it("plays the fanfare instead when the action tames, timed to the flight", async () => {
+      seedLocalStorage({
+        visitors: [makeVisitor({ speciesId: "robin", trust: 59 })],
+      });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("trust");
+
+      await user.click(screen.getByRole("button", { name: "Pet Back" }));
+
+      expect(playTameSound).toHaveBeenCalledExactlyOnceWith(1.3);
+      expect(playTrustSound).not.toHaveBeenCalled();
+    });
+
+    it("stays quiet for an action that could not be taken", async () => {
+      seedLocalStorage();
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("trust");
+
+      // No berry bites cooked, so there is nothing to offer.
+      await user.click(screen.getByRole("button", { name: "Offer" }));
+
+      expect(screen.getByTestId("trust")).toHaveTextContent("0");
+      expect(playTrustSound).not.toHaveBeenCalled();
+    });
+
+    it("sounds a cooked treat, but not a recipe the pantry cannot cover", async () => {
+      seedLocalStorage({ pantry: { ingredients: { berries: 2 }, treats: {} } });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("berries");
+
+      await user.click(screen.getByRole("button", { name: "Cook" }));
+      expect(playCookSound).toHaveBeenCalledTimes(1);
+
+      await user.click(screen.getByRole("button", { name: "Cook" }));
+      expect(screen.getByTestId("berry-bites")).toHaveTextContent("1");
+      expect(playCookSound).toHaveBeenCalledTimes(1);
+    });
+
+    it("sounds a purchase only when the points were there to spend", async () => {
+      seedLocalStorage();
+      setupMockPoints(false);
+      const user = userEvent.setup();
+      const { unmount } = renderGlade();
+      await screen.findByTestId("berries");
+      await user.click(screen.getByRole("button", { name: "Buy Berries" }));
+      await user.click(
+        screen.getByRole("button", { name: "Buy Missing Honey Drops" }),
+      );
+      expect(playBuySound).not.toHaveBeenCalled();
+      unmount();
+
+      setupMockPoints(true);
+      renderGlade();
+      await screen.findByTestId("berries");
+      await user.click(screen.getByRole("button", { name: "Buy Berries" }));
+      expect(playBuySound).toHaveBeenCalledTimes(1);
+      await user.click(
+        screen.getByRole("button", { name: "Buy Missing Honey Drops" }),
+      );
+      expect(playBuySound).toHaveBeenCalledTimes(2);
+    });
+
+    it("sounds a lesson only when one was bought", async () => {
+      seedLocalStorage();
+      setupMockPoints();
+      const user = userEvent.setup();
+      const { unmount } = renderGlade();
+      await screen.findByTestId("trust");
+      await user.click(screen.getByRole("button", { name: "Buy Lesson" }));
+      expect(playLessonSound).not.toHaveBeenCalled();
+      unmount();
+
+      seedLocalStorage({
+        skills: {
+          "treat-cooking": { tier: 1, xp: 0 },
+          "body-language": { tier: 2, xp: 0 },
+          "petting-technique": { tier: 1, xp: XP_THRESHOLDS[0] },
+        },
+      });
+      renderGlade();
+      await screen.findByTestId("trust");
+      await user.click(screen.getByRole("button", { name: "Buy Lesson" }));
+      expect(playLessonSound).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("useGlade throws outside the provider", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => render(<GladeDebug />)).toThrow(
       "useGlade must be used within a GladeProvider",
     );
     spy.mockRestore();
+  });
+});
+
+describe("extras", () => {
+  const spentRobin = {
+    id: "00000000-0000-4000-8000-000000000001",
+    speciesId: "robin",
+    trust: 0,
+    arrivedDate: TODAY,
+    actionsToday: { treat: true, approach: true, pet: true },
+  };
+
+  it("buys another round with a visitor who has had every action", async () => {
+    seedLocalStorage({ visitors: [spentRobin] });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Another Round" }));
+    expect(mockSpend).toHaveBeenCalledWith(EXTRA_ROUND_COSTS[0]);
+    expect(
+      JSON.parse(localStorage.getItem(GLADE_KEY) ?? "null").visitors[0]
+        .actionsToday,
+    ).toEqual({
+      treat: false,
+      approach: false,
+      pet: false,
+    });
+  });
+
+  it("charges nothing for a round that isn't for sale", async () => {
+    seedLocalStorage({
+      visitors: [
+        {
+          ...spentRobin,
+          actionsToday: { treat: false, approach: false, pet: false },
+        },
+      ],
+    });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Another Round" }));
+    expect(mockSpend).not.toHaveBeenCalled();
+  });
+
+  it("invites one more visitor", async () => {
+    seedLocalStorage({ visitors: [spentRobin] });
+    const mockSpend = setupMockPoints();
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Invite" }));
+    expect(mockSpend).toHaveBeenCalledWith(INVITE_COSTS[0]);
+    expect(screen.getByTestId("visitor-count")).toHaveTextContent("2");
+  });
+
+  it("keeps the invitation when the points fall short", async () => {
+    seedLocalStorage({ visitors: [spentRobin] });
+    setupMockPoints(false);
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("visitor-count");
+
+    await user.click(screen.getByRole("button", { name: "Invite" }));
+    expect(screen.getByTestId("visitor-count")).toHaveTextContent("1");
+  });
+});
+
+describe("restart", () => {
+  const COMMONS = [
+    "robin",
+    "rabbit",
+    "squirrel",
+    "hedgehog",
+    "mouse",
+    "wren",
+    "mole",
+  ];
+  const UNCOMMONS = ["fox", "deer", "owl", "badger"];
+  const residents = [...COMMONS, ...UNCOMMONS]
+    .slice(0, RESTART_MIN_RESIDENTS)
+    .map((speciesId, i) => ({
+      id: `00000000-0000-4000-8000-${String(i + 10).padStart(12, "0")}`,
+      speciesId,
+      tamedDate: "2026-06-01",
+      position: { x: 50, y: 50 },
+    }));
+
+  it("banks the bonus and starts a fresh glade that remembers preferences", async () => {
+    seedLocalStorage({
+      residents,
+      discoveredPreferences: { robin: { treat: true } },
+    });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("resident-count");
+
+    await user.click(screen.getByRole("button", { name: "Restart Glade" }));
+    expect(screen.getByTestId("resident-count")).toHaveTextContent("0");
+    const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "null");
+    expect(stored.discoveredPreferences).toEqual({ robin: { treat: true } });
+    // Seven commons at 3% and four uncommons at 5%.
+    expect(loadPrestigeState().glade).toEqual({
+      restarts: 1,
+      bonusPercent: 41,
+    });
+  });
+
+  it("does nothing before half the species have settled", async () => {
+    seedLocalStorage({ residents: residents.slice(1) });
+    const user = userEvent.setup();
+    renderGlade();
+    await screen.findByTestId("resident-count");
+
+    await user.click(screen.getByRole("button", { name: "Restart Glade" }));
+    expect(screen.getByTestId("resident-count")).toHaveTextContent(
+      String(RESTART_MIN_RESIDENTS - 1),
+    );
+    expect(loadPrestigeState().glade.restarts).toBe(0);
   });
 });

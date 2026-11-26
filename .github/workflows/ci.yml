@@ -26,6 +26,26 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
 
+  # Screenshots run in the pinned Playwright image (see scripts/visual-snapshots.sh),
+  # the same one Claude's cloud sessions and local runs use.
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm snapshots
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-diffs
+          path: test-results/
+
   mutation:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

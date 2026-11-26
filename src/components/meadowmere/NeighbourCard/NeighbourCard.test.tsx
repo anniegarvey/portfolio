@@ -9,6 +9,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { EXTRA_GIFT_COST } from "@/lib/meadowmere/catalog";
 import {
   type MeadowmereContextType,
   useMeadowmere,
@@ -20,6 +21,11 @@ import {
 import { NeighbourCard } from "./NeighbourCard";
 
 vi.mock("@/lib/meadowmere/context");
+
+let points = 100;
+vi.mock("@/lib/points/context", () => ({
+  usePoints: () => ({ points, spendPoints: vi.fn() }),
+}));
 
 const TODAY = "2026-06-15";
 const giveGift = vi.fn();
@@ -42,6 +48,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  points = 100;
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
 });
@@ -361,5 +368,42 @@ describe("gift hints", () => {
       screen.getByText("Not favourites: Pumpkin, Acorn"),
     ).toBeInTheDocument();
     expect(screen.queryByText("No gifts tried yet.")).not.toBeInTheDocument();
+  });
+});
+
+describe("another gift today", () => {
+  const extraButton = () =>
+    screen.queryByRole("button", { name: /another gift today/i });
+  const gifted = () =>
+    makeMeadowmereState({
+      inventory: { "parsnip-root": 1 },
+      neighbours: { bram: { friendship: 5, lastGiftDate: TODAY } },
+    });
+
+  it("isn't offered before the day's gift", () => {
+    mock({ state: makeMeadowmereState({ inventory: { "parsnip-root": 1 } }) });
+    render(<NeighbourCard neighbourId="bram" />);
+    expect(extraButton()).not.toBeInTheDocument();
+  });
+
+  it("is bought for the neighbour once they've had today's gift", async () => {
+    const buyExtraGift = vi.fn();
+    mock({ buyExtraGift, state: gifted() });
+    render(<NeighbourCard neighbourId="bram" />);
+
+    expect(extraButton()).toHaveAccessibleName(
+      `Give Bram another gift today for ${EXTRA_GIFT_COST} points`,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /another gift today/i }),
+    );
+    expect(buyExtraGift).toHaveBeenCalledWith("bram");
+  });
+
+  it("can't be bought without the points", () => {
+    points = EXTRA_GIFT_COST - 1;
+    mock({ state: gifted() });
+    render(<NeighbourCard neighbourId="bram" />);
+    expect(extraButton()).toBeDisabled();
   });
 });

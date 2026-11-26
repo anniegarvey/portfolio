@@ -1,7 +1,7 @@
 "use client";
 
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Lightbulb } from "lucide-react";
+import { Coins, Lightbulb } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
@@ -14,8 +14,14 @@ import {
 } from "@/components/Select";
 import { Toggletip } from "@/components/Toggletip";
 import { getTodayDateString } from "@/lib/date";
-import { ITEMS, MAX_FRIENDSHIP, NEIGHBOURS } from "@/lib/meadowmere/catalog";
+import {
+  EXTRA_GIFT_COST,
+  ITEMS,
+  MAX_FRIENDSHIP,
+  NEIGHBOURS,
+} from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
+import { canBuyExtraGift } from "@/lib/meadowmere/extrasModule";
 import {
   canGift,
   friendshipOf,
@@ -25,6 +31,7 @@ import {
   nextTier,
 } from "@/lib/meadowmere/neighboursModule";
 import type { ItemId, NeighbourId } from "@/lib/meadowmere/schema";
+import { usePoints } from "@/lib/points/context";
 
 /** "a Friend" / "an Acquaintance" — tier names are the only nouns this sees. */
 function withArticle(tierName: string): string {
@@ -151,6 +158,8 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
             : "One gift per neighbour per day."}
       </GiftHint>
 
+      <ExtraGiftButton neighbourId={neighbourId} />
+
       {/* Kept mounted and animated on an attribute rather than remounted on a
           key: this one element is the live region, the visible line and the
           focus target all at once, and a remount would lose the announcement
@@ -165,6 +174,26 @@ export function NeighbourCard({ neighbourId }: { neighbourId: NeighbourId }) {
         {reaction}
       </Reaction>
     </Card>
+  );
+}
+
+/**
+ * Another gift for a neighbour today, offered once today's has been given.
+ */
+function ExtraGiftButton({ neighbourId }: { neighbourId: NeighbourId }) {
+  const { state, buyExtraGift } = useMeadowmere();
+  const { points } = usePoints();
+  if (!canBuyExtraGift(state, neighbourId, getTodayDateString())) return null;
+  return (
+    <Button
+      aria-label={`Give ${NEIGHBOURS[neighbourId].name} another gift today for ${EXTRA_GIFT_COST} points`}
+      disabled={points < EXTRA_GIFT_COST}
+      onClick={() => buyExtraGift(neighbourId)}
+      size="sm"
+      variant="outline"
+    >
+      Another gift today <Coins aria-hidden size={13} /> {EXTRA_GIFT_COST}
+    </Button>
   );
 }
 

@@ -74,6 +74,89 @@ describe("PlannedActivityCard", () => {
     expect(mockOnEdit).toHaveBeenCalledWith(mockActivity);
   });
 
+  describe("getting-started help", () => {
+    const hardActivity: Activity = {
+      ...mockActivity,
+      factors: { ...mockActivity.factors, initiationDifficulty: 6 },
+    };
+
+    function renderCard(
+      activity: Activity,
+      props: Partial<React.ComponentProps<typeof PlannedActivityCard>> = {},
+    ) {
+      const onEdit = vi.fn();
+      render(
+        <PlannedActivityCard
+          activity={activity}
+          dayContext="today"
+          instance={mockInstance}
+          onEdit={onEdit}
+          {...props}
+        />,
+        { wrapper },
+      );
+      return onEdit;
+    }
+
+    it("shows the first tiny step", () => {
+      renderCard({ ...mockActivity, firstStep: "Open the folder" });
+      expect(
+        screen.getByText("First step: Open the folder"),
+      ).toBeInTheDocument();
+    });
+
+    it("hides the first step once completed", () => {
+      renderCard(
+        { ...mockActivity, firstStep: "Open the folder" },
+        { completed: true },
+      );
+      expect(screen.queryByText(/First step:/)).not.toBeInTheDocument();
+    });
+
+    it("offers no hint for an activity that is easy to start", () => {
+      renderCard({
+        ...mockActivity,
+        factors: { ...mockActivity.factors, initiationDifficulty: 5 },
+      });
+      expect(screen.queryByText(/Hard to start\?/)).not.toBeInTheDocument();
+    });
+
+    it("asks for a first step on a hard-to-start activity, opening the editor", async () => {
+      const user = userEvent.setup();
+      const onEdit = renderCard(hardActivity);
+      await user.click(
+        screen.getByRole("button", {
+          name: "Hard to start? Add a tiny first step",
+        }),
+      );
+      expect(onEdit).toHaveBeenCalledWith(hardActivity);
+    });
+
+    it("asks for a start time once a first step exists", () => {
+      renderCard({ ...hardActivity, firstStep: "Open the folder" });
+      expect(
+        screen.getByRole("button", {
+          name: "Hard to start? Pick a time to begin",
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it("stops hinting once it has a first step and a time", () => {
+      renderCard({
+        ...hardActivity,
+        firstStep: "Open the folder",
+        reminderTime: "10:00",
+      });
+      expect(screen.queryByText(/Hard to start\?/)).not.toBeInTheDocument();
+    });
+
+    it("doesn't hint on past days or once done", () => {
+      renderCard(hardActivity, { dayContext: "past" });
+      renderCard(hardActivity, { completed: true });
+      expect(screen.queryByText(/Hard to start\?/)).not.toBeInTheDocument();
+    });
+  });
+
   it("shows move button on today, allowing return to unplanned", async () => {
     const user = userEvent.setup();
     const mockOnRemove = vi.fn();

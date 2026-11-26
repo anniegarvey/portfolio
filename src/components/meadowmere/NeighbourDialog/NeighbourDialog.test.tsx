@@ -14,6 +14,9 @@ import {
 import { NeighbourDialog } from "./NeighbourDialog";
 
 vi.mock("@/lib/meadowmere/context");
+vi.mock("@/lib/points/context", () => ({
+  usePoints: () => ({ points: 100, spendPoints: vi.fn() }),
+}));
 
 const claimQuest = vi.fn();
 const claimErrand = vi.fn();

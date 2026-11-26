@@ -39,7 +39,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Test Activity",
         description: "",
@@ -63,7 +63,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Original Title",
         description: "",
@@ -78,7 +78,7 @@ describe("useEnergyPlannerState", () => {
 
     const activityId = result.current.oneOffActivities[0].id;
 
-    act(() => {
+    await act(async () => {
       result.current.updateActivity({
         ...result.current.oneOffActivities[0],
         title: "Updated Title",
@@ -96,7 +96,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Test Activity",
         description: "",
@@ -145,7 +145,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.setDailyCapacity({
         physical: 70,
         social: 80,
@@ -167,7 +167,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Test Activity",
         description: "",
@@ -205,7 +205,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Test Activity",
         description: "",
@@ -253,7 +253,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Test Activity",
         description: "",
@@ -308,7 +308,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.setDailyCapacity({
         physical: 5,
         social: 5,
@@ -356,7 +356,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Test Activity",
         description: "",
@@ -418,7 +418,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Available Activity",
         description: "",
@@ -461,7 +461,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.setDailyCapacity({
         physical: 50,
         social: 50,
@@ -469,7 +469,7 @@ describe("useEnergyPlannerState", () => {
       });
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Small Activity",
         description: "",
@@ -499,7 +499,7 @@ describe("useEnergyPlannerState", () => {
 
     const today = result.current.currentDate;
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "Daily Standup",
         description: "",
@@ -539,7 +539,7 @@ describe("useEnergyPlannerState", () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
 
-    act(() => {
+    await act(async () => {
       result.current.updateActivity({
         ...standupActivity,
         repeatConfig: {
@@ -586,7 +586,7 @@ describe("useEnergyPlannerState", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.addActivity({
         title: "To Be Moved",
         description: "",

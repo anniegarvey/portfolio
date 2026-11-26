@@ -1,14 +1,17 @@
 "use client";
 
 import * as Tabs from "@radix-ui/react-tabs";
+import { Coins } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import { type ReactNode, useId } from "react";
+import { Button } from "@/components/Button";
 import { CollectionPanel } from "@/components/glade/CollectionPanel";
 import { DailyDigest } from "@/components/glade/DailyDigest";
 import { GladeScene } from "@/components/glade/GladeScene";
 import { KitchenPanel } from "@/components/glade/KitchenPanel";
 import { PantryPanel } from "@/components/glade/PantryPanel";
 import { ResetGlade } from "@/components/glade/ResetGlade";
+import { RestartGlade } from "@/components/glade/RestartGlade";
 import { SkillsPanel } from "@/components/glade/SkillsPanel";
 import { TameCelebration } from "@/components/glade/TameCelebration";
 import { TamedCard } from "@/components/glade/TamedCard";
@@ -16,7 +19,10 @@ import { VisitorCard } from "@/components/glade/VisitorCard";
 import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { PageHeader, PageTitle } from "@/components/PageHeader";
 import { QUERIES } from "@/lib/constants";
+import { getTodayDateString } from "@/lib/date";
 import { useGlade } from "@/lib/glade/context";
+import { canInviteVisitor, inviteCost } from "@/lib/glade/extrasModule";
+import { usePoints } from "@/lib/points/context";
 
 export function GladePage() {
   const { state, celebration, tamedVisitor, tamedVisitorIndex } = useGlade();
@@ -67,6 +73,7 @@ export function GladePage() {
                 )}
             </VisitorGrid>
           )}
+          <InviteButton />
         </section>
 
         <PageTabs defaultValue="skills">
@@ -91,9 +98,32 @@ export function GladePage() {
           </TabPanel>
         </PageTabs>
 
+        <RestartGlade />
         <ResetGlade />
       </Layout>
     </MaxWidthWrapper>
+  );
+}
+
+/** One more wild visitor for today, bought with points. */
+function InviteButton() {
+  const { state, inviteVisitor } = useGlade();
+  const { points } = usePoints();
+  const today = getTodayDateString();
+  const cost = inviteCost(state, today);
+  if (cost === null || !canInviteVisitor(state, today)) return null;
+  return (
+    <InviteRow>
+      <Button
+        aria-label={`Invite another visitor today for ${cost} points`}
+        disabled={points < cost}
+        onClick={inviteVisitor}
+        size="sm"
+        variant="outline"
+      >
+        Invite another visitor <Coins aria-hidden size={13} /> {cost}
+      </Button>
+    </InviteRow>
   );
 }
 
@@ -201,4 +231,8 @@ const TabPanel = styled(Tabs.Content)`
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
+`;
+
+const InviteRow = styled.div`
+  margin-top: 1rem;
 `;

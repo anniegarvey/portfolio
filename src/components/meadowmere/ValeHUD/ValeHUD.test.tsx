@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getTodayDateString } from "@/lib/date";
+import { EXTRA_TRIP_COSTS, FORAGES_PER_DAY } from "@/lib/meadowmere/catalog";
 import {
   type MeadowmereContextType,
   useMeadowmere,
@@ -13,6 +15,11 @@ import {
 import { ValeHUD } from "./ValeHUD";
 
 vi.mock("@/lib/meadowmere/context");
+
+let points = 100;
+vi.mock("@/lib/points/context", () => ({
+  usePoints: () => ({ points, spendPoints: vi.fn() }),
+}));
 
 const onSelectCrop = vi.fn();
 
@@ -28,6 +35,7 @@ function renderHUD(selectedCropId: "parsnip" | null = null) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  points = 100;
 });
 
 afterEach(() => {
@@ -203,5 +211,56 @@ describe("the quest journal", () => {
     mock();
     renderHUD();
     expect(screen.queryByText(/ready to hand in/)).not.toBeInTheDocument();
+  });
+});
+
+describe("buying another forage trip", () => {
+  const tripButton = () =>
+    screen.queryByRole("button", { name: /buy another forage trip/i });
+
+  it("isn't offered while free trips are left", () => {
+    mock({ state: makeMeadowmereState({ foragesToday: 1 }) });
+    renderHUD();
+    expect(tripButton()).not.toBeInTheDocument();
+  });
+
+  it("is offered at the day's price once the trips are spent", async () => {
+    const buyExtraTrip = vi.fn();
+    mock({
+      buyExtraTrip,
+      state: makeMeadowmereState({ foragesToday: FORAGES_PER_DAY }),
+    });
+    renderHUD();
+
+    expect(tripButton()).toHaveAccessibleName(
+      `Buy another forage trip for ${EXTRA_TRIP_COSTS[0]} points`,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /buy another forage trip/i }),
+    );
+    expect(buyExtraTrip).toHaveBeenCalled();
+  });
+
+  it("can't be bought without the points", () => {
+    points = EXTRA_TRIP_COSTS[0] - 1;
+    mock({ state: makeMeadowmereState({ foragesToday: FORAGES_PER_DAY }) });
+    renderHUD();
+    expect(tripButton()).toBeDisabled();
+  });
+
+  it("goes away once the day's extra trips are sold out", () => {
+    mock({
+      state: makeMeadowmereState({
+        foragesToday: FORAGES_PER_DAY,
+        extrasBought: {
+          date: getTodayDateString(),
+          trips: EXTRA_TRIP_COSTS.length,
+          tonics: 0,
+          giftNeighbourIds: [],
+        },
+      }),
+    });
+    renderHUD();
+    expect(tripButton()).not.toBeInTheDocument();
   });
 });

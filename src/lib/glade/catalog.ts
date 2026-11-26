@@ -636,8 +636,13 @@ export const MAX_TIER = 5;
  */
 export const XP_THRESHOLDS = [5, 12, 25, 45] as const;
 
-/** Points cost of the lesson advancing to each tier (index = current tier - 1). */
-export const LESSON_COSTS = [15, 30, 60, 100] as const;
+/**
+ * Points cost of the lesson advancing to each tier (index = current tier - 1).
+ * Doubled from 15/30/60/100 when restarts arrived: a full tree came to under
+ * a week of real planner points, and a restart now means buying it again
+ * (ADR 0009).
+ */
+export const LESSON_COSTS = [30, 60, 120, 200] as const;
 
 /** XP needed to complete the given tier's bar, or null at max tier. */
 export function xpThresholdFor(tier: number): number | null {
@@ -666,6 +671,32 @@ export const PET_SPOT_LABELS: Record<PetSpot, string> = {
 // ─── Visitor Spawning ─────────────────────────────────────────────────────────
 
 export const MAX_VISITORS = 3;
+
+/**
+ * Points prices of the extras, each climbing with every one bought that day.
+ * A day's last price is its cap: no more of that extra until tomorrow.
+ * Another round lets a visitor accept all three taming actions again;
+ * an invitation brings one more visitor for the day.
+ */
+export const EXTRA_ROUND_COSTS = [30, 60, 100] as const;
+export const INVITE_COSTS = [40, 80] as const;
+
+// ─── Restarts ─────────────────────────────────────────────────────────────────
+
+/** Residents needed before the glade can be restarted: half the species. */
+export const RESTART_MIN_RESIDENTS = 11;
+
+/**
+ * What each resident adds to the points multiplier on a restart, in percent.
+ * Weighted by rarity, so the long tames are worth staying for (ADR 0009).
+ */
+export const RESTART_BONUS_BY_RARITY: Record<Rarity, number> = {
+  common: 3,
+  uncommon: 5,
+  rare: 10,
+  legendary: 15,
+  mythic: 25,
+};
 
 /** Relative spawn weight per rarity, before beacon bonuses. */
 export const RARITY_WEIGHTS: Record<Rarity, number> = {

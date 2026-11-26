@@ -7,7 +7,11 @@ import { MaxWidthWrapper } from "@/components/MaxWidthWrapper";
 import { NeighbourDialog } from "@/components/meadowmere/NeighbourDialog";
 import { StallDialog } from "@/components/meadowmere/StallDialog";
 import { ValeHUD } from "@/components/meadowmere/ValeHUD";
-import type { Haul, Touched } from "@/components/meadowmere/ValeScene";
+import type {
+  Haul,
+  Touched,
+  TouchKind,
+} from "@/components/meadowmere/ValeScene";
 import { ValeScene } from "@/components/meadowmere/ValeScene";
 import { QUERIES } from "@/lib/constants";
 import { getTodayDateString } from "@/lib/date";
@@ -32,6 +36,14 @@ import {
   tileInFront,
 } from "@/lib/meadowmere/movement";
 import type { CropId, NeighbourId } from "@/lib/meadowmere/schema";
+import {
+  playCatSound,
+  playDoorSound,
+  playNothingSound,
+  playShopSound,
+  playSowSound,
+  playWaterSound,
+} from "@/lib/meadowmere/sounds";
 import type { Feature, Tile } from "@/lib/meadowmere/valeMap";
 import {
   FARMER_START,
@@ -209,8 +221,13 @@ export function ValeWorld({
   const [touched, setTouched] = useState<Touched | null>(null);
   // Only the tile: `at` is often a whole feature, and spreading one would file
   // its kind and its site id away in a record that is about a square of ground.
-  const touch = useCallback((at: Tile) => {
-    setTouched((prev) => ({ x: at.x, y: at.y, tick: (prev?.tick ?? 0) + 1 }));
+  const touch = useCallback((at: Tile, kind: TouchKind) => {
+    setTouched((prev) => ({
+      x: at.x,
+      y: at.y,
+      kind,
+      tick: (prev?.tick ?? 0) + 1,
+    }));
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -323,34 +340,39 @@ export function ValeWorld({
       // text changes, so on the second try at the same plot — the natural thing
       // to do when the first seemed to do nothing — it would say nothing at all.
       if (action === null) {
+        playNothingSound();
         announce(interaction.label);
         return;
       }
       switch (action.type) {
         case "plant":
           plantSeed(action.plotId, action.cropId);
-          touch(at);
+          playSowSound();
+          touch(at, "sow");
           announce(`Sowed ${CROPS[action.cropId].name}.`);
           break;
         case "water":
           waterPlot(action.plotId);
-          touch(at);
+          playWaterSound();
+          touch(at, "water");
           announce("Watered.");
           break;
         case "harvest":
           haulSpot.current = { x: at.x, y: at.y };
           harvestPlot(action.plotId);
-          touch(at);
+          touch(at, "harvest");
           break;
         case "forage":
           haulSpot.current = { x: at.x, y: at.y };
           forage(action.siteId);
-          touch(at);
+          touch(at, "forage");
           break;
         case "visit":
+          playDoorSound(action.neighbourId);
           setVisiting(action.neighbourId);
           break;
         case "shop":
+          playShopSound();
           setShopOpen(true);
           break;
         case "pet": {
@@ -358,11 +380,12 @@ export function ValeWorld({
           // shows. Every purr differs from the last, so it always changes and
           // always announces — nothing to fall back to the live region for.
           const purr = PURRS[pets.current % PURRS.length];
+          playCatSound(pets.current);
           pets.current += 1;
           setAside(purr);
           // The cat is the one thing in the valley that answers for its own
           // sake, so it had better be seen to.
-          touch(at);
+          touch(at, "pet");
           break;
         }
       }

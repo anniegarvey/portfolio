@@ -123,6 +123,36 @@ describe("ActivityForm", () => {
     });
   });
 
+  it("saves a trimmed first tiny step with the activity", async () => {
+    render(<ActivityForm onClose={vi.fn()} />, { wrapper });
+
+    await waitFor(() => {
+      const button = screen.getByRole("button", {
+        name: /Add Activity/i,
+      }) as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
+      target: { value: "Tax return" },
+    });
+    fireEvent.change(screen.getByLabelText("First tiny step"), {
+      target: { value: "  Open the folder  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    await waitFor(() => {
+      expect(storageMock.storeActivities).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: "Tax return",
+            firstStep: "Open the folder",
+          }),
+        ]),
+      );
+    });
+  });
+
   it("updates an existing activity", async () => {
     const initialActivity: Activity = {
       id: "123",

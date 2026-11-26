@@ -20,6 +20,7 @@ import {
   saveGladeState,
 } from "@/lib/glade/storage";
 import { POINTS_STORAGE_KEY } from "@/lib/points/keys";
+import { loadPointsMultiplier, recordRestart } from "@/lib/points/prestige";
 import {
   fetchWellnessConfig,
   fetchWellnessEntries,
@@ -97,7 +98,7 @@ describe("exportEnergyPlannerData", () => {
     return new Promise<void>((resolve) => {
       reader.onload = () => {
         const exportedData = JSON.parse(reader.result as string);
-        expect(exportedData).toHaveProperty("version", "7.0.0");
+        expect(exportedData).toHaveProperty("version", "8.0.0");
         expect(exportedData).toHaveProperty("exportDate");
         expect(exportedData.data).toHaveProperty("oneOffActivities");
         expect(exportedData.data).toHaveProperty("repeatingActivities");
@@ -108,6 +109,7 @@ describe("exportEnergyPlannerData", () => {
         expect(exportedData.data).toHaveProperty("points", null);
         expect(exportedData.data).toHaveProperty("bonsaiGameState", null);
         expect(exportedData.data).toHaveProperty("gladeGameState", null);
+        expect(exportedData.data).toHaveProperty("pointsPrestige", null);
         resolve();
       };
     });
@@ -117,6 +119,7 @@ describe("exportEnergyPlannerData", () => {
     localStorage.setItem(POINTS_STORAGE_KEY, "150");
     saveBonsaiState(createInitialBonsaiState());
     saveGladeState(createInitialGladeState());
+    recordRestart("glade", 71);
 
     await exportEnergyPlannerData();
 
@@ -130,6 +133,10 @@ describe("exportEnergyPlannerData", () => {
         expect(exportedData.data.points).toBe(150);
         expect(exportedData.data.bonsaiGameState.trees).toHaveLength(1);
         expect(exportedData.data.gladeGameState.visitors).toHaveLength(1);
+        expect(exportedData.data.pointsPrestige).toEqual({
+          meadowmere: { restarts: 0, bonusPercent: 0 },
+          glade: { restarts: 1, bonusPercent: 71 },
+        });
         resolve();
       };
     });
@@ -529,6 +536,46 @@ describe("importEnergyPlannerData - data handling", () => {
     expect(localStorage.getItem(POINTS_STORAGE_KEY)).toBe("150");
     expect(loadBonsaiState()).toEqual(bonsaiState);
     expect(loadGladeState()).toEqual(gladeState);
+  });
+
+  it("restores the restart bonuses behind the points multiplier", async () => {
+    localStorage.clear();
+    const data = {
+      version: "8.0.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        pointsPrestige: {
+          meadowmere: { restarts: 1, bonusPercent: 64 },
+          glade: { restarts: 1, bonusPercent: 71 },
+        },
+      },
+    };
+    const fileContent = JSON.stringify(data);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await importEnergyPlannerData(file);
+
+    expect(loadPointsMultiplier()).toBeCloseTo(2.35);
+  });
+
+  it("throws for an invalid points multiplier", async () => {
+    const data = {
+      version: "8.0.0",
+      exportDate: new Date().toISOString(),
+      data: { pointsPrestige: { glade: "lots" } },
+    };
+    const fileContent = JSON.stringify(data);
+    const file = new File([fileContent], "backup.json", {
+      type: "application/json",
+    });
+    file.text = vi.fn().mockResolvedValue(fileContent);
+
+    await expect(importEnergyPlannerData(file)).rejects.toThrow(
+      "Invalid points multiplier in backup file.",
+    );
   });
 
   it("throws for invalid bonsai game state shape", async () => {

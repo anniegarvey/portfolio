@@ -91,6 +91,24 @@ const MOTES = [
   { left: 95, top: 90, drift: -9, duration: 19, delay: -5 },
 ];
 
+/**
+ * What flies off a resident when it is greeted, or lands from a tame: hearts
+ * and twinkles, each thrown its own way so the burst never looks stamped.
+ */
+const BURST = [
+  { kind: "heart", x: -20, y: -30, turn: -18, delay: 0 },
+  { kind: "spark", x: 24, y: -26, turn: 40, delay: 40 },
+  { kind: "heart", x: 2, y: -44, turn: 6, delay: 90 },
+  { kind: "spark", x: -32, y: -8, turn: -50, delay: 60 },
+  { kind: "heart", x: 30, y: -6, turn: 22, delay: 130 },
+  { kind: "spark", x: -8, y: -24, turn: 70, delay: 170 },
+] as const;
+
+const HEART_PATH =
+  "M5 9 L1.3 5.3 A2.3 2.3 0 0 1 5 2.5 A2.3 2.3 0 0 1 8.7 5.3 Z";
+const SPARK_PATH =
+  "M5 0.5 L6.1 3.9 L9.5 5 L6.1 6.1 L5 9.5 L3.9 6.1 L0.5 5 L3.9 3.9 Z";
+
 export function GladeScene() {
   const { state, celebration, gladeSceneRef } = useGlade();
   // Which resident is playing its greet animation (cleared when the animation
@@ -109,7 +127,19 @@ export function GladeScene() {
     carryingId: string | null;
     landedId: string | null;
   }>({ carryingId: null, landedId: null });
+  // How many bursts each resident has thrown. The count keys the burst, so a
+  // second tap replays it from the start instead of being swallowed.
+  const [bursts, setBursts] = useState<Record<string, number>>({});
+  const burstFrom = (residentId: string) =>
+    setBursts((counts) => ({
+      ...counts,
+      [residentId]: (counts[residentId] ?? 0) + 1,
+    }));
   if (flight.carryingId !== enteringId) {
+    // Touching down is worth a burst of its own.
+    if (enteringId === null && flight.carryingId !== null) {
+      burstFrom(flight.carryingId);
+    }
     setFlight({
       carryingId: enteringId,
       landedId: enteringId === null ? flight.carryingId : null,
@@ -129,6 +159,7 @@ export function GladeScene() {
   const greetResident = (residentId: string, speciesId: SpeciesId) => {
     playCreatureSound(speciesId);
     setGreetingId(residentId);
+    burstFrom(residentId);
     // Both animations live on the same element and landing is authored last,
     // so greeting a resident mid-settle would otherwise do nothing visible.
     clearLanding(residentId);
@@ -271,6 +302,31 @@ export function GladeScene() {
                         </IdleWrapper>
                       </Facing>
                     </GreetWrapper>
+                    {bursts[resident.id] !== undefined && (
+                      <Burst aria-hidden="true" key={bursts[resident.id]}>
+                        {BURST.map((piece) => (
+                          <BurstPiece
+                            data-kind={piece.kind}
+                            key={`${piece.x}-${piece.y}`}
+                            style={
+                              {
+                                "--burst-x": `${piece.x}px`,
+                                "--burst-y": `${piece.y}px`,
+                                "--burst-turn": `${piece.turn}deg`,
+                                "--burst-delay": `${piece.delay}ms`,
+                              } as CSSProperties
+                            }
+                            viewBox="0 0 10 10"
+                          >
+                            <path
+                              d={
+                                piece.kind === "heart" ? HEART_PATH : SPARK_PATH
+                              }
+                            />
+                          </BurstPiece>
+                        ))}
+                      </Burst>
+                    )}
                   </ResidentButton>
                 </ResidentAnchor>
               </ResidentSpot>
@@ -541,6 +597,48 @@ const GreetWrapper = styled.div`
     &[data-landing="true"] {
       animation: none;
     }
+  }
+`;
+
+/* Thrown up and out from the creature's middle, fading as it goes. */
+const burstFly = keyframes`
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  20%  { opacity: 1; transform: translate(calc(var(--burst-x) * 0.45 - 50%), calc(var(--burst-y) * 0.45 - 50%)) scale(1.15) rotate(calc(var(--burst-turn) * 0.4)); }
+  100% { opacity: 0; transform: translate(calc(var(--burst-x) - 50%), calc(var(--burst-y) - 50%)) scale(0.7) rotate(var(--burst-turn)); }
+`;
+
+/** Over the creature, and never in the way of the press that caused it. */
+const Burst = styled.span`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+`;
+
+const BurstPiece = styled.svg`
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  opacity: 0;
+  animation: ${burstFly} 900ms var(--burst-delay) var(--ease-out) both;
+
+  &[data-kind="heart"] {
+    fill: light-dark(#e8558a, #ff8fb8);
+  }
+
+  &[data-kind="spark"] {
+    width: 11px;
+    height: 11px;
+    fill: light-dark(#f2b632, #ffe08a);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 

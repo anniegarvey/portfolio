@@ -17,6 +17,7 @@
     "src/components/Skeleton/**": ["e2e/energy-planner", "e2e/bonsai"],
     "src/components/Scenery/**": ["e2e/bonsai", "e2e/glade"],
     "src/components/happy-birthday-james/**": "e2e/navigation",
+    "src/components/happy-birthday-mum/**": "e2e/navigation",
     "src/components/FadeIn/**": "e2e/navigation",
     "src/components/ProjectPage/**": "e2e/navigation",
     "src/components/ServiceWorkerRegistration/**": "e2e/navigation",
@@ -26,6 +27,7 @@
       "e2e/meadowmere"
     ],
     "src/components/ResetProgress/**": ["e2e/glade", "e2e/meadowmere"],
+    "src/components/RestartGame/**": ["e2e/glade", "e2e/meadowmere"],
     "src/components/Select/**": ["e2e/energy-planner", "e2e/meadowmere"],
     "src/components/Toggletip/**": ["e2e/energy-planner", "e2e/glade"],
     "src/components/Button/**": "e2e",
@@ -49,7 +51,6 @@
     "e2e/utils/activity-test-helpers.ts": "e2e/energy-planner",
     "e2e/utils/accessibility-test.ts": "e2e/energy-planner",
     "e2e/utils/mocks.ts": "e2e/energy-planner",
-    "e2e/visual/**": "e2e/visual",
     "playwright.config.ts": "e2e",
     "playwright.base.config.ts": "e2e"
   },
@@ -64,6 +65,7 @@
     "vitest.setup.ts"
   ],
   "skip": [
+    "e2e/visual/**",
     "*.md",
     "**/*.md",
     "*.html",

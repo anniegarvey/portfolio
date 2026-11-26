@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { EXTRA_ROUND_COSTS } from "@/lib/glade/catalog";
 import type { GladeContextType } from "@/lib/glade/context";
 import { useGlade } from "@/lib/glade/context";
 import type { WildVisitor } from "@/lib/glade/schema";
@@ -14,6 +15,10 @@ import {
 import { VisitorCard } from "./VisitorCard";
 
 vi.mock("@/lib/glade/context");
+let points = 100;
+vi.mock("@/lib/points/context", () => ({
+  usePoints: () => ({ points, spendPoints: vi.fn() }),
+}));
 vi.mock("@/lib/glade/sounds", () => ({ playCreatureSound: vi.fn() }));
 vi.mock("@/components/glade/CreatureSVG", () => ({
   CreatureSVG: () => null,
@@ -41,6 +46,7 @@ function mockGlade(overrides: Partial<GladeContextType> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  points = 100;
   mockGlade();
 });
 
@@ -676,5 +682,39 @@ describe("VisitorCard feedback and actions", () => {
       "behind-ears",
       expect.anything(),
     );
+  });
+});
+
+describe("VisitorCard another round", () => {
+  const roundButton = () =>
+    screen.queryByRole("button", { name: /another round/i });
+  const spent = makeVisitor({
+    speciesId: "rabbit",
+    actionsToday: { approach: true, pet: true, treat: true },
+  });
+
+  it("isn't offered while an action is still spare", () => {
+    render(<VisitorCard visitor={rabbit} />);
+    expect(roundButton()).not.toBeInTheDocument();
+  });
+
+  it("is offered once every action is done, and buys the round", async () => {
+    const buyExtraRound = vi.fn();
+    mockGlade({ buyExtraRound, state: makeGladeState({ visitors: [spent] }) });
+    render(<VisitorCard visitor={spent} />);
+
+    const button = screen.getByRole("button", { name: /another round/i });
+    expect(button).toHaveAccessibleName(
+      `Spend another round with the Rabbit for ${EXTRA_ROUND_COSTS[0]} points`,
+    );
+    await userEvent.click(button);
+    expect(buyExtraRound).toHaveBeenCalledWith(spent.id);
+  });
+
+  it("can't be bought without the points", () => {
+    points = EXTRA_ROUND_COSTS[0] - 1;
+    mockGlade({ state: makeGladeState({ visitors: [spent] }) });
+    render(<VisitorCard visitor={spent} />);
+    expect(roundButton()).toBeDisabled();
   });
 });

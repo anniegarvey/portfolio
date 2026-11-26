@@ -60,6 +60,7 @@ export function useActivityForm({
   );
 
   const [reminderTime, setReminderTime] = useState(initialData?.reminderTime);
+  const [firstStep, setFirstStep] = useState(initialData?.firstStep || "");
 
   // Repeating Activity State
   const [isRepeating, setIsRepeating] = useState(!!initialData?.repeatConfig);
@@ -103,6 +104,7 @@ export function useActivityForm({
       setEnergyCost(activity.energyCost);
       setFactors(activity.factors);
       setReminderTime(activity.reminderTime);
+      setFirstStep(activity.firstStep || "");
       setDefaultZoneId(
         activity.defaultZoneId ||
           activity.repeatConfig?.defaultZoneId ||
@@ -126,6 +128,8 @@ export function useActivityForm({
     [initialContext?.date, initialContext?.zoneId],
   );
 
+  const trimmedFirstStep = firstStep.trim() || undefined;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || isLoading) return;
@@ -137,6 +141,7 @@ export function useActivityForm({
       factors,
       defaultZoneId,
       reminderTime,
+      firstStep: trimmedFirstStep,
     };
 
     if (isRepeating) {
@@ -219,6 +224,7 @@ export function useActivityForm({
       isRestorative: false,
     });
     setReminderTime(undefined);
+    setFirstStep("");
     setIsRepeating(false);
     setFrequency(1);
     setUnit("days");
@@ -251,6 +257,8 @@ export function useActivityForm({
     setDefaultZoneId,
     reminderTime,
     setReminderTime,
+    firstStep,
+    setFirstStep,
     suggestions,
     populateFromActivity,
   };

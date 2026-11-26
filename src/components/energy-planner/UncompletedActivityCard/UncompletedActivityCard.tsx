@@ -112,6 +112,7 @@ const Card = styled.article`
 
 const ActivityContent = styled.div`
   flex: 1;
+  overflow-wrap: anywhere;
 `;
 
 const ActivityHeader = styled.div`

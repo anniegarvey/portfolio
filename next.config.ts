@@ -30,6 +30,21 @@ const nextConfig: NextConfig = {
       fallback: [],
     };
   },
+  // Baseline hardening: no MIME sniffing, no framing (clickjacking), and no
+  // full URLs leaked to other sites in the Referer header.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
+  },
 };
 
 export default withYak(nextConfig);

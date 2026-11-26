@@ -3,15 +3,34 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
-import { CROPS, FORAGES_PER_DAY, QUESTS } from "./catalog";
+import { loadPrestigeState } from "@/lib/points/prestige";
+import {
+  CROPS,
+  EXTRA_GIFT_COST,
+  EXTRA_TRIP_COSTS,
+  FORAGES_PER_DAY,
+  GROW_TONIC_COSTS,
+  QUESTS,
+  RESTART_BONUS_PER_QUEST,
+  RESTART_MIN_QUESTS,
+} from "./catalog";
 import { MeadowmereProvider, useMeadowmere } from "./context";
 import { todaysErrand } from "./errandsModule";
 import { giftWorth } from "./neighboursModule";
+import {
+  playBuySound,
+  playErrandSound,
+  playForageSound,
+  playGiftSound,
+  playHarvestSound,
+  playQuestSound,
+} from "./sounds";
 import { createInitialState } from "./storage";
 
 vi.mock("@/lib/points/context", () => ({
   usePoints: vi.fn(),
 }));
+vi.mock("./sounds");
 
 const MEADOWMERE_KEY = "meadowmere-game-state";
 const TODAY = new Date().toISOString().split("T")[0];
@@ -62,6 +81,7 @@ function MeadowmereDebug() {
         {ctx.state.inventory["parsnip-root"] ?? 0}
       </span>
       <span data-testid="forages">{ctx.state.foragesToday}</span>
+      <span data-testid="planted">{plot?.planting?.plantedDate ?? "none"}</span>
       <span data-testid="nessa">
         {ctx.state.neighbours.nessa?.friendship ?? 0}
       </span>
@@ -106,6 +126,15 @@ function MeadowmereDebug() {
       >
         claim
       </button>
+      <button onClick={ctx.buyExtraTrip} type="button">
+        extra-trip
+      </button>
+      <button onClick={ctx.buyGrowTonic} type="button">
+        tonic
+      </button>
+      <button onClick={() => ctx.buyExtraGift("nessa")} type="button">
+        extra-gift
+      </button>
       <button onClick={ctx.claimErrand} type="button">
         errand
       </button>
@@ -114,6 +143,9 @@ function MeadowmereDebug() {
       </button>
       <button onClick={ctx.clearDailyReport} type="button">
         clear-report
+      </button>
+      <button onClick={ctx.restartMeadowmere} type="button">
+        restart
       </button>
       <button onClick={ctx.resetMeadowmere} type="button">
         reset
@@ -190,6 +222,7 @@ describe("seeds and plots", () => {
     await click("buy");
     expect(spend).toHaveBeenCalledWith(CROPS.parsnip.seedCost);
     expect(screen.getByTestId("parsnip-seeds")).toHaveTextContent("2");
+    expect(playBuySound).toHaveBeenCalledOnce();
   });
 
   it("does not add a seed when points fall short", async () => {
@@ -199,6 +232,7 @@ describe("seeds and plots", () => {
 
     await click("buy");
     expect(screen.getByTestId("parsnip-seeds")).toHaveTextContent("1");
+    expect(playBuySound).not.toHaveBeenCalled();
   });
 
   it("plants, waters and harvests, persisting each step", async () => {
@@ -238,6 +272,7 @@ describe("seeds and plots", () => {
     expect(screen.getByTestId("parsnip-root")).toHaveTextContent("2");
     expect(screen.getByTestId("plot-crop")).toHaveTextContent("empty");
     expect(screen.getByTestId("notice")).toHaveTextContent("harvest");
+    expect(playHarvestSound).toHaveBeenCalledOnce();
   });
 
   it("ignores a harvest on an unripe planting", async () => {
@@ -255,6 +290,7 @@ describe("seeds and plots", () => {
 
     await click("harvest");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playHarvestSound).not.toHaveBeenCalled();
     expect(screen.getByTestId("plot-crop")).toHaveTextContent("pumpkin");
   });
 });
@@ -267,6 +303,7 @@ describe("foraging", () => {
     await click("forage");
     expect(screen.getByTestId("forages")).toHaveTextContent("1");
     expect(screen.getByTestId("notice")).toHaveTextContent("forage");
+    expect(playForageSound).toHaveBeenCalledOnce();
   });
 
   it("does nothing once the day's trips are spent", async () => {
@@ -278,6 +315,7 @@ describe("foraging", () => {
       String(FORAGES_PER_DAY),
     );
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playForageSound).not.toHaveBeenCalled();
   });
 });
 
@@ -292,6 +330,19 @@ describe("gifting", () => {
     );
     expect(screen.getByTestId("parsnip-root")).toHaveTextContent("1");
     expect(screen.getByTestId("notice")).toHaveTextContent("gift");
+    // Nessa loves parsnips, and a first favourite isn't yet a new tier.
+    expect(playGiftSound).toHaveBeenCalledWith(true, false);
+  });
+
+  it("makes the most of a gift that reaches a new friendship tier", async () => {
+    seedLocalStorage({
+      inventory: { "parsnip-root": 1 },
+      neighbours: { nessa: { friendship: 18 } },
+    });
+    renderProvider();
+
+    await click("gift");
+    expect(playGiftSound).toHaveBeenCalledWith(true, true);
   });
 
   it("does nothing without the item", async () => {
@@ -301,6 +352,7 @@ describe("gifting", () => {
     await click("gift");
     expect(screen.getByTestId("nessa")).toHaveTextContent("0");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playGiftSound).not.toHaveBeenCalled();
   });
 });
 
@@ -317,6 +369,7 @@ describe("quests", () => {
       String(QUESTS["a-bed-for-parsnips"].reward.friendship),
     );
     expect(screen.getByTestId("notice")).toHaveTextContent("quest");
+    expect(playQuestSound).toHaveBeenCalledOnce();
     expect(readStored().unlockedCropIds).toContain("cornflower");
   });
 
@@ -326,6 +379,7 @@ describe("quests", () => {
 
     await click("claim");
     expect(screen.getByTestId("completed")).toHaveTextContent("none");
+    expect(playQuestSound).not.toHaveBeenCalled();
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
   });
 });
@@ -350,6 +404,7 @@ describe("errands", () => {
 
     expect(screen.getByTestId("last-errand")).toHaveTextContent(today);
     expect(screen.getByTestId("notice")).toHaveTextContent("errand");
+    expect(playErrandSound).toHaveBeenCalledOnce();
     expect(readStored().lastErrandDate).toBe(today);
   });
 
@@ -362,6 +417,7 @@ describe("errands", () => {
 
     expect(screen.getByTestId("last-errand")).toHaveTextContent("none");
     expect(screen.getByTestId("notice")).toHaveTextContent("none");
+    expect(playErrandSound).not.toHaveBeenCalled();
   });
 });
 
@@ -418,5 +474,109 @@ describe("useMeadowmere", () => {
     expect(() => render(<MeadowmereDebug />)).toThrow(
       "useMeadowmere must be used within a MeadowmereProvider",
     );
+  });
+});
+
+describe("extras", () => {
+  it("buys back a forage trip once the day's are spent", async () => {
+    seedLocalStorage({ foragesToday: FORAGES_PER_DAY });
+    const spend = setupMockPoints();
+    renderProvider();
+
+    await click("extra-trip");
+    expect(spend).toHaveBeenCalledWith(EXTRA_TRIP_COSTS[0]);
+    expect(screen.getByTestId("forages")).toHaveTextContent(
+      String(FORAGES_PER_DAY - 1),
+    );
+    expect(playBuySound).toHaveBeenCalled();
+  });
+
+  it("charges nothing for a trip that isn't for sale", async () => {
+    seedLocalStorage({ foragesToday: 0 });
+    const spend = setupMockPoints();
+    renderProvider();
+
+    await click("extra-trip");
+    expect(spend).not.toHaveBeenCalled();
+  });
+
+  it("keeps the trip unbought when the points fall short", async () => {
+    seedLocalStorage({ foragesToday: FORAGES_PER_DAY });
+    setupMockPoints(false);
+    renderProvider();
+
+    await click("extra-trip");
+    expect(screen.getByTestId("forages")).toHaveTextContent(
+      String(FORAGES_PER_DAY),
+    );
+  });
+
+  it("buys a grow tonic that moves a growing crop a day along", async () => {
+    seedLocalStorage({
+      plots: [
+        {
+          id: "00000000-0000-4000-8000-00000000000a",
+          planting: { cropId: "parsnip", plantedDate: TODAY, wateredDays: 0 },
+        },
+      ],
+    });
+    const spend = setupMockPoints();
+    renderProvider();
+
+    await click("tonic");
+    expect(spend).toHaveBeenCalledWith(GROW_TONIC_COSTS[0]);
+    expect(screen.getByTestId("planted")).toHaveTextContent(daysAgo(1));
+  });
+
+  it("buys another gift for a neighbour already given one today", async () => {
+    seedLocalStorage({
+      inventory: { "parsnip-root": 2 },
+      neighbours: {
+        ...createInitialState().neighbours,
+        nessa: { friendship: 0, lastGiftDate: getTodayDateString() },
+      },
+    });
+    const spend = setupMockPoints();
+    renderProvider();
+
+    await click("extra-gift");
+    expect(spend).toHaveBeenCalledWith(EXTRA_GIFT_COST);
+    await click("gift");
+    expect(screen.getByTestId("parsnip-root")).toHaveTextContent("1");
+  });
+});
+
+describe("restart", () => {
+  const halfway = Object.keys(QUESTS).slice(0, RESTART_MIN_QUESTS);
+
+  it("banks the bonus and starts a fresh farm that remembers gifts", async () => {
+    seedLocalStorage({
+      completedQuestIds: halfway,
+      neighbours: {
+        ...createInitialState().neighbours,
+        nessa: { friendship: 70, giftedItemIds: ["parsnip-root"] },
+      },
+    });
+    renderProvider();
+
+    await click("restart");
+    expect(screen.getByTestId("completed")).toHaveTextContent("none");
+    expect(screen.getByTestId("nessa")).toHaveTextContent("0");
+    expect(readStored().neighbours.nessa.giftedItemIds).toEqual([
+      "parsnip-root",
+    ]);
+    expect(loadPrestigeState().meadowmere).toEqual({
+      restarts: 1,
+      bonusPercent: RESTART_MIN_QUESTS * RESTART_BONUS_PER_QUEST,
+    });
+  });
+
+  it("does nothing before half the quests are done", async () => {
+    seedLocalStorage({ completedQuestIds: halfway.slice(1) });
+    renderProvider();
+
+    await click("restart");
+    expect(screen.getByTestId("completed")).not.toHaveTextContent("none");
+    expect(loadPrestigeState().meadowmere.restarts).toBe(0);
   });
 });

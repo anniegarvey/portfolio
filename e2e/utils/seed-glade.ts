@@ -32,7 +32,7 @@ export function makeGladeGameState(opts: GladeSeedOptions = {}) {
       },
     ],
     residents: (opts.residents ?? []).map((r, i) => ({
-      id: `00000000-0000-4000-8000-00000000010${i}`,
+      id: `00000000-0000-4000-8000-${String(100 + i).padStart(12, "0")}`,
       speciesId: r.speciesId,
       tamedDate: "2025-01-01",
       position: { x: r.x, y: r.y },

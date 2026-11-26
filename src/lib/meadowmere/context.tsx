@@ -11,14 +11,27 @@ import {
 } from "react";
 import { getTodayDateString } from "@/lib/date";
 import { usePoints } from "@/lib/points/context";
-import { CROPS } from "./catalog";
+import { recordRestart } from "@/lib/points/prestige";
+import { CROPS, EXTRA_GIFT_COST } from "./catalog";
 import { claimErrand, todaysErrand } from "./errandsModule";
+import {
+  buyExtraGift,
+  buyExtraTrip,
+  buyGrowTonic,
+  extraTripCost,
+  growTonicCost,
+} from "./extrasModule";
 import * as farming from "./farmingModule";
 import { forageSite } from "./foragingModule";
 import { addSeeds } from "./inventory";
 import { advanceMeadowmereDay, type DailyFarmReport } from "./meadowmereEngine";
 import { giveGift } from "./neighboursModule";
 import { claimQuest } from "./questsModule";
+import {
+  canRestart,
+  restartBonusPercent,
+  restartedState,
+} from "./restartModule";
 import type {
   CropId,
   ItemId,
@@ -27,6 +40,14 @@ import type {
   QuestId,
   SiteId,
 } from "./schema";
+import {
+  playBuySound,
+  playErrandSound,
+  playForageSound,
+  playGiftSound,
+  playHarvestSound,
+  playQuestSound,
+} from "./sounds";
 import {
   createInitialState,
   EMPTY_STATE,
@@ -61,6 +82,12 @@ export interface MeadowmereContextType {
   clearDailyReport: () => void;
   /** Spends points on a seed packet. False when the player can't afford it. */
   buySeed: (cropId: CropId) => boolean;
+  /** Spends points on another forage trip today. False if not allowed or affordable. */
+  buyExtraTrip: () => boolean;
+  /** Spends points moving every growing planting a day along. */
+  buyGrowTonic: () => boolean;
+  /** Spends points letting a neighbour take another gift today. */
+  buyExtraGift: (neighbourId: NeighbourId) => boolean;
   plantSeed: (plotId: string, cropId: CropId) => void;
   waterPlot: (plotId: string) => void;
   harvestPlot: (plotId: string) => void;
@@ -71,6 +98,11 @@ export interface MeadowmereContextType {
   claimErrand: () => void;
   /** Wipes all progress back to a brand-new smallholding. Points are kept. */
   resetMeadowmere: () => void;
+  /**
+   * Trades the farm's progress for a lasting bonus on Energy Planner points.
+   * Gift hints and points are kept. Does nothing until a restart is offered.
+   */
+  restartMeadowmere: () => void;
 }
 
 const MeadowmereContext = createContext<MeadowmereContextType | undefined>(
@@ -116,9 +148,41 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     (cropId: CropId): boolean => {
       if (!spendPoints(CROPS[cropId].seedCost)) return false;
       setState((prev) => addSeeds(prev, { [cropId]: 1 }));
+      playBuySound();
       return true;
     },
     [setState, spendPoints],
+  );
+
+  // Each extra checks it is allowed before spending, so a refused purchase
+  // never costs points.
+  const buyExtra = useCallback(
+    (cost: number | null, next: MeadowmereState | null): boolean => {
+      if (cost === null || next === null || !spendPoints(cost)) return false;
+      setState(() => next);
+      playBuySound();
+      return true;
+    },
+    [setState, spendPoints],
+  );
+
+  const handleBuyExtraTrip = useCallback(() => {
+    const today = getTodayDateString();
+    return buyExtra(extraTripCost(state, today), buyExtraTrip(state, today));
+  }, [state, buyExtra]);
+
+  const handleBuyGrowTonic = useCallback(() => {
+    const today = getTodayDateString();
+    return buyExtra(growTonicCost(state, today), buyGrowTonic(state, today));
+  }, [state, buyExtra]);
+
+  const handleBuyExtraGift = useCallback(
+    (neighbourId: NeighbourId) =>
+      buyExtra(
+        EXTRA_GIFT_COST,
+        buyExtraGift(state, neighbourId, getTodayDateString()),
+      ),
+    [state, buyExtra],
   );
 
   const handlePlantSeed = useCallback(
@@ -150,6 +214,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         amount: result.amount,
       });
       setState(() => result.state);
+      playHarvestSound();
     },
     [state, setState],
   );
@@ -165,6 +230,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         amount: result.amount,
       });
       setState(() => result.state);
+      playForageSound();
     },
     [state, setState],
   );
@@ -182,6 +248,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         newTierName: result.newTierName,
       });
       setState(() => result.state);
+      playGiftSound(result.liked, result.newTierName !== null);
     },
     [state, setState],
   );
@@ -192,6 +259,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
       if (next === null) return;
       setNotice({ kind: "quest", questId });
       setState(() => next);
+      playQuestSound();
     },
     [state, setState],
   );
@@ -203,6 +271,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     if (errand === null || next === null) return;
     setNotice({ kind: "errand", neighbourId: errand.neighbourId });
     setState(() => next);
+    playErrandSound();
   }, [state, setState]);
 
   // Clears in-flight notices and the report too, so nothing from the discarded
@@ -214,6 +283,14 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
     setState(() => createInitialState());
   }, [setState]);
 
+  const handleRestartMeadowmere = useCallback(() => {
+    if (!canRestart(state)) return;
+    recordRestart("meadowmere", restartBonusPercent(state));
+    setNotice(null);
+    setDailyReport(null);
+    setState(() => restartedState(state, createInitialState()));
+  }, [state, setState]);
+
   return (
     <MeadowmereContext.Provider
       value={{
@@ -223,6 +300,9 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         dailyReport,
         clearDailyReport,
         buySeed: handleBuySeed,
+        buyExtraTrip: handleBuyExtraTrip,
+        buyGrowTonic: handleBuyGrowTonic,
+        buyExtraGift: handleBuyExtraGift,
         plantSeed: handlePlantSeed,
         waterPlot: handleWaterPlot,
         harvestPlot: handleHarvestPlot,
@@ -231,6 +311,7 @@ export function MeadowmereProvider({ children }: { children: ReactNode }) {
         claimQuest: handleClaimQuest,
         claimErrand: handleClaimErrand,
         resetMeadowmere: handleResetMeadowmere,
+        restartMeadowmere: handleRestartMeadowmere,
       }}
     >
       {children}

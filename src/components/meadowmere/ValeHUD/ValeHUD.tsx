@@ -1,6 +1,6 @@
 "use client";
 
-import { Footprints, ScrollText, Sprout } from "lucide-react";
+import { Coins, Footprints, ScrollText, Sprout } from "lucide-react";
 import { styled } from "next-yak";
 import { useId, useState } from "react";
 import { Modal } from "@/components/Modal";
@@ -9,10 +9,12 @@ import { getTodayDateString } from "@/lib/date";
 import { ALL_CROP_IDS, CROPS, ITEMS } from "@/lib/meadowmere/catalog";
 import { useMeadowmere } from "@/lib/meadowmere/context";
 import { errandStatus, todaysErrand } from "@/lib/meadowmere/errandsModule";
+import { canBuyExtraTrip, extraTripCost } from "@/lib/meadowmere/extrasModule";
 import { foragesLeft } from "@/lib/meadowmere/foragingModule";
 import { seedCount } from "@/lib/meadowmere/inventory";
 import { questStatus, visibleQuests } from "@/lib/meadowmere/questsModule";
 import type { CropId, ItemId } from "@/lib/meadowmere/schema";
+import { usePoints } from "@/lib/points/context";
 
 /**
  * The band above the map: what the farmer is carrying and which seed is in
@@ -41,7 +43,8 @@ function sowingHint(selectedCropId: CropId | null, count: number): string {
 }
 
 export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
-  const { state } = useMeadowmere();
+  const { state, buyExtraTrip } = useMeadowmere();
+  const { points } = usePoints();
   const [questsOpen, setQuestsOpen] = useState(false);
   // Each region is named by the heading it already shows, so a screen reader
   // doesn't announce a region and a heading as two unrelated things.
@@ -62,6 +65,7 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
     visibleQuests(state).filter(
       (quest) => questStatus(state, quest.id) === "ready",
     ).length + (errandReady ? 1 : 0);
+  const tripCost = extraTripCost(state, today);
   const seedsInHand =
     selectedCropId === null ? 0 : seedCount(state, selectedCropId);
 
@@ -72,6 +76,16 @@ export function ValeHUD({ selectedCropId, onSelectCrop }: ValeHUDProps) {
           <Footprints aria-hidden size={15} />
           {foragesLeft(state)} forage trips left
         </Stat>
+        {canBuyExtraTrip(state, today) && tripCost !== null && (
+          <QuestsButton
+            aria-label={`Buy another forage trip for ${tripCost} points`}
+            disabled={points < tripCost}
+            onClick={buyExtraTrip}
+            type="button"
+          >
+            Another trip <Coins aria-hidden size={13} /> {tripCost}
+          </QuestsButton>
+        )}
         <QuestsButton onClick={() => setQuestsOpen(true)} type="button">
           <ScrollText aria-hidden size={15} />
           Quest journal
@@ -257,9 +271,14 @@ const QuestsButton = styled.button`
   /* Guarded, or the highlight sticks after a tap — there is no pointer to move
      away and clear it. */
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:disabled) {
       border-color: light-dark(var(--color-grey-500), var(--color-grey-400));
     }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   &:focus-visible {
