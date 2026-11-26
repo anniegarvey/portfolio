@@ -3,6 +3,7 @@
     "src/**/energy-planner/**": "e2e/energy-planner",
     "src/lib/wellness/**": "e2e/energy-planner",
     "src/lib/points/**": "e2e/energy-planner",
+    "src/lib/push/**": "e2e/energy-planner",
     "src/hooks/**": "e2e/energy-planner",
     "src/**/bonsai/**": "e2e/bonsai",
     "src/**/glade/**": "e2e/glade",
