@@ -7,6 +7,7 @@ import { ResidentDetail } from "@/components/glade/ResidentDetail";
 import { Modal } from "@/components/Modal";
 import { ALL_SPECIES_IDS, SPECIES } from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
+import { friendshipOf } from "@/lib/glade/friendshipModule";
 import { playCreatureSound } from "@/lib/glade/sounds";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -64,6 +65,10 @@ export function CollectionPanel() {
               <EntryMeta>
                 {species.rarity} · {ROLE_LABELS[species.benefitRole]}
               </EntryMeta>
+              <FriendLevel>
+                <span aria-hidden="true">♥</span> Friendship{" "}
+                {friendshipOf(resident).level}
+              </FriendLevel>
             </EntryButton>
           );
         })}
@@ -157,6 +162,12 @@ const EntryButton = styled.button`
 const EntryName = styled.span`
   font-weight: 600;
   font-size: 0.9rem;
+`;
+
+const FriendLevel = styled.span`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: light-dark(#a3245a, #ffb3d0);
 `;
 
 const EntryMeta = styled.span`

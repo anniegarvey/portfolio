@@ -184,6 +184,35 @@ test.describe("Creature Glade", () => {
     await expect(dialog).toBeHidden();
   });
 
+  test("greeting a resident grows its friendship, once a day", async ({
+    page,
+  }) => {
+    await goToGladeWithSeed(page, {
+      residents: [{ speciesId: "rabbit", x: 30, y: 60 }],
+    });
+
+    const rabbit = page
+      .getByRole("region", { name: "Glade ecosystem" })
+      .getByRole("button", { name: /^Rabbit/ });
+    await rabbit.click();
+    await expect(page.getByRole("status")).toHaveText(
+      "Rabbit is glad to see you.",
+    );
+    // A second hello today is welcome, but doesn't count again.
+    await rabbit.click();
+
+    await page.getByRole("tab", { name: "Collection" }).click();
+    await page
+      .getByRole("tabpanel", { name: "Collection" })
+      .getByRole("button", { name: /Rabbit/ })
+      .click();
+    const dialog = page.getByRole("dialog", { name: "Rabbit" });
+    await expect(dialog.getByText("Friendship level 0")).toBeVisible();
+    await expect(
+      dialog.getByText("1 of 2 daily greets to level 1. Greeted today."),
+    ).toBeVisible();
+  });
+
   test("skills tab shows the three taming skills", async ({ page }) => {
     await goToGladeWithSeed(page);
 

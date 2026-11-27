@@ -45,6 +45,17 @@ describe("CollectionPanel", () => {
     expect(screen.getAllByText("???").length).toBeGreaterThan(0);
   });
 
+  it("shows each tamed creature's friendship level on its entry", () => {
+    mockGlade({
+      state: makeGladeState({ residents: [{ ...fox, friendship: 6 }] }),
+    });
+    render(<CollectionPanel />);
+
+    expect(screen.getByRole("button", { name: /Rusty/ })).toHaveTextContent(
+      "Friendship 2",
+    );
+  });
+
   it("opens a tamed creature's details in a modal, and closes it", async () => {
     const user = userEvent.setup();
     render(<CollectionPanel />);

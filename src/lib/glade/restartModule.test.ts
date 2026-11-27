@@ -38,6 +38,23 @@ const UNCOMMONS: SpeciesId[] = [
   "thistledown",
 ];
 
+describe("friendship in the restart bonus", () => {
+  it("adds a percent for every friendship level", () => {
+    const plain = makeGladeState({ residents: [resident("robin", 1)] });
+    const friends = makeGladeState({
+      residents: [{ ...resident("robin", 1), friendship: 14 }], // level 3
+    });
+    expect(restartBonusPercent(friends)).toBe(restartBonusPercent(plain) + 3);
+  });
+
+  it("starts friendship over with the residents", () => {
+    const state = makeGladeState({
+      residents: [{ ...resident("robin", 1), friendship: 14 }],
+    });
+    expect(restartedState(state, makeGladeState()).residents).toEqual([]);
+  });
+});
+
 describe("when a restart is offered", () => {
   it("waits for half the species to settle", () => {
     const short = makeGladeState({

@@ -332,6 +332,33 @@ describe("approachVisitor", () => {
     expect(heraldGain).toBeGreaterThan(baseGain ?? 0);
   });
 
+  it("friendship strengthens a herald's bonus", () => {
+    const visitor = makeVisitor({ speciesId: "rabbit" });
+    const herald = (friendship: number) =>
+      makeGladeState({
+        visitors: [visitor],
+        residents: [
+          {
+            id: "00000000-0000-4000-8000-000000000099",
+            speciesId: "emberveil",
+            tamedDate: TODAY,
+            position: { x: 50, y: 50 },
+            friendship,
+          },
+        ],
+      });
+    const gainWith = (friendship: number) =>
+      approachVisitor(
+        herald(friendship),
+        visitor.id,
+        "crouch-low",
+        TODAY,
+        fixedRng,
+      ).trustGained ?? 0;
+    // Level 2 (6 greets): 5 × 1.2 = 6, one more than a new friend's 5.
+    expect(gainWith(6) - gainWith(0)).toBe(1);
+  });
+
   it("herald bonus does not apply on mismatched approaches", () => {
     const visitor = makeVisitor({ speciesId: "rabbit" });
     const baseline = makeGladeState({ visitors: [visitor] });

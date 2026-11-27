@@ -681,6 +681,18 @@ export const MAX_VISITORS = 3;
 export const EXTRA_ROUND_COSTS = [30, 60, 100] as const;
 export const INVITE_COSTS = [40, 80] as const;
 
+// ─── Friendship ───────────────────────────────────────────────────────────────
+
+/** How much stronger each friendship level makes a resident's role. */
+export const FRIENDSHIP_BOOST_PER_LEVEL = 0.1;
+
+/**
+ * What each friendship level adds to the points multiplier on a restart, in
+ * percent. Levels take twice as many daily greets each time, so a month of
+ * greeting is worth about a common resident's bonus again.
+ */
+export const RESTART_BONUS_PER_FRIENDSHIP_LEVEL = 1;
+
 // ─── Restarts ─────────────────────────────────────────────────────────────────
 
 /** Residents needed before the glade can be restarted: half the species. */

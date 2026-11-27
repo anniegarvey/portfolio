@@ -60,6 +60,7 @@ export function makeGladeContext(
     tamedResidentId: null,
     clearTamedVisitor: vi.fn(),
     nameResident: vi.fn(),
+    greetResident: vi.fn().mockReturnValue({ counted: false, levelUp: null }),
     gladeSceneRef: { current: null },
     offerTreat: vi.fn(),
     approachVisitor: vi.fn(),

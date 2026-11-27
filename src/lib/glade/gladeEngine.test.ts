@@ -7,14 +7,22 @@ import { makeGladeState, makeVisitor } from "./testFixtures";
 const TODAY = "2026-06-10";
 
 let residentSeq = 0;
-function makeResident(speciesId: SpeciesId): Resident {
+function makeResident(speciesId: SpeciesId, friendship?: number): Resident {
   residentSeq += 1;
   return {
     id: `00000000-0000-4000-8000-0000000001${String(residentSeq).padStart(2, "0")}`,
     speciesId,
     tamedDate: "2026-06-01",
     position: { x: 50, y: 50 },
+    friendship,
   };
+}
+
+function pantryTotal(state: { pantry: { ingredients: object } }): number {
+  return Object.values(state.pantry.ingredients).reduce(
+    (sum: number, n: number) => sum + n,
+    0,
+  );
 }
 
 /** rng returning the given values in order (the last value repeats). */
@@ -80,6 +88,31 @@ describe("advanceGladeDay", () => {
     const next = advanceGladeDay(state, TODAY, () => 0).state;
     expect(next.visitors[0].speciesId).toBe("robin");
     expect(next.visitors[0].trust).toBe(tameThresholdFor("robin") - 1);
+  });
+
+  it("friendship makes a soother calm visitors a little more", () => {
+    const state = makeGladeState({
+      // Level 5 (62 greets): 3 trust × 1.5, rounded.
+      residents: [makeResident("hedgehog", 62)],
+    });
+    const result = advanceGladeDay(state, TODAY, () => 0);
+    expect(result.report?.soothedTrust).toBe(5);
+  });
+
+  it("friendship gives a forager a chance of gathering another ingredient", () => {
+    // Level 3 (14 greets): 1.3 ingredients, so a roll under 0.3 finds two.
+    const state = makeGladeState({ residents: [makeResident("rabbit", 14)] });
+    expect(pantryTotal(advanceGladeDay(state, TODAY, () => 0.2).state)).toBe(2);
+    expect(pantryTotal(advanceGladeDay(state, TODAY, () => 0.5).state)).toBe(1);
+  });
+
+  it("friendship gives a wellspring a chance of a third ingredient", () => {
+    // Level 1 (2 greets): 2.2 ingredients.
+    const state = makeGladeState({
+      residents: [makeResident("thornwhisper", 2)],
+    });
+    expect(pantryTotal(advanceGladeDay(state, TODAY, () => 0.1).state)).toBe(3);
+    expect(pantryTotal(advanceGladeDay(state, TODAY, () => 0.5).state)).toBe(2);
   });
 
   it("always draws at least one visitor", () => {
@@ -254,6 +287,17 @@ describe("pickDailyVisitors", () => {
     // Same roll without beacons stays uncommon.
     const without = pickDailyVisitors(makeGladeState(), rngFrom([0, 0.8]));
     expect(SPECIES[without[0]].rarity).toBe("uncommon");
+  });
+
+  it("friendship makes a beacon draw rarer visitors a little more", () => {
+    // One beacon moves 10 weight to rare; at level 5 (62 greets), 15.
+    const roll = rngFrom([0, 0.8]);
+    const plain = makeGladeState({ residents: [makeResident("fox")] });
+    expect(SPECIES[pickDailyVisitors(plain, roll)[0]].rarity).toBe("uncommon");
+
+    const friend = makeGladeState({ residents: [makeResident("fox", 62)] });
+    const picked = pickDailyVisitors(friend, rngFrom([0, 0.8]));
+    expect(SPECIES[picked[0]].rarity).toBe("rare");
   });
 
   it("banked trust makes a species more likely to visit", () => {
