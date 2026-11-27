@@ -26,10 +26,15 @@ export function ReminderTimeField({
   const [pushReady, setPushReady] = useState(false);
 
   useEffect(() => {
-    setPermission(canNotify() ? Notification.permission : "unsupported");
-    getPushSubscription()
-      .then((subscription) => setPushReady(subscription !== null))
-      .catch(() => {});
+    const current = canNotify() ? Notification.permission : "unsupported";
+    setPermission(current);
+    // Notifications allowed before push existed (or a lapsed subscription):
+    // subscribe now rather than waiting for the time to be changed.
+    const check =
+      current === "granted"
+        ? enablePush()
+        : getPushSubscription().then((s) => s !== null);
+    check.then(setPushReady).catch(() => {});
   }, []);
 
   const handleChange = async (time: string) => {
