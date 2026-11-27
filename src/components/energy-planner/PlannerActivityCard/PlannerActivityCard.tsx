@@ -12,8 +12,8 @@ import {
   CopyPlus,
   Footprints,
   GripVertical,
-  Headphones,
   RotateCw,
+  Sparkles,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -195,7 +195,7 @@ function HelperList({ helpers }: { helpers?: string[] }) {
   if (!helpers?.length) return null;
   return (
     <Helpers>
-      <Headphones aria-hidden size={12} />
+      <Sparkles aria-hidden size={12} />
       <VisuallyHidden>Helpers:</VisuallyHidden>
       {helpers.map((helper) => (
         <Helper key={helper}>{helper}</Helper>
