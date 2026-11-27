@@ -89,6 +89,20 @@ describe("ReminderTimeField", () => {
     );
   });
 
+  it("turns on push straight away when permission was granted earlier", async () => {
+    permission = "granted";
+    vi.mocked(push.enablePush).mockResolvedValue(true);
+    render(
+      <ReminderTimeField id={FIELD_ID} onChange={vi.fn()} value="09:30" />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Remind me at")).toHaveAccessibleDescription(
+        "Sends a notification on days it's planned and not yet done.",
+      ),
+    );
+  });
+
   it("says reminders work with the planner closed on a subscribed device", async () => {
     vi.mocked(push.getPushSubscription).mockResolvedValue(
       {} as PushSubscription,
