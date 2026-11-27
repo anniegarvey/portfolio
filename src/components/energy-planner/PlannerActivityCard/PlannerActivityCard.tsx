@@ -12,6 +12,7 @@ import {
   CopyPlus,
   Footprints,
   GripVertical,
+  Headphones,
   RotateCw,
   Trash2,
   Undo2,
@@ -110,6 +111,7 @@ export function PlannedActivityCard({
             </RepeatBadge>
           ) : null}
         </EnergyBadges>
+        <HelperList helpers={activity.helpers} />
       </ActivityContent>
       <Actions>
         {onToggleCompletion && isToday ? (
@@ -185,6 +187,20 @@ function GettingStartedHelp({
         </StartHint>
       ) : null}
     </>
+  );
+}
+
+// Shown on the day plan so activities sharing a helper can be chained together
+function HelperList({ helpers }: { helpers?: string[] }) {
+  if (!helpers?.length) return null;
+  return (
+    <Helpers>
+      <Headphones aria-hidden size={12} />
+      <VisuallyHidden>Helpers:</VisuallyHidden>
+      {helpers.map((helper) => (
+        <Helper key={helper}>{helper}</Helper>
+      ))}
+    </Helpers>
   );
 }
 
@@ -530,6 +546,27 @@ const RepeatBadge = styled.div`
 const EnergyBadges = styled.div`
   display: flex;
   gap: 8px;
+`;
+
+// Small and quiet so it's a cue for chaining activities, not another badge row
+const Helpers = styled.p`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0 0;
+  font-size: 0.7rem;
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+
+  svg {
+    flex-shrink: 0;
+  }
+`;
+
+const Helper = styled.span`
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px dashed light-dark(var(--color-grey-400), var(--color-grey-600));
 `;
 
 const Badge = styled.span<{ $color: string }>`

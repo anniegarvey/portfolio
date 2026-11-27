@@ -7,6 +7,7 @@ import type {
   EnergyCost,
   RepeatUnit,
 } from "@/lib/energy-planner/schema";
+import { getHelperOptions } from "@/lib/energy-planner/utils";
 
 interface UseActivityFormProps {
   initialData?: Activity;
@@ -61,6 +62,7 @@ export function useActivityForm({
 
   const [reminderTime, setReminderTime] = useState(initialData?.reminderTime);
   const [firstStep, setFirstStep] = useState(initialData?.firstStep || "");
+  const [helpers, setHelpers] = useState<string[]>(initialData?.helpers ?? []);
 
   // Repeating Activity State
   const [isRepeating, setIsRepeating] = useState(!!initialData?.repeatConfig);
@@ -97,6 +99,17 @@ export function useActivityForm({
     return Array.from(byTitle.values());
   }, [oneOffActivities, repeatingActivities, title]);
 
+  const helperOptions = useMemo(
+    () =>
+      getHelperOptions([
+        ...[...oneOffActivities, ...repeatingActivities].flatMap(
+          (a) => a.helpers ?? [],
+        ),
+        ...helpers,
+      ]),
+    [oneOffActivities, repeatingActivities, helpers],
+  );
+
   const populateFromActivity = useCallback(
     (activity: Activity) => {
       setTitle(activity.title);
@@ -105,6 +118,7 @@ export function useActivityForm({
       setFactors(activity.factors);
       setReminderTime(activity.reminderTime);
       setFirstStep(activity.firstStep || "");
+      setHelpers(activity.helpers ?? []);
       setDefaultZoneId(
         activity.defaultZoneId ||
           activity.repeatConfig?.defaultZoneId ||
@@ -129,6 +143,7 @@ export function useActivityForm({
   );
 
   const trimmedFirstStep = firstStep.trim() || undefined;
+  const savedHelpers = helpers.length > 0 ? helpers : undefined;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +157,7 @@ export function useActivityForm({
       defaultZoneId,
       reminderTime,
       firstStep: trimmedFirstStep,
+      helpers: savedHelpers,
     };
 
     if (isRepeating) {
@@ -225,6 +241,7 @@ export function useActivityForm({
     });
     setReminderTime(undefined);
     setFirstStep("");
+    setHelpers([]);
     setIsRepeating(false);
     setFrequency(1);
     setUnit("days");
@@ -259,6 +276,9 @@ export function useActivityForm({
     setReminderTime,
     firstStep,
     setFirstStep,
+    helpers,
+    setHelpers,
+    helperOptions,
     suggestions,
     populateFromActivity,
   };

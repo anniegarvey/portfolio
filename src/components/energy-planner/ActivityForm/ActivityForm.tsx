@@ -16,6 +16,7 @@ import type { Activity, RepeatUnit } from "@/lib/energy-planner/schema";
 import { usePoints } from "@/lib/points/context";
 import { ActivityFactorFields } from "../ActivityFactorFields";
 import { EnergyCostFields } from "../EnergyCostFields";
+import { HelpersField } from "./HelpersField";
 import { ReminderTimeField } from "./ReminderTimeField";
 
 interface ActivityFormProps {
@@ -70,6 +71,9 @@ export function ActivityForm({
     setReminderTime,
     firstStep,
     setFirstStep,
+    helpers,
+    setHelpers,
+    helperOptions,
     suggestions,
     populateFromActivity,
   } = useActivityForm({
@@ -214,6 +218,15 @@ export function ActivityForm({
         <Hint id={`${formId}-firstStep-hint`}>
           The smallest thing that counts as starting. Doing just this is a win.
         </Hint>
+      </Field>
+
+      <Field>
+        <HelpersField
+          id={`${formId}-helpers`}
+          onChange={setHelpers}
+          options={helperOptions}
+          value={helpers}
+        />
       </Field>
 
       <EnergyCostFields energyCost={energyCost} onChange={setEnergyCost} />

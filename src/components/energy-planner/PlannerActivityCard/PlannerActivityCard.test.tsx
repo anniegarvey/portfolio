@@ -98,6 +98,17 @@ describe("PlannedActivityCard", () => {
       return onEdit;
     }
 
+    it("shows the chosen helpers so activities can be chained", () => {
+      renderCard({ ...mockActivity, helpers: ["Audiobook", "Coffee"] });
+      const helpers = screen.getByText("Helpers:").parentElement;
+      expect(helpers).toHaveTextContent("Helpers:AudiobookCoffee");
+    });
+
+    it("shows no helpers when none are chosen", () => {
+      renderCard({ ...mockActivity, helpers: [] });
+      expect(screen.queryByText("Helpers:")).not.toBeInTheDocument();
+    });
+
     it("shows the first tiny step", () => {
       renderCard({ ...mockActivity, firstStep: "Open the folder" });
       expect(
