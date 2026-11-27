@@ -1,11 +1,12 @@
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import type {
-  Activity,
-  EnergyCost,
-  EnergyTypeConfig,
-  ResolvedActivity,
-  ZoneConfig,
+import {
+  type Activity,
+  DEFAULT_HELPERS,
+  type EnergyCost,
+  type EnergyTypeConfig,
+  type ResolvedActivity,
+  type ZoneConfig,
 } from "./schema";
 
 /**
@@ -155,4 +156,16 @@ export const HARD_TO_START_THRESHOLD = 6;
 
 export function isHardToStart(activity: Activity): boolean {
   return activity.factors.initiationDifficulty >= HARD_TO_START_THRESHOLD;
+}
+
+// The default helpers followed by every other helper used so far, without
+// repeats (ignoring case), so the form offers everything tried before.
+export function getHelperOptions(usedHelpers: string[]): string[] {
+  const options = new Map<string, string>();
+  for (const helper of [...DEFAULT_HELPERS, ...usedHelpers]) {
+    const name = helper.trim();
+    const key = name.toLowerCase();
+    if (name && !options.has(key)) options.set(key, name);
+  }
+  return [...options.values()];
 }

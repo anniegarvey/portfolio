@@ -40,6 +40,16 @@ export const DEFAULT_ZONES: ZoneConfig[] = [
   { id: "evening", name: "Evening", order: 2 },
 ];
 
+// Starter ideas for helpers; any helper used on an activity joins these options
+export const DEFAULT_HELPERS = [
+  "Soothing music",
+  "Soundscape",
+  "Audiobook",
+  "Upbeat music",
+  "Candle",
+  "Coffee",
+];
+
 export const EnergyLevelSchema = z.number().min(0).max(100);
 
 // EnergyCost is now a dynamic record based on configured energy types
@@ -93,6 +103,8 @@ export const ActivitySchema = z.object({
     .optional(),
   // The smallest action that counts as starting, e.g. "Open the laptop"
   firstStep: z.string().optional(),
+  // Things that make starting easier, e.g. "Audiobook" playing in the background
+  helpers: z.array(z.string()).optional(),
 });
 export type Activity = z.infer<typeof ActivitySchema>;
 

@@ -5,9 +5,11 @@ import type {
   ResolvedActivity,
   ZoneConfig,
 } from "./schema";
+import { DEFAULT_HELPERS } from "./schema";
 import {
   applyRepeatingDrag,
   filterActivities,
+  getHelperOptions,
   getReorderedItems,
   isHardToStart,
   sortRepeatingByZone,
@@ -442,5 +444,17 @@ describe("isHardToStart", () => {
     expect(isHardToStart(withDifficulty(5))).toBe(false);
     expect(isHardToStart(withDifficulty(6))).toBe(true);
     expect(isHardToStart(withDifficulty(10))).toBe(true);
+  });
+});
+
+describe("getHelperOptions", () => {
+  it("starts with the default ideas", () => {
+    expect(getHelperOptions([])).toEqual(DEFAULT_HELPERS);
+  });
+
+  it("adds helpers used before after the defaults, once each", () => {
+    expect(
+      getHelperOptions([" Podcast ", "coffee", "podcast", "", "Dog nearby"]),
+    ).toEqual([...DEFAULT_HELPERS, "Podcast", "Dog nearby"]);
   });
 });

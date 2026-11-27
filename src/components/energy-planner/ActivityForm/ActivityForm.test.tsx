@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { Mock } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as storageMock from "@/lib/energy-planner/storage";
@@ -147,6 +148,62 @@ describe("ActivityForm", () => {
           expect.objectContaining({
             title: "Tax return",
             firstStep: "Open the folder",
+          }),
+        ]),
+      );
+    });
+  });
+
+  it("saves chosen helpers, offering ones used on other activities", async () => {
+    const user = userEvent.setup();
+    (storageMock.fetchActivities as unknown as Mock).mockResolvedValue([
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        createdAt: new Date(),
+        title: "Ironing",
+        energyCost: { physical: 10 },
+        factors: {
+          initiationDifficulty: 1,
+          terminationDifficulty: 1,
+          isRestorative: false,
+        },
+        helpers: ["Podcast"],
+      },
+    ]);
+    render(<ActivityForm onClose={vi.fn()} />, { wrapper });
+
+    await waitFor(() => {
+      const button = screen.getByRole("button", {
+        name: /Add Activity/i,
+      }) as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Do Laundry/i), {
+      target: { value: "Tidy desk" },
+    });
+    await user.click(
+      screen.getByRole("button", { name: /What would help you start\?/ }),
+    );
+    await user.click(
+      await screen.findByRole("menuitemcheckbox", { name: "Podcast" }),
+    );
+    await user.click(
+      screen.getByRole("menuitemcheckbox", { name: "Upbeat music" }),
+    );
+    await user.keyboard("{Escape}");
+    await user.type(
+      screen.getByLabelText("Add your own helper"),
+      "Snack{Enter}",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Add Activity/i }));
+
+    await waitFor(() => {
+      expect(storageMock.storeActivities).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: "Tidy desk",
+            helpers: ["Podcast", "Upbeat music", "Snack"],
           }),
         ]),
       );
