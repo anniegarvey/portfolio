@@ -131,6 +131,7 @@ describe("creature sounds", () => {
     sounds.playCookSound();
     sounds.playBuySound();
     sounds.playLessonSound();
+    sounds.playFriendshipSound();
     expect(voices).toHaveLength(0);
   });
 
@@ -202,7 +203,7 @@ describe("reward sounds", () => {
     expect(audio.echoCount()).toBe(1);
   });
 
-  it("gives cooking, buying and lessons each a sound of their own", async () => {
+  it("gives cooking, buying, lessons and friendship each a sound of their own", async () => {
     const { voices } = stubAudio();
     const sounds = await loadSounds();
 
@@ -210,6 +211,7 @@ describe("reward sounds", () => {
       sounds.playCookSound,
       sounds.playBuySound,
       sounds.playLessonSound,
+      sounds.playFriendshipSound,
     ].map((play) => {
       voices.length = 0;
       play();
@@ -217,6 +219,6 @@ describe("reward sounds", () => {
     });
 
     expect(heard.every((sound) => sound !== "[]")).toBe(true);
-    expect(new Set(heard).size).toBe(3);
+    expect(new Set(heard).size).toBe(4);
   });
 });

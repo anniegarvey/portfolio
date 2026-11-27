@@ -1,5 +1,6 @@
 "use client";
 
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { keyframes, styled } from "next-yak";
 import {
@@ -110,7 +111,12 @@ const SPARK_PATH =
   "M5 0.5 L6.1 3.9 L9.5 5 L6.1 6.1 L5 9.5 L3.9 6.1 L0.5 5 L3.9 3.9 Z";
 
 export function GladeScene() {
-  const { state, celebration, gladeSceneRef } = useGlade();
+  const {
+    state,
+    celebration,
+    gladeSceneRef,
+    greetResident: greet,
+  } = useGlade();
   // Which resident is playing its greet animation (cleared when the animation
   // finishes).
   const [greetingId, setGreetingId] = useState<string | null>(null);
@@ -156,10 +162,38 @@ export function GladeScene() {
         : current,
     );
 
-  const greetResident = (residentId: string, speciesId: SpeciesId) => {
+  /*
+   * What a greet that counted towards friendship floats up, keyed like the
+   * bursts so a level-up replaces the note before it. `said` is what a screen
+   * reader hears, since the floating note itself is decoration.
+   */
+  const [notes, setNotes] = useState<
+    Record<string, { key: number; text: string }>
+  >({});
+  const [said, setSaid] = useState("");
+
+  const greetResident = (
+    residentId: string,
+    speciesId: SpeciesId,
+    displayName: string,
+  ) => {
     playCreatureSound(speciesId);
     setGreetingId(residentId);
     burstFrom(residentId);
+    const { counted, levelUp } = greet(residentId);
+    if (counted) {
+      const text =
+        levelUp === null ? "+1 friendship" : `Friendship level ${levelUp}!`;
+      setNotes((current) => ({
+        ...current,
+        [residentId]: { key: (current[residentId]?.key ?? 0) + 1, text },
+      }));
+      setSaid(
+        levelUp === null
+          ? `${displayName} is glad to see you.`
+          : `${displayName} reached friendship level ${levelUp}.`,
+      );
+    }
     // Both animations live on the same element and landing is authored last,
     // so greeting a resident mid-settle would otherwise do nothing visible.
     clearLanding(residentId);
@@ -261,7 +295,11 @@ export function GladeScene() {
                       setFocusedId((id) => (id === resident.id ? null : id))
                     }
                     onClick={() =>
-                      greetResident(resident.id, resident.speciesId)
+                      greetResident(
+                        resident.id,
+                        resident.speciesId,
+                        displayName,
+                      )
                     }
                     onFocus={() => setFocusedId(resident.id)}
                     onPointerEnter={() => setPointedId(resident.id)}
@@ -327,6 +365,14 @@ export function GladeScene() {
                         ))}
                       </Burst>
                     )}
+                    {notes[resident.id] !== undefined && (
+                      <FriendNote
+                        aria-hidden="true"
+                        key={`note-${notes[resident.id].key}`}
+                      >
+                        {notes[resident.id].text}
+                      </FriendNote>
+                    )}
                   </ResidentButton>
                 </ResidentAnchor>
               </ResidentSpot>
@@ -347,6 +393,10 @@ export function GladeScene() {
           <ChevronRight size={22} />
         </EastEdge>
       )}
+
+      <VisuallyHidden aria-live="polite" role="status">
+        {said}
+      </VisuallyHidden>
 
       {state.residents.length === 0 && (
         <EmptyMessage>
@@ -605,6 +655,42 @@ const burstFly = keyframes`
   0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
   20%  { opacity: 1; transform: translate(calc(var(--burst-x) * 0.45 - 50%), calc(var(--burst-y) * 0.45 - 50%)) scale(1.15) rotate(calc(var(--burst-turn) * 0.4)); }
   100% { opacity: 0; transform: translate(calc(var(--burst-x) - 50%), calc(var(--burst-y) - 50%)) scale(0.7) rotate(var(--burst-turn)); }
+`;
+
+const noteRise = keyframes`
+  0%   { opacity: 0; transform: translate(-50%, 4px) scale(0.8); }
+  15%  { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, -16px); }
+  100% { opacity: 0; transform: translate(-50%, -22px); }
+`;
+
+const noteFade = keyframes`
+  0%, 75% { opacity: 1; }
+  100%    { opacity: 0; }
+`;
+
+/** A greet that counted, said in a small pill rising over the creature. */
+const FriendNote = styled.span`
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: light-dark(#a3245a, #ffd1e3);
+  background: light-dark(#fff0f6, #4a2a3a);
+  box-shadow: 0 1px 4px
+    color-mix(in oklch, var(--color-grey-900) 20%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  animation: ${noteRise} 1800ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: translate(-50%, -6px);
+    animation-name: ${noteFade};
+  }
 `;
 
 /** Over the creature, and never in the way of the press that caused it. */

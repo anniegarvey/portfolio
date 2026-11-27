@@ -3,9 +3,9 @@ import {
   MAX_TIER,
   PREFERENCE_SKILL,
   SKILL_UNLOCK_REQUIREMENT,
-  SPECIES,
   xpThresholdFor,
 } from "./catalog";
+import { roleStrength } from "./friendshipModule";
 import type { GladeState, PreferenceKind, SkillId } from "./schema";
 
 /** A skill is unlocked once its prerequisite (if any) reaches the required tier. */
@@ -19,16 +19,15 @@ export function isSkillUnlocked(state: GladeState, skillId: SkillId): boolean {
  * Grants XP to a skill, clamped at the current tier's threshold (the bar
  * waits full until a lesson is bought). Each muse resident grants +1 bonus
  * XP per action — they stack, so all three muses quadruple XP gains.
+ * Friendship makes each muse count for a little more (friendshipModule).
  */
 export function gainXp(state: GladeState, skillId: SkillId): GladeState {
   const skill = state.skills[skillId];
   const threshold = xpThresholdFor(skill.tier);
   if (threshold === null) return state; // max tier
 
-  const museCount = state.residents.filter(
-    (r) => SPECIES[r.speciesId].benefitRole === "muse",
-  ).length;
-  const xp = Math.min(skill.xp + 1 + museCount, threshold);
+  const museBonus = Math.round(roleStrength(state, "muse"));
+  const xp = Math.min(skill.xp + 1 + museBonus, threshold);
   return {
     ...state,
     skills: { ...state.skills, [skillId]: { ...skill, xp } },

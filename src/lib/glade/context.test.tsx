@@ -16,6 +16,7 @@ import type { GladeState } from "./schema";
 import {
   playBuySound,
   playCookSound,
+  playFriendshipSound,
   playLessonSound,
   playTameSound,
   playTrustSound,
@@ -157,6 +158,18 @@ function GladeDebug() {
       </button>
       <button onClick={() => ctx.clearCelebration()} type="button">
         Clear Celebration
+      </button>
+      <span data-testid="friendship">
+        {ctx.state.residents[0]?.friendship ?? 0}
+      </span>
+      <button
+        onClick={() => {
+          const resident = ctx.state.residents[0];
+          if (resident) ctx.greetResident(resident.id);
+        }}
+        type="button"
+      >
+        Greet
       </button>
       <button onClick={() => ctx.clearTamedVisitor()} type="button">
         Clear Tamed Visitor
@@ -634,6 +647,47 @@ describe("GladeProvider", () => {
     const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "{}");
     expect(stored.residents).toEqual([]);
     expect(stored.skills["treat-cooking"]).toEqual({ tier: 1, xp: 0 });
+  });
+
+  describe("friendship", () => {
+    const rabbit = {
+      id: "00000000-0000-4000-8000-000000000060",
+      speciesId: "rabbit",
+      tamedDate: TODAY,
+      position: { x: 30, y: 70 },
+    };
+
+    it("counts one greet a day towards a resident's friendship, and saves it", async () => {
+      seedLocalStorage({ residents: [rabbit] });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("friendship");
+
+      await user.click(screen.getByRole("button", { name: "Greet" }));
+      await user.click(screen.getByRole("button", { name: "Greet" }));
+
+      expect(screen.getByTestId("friendship")).toHaveTextContent("1");
+      const stored = JSON.parse(localStorage.getItem(GLADE_KEY) ?? "{}");
+      expect(stored.residents[0].friendship).toBe(1);
+      expect(stored.residents[0].lastGreetedDate).toBe(TODAY);
+      expect(playFriendshipSound).not.toHaveBeenCalled();
+    });
+
+    it("plays the friendship chime when a greet reaches a new level", async () => {
+      seedLocalStorage({
+        residents: [
+          { ...rabbit, friendship: 1, lastGreetedDate: "2020-01-01" },
+        ],
+      });
+      const user = userEvent.setup();
+      renderGlade();
+      await screen.findByTestId("friendship");
+
+      await user.click(screen.getByRole("button", { name: "Greet" }));
+
+      expect(screen.getByTestId("friendship")).toHaveTextContent("2");
+      expect(playFriendshipSound).toHaveBeenCalledOnce();
+    });
   });
 
   describe("reward sounds", () => {

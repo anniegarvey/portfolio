@@ -24,6 +24,7 @@ import {
   missingIngredientsCost,
 } from "./cookingModule";
 import * as extras from "./extrasModule";
+import { greetResident } from "./friendshipModule";
 import { advanceGladeDay, type DailyGladeReport } from "./gladeEngine";
 import {
   canRestart,
@@ -44,6 +45,7 @@ import { buyLesson, canBuyLesson, nextLessonCost } from "./skillsModule";
 import {
   playBuySound,
   playCookSound,
+  playFriendshipSound,
   playLessonSound,
   playTameSound,
   playTrustSound,
@@ -107,6 +109,14 @@ export interface GladeContextType {
   clearTamedVisitor: () => void;
   /** Gives a resident a personal name. Trimmed; empty names are ignored. */
   nameResident: (residentId: string, name: string) => void;
+  /**
+   * Greets a resident. The first greet each day counts towards its
+   * friendship; says whether it counted and the level it reached, if any.
+   */
+  greetResident: (residentId: string) => {
+    counted: boolean;
+    levelUp: number | null;
+  };
   /**
    * Ref for the whole glade inside GladeScene (wider than the screen; its
    * parent is the view that scrolls it) — used to calculate resident pixel
@@ -389,6 +399,16 @@ export function GladeProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  const handleGreetResident = useCallback(
+    (residentId: string) => {
+      const result = greetResident(state, residentId, getTodayDateString());
+      if (result.counted) setState(() => result.state);
+      if (result.levelUp !== null) playFriendshipSound();
+      return { counted: result.counted, levelUp: result.levelUp };
+    },
+    [state, setState],
+  );
+
   const handleBuyLesson = useCallback(
     (skillId: SkillId): boolean => {
       if (!canBuyLesson(state, skillId)) return false;
@@ -467,6 +487,7 @@ export function GladeProvider({ children }: { children: ReactNode }) {
         tamedResidentId,
         clearTamedVisitor,
         nameResident: handleNameResident,
+        greetResident: handleGreetResident,
         gladeSceneRef,
         offerTreat: handleOfferTreat,
         approachVisitor: handleApproachVisitor,

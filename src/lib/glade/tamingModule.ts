@@ -6,6 +6,7 @@ import {
   SPECIES,
   tameThresholdFor,
 } from "./catalog";
+import { roleStrength } from "./friendshipModule";
 import type {
   GladeState,
   PetSpot,
@@ -253,12 +254,10 @@ export function approachVisitor(
   if (!visitor || visitor.actionsToday.approach) return noAction(state);
 
   const matched = SPECIES[visitor.speciesId].preferredPosture === posture;
-  const heralds = state.residents.filter(
-    (r) => SPECIES[r.speciesId].benefitRole === "herald",
-  ).length;
+  const heralds = roleStrength(state, "herald");
   const gain =
     approachTrustGain(state.skills["body-language"].tier, matched) +
-    (matched ? heralds * HERALD_TRUST_BONUS : 0);
+    (matched ? Math.round(heralds * HERALD_TRUST_BONUS) : 0);
 
   const tried = recordAttempt(state, visitor.speciesId, "posture", posture);
   const discovered = matched
@@ -287,12 +286,10 @@ export function petVisitor(
   if (!visitor || visitor.actionsToday.pet) return noAction(state);
 
   const matched = SPECIES[visitor.speciesId].preferredPetSpot === spot;
-  const heralds = state.residents.filter(
-    (r) => SPECIES[r.speciesId].benefitRole === "herald",
-  ).length;
+  const heralds = roleStrength(state, "herald");
   const gain =
     petTrustGain(state.skills["petting-technique"].tier, matched) +
-    (matched ? heralds * HERALD_TRUST_BONUS : 0);
+    (matched ? Math.round(heralds * HERALD_TRUST_BONUS) : 0);
 
   const tried = recordAttempt(state, visitor.speciesId, "petSpot", spot);
   const discovered = matched

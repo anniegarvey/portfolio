@@ -116,6 +116,13 @@ export const ResidentSchema = z.object({
   name: z.string().min(1).max(24).optional(),
   tamedDate: z.string(),
   position: GladePositionSchema,
+  /**
+   * Greets counted towards friendship, one a day at most. The level comes
+   * from this (see friendshipModule). Optional so older saves still parse.
+   */
+  friendship: z.number().int().min(0).optional(),
+  /** The day this resident's greet last counted. */
+  lastGreetedDate: z.string().optional(),
 });
 export type Resident = z.infer<typeof ResidentSchema>;
 

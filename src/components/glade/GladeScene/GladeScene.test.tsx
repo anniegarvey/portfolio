@@ -142,6 +142,48 @@ describe("GladeScene", () => {
     expect(rabbitButton.querySelector('[data-greeting="true"]')).toBeNull();
   });
 
+  it("floats up a note when a greet counts towards friendship", async () => {
+    const greetResident = vi
+      .fn()
+      .mockReturnValueOnce({ counted: true, levelUp: null })
+      .mockReturnValueOnce({ counted: false, levelUp: null });
+    mockGlade({ greetResident });
+    const user = userEvent.setup();
+    render(<GladeScene />);
+    const rabbitButton = screen.getByRole("button", {
+      name: "Rabbit — Forager",
+    });
+
+    await user.click(rabbitButton);
+    expect(greetResident).toHaveBeenCalledWith(rabbit.id);
+    expect(screen.getByText("+1 friendship")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Rabbit is glad to see you.",
+    );
+
+    // A greet that didn't count leaves the note as it was.
+    await user.click(rabbitButton);
+    expect(screen.getAllByText("+1 friendship")).toHaveLength(1);
+  });
+
+  it("says so when a greet reaches a new friendship level", async () => {
+    mockGlade({
+      greetResident: vi.fn().mockReturnValue({ counted: true, levelUp: 3 }),
+    });
+    const user = userEvent.setup();
+    render(<GladeScene />);
+
+    await user.click(screen.getByRole("button", { name: "Rusty — Beacon" }));
+
+    expect(screen.getByText("Friendship level 3!")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Rusty reached friendship level 3.",
+    );
+  });
+
   it("throws a burst of hearts and twinkles off a greeted resident, and again on the next tap", async () => {
     const user = userEvent.setup();
     render(<GladeScene />);

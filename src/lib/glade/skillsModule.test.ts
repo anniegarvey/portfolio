@@ -54,6 +54,22 @@ describe("gainXp", () => {
     expect(next.skills["body-language"].xp).toBe(2);
   });
 
+  it("a muse at friendship level 5 grants one more bonus XP", () => {
+    const state = makeGladeState({
+      residents: [
+        {
+          id: "00000000-0000-4000-8000-000000000002",
+          speciesId: "owl", // muse
+          tamedDate: "2026-06-01",
+          position: { x: 50, y: 50 },
+          friendship: 62, // level 5: 1.5 muses, rounded
+        },
+      ],
+    });
+    const next = gainXp(state, "body-language");
+    expect(next.skills["body-language"].xp).toBe(3);
+  });
+
   it("muse bonuses stack: each muse adds +1 XP per action", () => {
     const state = makeGladeState({
       residents: [

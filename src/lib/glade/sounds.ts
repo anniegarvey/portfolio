@@ -294,6 +294,13 @@ const LESSON: Tone[] = [
   { at: 0.27, dur: 0.6, from: 1568, wave: "sine", gain: 0.03 },
 ];
 
+/** A friendship grown: a short, dreamy music-box tune ending on a soft bell. */
+const FRIENDSHIP: Tone[] = [
+  ...run([784, 988, 1175, 988], 0.16, { dur: 0.3, wave: "sine", gain: 0.055 }),
+  { at: 0.66, dur: 0.8, from: 1568, wave: "sine", gain: 0.05 },
+  { at: 0.66, dur: 0.8, from: 3136, wave: "sine", gain: 0.015 },
+];
+
 /**
  * Plays a species' call. No two calls come out quite the same: each is
  * nudged up or down by a few percent, the way a real animal never repeats
@@ -333,4 +340,8 @@ export function playBuySound(): void {
 
 export function playLessonSound(): void {
   play(LESSON, { echo: true });
+}
+
+export function playFriendshipSound(): void {
+  play(FRIENDSHIP, { echo: true });
 }

@@ -6,8 +6,15 @@ import { Button } from "@/components/Button";
 import { CreatureSVG } from "@/components/glade/CreatureSVG";
 import { ResidentNameForm } from "@/components/glade/ResidentNameForm";
 import { RoleBadge } from "@/components/glade/RoleBadge";
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, SPECIES } from "@/lib/glade/catalog";
+import { getTodayDateString } from "@/lib/date";
+import {
+  FRIENDSHIP_BOOST_PER_LEVEL,
+  ROLE_DESCRIPTIONS,
+  ROLE_LABELS,
+  SPECIES,
+} from "@/lib/glade/catalog";
 import { useGlade } from "@/lib/glade/context";
+import { friendshipOf, wasGreetedToday } from "@/lib/glade/friendshipModule";
 import type { Resident } from "@/lib/glade/schema";
 
 function formatTamedDate(dateString: string): string {
@@ -44,6 +51,8 @@ export function ResidentDetail({ resident }: ResidentDetailProps) {
 
   const species = SPECIES[resident.speciesId];
   const role = species.benefitRole;
+  const friendship = friendshipOf(resident);
+  const boost = Math.round(friendship.level * FRIENDSHIP_BOOST_PER_LEVEL * 100);
 
   return (
     <Layout>
@@ -63,6 +72,30 @@ export function ResidentDetail({ resident }: ResidentDetailProps) {
             <strong>{ROLE_LABELS[role]}</strong> — {ROLE_DESCRIPTIONS[role]}
           </span>
         </Benefit>
+        <Friendship>
+          <FriendshipHeading>
+            <span aria-hidden="true">♥</span> Friendship level{" "}
+            {friendship.level}
+            {boost > 0 && (
+              <Boost>
+                {" "}
+                · {ROLE_LABELS[role]} {boost}% stronger
+              </Boost>
+            )}
+          </FriendshipHeading>
+          <FriendshipBar
+            aria-label={`Friendship towards level ${friendship.level + 1}`}
+            max={friendship.needed}
+            value={friendship.progress}
+          />
+          <FriendshipNote>
+            {friendship.progress} of {friendship.needed} daily greets to level{" "}
+            {friendship.level + 1}.{" "}
+            {wasGreetedToday(resident, getTodayDateString())
+              ? "Greeted today."
+              : "Tap them in the glade to say hello."}
+          </FriendshipNote>
+        </Friendship>
         {renaming ? (
           <ResidentNameForm
             autoFocus
@@ -125,6 +158,53 @@ const Meta = styled.p`
   margin: 0;
   font-size: 0.8rem;
   text-transform: capitalize;
+  color: light-dark(var(--color-grey-600), var(--color-grey-400));
+`;
+
+const Friendship = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+`;
+
+const FriendshipHeading = styled.p`
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: light-dark(#a3245a, #ffb3d0);
+`;
+
+const Boost = styled.span`
+  font-weight: 400;
+  color: light-dark(var(--color-grey-700), var(--color-grey-300));
+`;
+
+const FriendshipBar = styled.progress`
+  width: 100%;
+  height: 0.5rem;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  overflow: hidden;
+  background: light-dark(#f6dbe6, #3b2731);
+
+  &::-webkit-progress-bar {
+    background: light-dark(#f6dbe6, #3b2731);
+  }
+  &::-webkit-progress-value {
+    background: light-dark(#e8558a, #ff8fb8);
+    border-radius: 999px;
+  }
+  &::-moz-progress-bar {
+    background: light-dark(#e8558a, #ff8fb8);
+    border-radius: 999px;
+  }
+`;
+
+const FriendshipNote = styled.p`
+  margin: 0;
+  font-size: 0.8rem;
   color: light-dark(var(--color-grey-600), var(--color-grey-400));
 `;
 

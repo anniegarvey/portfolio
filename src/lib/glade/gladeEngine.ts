@@ -11,6 +11,7 @@ import {
   tameThresholdFor,
 } from "./catalog";
 import { addIngredient } from "./cookingModule";
+import { roleStrength, rollAmount, strengthOf } from "./friendshipModule";
 import type {
   GladeState,
   IngredientId,
@@ -46,12 +47,6 @@ export interface AdvanceResult {
   report: DailyGladeReport | null;
 }
 
-function countRole(state: GladeState, role: string): number {
-  return state.residents.filter(
-    (r) => SPECIES[r.speciesId].benefitRole === role,
-  ).length;
-}
-
 /**
  * Species eligible to visit: any species not already a resident. Yesterday's
  * visitors stay eligible — returning is how multi-day tames progress.
@@ -71,8 +66,11 @@ function visitWeights(
   state: GladeState,
   candidates: SpeciesId[],
 ): (id: SpeciesId) => number {
-  const beacons = countRole(state, "beacon");
-  const shift = Math.min(beacons * BEACON_RARE_BONUS, RARITY_WEIGHTS.common);
+  const beacons = roleStrength(state, "beacon");
+  const shift = Math.min(
+    Math.round(beacons * BEACON_RARE_BONUS),
+    RARITY_WEIGHTS.common,
+  );
   const rarityWeights: Record<Rarity, number> = {
     common: RARITY_WEIGHTS.common - shift,
     uncommon: RARITY_WEIGHTS.uncommon,
@@ -176,7 +174,9 @@ export function advanceGladeDay(
     if (v.trust > 0) speciesTrust[v.speciesId] = v.trust;
   }
 
-  const sootheBonus = countRole(state, "soother") * SOOTHE_TRUST_PER_DAY;
+  const sootheBonus = Math.round(
+    roleStrength(state, "soother") * SOOTHE_TRUST_PER_DAY,
+  );
   let next: GladeState = {
     ...state,
     lastAdvanceDate: today,
@@ -193,9 +193,13 @@ export function advanceGladeDay(
   const foragers = state.residents.filter(
     (r) => SPECIES[r.speciesId].benefitRole === "forager",
   );
+  // Friendship gives each a chance of gathering more (see rollAmount).
   for (const forager of foragers) {
     const pool = FORAGE_POOLS[SPECIES[forager.speciesId].rarity];
-    gather(forager.id, pool[Math.floor(rng() * pool.length)]);
+    const count = rollAmount(strengthOf(forager), rng);
+    for (let i = 0; i < count; i++) {
+      gather(forager.id, pool[Math.floor(rng() * pool.length)]);
+    }
   }
 
   // Wellspring residents produce two ingredients per day from the full pool.
@@ -203,14 +207,13 @@ export function advanceGladeDay(
     (r) => SPECIES[r.speciesId].benefitRole === "wellspring",
   );
   for (const wellspring of wellsprings) {
-    gather(
-      wellspring.id,
-      ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)],
-    );
-    gather(
-      wellspring.id,
-      ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)],
-    );
+    const count = rollAmount(2 * strengthOf(wellspring), rng);
+    for (let i = 0; i < count; i++) {
+      gather(
+        wellspring.id,
+        ALL_INGREDIENT_IDS[Math.floor(rng() * ALL_INGREDIENT_IDS.length)],
+      );
+    }
   }
 
   const visitorSpeciesIds = pickDailyVisitors(next, rng);

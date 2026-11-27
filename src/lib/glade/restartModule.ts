@@ -1,8 +1,10 @@
 import {
   RESTART_BONUS_BY_RARITY,
+  RESTART_BONUS_PER_FRIENDSHIP_LEVEL,
   RESTART_MIN_RESIDENTS,
   SPECIES,
 } from "./catalog";
+import { totalFriendshipLevels } from "./friendshipModule";
 import type { GladeState } from "./schema";
 
 /**
@@ -20,11 +22,18 @@ export function canRestart(state: GladeState): boolean {
   return residentsUntilRestart(state) === 0;
 }
 
-/** What restarting now adds to the points multiplier, in percent. */
+/**
+ * What restarting now adds to the points multiplier, in percent: each
+ * resident by its rarity, plus every friendship level made with them.
+ * Friendship goes with the residents, so it starts over too.
+ */
 export function restartBonusPercent(state: GladeState): number {
-  return state.residents.reduce(
+  const rarity = state.residents.reduce(
     (sum, r) => sum + RESTART_BONUS_BY_RARITY[SPECIES[r.speciesId].rarity],
     0,
+  );
+  return (
+    rarity + totalFriendshipLevels(state) * RESTART_BONUS_PER_FRIENDSHIP_LEVEL
   );
 }
 
