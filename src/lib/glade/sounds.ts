@@ -294,12 +294,11 @@ const LESSON: Tone[] = [
   { at: 0.27, dur: 0.6, from: 1568, wave: "sine", gain: 0.03 },
 ];
 
-/** A friendship grown: two soft rising pairs, like a happy purr of notes. */
+/** A friendship grown: a short, dreamy music-box tune ending on a soft bell. */
 const FRIENDSHIP: Tone[] = [
-  { at: 0, dur: 0.16, from: 659, wave: "sine", gain: 0.06 },
-  { at: 0.12, dur: 0.22, from: 880, wave: "sine", gain: 0.06 },
-  { at: 0.3, dur: 0.16, from: 784, wave: "triangle", gain: 0.05 },
-  { at: 0.42, dur: 0.55, from: 1047, wave: "triangle", gain: 0.06, vibrato: 5 },
+  ...run([784, 988, 1175, 988], 0.16, { dur: 0.3, wave: "sine", gain: 0.055 }),
+  { at: 0.66, dur: 0.8, from: 1568, wave: "sine", gain: 0.05 },
+  { at: 0.66, dur: 0.8, from: 3136, wave: "sine", gain: 0.015 },
 ];
 
 /**
