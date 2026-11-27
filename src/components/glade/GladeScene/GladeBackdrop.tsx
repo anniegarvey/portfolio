@@ -1109,26 +1109,30 @@ function Pond() {
             "--wander-period": "12s",
           })}
         >
-          <FlapAcross style={vars({ "--flap-period": "0.14s" })}>
-            <ellipse
-              cx={-2.6}
-              cy={-0.4}
-              rx={2.6}
-              ry={0.7}
-              style={{
-                fill: ld("rgba(210,240,255,0.85)", "rgba(160,190,220,0.4)"),
-              }}
-            />
-            <ellipse
-              cx={2.6}
-              cy={-0.4}
-              rx={2.6}
-              ry={0.7}
-              style={{
-                fill: ld("rgba(210,240,255,0.85)", "rgba(160,190,220,0.4)"),
-              }}
-            />
-          </FlapAcross>
+          {/* Seen from above, the wings stand out either side of the body
+              and beat towards it: drawn along x, then turned a quarter so
+              the squash runs across the body, not along it. */}
+          <g transform="rotate(90)">
+            <FlapAcross style={vars({ "--flap-period": "0.14s" })}>
+              {[
+                { cx: -2.8, cy: 0, rx: 2.8, ry: 0.65 },
+                { cx: 2.8, cy: 0, rx: 2.8, ry: 0.65 },
+                { cx: -2.5, cy: -1.4, rx: 2.5, ry: 0.6 },
+                { cx: 2.5, cy: -1.4, rx: 2.5, ry: 0.6 },
+              ].map((w) => (
+                <ellipse
+                  cx={w.cx}
+                  cy={w.cy}
+                  key={`${w.cx}-${w.cy}`}
+                  rx={w.rx}
+                  ry={w.ry}
+                  style={{
+                    fill: ld("rgba(210,240,255,0.85)", "rgba(160,190,220,0.4)"),
+                  }}
+                />
+              ))}
+            </FlapAcross>
+          </g>
           <rect
             height={1}
             rx={0.5}
@@ -1279,6 +1283,7 @@ function Wisp({
   period: number;
   offset: number;
 }) {
+  const glowId = useId();
   return (
     <svg aria-hidden="true" viewBox="-10 -10 20 20">
       <Wander
@@ -1300,17 +1305,25 @@ function Wisp({
             "--glimmer-offset": `${offset}s`,
           })}
         >
-          <circle
-            cx={0}
-            cy={0}
-            r={5}
-            style={{
-              fill: ld(
-                "transparent",
-                `color-mix(in srgb, ${dark} 28%, transparent)`,
-              ),
-            }}
-          />
+          {/* The glow fades out into the dusk rather than ending at an edge */}
+          <defs>
+            <radialGradient id={glowId}>
+              <stop
+                offset="0%"
+                style={{
+                  stopColor: ld(
+                    "transparent",
+                    `color-mix(in srgb, ${dark} 45%, transparent)`,
+                  ),
+                }}
+              />
+              <stop
+                offset="100%"
+                style={{ stopColor: ld("transparent", dark), stopOpacity: 0 }}
+              />
+            </radialGradient>
+          </defs>
+          <circle cx={0} cy={0} fill={`url(#${glowId})`} r={7} />
           <path d={twinklePath(0, 0, 2.6)} style={{ fill: ld(light, dark) }} />
         </Glimmer>
       </Wander>

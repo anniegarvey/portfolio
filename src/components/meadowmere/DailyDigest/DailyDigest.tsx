@@ -104,7 +104,8 @@ const Panel = styled.section`
   padding: 1rem;
   border-radius: 12px;
   background: light-dark(var(--color-grey-50), var(--color-grey-800));
-  border: 1px solid light-dark(var(--color-orange-300), var(--color-orange-800));
+  border: 1px solid
+    light-dark(var(--color-primary-300), var(--color-primary-700));
   animation: ${arrive} 320ms var(--ease-out) both;
 
   @media (prefers-reduced-motion: reduce) {
