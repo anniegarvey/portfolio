@@ -66,12 +66,12 @@ function run(cmd) {
  * auto-fixes are included in the commit rather than left unstaged.
  */
 function lintAndRestage(files) {
-  const codeFiles = files.filter(
-    (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
-  );
+  // Lint "skip" files too (visual specs, scripts): "skip" only means no tests
+  // run for them, and CI lints everything.
+  const codeFiles = files.filter((f) => /\.(ts|tsx|js|json|css)$/.test(f));
   if (codeFiles.length === 0) return;
   run(
-    `node scripts/timed-run.js biome pnpm exec biome check --error-on-warnings --fix ${codeFiles.join(" ")}`,
+    `node scripts/timed-run.js biome pnpm exec biome check --error-on-warnings --no-errors-on-unmatched --fix ${codeFiles.join(" ")}`,
   );
   run(`git add ${codeFiles.join(" ")}`);
   const tsFiles = codeFiles.filter((f) => /\.(ts|tsx)$/.test(f));
@@ -90,18 +90,44 @@ function runFullValidate() {
     "node scripts/timed-run.js biome pnpm exec biome check --error-on-warnings --fix",
   );
   run("node scripts/check-theme-tokens.mjs");
-  const stagedCodeFiles = staged.filter(
-    (f) => !matchesAny(f, map.skip) && /\.(ts|tsx|js|json|css)$/.test(f),
+  const stagedCodeFiles = staged.filter((f) =>
+    /\.(ts|tsx|js|json|css)$/.test(f),
   );
   if (stagedCodeFiles.length > 0) {
     run(`git add ${stagedCodeFiles.join(" ")}`);
   }
-  run(
-    `pnpm exec concurrently --kill-others-on-fail --names "tsc,test,e2e"` +
-      ` "node scripts/timed-run.js tsc pnpm exec tsc --noEmit"` +
-      ` "node scripts/timed-run.js vitest pnpm test"` +
-      ` "node scripts/timed-run.js playwright pnpm exec playwright test"`,
+  withDevServer(() =>
+    run(
+      `pnpm exec concurrently --kill-others-on-fail --names "tsc,test,e2e"` +
+        ` "node scripts/timed-run.js tsc pnpm exec tsc --noEmit"` +
+        ` "node scripts/timed-run.js vitest pnpm test"` +
+        ` "node scripts/timed-run.js playwright pnpm exec playwright test"`,
+    ),
   );
+}
+
+/**
+ * Starts the dev server (or reuses a running one) before `fn`, so tsc never
+ * races a fresh `next dev` wiping .next/dev/types, and stops it afterwards
+ * only if this run started it.
+ */
+function withDevServer(fn) {
+  const how = execSync("node scripts/dev-server.js", {
+    cwd: ROOT,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"],
+  }).trim();
+  try {
+    fn();
+  } finally {
+    const [state, pid] = how.split(" ");
+    if (state === "started") {
+      try {
+        process.kill(-Number(pid), "SIGTERM");
+      } catch {}
+      fs.rmSync(path.join(ROOT, ".next/dev/lock"), { force: true });
+    }
+  }
 }
 
 /** E2E dirs from every "areas" entry the file matches (empty if none). */
@@ -220,19 +246,19 @@ if (needsFullSuite) {
   process.exit(0);
 }
 
+// --- Scoped lint + restage (skipped files too, before any early exit) ---
+
+lintAndRestage(staged);
+
 // --- Nothing to validate (only skipped files staged) ---
 
 const hasVitest = vitestFiles.length > 0;
 const hasE2E = e2eDirs.size > 0;
 
 if (!(hasVitest || hasE2E)) {
-  console.log("Only non-code files staged — skipping validation.");
+  console.log("Only skipped files staged — no tests to run.");
   process.exit(0);
 }
-
-// --- Scoped lint + restage ---
-
-lintAndRestage(staged);
 
 // --- Build parallel commands ---
 
@@ -260,4 +286,9 @@ if (hasE2E) {
 
 const names = parallel.map((p) => p.name).join(",");
 const cmds = parallel.map((p) => `"${p.cmd}"`).join(" ");
-run(`pnpm exec concurrently --kill-others-on-fail --names "${names}" ${cmds}`);
+const validate = () =>
+  run(
+    `pnpm exec concurrently --kill-others-on-fail --names "${names}" ${cmds}`,
+  );
+if (hasE2E) withDevServer(validate);
+else validate();

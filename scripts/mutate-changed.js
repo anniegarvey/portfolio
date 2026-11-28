@@ -9,12 +9,18 @@
 // cached in reports/stryker-incremental.json, so re-runs only test mutants
 // whose code or tests changed. Scores are reported, not enforced: the script
 // only fails if Stryker itself errors.
+//
+// Data-only files (each game's sounds.ts tone tables) are left out: mutating
+// their numbers took up to 30 minutes and never led to a test change. Runs
+// stop after 10 minutes and say so, rather than holding up the PR.
 
 const { execSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
+const DATA_ONLY = /(^|\/)sounds\.ts$/;
+const TIME_LIMIT_MS = 10 * 60 * 1000;
 const base = process.argv[2] ?? "origin/main";
 
 const changed = execSync(
@@ -39,6 +45,7 @@ for (const file of changed) {
   }
   const source = file.replace(/\.test\.(ts|tsx)$/, ".$1");
   const test = source.replace(/\.(ts|tsx)$/, ".test.$1");
+  if (DATA_ONLY.test(source)) continue;
   if (
     fs.existsSync(path.join(ROOT, source)) &&
     fs.existsSync(path.join(ROOT, test))
@@ -71,8 +78,19 @@ const result = spawnSync(
     "--mutate",
     [...files].join(","),
   ],
-  { stdio: "inherit", cwd: ROOT },
+  {
+    stdio: "inherit",
+    cwd: ROOT,
+    timeout: TIME_LIMIT_MS,
+    killSignal: "SIGTERM",
+  },
 );
+if (result.error?.code === "ETIMEDOUT") {
+  report(
+    `Mutation testing stopped after ${TIME_LIMIT_MS / 60000} minutes, so there are no scores for: ${[...files].join(", ")}.`,
+  );
+  process.exit(0);
+}
 if (result.status !== 0) process.exit(result.status ?? 1);
 
 // Mutation score = detected / (detected + undetected), as Stryker counts it.
