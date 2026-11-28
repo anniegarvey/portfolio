@@ -246,10 +246,10 @@ describe("useAvailableActivities", () => {
       }),
     );
 
-    // Should not have fetched yet — still shows all as available
-    await waitFor(() => {
-      expect(result.current.availableActivities).toHaveLength(1);
-    });
+    // Nothing is read yet, so nothing counts as available (rather than
+    // everything, which would show planned one-offs on the ideas shelf)
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(result.current.availableActivities).toHaveLength(0);
   });
 
   it("ignores projected instances when computing scheduled state", async () => {

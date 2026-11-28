@@ -11,9 +11,16 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useMemo, useState } from "react";
 import { getTodayDateString, isToday } from "@/lib/date";
-import { getReorderedItems } from "@/lib/energy-planner/utils";
+import {
+  getReorderedItems,
+  IDEA_DRAG_PREFIX,
+} from "@/lib/energy-planner/utils";
+import { usePoints } from "@/lib/points/context";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
-import type { ResolvedActivity } from "../../../lib/energy-planner/schema";
+import type {
+  Activity,
+  ResolvedActivity,
+} from "../../../lib/energy-planner/schema";
 
 interface UseDayPlannerStateOptions {
   onOpenCreateActivity: (
@@ -55,6 +62,7 @@ export function useDayPlannerState({
     moveActivityToDate,
     dailyCapacity,
   } = useEnergyPlanner();
+  const { awardPoints } = usePoints();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isZoneManagerOpen, setIsZoneManagerOpen] = useState(false);
@@ -62,6 +70,7 @@ export function useDayPlannerState({
   const [activeResolved, setActiveResolved] = useState<ResolvedActivity | null>(
     null,
   );
+  const [activeIdea, setActiveIdea] = useState<Activity | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -153,21 +162,51 @@ export function useDayPlannerState({
     return findZoneForInstance(overId);
   };
 
+  const findIdea = (dragId: string) =>
+    dragId.startsWith(IDEA_DRAG_PREFIX)
+      ? availableActivities.find(
+          (a) => a.id === dragId.slice(IDEA_DRAG_PREFIX.length),
+        )
+      : undefined;
+
   const handleDragStart = (event: DragOverEvent) => {
+    const idea = findIdea(event.active.id as string);
+    if (idea) {
+      setActiveIdea(idea);
+      return;
+    }
     const resolved = resolvedActivities.find(
       ({ instance }) => instance.id === event.active.id,
     );
     if (resolved) setActiveResolved(resolved);
   };
 
+  // An idea dropped on a zone, or on an activity in it, joins that zone
+  const dropIdea = (idea: Activity, { active, over }: DragEndEvent) => {
+    const zoneId = over ? getTargetZoneId(over.id as string) : null;
+    if (!zoneId) return;
+    addToPlan(idea.id, zoneId, idea);
+    const rect = active.rect.current.translated;
+    if (rect) {
+      awardPoints(3, new DOMRect(rect.left, rect.top, rect.width, rect.height));
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveResolved(null);
+    setActiveIdea(null);
 
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
+
+    const idea = findIdea(activeId);
+    if (idea) {
+      dropIdea(idea, event);
+      return;
+    }
 
     const sourceZoneId = findZoneForInstance(activeId);
     const targetZoneId = getTargetZoneId(overId);
@@ -226,6 +265,7 @@ export function useDayPlannerState({
     isModalOpen,
     isZoneManagerOpen,
     activeResolved,
+    activeIdea,
     // Handlers
     sensors,
     handleOpenManageActivities,

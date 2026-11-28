@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnergyPlannerProvider } from "../../../lib/energy-planner/context";
@@ -37,7 +37,11 @@ describe("DayPlanner", () => {
       }: {
         children: React.ReactNode;
         onDragEnd: (event: {
-          active: { id: string; data?: { current?: unknown } };
+          active: {
+            id: string;
+            rect: { current: { translated: unknown } };
+            data?: { current?: unknown };
+          };
           over: { id: string } | null;
         }) => void;
         onDragStart?: (event: {
@@ -72,6 +76,11 @@ describe("DayPlanner", () => {
               onDragEnd({
                 active: {
                   id: activeId,
+                  rect: {
+                    current: {
+                      translated: { left: 0, top: 0, width: 10, height: 10 },
+                    },
+                  },
                   data: {
                     current: activeData ? JSON.parse(activeData) : undefined,
                   },
@@ -297,7 +306,11 @@ describe("DayPlanner with populated data", () => {
       expect(screen.getByText(/Warning:/)).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Selected Activity")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("selected-activities")).getByText(
+        "Selected Activity",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("renders multiple selected activities in sortable list", async () => {
@@ -401,7 +414,9 @@ describe("DayPlanner with populated data", () => {
 
     // Wait for the activity to appear in the modal (async state update)
     await waitFor(() => {
-      expect(screen.getByText("Available Activity")).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("dialog")).getByText("Available Activity"),
+      ).toBeInTheDocument();
     });
 
     // Click Add to day button
@@ -548,7 +563,9 @@ describe("DayPlanner with populated data", () => {
     await user.click(screen.getByText("Manage Activities"));
 
     await waitFor(() => {
-      expect(screen.getByText("Activity 1")).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("dialog")).getByText("Activity 1"),
+      ).toBeInTheDocument();
     });
 
     const buttons = screen.getAllByText("Drag");
@@ -757,7 +774,9 @@ describe("DayPlanner with populated data", () => {
     ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText("Available Activity")).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("dialog")).getByText("Available Activity"),
+      ).toBeInTheDocument();
     });
 
     await user.click(screen.getByLabelText("Add to day"));
@@ -1413,6 +1432,107 @@ describe("DayPlanner – wellness integration", () => {
         expect(screen.queryByText("Tax return")).not.toBeInTheDocument();
       });
       expect(screen.queryByText(/Moved/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("ideas shelf", () => {
+    const idea = {
+      id: "idea-1",
+      title: "Repot the monstera",
+      energyCost: {},
+      factors: {
+        initiationDifficulty: 0,
+        terminationDifficulty: 0,
+        isRestorative: false,
+      },
+      createdAt: new Date(),
+    };
+
+    async function renderWithIdea() {
+      await storeActivities([idea]);
+      render(
+        <PointsProvider>
+          <EnergyPlannerProvider>
+            <DayPlanner
+              onEditActivity={vi.fn()}
+              onOpenCreateActivity={vi.fn()}
+            />
+          </EnergyPlannerProvider>
+        </PointsProvider>,
+      );
+      await waitFor(() => {
+        expect(
+          within(screen.getByTestId("ideas-shelf")).getByText(
+            "Repot the monstera",
+          ),
+        ).toBeInTheDocument();
+      });
+    }
+
+    it("shows unplanned one-offs under the zones", async () => {
+      await renderWithIdea();
+      expect(
+        screen.getByRole("heading", { name: "Waiting to be planned (1)" }),
+      ).toBeInTheDocument();
+    });
+
+    it("draws the idea under the pointer while dragging", async () => {
+      const user = userEvent.setup();
+      await renderWithIdea();
+
+      const startBtn = screen.getByTestId("trigger-drag-start-default");
+      startBtn.setAttribute("data-active", "idea:idea-1");
+      await user.click(startBtn);
+
+      expect(screen.getByTestId("drag-overlay")).toHaveTextContent(
+        "Repot the monstera",
+      );
+    });
+
+    it("plans an idea dropped on a zone, in that zone", async () => {
+      const user = userEvent.setup();
+      await renderWithIdea();
+
+      const dragBtn = screen.getByTestId("trigger-drag-default");
+      dragBtn.setAttribute("data-active", "idea:idea-1");
+      dragBtn.setAttribute("data-over", "evening");
+      await user.click(dragBtn);
+
+      await waitFor(() => {
+        expect(
+          within(screen.getByTestId("zone-evening")).getByText(
+            "Repot the monstera",
+          ),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByRole("heading", { name: "Waiting to be planned (0)" }),
+      ).toBeInTheDocument();
+    });
+
+    it("leaves an idea on the shelf when dropped outside the zones", async () => {
+      const user = userEvent.setup();
+      await renderWithIdea();
+
+      const dragBtn = screen.getByTestId("trigger-drag-default");
+      dragBtn.setAttribute("data-active", "idea:idea-1");
+      dragBtn.setAttribute("data-over", "");
+      await user.click(dragBtn);
+
+      expect(
+        screen.getByRole("heading", { name: "Waiting to be planned (1)" }),
+      ).toBeInTheDocument();
+    });
+
+    it("isn't shown on past days", async () => {
+      const user = userEvent.setup();
+      await renderWithIdea();
+
+      await user.click(screen.getByRole("button", { name: /previous day/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("ideas-shelf")).not.toBeInTheDocument();
+      });
     });
   });
 });

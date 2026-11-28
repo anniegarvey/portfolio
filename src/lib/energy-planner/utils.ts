@@ -169,3 +169,66 @@ export function getHelperOptions(usedHelpers: string[]): string[] {
   }
   return [...options.values()];
 }
+
+// True when the planner runs as the installed app rather than in a browser tab
+export function isInstalledApp(): boolean {
+  return Boolean(window.matchMedia?.("(display-mode: standalone)").matches);
+}
+
+// ─── Ideas shelf ─────────────────────────────────────────────────────────────
+
+// Drag ids for ideas on the shelf, so they can't be mistaken for planned instances
+export const IDEA_DRAG_PREFIX = "idea:";
+
+export type IdeaSort =
+  | "newest"
+  | "oldest"
+  | "least-energy"
+  | "most-energy"
+  | `helper:${string}`;
+
+export function getTotalEnergy(activity: Activity): number {
+  return Object.values(activity.energyCost).reduce((sum, v) => sum + v, 0);
+}
+
+const createdTime = (activity: Activity) =>
+  new Date(activity.createdAt).getTime();
+
+// Ideas are unplanned one-off activities. A helper sort brings the ideas that
+// use that helper to the front; ties fall back to newest first.
+export function sortIdeas(ideas: Activity[], sort: IdeaSort): Activity[] {
+  const newest = (a: Activity, b: Activity) => createdTime(b) - createdTime(a);
+  const compare = (a: Activity, b: Activity): number => {
+    if (sort === "oldest") return -newest(a, b);
+    if (sort === "least-energy" || sort === "most-energy") {
+      const diff = getTotalEnergy(a) - getTotalEnergy(b);
+      return (sort === "least-energy" ? diff : -diff) || newest(a, b);
+    }
+    if (sort.startsWith("helper:")) {
+      const helper = sort.slice("helper:".length).toLowerCase();
+      const uses = (x: Activity) =>
+        x.helpers?.some((h) => h.toLowerCase() === helper) ? 0 : 1;
+      return uses(a) - uses(b) || newest(a, b);
+    }
+    return newest(a, b);
+  };
+  return [...ideas].sort(compare);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const localMidnight = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
+// How long an idea has been waiting, in calendar days, shown in the largest
+// whole unit that fits
+export function formatIdeaAge(createdAt: Date, now: Date): string {
+  const days = Math.round(
+    (localMidnight(now) - localMidnight(new Date(createdAt))) / DAY_MS,
+  );
+  if (days < 1) return "Today";
+  if (days < 14) return days === 1 ? "1 day" : `${days} days`;
+  if (days < 60) return `${Math.floor(days / 7)} weeks`;
+  if (days < 730) return `${Math.floor(days / 30)} months`;
+  return `${Math.floor(days / 365)} years`;
+}

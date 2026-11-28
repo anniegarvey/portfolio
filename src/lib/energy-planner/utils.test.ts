@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   Activity,
   EnergyTypeConfig,
@@ -9,9 +9,12 @@ import { DEFAULT_HELPERS } from "./schema";
 import {
   applyRepeatingDrag,
   filterActivities,
+  formatIdeaAge,
   getHelperOptions,
   getReorderedItems,
   isHardToStart,
+  isInstalledApp,
+  sortIdeas,
   sortRepeatingByZone,
   validateEnergyCapacity,
 } from "./utils";
@@ -456,5 +459,128 @@ describe("getHelperOptions", () => {
     expect(
       getHelperOptions([" Podcast ", "coffee", "podcast", "", "Dog nearby"]),
     ).toEqual([...DEFAULT_HELPERS, "Podcast", "Dog nearby"]);
+  });
+});
+
+describe("sortIdeas", () => {
+  const idea = (
+    id: string,
+    created: string,
+    energyCost: Record<string, number>,
+    helpers?: string[],
+  ): Activity => ({
+    id,
+    title: id,
+    createdAt: new Date(created),
+    energyCost,
+    factors: {
+      initiationDifficulty: 0,
+      terminationDifficulty: 0,
+      isRestorative: false,
+    },
+    helpers,
+  });
+  const ideas = [
+    idea("old", "2026-01-01", { physical: 10, social: 10 }),
+    idea("mid", "2026-02-01", { physical: 5 }, ["Audiobook"]),
+    idea("new", "2026-03-01", { physical: 40 }),
+    idea("same-energy", "2026-01-15", { executive: 20 }, ["audiobook"]),
+  ];
+  const ids = (list: Activity[]) => list.map((a) => a.id);
+
+  it("sorts newest first", () => {
+    expect(ids(sortIdeas(ideas, "newest"))).toEqual([
+      "new",
+      "mid",
+      "same-energy",
+      "old",
+    ]);
+  });
+
+  it("sorts oldest first", () => {
+    expect(ids(sortIdeas(ideas, "oldest"))).toEqual([
+      "old",
+      "same-energy",
+      "mid",
+      "new",
+    ]);
+  });
+
+  it("sorts by total energy, newest first on ties", () => {
+    expect(ids(sortIdeas(ideas, "least-energy"))).toEqual([
+      "mid",
+      "same-energy",
+      "old",
+      "new",
+    ]);
+    expect(ids(sortIdeas(ideas, "most-energy"))).toEqual([
+      "new",
+      "same-energy",
+      "old",
+      "mid",
+    ]);
+  });
+
+  it("brings ideas using a helper to the front, ignoring case", () => {
+    expect(ids(sortIdeas(ideas, "helper:Audiobook"))).toEqual([
+      "mid",
+      "same-energy",
+      "new",
+      "old",
+    ]);
+  });
+
+  it("does not change the list it was given", () => {
+    const copy = [...ideas];
+    sortIdeas(ideas, "oldest");
+    expect(ideas).toEqual(copy);
+  });
+});
+
+describe("formatIdeaAge", () => {
+  const now = new Date("2026-06-30T12:00:00");
+  const daysAgo = (n: number) =>
+    new Date(now.getTime() - n * 24 * 60 * 60 * 1000);
+
+  it.each([
+    [0, "Today"],
+    [1, "1 day"],
+    [13, "13 days"],
+    [14, "2 weeks"],
+    [59, "8 weeks"],
+    [60, "2 months"],
+    [729, "24 months"],
+    [730, "2 years"],
+  ])("%i days ago reads %s", (days, label) => {
+    expect(formatIdeaAge(daysAgo(days), now)).toBe(label);
+  });
+
+  it("counts calendar days, not 24-hour periods", () => {
+    expect(
+      formatIdeaAge(
+        new Date("2026-06-29T23:00:00"),
+        new Date("2026-06-30T08:00:00"),
+      ),
+    ).toBe("1 day");
+    expect(
+      formatIdeaAge(
+        new Date("2026-06-30T00:30:00"),
+        new Date("2026-06-30T23:30:00"),
+      ),
+    ).toBe("Today");
+  });
+});
+
+describe("isInstalledApp", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("is true only in the installed app's standalone window", () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(display-mode: standalone)",
+    }));
+    expect(isInstalledApp()).toBe(true);
+
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    expect(isInstalledApp()).toBe(false);
   });
 });

@@ -10,6 +10,8 @@ interface OneOffPlanningState {
   scheduledOneOffIds: Set<string>;
   /** Source activity IDs whose instance is marked completed in any day plan */
   completedOneOffIds: Set<string>;
+  /** False until the stored day plans have been read */
+  loaded: boolean;
 }
 
 function processInstance(
@@ -50,6 +52,7 @@ async function fetchOneOffPlanningState(
     uncompleted: [],
     scheduledOneOffIds: new Set<string>(),
     completedOneOffIds: new Set<string>(),
+    loaded: true,
   };
 
   const storedDates = await getAllStoredDates();
@@ -89,6 +92,7 @@ export function useAvailableActivities({
       uncompleted: [],
       scheduledOneOffIds: new Set<string>(),
       completedOneOffIds: new Set<string>(),
+      loaded: false,
     }),
   );
 
@@ -125,17 +129,22 @@ export function useAvailableActivities({
     });
   }, []);
 
+  // Until the day plans are read, every one-off would look unplanned and
+  // planned ones would flash up on the ideas shelf
   const availableActivities = useMemo(
     () =>
-      oneOffActivities.filter(
-        (a) =>
-          !(
-            planningState.scheduledOneOffIds.has(a.id) ||
-            planningState.completedOneOffIds.has(a.id)
-          ),
-      ),
+      planningState.loaded
+        ? oneOffActivities.filter(
+            (a) =>
+              !(
+                planningState.scheduledOneOffIds.has(a.id) ||
+                planningState.completedOneOffIds.has(a.id)
+              ),
+          )
+        : [],
     [
       oneOffActivities,
+      planningState.loaded,
       planningState.scheduledOneOffIds,
       planningState.completedOneOffIds,
     ],
@@ -143,6 +152,7 @@ export function useAvailableActivities({
 
   return {
     availableActivities,
+    planningStateLoaded: planningState.loaded,
     uncompletedActivities: planningState.uncompleted,
     scheduleActivity,
     unscheduleActivity,

@@ -15,6 +15,7 @@ interface ModalProps {
   description: string;
   showDescription?: boolean;
   onOpenAutoFocus?: (event: Event) => void;
+  onCloseAutoFocus?: (event: Event) => void;
   onEscapeKeyDown?: (event: KeyboardEvent) => void;
 }
 
@@ -30,6 +31,7 @@ export function Modal({
   description,
   showDescription,
   onOpenAutoFocus,
+  onCloseAutoFocus,
   onEscapeKeyDown,
 }: ModalProps) {
   return (
@@ -37,6 +39,7 @@ export function Modal({
       <Dialog.Portal>
         <Overlay />
         <Content
+          onCloseAutoFocus={onCloseAutoFocus}
           onEscapeKeyDown={onEscapeKeyDown}
           onInteractOutside={preventOutsideInteractions}
           onOpenAutoFocus={onOpenAutoFocus}

@@ -13,11 +13,13 @@ import { EnergyTypeManagerModal } from "../EnergyTypeManager";
 interface EnergyCapacityModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 export function EnergyCapacityModal({
   isOpen,
   onClose,
+  onCloseAutoFocus,
 }: EnergyCapacityModalProps) {
   const { dailyCapacity, setDailyCapacity, energyTypes, currentDate } =
     useEnergyPlanner();
@@ -46,6 +48,7 @@ export function EnergyCapacityModal({
       description={description}
       isOpen={isOpen}
       onClose={onClose}
+      onCloseAutoFocus={onCloseAutoFocus}
       showDescription={true}
       title="Daily Energy Capacity"
     >

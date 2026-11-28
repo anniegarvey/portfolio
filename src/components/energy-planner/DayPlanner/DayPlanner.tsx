@@ -3,7 +3,7 @@
 import { Coins, Leaf, Pencil, Plus, TreePine, X as XIcon } from "lucide-react";
 import Link from "next/link";
 import { styled } from "next-yak";
-import { use, useEffect, useState } from "react";
+import { type RefObject, use, useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { WellnessCheckCard } from "@/components/energy-planner/WellnessCheckCard";
 import { WellnessConfigModal } from "@/components/energy-planner/WellnessConfigModal";
@@ -14,6 +14,7 @@ import { isHardToStart } from "../../../lib/energy-planner/utils";
 import { AvailableActivitiesModal } from "../AvailableActivitiesModal";
 import { DateSelector } from "../DateSelector";
 import { DayPlannerSkeleton } from "../DayPlannerSkeleton";
+import { JotBox } from "../JotBox";
 import { RestorativeNudge } from "../RestorativeNudge";
 import { ZoneManagerModal } from "../ZoneManagerModal";
 import { EnergyUsageTable } from "./EnergyUsageTable";
@@ -29,6 +30,7 @@ interface DayPlannerProps {
     onCreatedWithType?: (type: "one-off" | "repeating") => void,
   ) => void;
   onOpenCapacityModal?: () => void;
+  jotBoxRef?: RefObject<HTMLInputElement | null>;
 }
 
 function WellnessSection({ onOpenConfig }: { onOpenConfig: () => void }) {
@@ -185,6 +187,7 @@ export function DayPlanner({
   onEditActivity,
   onOpenCreateActivity,
   onOpenCapacityModal,
+  jotBoxRef,
 }: DayPlannerProps) {
   const wellnessCtx = use(WellnessCheckContext);
 
@@ -219,6 +222,7 @@ export function DayPlanner({
     isModalOpen,
     isZoneManagerOpen,
     activeResolved,
+    activeIdea,
     sensors,
     handleOpenManageActivities,
     handleCloseModal,
@@ -278,6 +282,8 @@ export function DayPlanner({
         </ButtonGroup>
       </Header>
 
+      <JotBox inputRef={jotBoxRef} />
+
       <EnergyUsageTable
         dailyCapacity={dailyCapacity}
         energyTypes={energyTypes}
@@ -306,9 +312,11 @@ export function DayPlanner({
       ) : null}
 
       <PlannedActivitiesDndSection
+        activeIdea={activeIdea}
         activeResolved={activeResolved}
         activitiesByZone={activitiesByZone}
         dayContext={dayContext}
+        ideas={dayContext === "past" ? undefined : availableActivities}
         onAddActivity={handleOpenModalForZone}
         onDragEnd={handleDragEnd}
         onDragStart={handleDragStart}

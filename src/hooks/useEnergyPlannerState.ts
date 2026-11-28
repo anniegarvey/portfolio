@@ -75,6 +75,7 @@ export function useEnergyPlannerState() {
 
   const {
     availableActivities,
+    planningStateLoaded,
     uncompletedActivities,
     scheduleActivity,
     unscheduleActivity,
@@ -220,7 +221,11 @@ export function useEnergyPlannerState() {
   );
 
   const isLoading =
-    activitiesLoading || dayPlanLoading || typesLoading || zonesLoading;
+    activitiesLoading ||
+    dayPlanLoading ||
+    typesLoading ||
+    zonesLoading ||
+    !planningStateLoaded;
 
   return {
     oneOffActivities,
