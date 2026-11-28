@@ -12,6 +12,7 @@ const ROUTES = [
   { name: "project-bonsai", path: "/projects/bonsai" },
   { name: "project-one-anthem", path: "/projects/one-anthem" },
   { name: "project-windtp", path: "/projects/windtp" },
+  { name: "sound-check", path: "/sound-check" },
 ] as const;
 
 for (const { name, path } of ROUTES) {
