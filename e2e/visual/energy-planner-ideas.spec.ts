@@ -23,9 +23,7 @@ const idea = (
     isRestorative: false,
   },
   // Midday, so the age reads the same whenever the test runs
-  createdAt: new Date(
-    new Date(`${TODAY}T12:00:00`).getTime() - daysAgo * DAY,
-  ),
+  createdAt: new Date(new Date(`${TODAY}T12:00:00`).getTime() - daysAgo * DAY),
   helpers,
 });
 
