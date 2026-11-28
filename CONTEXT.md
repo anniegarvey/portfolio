@@ -49,6 +49,15 @@ An **Activity** whose start difficulty (`factors.initiationDifficulty`) is 6 or 
 **Helper**
 Something that makes starting an **Activity** easier, usually running in the background (e.g. "Audiobook", "Coffee"). An activity holds any number in `helpers`. The form offers the default ideas plus every helper used on any activity so far, and new ones can be typed in. The activity's card in the day plan lists its helpers, so activities sharing one can be planned back to back.
 
+**Idea**
+A **One-off activity** that hasn't been planned on any day yet. Often saved from the **Jot box** with only a title, with energy costs filled in later.
+
+**Jot box**
+The one-line field at the top of the day plan. Typing a title and pressing Enter saves it as an **Idea**. When the planner is opened (or returned to) as the installed app, the jot box takes focus.
+
+**Ideas shelf**
+The list of every **Idea** under the zones on today's and future day plans, showing how long each has waited. It can be sorted by age, total energy cost or a **Helper**. An idea is planned by dragging it into a **Zone**.
+
 **Uncompleted activity**
 A one-off activity that was planned on a past date but never marked complete. Surfaced across all stored day plans by `fetchOneOffPlanningState`.
 

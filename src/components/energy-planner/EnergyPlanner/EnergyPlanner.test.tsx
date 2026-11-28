@@ -22,13 +22,16 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
     onOpenCreateActivity,
     onEditActivity,
     onOpenCapacityModal,
+    jotBoxRef,
   }: {
     onOpenCreateActivity: () => void;
     onEditActivity: (activity: Activity) => void;
     onOpenCapacityModal: () => void;
+    jotBoxRef: React.RefObject<HTMLInputElement | null>;
   }) => (
     <div data-testid="day-planner">
       Day Planner
+      <input aria-label="Jot down an idea" ref={jotBoxRef} />
       <button
         data-testid="open-capacity-btn"
         onClick={onOpenCapacityModal}
@@ -65,17 +68,30 @@ vi.mock("@/components/energy-planner/DayPlanner", () => ({
     </div>
   ),
 }));
+let closeFocusEvent = new Event("focusout", { cancelable: true });
 vi.mock("@/components/energy-planner/EnergyCapacityModal", () => ({
   EnergyCapacityModal: ({
     isOpen,
     onClose,
+    onCloseAutoFocus,
   }: {
     isOpen: boolean;
     onClose: () => void;
+    onCloseAutoFocus: (event: Event) => void;
   }) =>
     isOpen ? (
       <div data-testid="energy-capacity-modal">
         Capacity Modal
+        <button
+          data-testid="capacity-close-focus"
+          onClick={() => {
+            closeFocusEvent = new Event("focusout", { cancelable: true });
+            onCloseAutoFocus(closeFocusEvent);
+          }}
+          type="button"
+        >
+          Close focus
+        </button>
         <button
           data-testid="close-capacity-btn"
           onClick={onClose}
@@ -194,6 +210,48 @@ describe("EnergyPlanner", () => {
     expect(
       screen.queryByTestId("energy-capacity-modal"),
     ).not.toBeInTheDocument();
+  });
+
+  test("in the installed app, closing the daily energy prompt focuses the jot box", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    (useEnergyPlanner as unknown as Mock).mockReturnValue({
+      currentDate: new Date().toISOString().split("T")[0],
+      dailyCapacity: { physical: 0, social: 0, executive: 0 },
+    });
+    render(<EnergyPlanner />);
+
+    fireEvent.click(screen.getByTestId("capacity-close-focus"));
+
+    expect(closeFocusEvent.defaultPrevented).toBe(true);
+    expect(screen.getByLabelText("Jot down an idea")).toHaveFocus();
+    vi.unstubAllGlobals();
+  });
+
+  test("closing the capacity modal opened from its button leaves focus alone", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    render(<EnergyPlanner />);
+    fireEvent.click(screen.getByTestId("open-capacity-btn"));
+
+    fireEvent.click(screen.getByTestId("capacity-close-focus"));
+
+    expect(screen.getByLabelText("Jot down an idea")).not.toHaveFocus();
+    expect(closeFocusEvent.defaultPrevented).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  test("in a browser tab, closing the daily energy prompt leaves focus alone", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    (useEnergyPlanner as unknown as Mock).mockReturnValue({
+      currentDate: new Date().toISOString().split("T")[0],
+      dailyCapacity: { physical: 0, social: 0, executive: 0 },
+    });
+    render(<EnergyPlanner />);
+
+    fireEvent.click(screen.getByTestId("capacity-close-focus"));
+
+    expect(screen.getByLabelText("Jot down an idea")).not.toHaveFocus();
+    expect(closeFocusEvent.defaultPrevented).toBe(false);
+    vi.unstubAllGlobals();
   });
 
   test("opens and closes activity modal", () => {

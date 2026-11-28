@@ -18,6 +18,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { css, styled } from "next-yak";
+import type { ReactNode } from "react";
 import { Button } from "@/components/Button";
 import { getNextDay } from "@/lib/date";
 import { useEnergyPlanner } from "../../../lib/energy-planner/context";
@@ -28,7 +29,7 @@ import type {
 import { isHardToStart } from "../../../lib/energy-planner/utils";
 import { usePoints } from "../../../lib/points/context";
 
-type DragHandleProps = {
+export type DragHandleProps = {
   listeners: DraggableSyntheticListeners;
   attributes: DraggableAttributes;
   ref: (node: HTMLElement | null) => void;
@@ -265,7 +266,8 @@ function MoveDropdown({
 }
 
 // ─── Available Activity Card ──────────────────────────────────────────────────
-// Used in AvailableActivitiesModal (unplanned activities list).
+// Used in AvailableActivitiesModal (unplanned activities list) and the ideas
+// shelf, which adds the helpers and how long the idea has waited.
 
 interface AvailableActivityCardProps {
   activity: Activity;
@@ -273,6 +275,9 @@ interface AvailableActivityCardProps {
   onAdd?: (activityId: string) => void;
   onDelete?: (activityId: string) => void;
   dragHandleProps?: DragHandleProps;
+  dragLabel?: string;
+  showHelpers?: boolean;
+  meta?: ReactNode;
 }
 
 export function AvailableActivityCard({
@@ -281,6 +286,9 @@ export function AvailableActivityCard({
   onAdd,
   onDelete,
   dragHandleProps,
+  dragLabel,
+  showHelpers,
+  meta,
 }: AvailableActivityCardProps) {
   const { energyTypes } = useEnergyPlanner();
   const { awardPoints } = usePoints();
@@ -291,7 +299,7 @@ export function AvailableActivityCard({
         <DragHandle
           {...dragHandleProps.listeners}
           {...dragHandleProps.attributes}
-          aria-label={`Reorder activity: ${activity.title}`}
+          aria-label={dragLabel ?? `Reorder activity: ${activity.title}`}
           ref={dragHandleProps.ref}
         >
           <GripVertical size={20} />
@@ -318,7 +326,9 @@ export function AvailableActivityCard({
               </Badge>
             );
           })}
+          {meta}
         </EnergyBadges>
+        {showHelpers ? <HelperList helpers={activity.helpers} /> : null}
       </ActivityContent>
       <Actions>
         {onDelete ? (
@@ -545,6 +555,7 @@ const RepeatBadge = styled.div`
 
 const EnergyBadges = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 `;
 

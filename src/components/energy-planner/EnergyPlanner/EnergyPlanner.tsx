@@ -3,7 +3,7 @@
 import { Heart } from "lucide-react";
 import Link from "next/link";
 import { styled } from "next-yak";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CreateActivity } from "@/components/energy-planner/CreateActivity";
 import { DayPlanner } from "@/components/energy-planner/DayPlanner";
 import { EnergyCapacityModal } from "@/components/energy-planner/EnergyCapacityModal";
@@ -16,6 +16,7 @@ import { usePushReminderSync } from "@/hooks/usePushReminderSync";
 import { isToday } from "@/lib/date";
 import { useEnergyPlanner } from "@/lib/energy-planner/context";
 import type { Activity } from "@/lib/energy-planner/schema";
+import { isInstalledApp } from "@/lib/energy-planner/utils";
 
 export function EnergyPlanner() {
   const {
@@ -45,6 +46,18 @@ export function EnergyPlanner() {
   >(undefined);
 
   const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
+  const jotBoxRef = useRef<HTMLInputElement>(null);
+  const capacityAutoOpened = useRef(false);
+
+  // In the installed app the day's first energy prompt often comes before the
+  // idea that prompted opening the app is jotted down
+  const handleCapacityModalCloseFocus = (event: Event) => {
+    const fromDailyPrompt = capacityAutoOpened.current;
+    capacityAutoOpened.current = false;
+    if (!(fromDailyPrompt && isInstalledApp() && jotBoxRef.current)) return;
+    event.preventDefault();
+    jotBoxRef.current.focus();
+  };
 
   const viewingToday = isToday(currentDate);
 
@@ -54,6 +67,7 @@ export function EnergyPlanner() {
 
     const hasCapacities = Object.values(dailyCapacity).some((val) => val > 0);
     if (!hasCapacities) {
+      capacityAutoOpened.current = true;
       setIsCapacityModalOpen(true);
     }
   }, [viewingToday, dailyCapacity, isLoading]);
@@ -104,6 +118,7 @@ export function EnergyPlanner() {
       <Layout>
         {/* DateSelector is now a property passed down or rendered inside DayPlanner per design */}
         <DayPlanner
+          jotBoxRef={jotBoxRef}
           onEditActivity={handleEditActivity}
           onOpenCapacityModal={() => setIsCapacityModalOpen(true)}
           onOpenCreateActivity={handleOpenCreate}
@@ -123,6 +138,7 @@ export function EnergyPlanner() {
           onClose={() => {
             setIsCapacityModalOpen(false);
           }}
+          onCloseAutoFocus={handleCapacityModalCloseFocus}
         />
       </Layout>
     </MaxWidthWrapper>
